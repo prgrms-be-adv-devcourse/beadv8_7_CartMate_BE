@@ -33,6 +33,7 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+	testImplementation platform('org.testcontainers:testcontainers-bom:1.19.8')
 	testImplementation "org.testcontainers:junit-jupiter"
 	testImplementation "org.testcontainers:mysql"
 }
