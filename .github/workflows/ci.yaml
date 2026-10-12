@@ -40,5 +40,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/beadv8_7_cartmate_be:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/beadv8_7_cartmate_be:latest
+          build-args: |
+            SPRING_PROFILES_ACTIVE=test
           cache-from: type=gha
           cache-to: type=gha,mode=max
