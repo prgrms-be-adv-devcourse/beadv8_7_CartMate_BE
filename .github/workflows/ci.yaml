@@ -38,7 +38,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/beadv8_7_CartMate_BE:${{ github.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/beadv8_7_CartMate_BE:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/beadv8_7_cartmate_be:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/beadv8_7_cartmate_be:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
