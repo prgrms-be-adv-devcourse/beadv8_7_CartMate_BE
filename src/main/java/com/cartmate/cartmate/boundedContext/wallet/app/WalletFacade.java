@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
-import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +17,7 @@ public class WalletFacade {
     }
 
     @Transactional(readOnly = true)
-    public Wallet getWallet(Long memberId) {
+    public WalletBalanceResponse getWallet(Long memberId) {
         return walletQueryUseCase.getWallet(memberId);
     }
 }
