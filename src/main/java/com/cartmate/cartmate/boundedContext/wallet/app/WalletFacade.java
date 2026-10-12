@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
+import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,9 +9,15 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class WalletFacade {
     private final WalletCreateUseCase walletCreateUseCase;
+    private final WalletQueryUseCase walletQueryUseCase;
 
     @Transactional
     public void createWallet(Long memberId) {
         walletCreateUseCase.createWallet(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public Wallet getWallet(Long memberId) {
+        return walletQueryUseCase.getWallet(memberId);
     }
 }
