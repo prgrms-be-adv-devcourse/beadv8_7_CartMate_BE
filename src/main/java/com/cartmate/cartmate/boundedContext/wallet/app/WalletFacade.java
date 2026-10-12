@@ -43,4 +43,9 @@ public class WalletFacade {
     public void use(Long walletId, Long amount) {
         walletPaymentUseCase.use(walletId, amount);
     }
+
+    @Transactional
+    public void refund(Long walletId, Long amount) {
+        walletPaymentUseCase.refund(walletId, amount);
+    }
 }

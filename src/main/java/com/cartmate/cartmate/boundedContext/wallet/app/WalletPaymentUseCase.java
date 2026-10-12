@@ -28,4 +28,18 @@ public class WalletPaymentUseCase {
 
         walletTransactionRepository.save(walletTransaction);
     }
+
+    public void refund(Long walletId, Long amount) {
+        Wallet wallet = walletRepository.findById(walletId)
+                .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
+
+        wallet.refund(amount);
+
+        WalletTransaction walletTransaction = WalletTransaction.create(
+                wallet, WalletTransactionType.REFUND, amount, wallet.getBalance(),
+                null, null
+        );
+
+        walletTransactionRepository.save(walletTransaction);
+    }
 }

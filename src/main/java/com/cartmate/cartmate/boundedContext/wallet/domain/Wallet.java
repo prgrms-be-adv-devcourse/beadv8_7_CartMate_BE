@@ -63,6 +63,14 @@ public class Wallet {
         this.balance -= amount;
     }
 
+    public void refund(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("환불금액은 0보다 커야 합니다.");
+        }
+
+        this.balance += amount;
+    }
+
     private Wallet(Long memberId) {
         this.memberId = memberId;
         this.balance = 0L;
