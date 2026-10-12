@@ -51,6 +51,18 @@ public class Wallet {
         this.balance += amount;
     }
 
+    public void use(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("사용 금액은 0보다 커야 합니다.");
+        }
+
+        if (this.balance < amount) {
+            throw new IllegalArgumentException("잔액이 부족합니다.");
+        }
+
+        this.balance -= amount;
+    }
+
     private Wallet(Long memberId) {
         this.memberId = memberId;
         this.balance = 0L;

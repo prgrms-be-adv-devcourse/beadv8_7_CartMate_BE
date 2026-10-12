@@ -67,6 +67,10 @@ public class WalletTransaction {
             throw new IllegalArgumentException("거래금액은 0이상이어야 합니다.");
         }
 
+        if (balanceAfter == null || balanceAfter < 0) {
+            throw new IllegalArgumentException("거래 후 잔액은 0이상이어야합니다.");
+        }
+
         WalletTransaction walletTransaction = new WalletTransaction();
 
         walletTransaction.wallet = wallet;

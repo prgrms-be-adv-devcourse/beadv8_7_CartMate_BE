@@ -14,6 +14,7 @@ public class WalletFacade {
     private final WalletCreateUseCase walletCreateUseCase;
     private final WalletQueryUseCase walletQueryUseCase;
     private final WalletChargeUseCase walletChargeUseCase;
+    private final WalletPaymentUseCase walletPaymentUseCase;
 
     @Transactional
     public void createWallet(Long memberId) {
@@ -36,5 +37,10 @@ public class WalletFacade {
     @Transactional
     public void charge(Long walletId, Long amount) {
         walletChargeUseCase.charge(walletId, amount);
+    }
+
+    @Transactional
+    public void use(Long walletId, Long amount) {
+        walletPaymentUseCase.use(walletId, amount);
     }
 }
