@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WalletFacade {
     private final WalletCreateUseCase walletCreateUseCase;
     private final WalletQueryUseCase walletQueryUseCase;
+    private final WalletChargeUseCase walletChargeUseCase;
 
     @Transactional
     public void createWallet(Long memberId) {
@@ -30,5 +31,10 @@ public class WalletFacade {
             Pageable pageable
     ) {
         return walletQueryUseCase.getTransactions(walletId, pageable);
+    }
+
+    @Transactional
+    public void charge(Long walletId, Long amount) {
+        walletChargeUseCase.charge(walletId, amount);
     }
 }

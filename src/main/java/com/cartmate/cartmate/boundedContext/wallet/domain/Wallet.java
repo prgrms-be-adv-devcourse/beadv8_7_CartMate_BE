@@ -43,6 +43,14 @@ public class Wallet {
         return new Wallet(memberId);
     }
 
+    public void charge(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
+        }
+
+        this.balance += amount;
+    }
+
     private Wallet(Long memberId) {
         this.memberId = memberId;
         this.balance = 0L;
