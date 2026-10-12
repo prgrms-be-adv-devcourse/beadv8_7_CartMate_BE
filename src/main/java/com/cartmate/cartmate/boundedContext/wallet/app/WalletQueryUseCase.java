@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
-import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransaction;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +23,8 @@ public class WalletQueryUseCase {
         return WalletBalanceResponse.from(wallet);
     }
 
-    public Page<WalletTransaction> getTransactions(Long walletId, Pageable pageable) {
-        return walletTransactionRepository.findByWalletIdOrderByCreatedAtDesc(walletId, pageable);
+    public Page<WalletTransactionResponse> getTransactions(Long walletId, Pageable pageable) {
+        return walletTransactionRepository.findByWalletIdOrderByCreatedAtDesc(walletId, pageable)
+                .map(WalletTransactionResponse::from);
     }
 }

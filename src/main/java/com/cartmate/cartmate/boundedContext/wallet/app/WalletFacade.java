@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
-import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransaction;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +25,7 @@ public class WalletFacade {
     }
 
     @Transactional(readOnly = true)
-    public Page<WalletTransaction> getTransactions(
+    public Page<WalletTransactionResponse> getTransactions(
             Long walletId,
             Pageable pageable
     ) {
