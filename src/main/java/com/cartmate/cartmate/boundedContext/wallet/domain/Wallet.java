@@ -34,4 +34,17 @@ public class Wallet {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public static Wallet createWallet(Long memberId) {
+        if (memberId == null) {
+            throw new IllegalArgumentException("회원 ID는 필수입니다.");
+        }
+
+        return new Wallet(memberId);
+    }
+
+    private Wallet(Long memberId) {
+        this.memberId = memberId;
+        this.balance = 0L;
+    }
 }
