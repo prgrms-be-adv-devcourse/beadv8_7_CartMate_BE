@@ -1,8 +1,12 @@
 package com.cartmate.cartmate.boundedContext.wallet.in;
 
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
+import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletChargeOrderRequest;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletChargeOrderResponse;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,9 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 @RestController
@@ -49,5 +51,18 @@ public class WalletController {
         return walletFacade.getTransactions(walletId, pageable);
     }
 
+    @PostMapping("/me/charges")
+    public ResponseEntity<WalletChargeOrderResponse> walletChargeOrder(
+            Authentication authentication,
+            @Valid @RequestBody WalletChargeOrderRequest chargeOrderRequest
+    ) {
+        Long memberId = Long.valueOf(authentication.getName());
 
+        WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
+
+        WalletChargeOrder chargeOrder = walletFacade.chargeOrder(
+                wallet.walletId(), chargeOrderRequest.amount());
+
+        return ResponseEntity.ok(WalletChargeOrderResponse.from(chargeOrder));
+    }
 }
