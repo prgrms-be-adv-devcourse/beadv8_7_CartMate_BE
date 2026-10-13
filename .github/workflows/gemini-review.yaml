@@ -1,0 +1,59 @@
+name: Gemini AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # PR에서 변경된 코드 차이점(Diff) 추출
+      - name: Get PR Diff
+        id: get_diff
+        run: |
+          git diff origin/${{ github.base_ref }}...origin/${{ github.head_ref }} > pr_diff.txt
+          echo "diff_empty=$(if [ -s pr_diff.txt ]; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
+
+      # Gemini API 호출 및 리뷰 파일 생성 (Gemini 2.5 Flash 사용)
+      - name: Request Gemini Review
+        if: steps.get_diff.outputs.diff_empty == 'false'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          PROMPT="너는 시니어 소프트웨어 엔지니어이자 코드 품질 전문가야. 아래의 Git Diff 내용을 보고, 1) 성능 병목 가능성(시간/공간 복잡도, DB 최적화 등), 2) 코드 가독성 및 아키텍처 개선사항, 3) 누락된 예외 처리나 엣지 케이스를 날카롭게 분석해줘. 사소한 문법 지적보다는 고도화 관점의 피드백과 함께 리팩터링된 개선 코드 스니펫을 마크다운 형식으로 작성해줘."
+          
+          # 파일 내용을 프롬프트와 함께 JSON으로 패킹하여 Gemini API 호출
+          cat <<EOF > payload.json
+          {
+            "contents": [{
+              "parts":[
+                {"text": "$PROMPT"},
+                {"text": "$(cat pr_diff.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')" }
+              ]
+            }]
+          }
+          EOF
+          
+          curl -X POST "https://googleapis.com{GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d @payload.json > response.json
+          
+          # 응답에서 텍스트만 추출하여 리뷰 파일 생성
+          jq -r '.candidates[0].content.parts[0].text' response.json > review_result.md
+
+      # 리뷰 결과를 PR 댓글로 자동 작성
+      - name: Comment PR
+        if: steps.get_diff.outputs.diff_empty == 'false'
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          filePath: review_result.md
