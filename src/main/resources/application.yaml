@@ -1,3 +1,19 @@
 spring:
   application:
     name: cartmate
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/cartmate?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME:cartmate}
+    password: ${DB_PASSWORD:cartmate}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
