@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
+import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -47,5 +48,10 @@ public class WalletFacade {
     @Transactional
     public void refund(Long walletId, Long amount) {
         walletPaymentUseCase.refund(walletId, amount);
+    }
+
+    @Transactional
+    public WalletChargeOrder chargeOrder(Long walletId, Long amount) {
+        return walletChargeUseCase.createChargeOrder(walletId, amount);
     }
 }

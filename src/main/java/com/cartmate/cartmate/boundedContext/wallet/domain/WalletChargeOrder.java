@@ -9,6 +9,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "wallet_charge_orders")
@@ -45,4 +46,24 @@ public class WalletChargeOrder {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public static WalletChargeOrder create(Wallet wallet, Long amount) {
+        if (wallet == null) {
+            throw new IllegalArgumentException("지갑은 필수입니다.");
+        }
+
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("충전금액은 0보다 커야 합니다.");
+        }
+
+        return new WalletChargeOrder(wallet, amount);
+
+    }
+
+    private WalletChargeOrder(Wallet wallet, Long amount) {
+        this.wallet = wallet;
+        this.amount = amount;
+        this.orderNumber = "Charge_" + UUID.randomUUID();
+        this.status = ChargeStatus.PENDING;
+    }
 }
