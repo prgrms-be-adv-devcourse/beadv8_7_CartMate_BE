@@ -24,7 +24,7 @@ public class GroupCart {
     private static final int MIN_PARTICIPANTS = 2;
     private static final int MAX_PARTICIPANTS = 100;
     private static final int MAX_TITLE_LENGTH = 50;
-    private static final int MAX_PERSONAL_QUANTITY = 100;
+    private static final int MAX_PERSONAL_QUANTITY = 999;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,7 +40,7 @@ public class GroupCart {
     private int maxParticipants;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, columnDefinition = "varchar(20)")
     private GroupCartStatus status;
 
     @Column(nullable = false, unique = true, length = 12)
@@ -169,15 +169,34 @@ public class GroupCart {
                 );
     }
 
-    public void addPersonalItems(Long memberId, Long productId, Long inventoryId, int quantity,
-                                 DeliveryTarget deliveryTarget, LocalDateTime now) {
+    // 개인 부담 상품의 총 개수를 바꾼다 (같은 상품의 개인 부담 행 전체 기준)
+    // 늘리면 미할당 행을 추가하고, 줄이면 미할당 행을 최근 것부터 삭제한다
+    public void changePersonalQuantity(Long memberId, Long productId, Long inventoryId, int quantity,
+                                       DeliveryTarget deliveryTarget, LocalDateTime now) {
         validateEditable(now);
         validateMember(memberId);
         validatePersonalQuantity(quantity);
-        for (int i = 0; i < quantity; i++) {
-            items.add(GroupCartItem.createPersonal(this, memberId, productId, inventoryId, deliveryTarget));
+
+        List<GroupCartItem> personalItems = personalItemsOf(productId);
+        int diff = quantity - personalItems.size();
+
+        if (diff > 0) {
+            for (int i = 0; i < diff; i++) {
+                items.add(GroupCartItem.createPersonal(this, memberId, productId, inventoryId, deliveryTarget));
+            }
+            members.forEach(member -> autoAssign(member.getMemberId(), productId));
+            return;
         }
-        members.forEach(member -> autoAssign(member.getMemberId(), productId));
+
+        List<GroupCartItem> unassigned = personalItems.stream()
+                .filter(item -> !item.isAssigned())
+                .toList();
+        if (unassigned.size() < -diff) {
+            throw new IllegalArgumentException("할당된 상품은 개별로 삭제해 주세요.");
+        }
+        unassigned.reversed().stream()
+                .limit(-diff)
+                .forEach(items::remove);
     }
 
     public void changeItemQuantity(Long memberId, Long itemId, int quantity, LocalDateTime now) {
@@ -206,7 +225,7 @@ public class GroupCart {
         if (item.isPersonal()) {
             return;
         }
-        validatePersonalQuantity(item.getQuantity());
+        validatePersonalQuantity(personalItemsOf(item.getProductId()).size() + item.getQuantity());
         items.remove(item);
         for (int i = 0; i < item.getQuantity(); i++) {
             items.add(GroupCartItem.createPersonal(this, item.getAddedMemberId(), item.getProductId(),
@@ -326,6 +345,12 @@ public class GroupCart {
                 .ifPresent(item -> item.assignTo(memberId));
     }
 
+    private List<GroupCartItem> personalItemsOf(Long productId) {
+        return items.stream()
+                .filter(item -> item.isPersonal() && item.getProductId().equals(productId))
+                .toList();
+    }
+
     private void removeMember(Long memberId) {
         GroupCartMember member = members.stream()
                 .filter(m -> m.is(memberId))
@@ -387,7 +412,7 @@ public class GroupCart {
 
     private static void validatePersonalQuantity(int quantity) {
         if (quantity < 1 || quantity > MAX_PERSONAL_QUANTITY) {
-            throw new IllegalArgumentException("개인 부담 상품은 한 번에 1개 이상 " + MAX_PERSONAL_QUANTITY + "개 이하로 담을 수 있습니다.");
+            throw new IllegalArgumentException("개인 부담 상품은 상품당 1개 이상 " + MAX_PERSONAL_QUANTITY + "개 이하여야 합니다.");
         }
     }
 }

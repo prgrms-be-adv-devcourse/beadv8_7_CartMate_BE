@@ -41,11 +41,11 @@ public class GroupCartItem {
     private int quantity;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, columnDefinition = "varchar(20)")
     private CostShareType costShareType;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, columnDefinition = "varchar(20)")
     private DeliveryTarget deliveryTarget;
 
     @Version
