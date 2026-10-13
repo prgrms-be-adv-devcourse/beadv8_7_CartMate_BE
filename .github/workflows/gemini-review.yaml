@@ -8,6 +8,7 @@ permissions:
   contents: read
   pull-requests: write
 
+# 같은 PR에 새 커밋이 올라오면 이전 리뷰 실행은 취소
 concurrency:
   group: gemini-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -55,6 +56,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_FULL_NAME: ${{ github.repository }}
           GEMINI_MODEL: gemini-3.6-flash
+          GEMINI_FALLBACK_MODEL: gemini-2.5-flash
         run: |
           python3 << 'PYTHON_SCRIPT'
           import json, os, sys, urllib.request, urllib.error
@@ -65,6 +67,7 @@ jobs:
           PR_NUMBER = os.environ["PR_NUMBER"]
           REPO = os.environ["REPO_FULL_NAME"]
           MODEL = os.environ["GEMINI_MODEL"]
+          FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "")
           MAX_DIFF_CHARS = 100_000
           MARKER = "<!-- gemini-code-review -->"
 
@@ -79,15 +82,22 @@ jobs:
           def annotate_diff(raw: str) -> str:
               """각 줄 앞에 새 파일 기준 줄 번호를 붙인다.
               '+'(추가)·' '(컨텍스트) 줄은 번호, '-'(삭제) 줄은 번호 없음."""
-              out, new_ln, in_hunk = [], 0, False
+              out, new_ln, in_hunk, old_path = [], 0, False, ""
               for line in raw.splitlines():
                   if line.startswith("diff --git"):
                       in_hunk = False
                       continue
+                  if not in_hunk and line.startswith("--- "):
+                      old_path = line[4:]
+                      old_path = old_path[2:] if old_path.startswith("a/") else old_path
+                      continue
                   if not in_hunk and line.startswith("+++ "):
                       path = line[4:]
-                      path = path[2:] if path.startswith("b/") else path
-                      out.append(f"\n### 파일: {path}")
+                      if path == "/dev/null":
+                          out.append(f"\n### 파일: {old_path} (삭제됨)")
+                      else:
+                          path = path[2:] if path.startswith("b/") else path
+                          out.append(f"\n### 파일: {path}")
                       continue
                   if line.startswith("@@"):
                       # @@ -a,b +c,d @@ → c 추출
@@ -155,32 +165,53 @@ jobs:
           • 개선 코드 (Fix): [구체적인 수정 제안 코드 블록]
           """
 
-          # ── Gemini API 호출 ──
-          try:
-              data = http(
-                  f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent",
-                  method="POST",
-                  headers={"Content-Type": "application/json",
-                           "x-goog-api-key": API_KEY},
-                  body={
-                      "contents": [{"parts": [
-                          {"text": prompt},
-                          {"text": f"아래는 PR의 git diff입니다:\n\n{diff}"},
-                      ]}],
-                      "generationConfig": {
-                          "temperature": 0.3,
-                          "maxOutputTokens": 8192,
-                      },
-                  },
-                  timeout=180,
-              )
-          except urllib.error.HTTPError as e:
-              print(f"::warning::Gemini API 호출 실패 (HTTP {e.code}): "
-                    f"{e.read().decode('utf-8', 'replace')[:500]}")
+          # ── Gemini API 호출 (일시적 오류 시 재시도 → 대체 모델) ──
+          import time
+          RETRYABLE = {429, 500, 503, 504}
+          MAX_ATTEMPTS = 3
+          request_body = {
+              "contents": [{"parts": [
+                  {"text": prompt},
+                  {"text": f"아래는 PR의 git diff입니다:\n\n{diff}"},
+              ]}],
+              "generationConfig": {
+                  "temperature": 0.3,
+                  "maxOutputTokens": 8192,
+              },
+          }
+
+          models = [MODEL] + ([FALLBACK_MODEL] if FALLBACK_MODEL and FALLBACK_MODEL != MODEL else [])
+          data, last_error = None, ""
+          for model in models:
+              for attempt in range(1, MAX_ATTEMPTS + 1):
+                  try:
+                      data = http(
+                          f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                          method="POST",
+                          headers={"Content-Type": "application/json",
+                                   "x-goog-api-key": API_KEY},
+                          body=request_body,
+                          timeout=180,
+                      )
+                      MODEL = model  # 실제 응답한 모델을 코멘트에 표시
+                      break
+                  except urllib.error.HTTPError as e:
+                      last_error = f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:300]}"
+                      if e.code not in RETRYABLE:
+                          break  # 키·요청 오류는 재시도해도 소용없음
+                  except Exception as e:  # 타임아웃·네트워크 오류
+                      last_error = str(e)
+                  if attempt < MAX_ATTEMPTS:
+                      wait = 10 * 2 ** (attempt - 1)  # 10s → 20s
+                      print(f"[{model}] 시도 {attempt}/{MAX_ATTEMPTS} 실패, {wait}초 후 재시도: {last_error[:120]}")
+                      time.sleep(wait)
+              if data is not None:
+                  break
+              print(f"[{model}] 최종 실패, 다음 모델로 전환")
+
+          if data is None:
+              print(f"::warning::Gemini API 호출 실패 (모든 모델·재시도 소진): {last_error}")
               sys.exit(0)  # 리뷰 실패가 PR을 막지 않도록 비차단 처리
-          except Exception as e:
-              print(f"::warning::Gemini API 호출 실패: {e}")
-              sys.exit(0)
 
           candidates = data.get("candidates") or []
           if not candidates:
@@ -188,8 +219,11 @@ jobs:
               sys.exit(0)
 
           cand = candidates[0]
-          parts = cand.get("content", {}).get("parts", [])
-          review_text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+          parts = (cand.get("content") or {}).get("parts") or []
+          review_text = "".join(
+              p.get("text") or "" for p in parts
+              if isinstance(p, dict) and not p.get("thought")
+          ).strip()
           finish = cand.get("finishReason", "")
 
           if not review_text:
