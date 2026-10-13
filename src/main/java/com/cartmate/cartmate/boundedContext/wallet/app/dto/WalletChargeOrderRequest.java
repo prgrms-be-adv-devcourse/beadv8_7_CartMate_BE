@@ -6,7 +6,9 @@ import jakarta.validation.constraints.Positive;
 public record WalletChargeOrderRequest(
         @NotNull
         @Positive
-        Long amount
+        Long amount,
+
+        String idempotencyKey
 ) {
 
 }

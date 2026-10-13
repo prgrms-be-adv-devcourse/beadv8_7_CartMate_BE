@@ -39,6 +39,9 @@ public class WalletChargeOrder {
     @Column(name = "payment_key", unique = true)
     private String paymentKey;
 
+    @Column(name = "idempotency_Key", unique = true)
+    private String idempotencyKey;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
