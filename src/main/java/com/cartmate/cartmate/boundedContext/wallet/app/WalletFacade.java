@@ -51,7 +51,7 @@ public class WalletFacade {
     }
 
     @Transactional
-    public WalletChargeOrder chargeOrder(Long walletId, Long amount) {
-        return walletChargeUseCase.createChargeOrder(walletId, amount);
+    public WalletChargeOrder chargeOrder(Long walletId, Long amount, String idempotencyKey) {
+        return walletChargeUseCase.createChargeOrder(walletId, amount, idempotencyKey);
     }
 }

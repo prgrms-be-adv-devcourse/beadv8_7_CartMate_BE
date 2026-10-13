@@ -61,7 +61,7 @@ public class WalletController {
         WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
 
         WalletChargeOrder chargeOrder = walletFacade.chargeOrder(
-                wallet.walletId(), chargeOrderRequest.amount());
+                wallet.walletId(), chargeOrderRequest.amount(), chargeOrderRequest.idempotencyKey());
 
         return ResponseEntity.ok(WalletChargeOrderResponse.from(chargeOrder));
     }

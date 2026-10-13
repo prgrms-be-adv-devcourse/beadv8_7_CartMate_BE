@@ -39,7 +39,7 @@ public class WalletChargeOrder {
     @Column(name = "payment_key", unique = true)
     private String paymentKey;
 
-    @Column(name = "idempotency_Key", unique = true)
+    @Column(name = "idempotency_Key", nullable = false, unique = true)
     private String idempotencyKey;
 
     @CreatedDate
@@ -50,7 +50,7 @@ public class WalletChargeOrder {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static WalletChargeOrder create(Wallet wallet, Long amount) {
+    public static WalletChargeOrder create(Wallet wallet, Long amount, String idempotencyKey) {
         if (wallet == null) {
             throw new IllegalArgumentException("지갑은 필수입니다.");
         }
@@ -59,14 +59,15 @@ public class WalletChargeOrder {
             throw new IllegalArgumentException("충전금액은 0보다 커야 합니다.");
         }
 
-        return new WalletChargeOrder(wallet, amount);
+        return new WalletChargeOrder(wallet, amount, idempotencyKey);
 
     }
 
-    private WalletChargeOrder(Wallet wallet, Long amount) {
+    private WalletChargeOrder(Wallet wallet, Long amount, String idempotencyKey) {
         this.wallet = wallet;
         this.amount = amount;
         this.orderNumber = "Charge_" + UUID.randomUUID();
         this.status = ChargeStatus.PENDING;
+        this.idempotencyKey = idempotencyKey;
     }
 }

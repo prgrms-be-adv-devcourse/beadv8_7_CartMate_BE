@@ -32,15 +32,20 @@ public class WalletChargeUseCase {
         walletTransactionRepository.save(walletTransaction);
     }
 
-    public WalletChargeOrder createChargeOrder(Long walletId, Long amount) {
+    public WalletChargeOrder createChargeOrder(Long walletId, Long amount, String idempotencyKey) {
 
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new IllegalArgumentException("지갑이 존재하지 않습니다."));
 
-        WalletChargeOrder walletChargeOrder = WalletChargeOrder.create(
-                wallet, amount
-        );
+        return walletChargeOrderRepository.findByIdempotencyKey(idempotencyKey)
+                .orElseGet(() ->
+                        {
+                            WalletChargeOrder walletChargeOrder = WalletChargeOrder.create(
+                                    wallet, amount, idempotencyKey
+                            );
 
-        return walletChargeOrderRepository.save(walletChargeOrder);
+                            return walletChargeOrderRepository.save(walletChargeOrder);
+                        }
+                );
     }
 }
