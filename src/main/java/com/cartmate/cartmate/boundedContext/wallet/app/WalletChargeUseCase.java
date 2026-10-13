@@ -19,6 +19,7 @@ public class WalletChargeUseCase {
     private final WalletChargeOrderRepository walletChargeOrderRepository;
     private final WalletTransactionRepository walletTransactionRepository;
 
+    // 지갑 잔액을 충전하고 충전 거래 내역을 저장한다.
     public void charge(Long walletId, Long amount) {
 
         Wallet wallet = walletRepository.findById(walletId)
@@ -34,6 +35,7 @@ public class WalletChargeUseCase {
         walletTransactionRepository.save(walletTransaction);
     }
 
+    // 충전 주문을 생성하거나, 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.
     public WalletChargeOrder createChargeOrder(Long walletId, Long amount, String idempotencyKey) {
 
         Wallet wallet = walletRepository.findById(walletId)

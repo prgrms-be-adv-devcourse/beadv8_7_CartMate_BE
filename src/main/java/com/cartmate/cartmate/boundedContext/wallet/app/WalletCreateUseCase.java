@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WalletCreateUseCase {
     private final WalletRepository walletRepository;
 
+    // 회원의 지갑을 생성한다. 이미 존재하면 생성하지 않는다.
     @Transactional
     public void createWallet(Long memberId) {
         if (memberId == null) {

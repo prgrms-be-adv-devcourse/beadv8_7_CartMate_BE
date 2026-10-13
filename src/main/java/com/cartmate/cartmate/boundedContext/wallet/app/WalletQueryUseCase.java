@@ -16,6 +16,7 @@ public class WalletQueryUseCase {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
 
+    // 회원 ID로 지갑을 조회하고 잔액 DTO를 반환한다.
     public WalletBalanceResponse getWallet(Long memberId) {
         Wallet wallet = walletRepository.findByMemberId(memberId)
                 .orElseThrow(() ->
@@ -23,6 +24,7 @@ public class WalletQueryUseCase {
         return WalletBalanceResponse.from(wallet);
     }
 
+    // 지갑 거래 내역을 생성 시각과 ID 기준 최신순으로 페이지 조회하고 DTO를 반환한다.
     public Page<WalletTransactionResponse> getTransactions(Long walletId, Pageable pageable) {
         return walletTransactionRepository.findByWalletIdOrderByCreatedAtDescIdDesc(walletId, pageable)
                 .map(WalletTransactionResponse::from);
