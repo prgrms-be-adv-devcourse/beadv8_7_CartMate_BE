@@ -38,7 +38,7 @@ public class WalletController {
             Authentication authentication,
             @PageableDefault(
                     size = 20,
-                    sort = "createdAt",
+                    sort = {"createdAt", "id"},
                     direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {

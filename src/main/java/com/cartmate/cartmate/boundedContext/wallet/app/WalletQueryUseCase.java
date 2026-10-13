@@ -24,7 +24,7 @@ public class WalletQueryUseCase {
     }
 
     public Page<WalletTransactionResponse> getTransactions(Long walletId, Pageable pageable) {
-        return walletTransactionRepository.findByWalletIdOrderByCreatedAtDesc(walletId, pageable)
+        return walletTransactionRepository.findByWalletIdOrderByCreatedAtDescIdDesc(walletId, pageable)
                 .map(WalletTransactionResponse::from);
     }
 }
