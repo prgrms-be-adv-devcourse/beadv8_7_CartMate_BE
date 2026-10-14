@@ -1,6 +1,5 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
-import com.cartmate.cartmate.shared.member.dto.SellerDto;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -13,7 +12,7 @@ import java.time.LocalDateTime;
 @Table(name = "POST_SELLER")
 @NoArgsConstructor
 @Getter
-public class PostSeller {
+public class SalesPostSeller {
     @Id
     private int id;
     private int memberId;
@@ -28,7 +27,7 @@ public class PostSeller {
     private LocalDateTime createDate;
     private LocalDateTime modifyDate;
 
-    public PostSeller(int id, int memberId, String sellerType, String businessName, String businessNumber, String phoneNumber, String bankName,
+    public SalesPostSeller(int id, int memberId, String sellerType, String businessName, String businessNumber, String phoneNumber, String bankName,
                       String accountHolder, String accountNumber, String status, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.memberId = memberId;

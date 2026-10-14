@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.app;
 
-import com.cartmate.cartmate.boundedContext.post.domain.PostSeller;
-import com.cartmate.cartmate.boundedContext.post.out.PostSellerRepository;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
+import com.cartmate.cartmate.boundedContext.post.out.SalesPostSellerRepository;
 import com.cartmate.cartmate.shared.member.dto.SellerDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -9,12 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @Service
-public class PostSyncSellerUseCase {
-    private final PostSellerRepository postSellerRepository;
+public class SalesPostSyncSellerUseCase {
+    private final SalesPostSellerRepository salesPostSellerRepository;
 
     @Transactional
-    public PostSeller syncSeller(SellerDto sellerDto) {
-        PostSeller newSeller = new PostSeller(
+    public SalesPostSeller syncSeller(SellerDto sellerDto) {
+        SalesPostSeller newSeller = new SalesPostSeller(
                 sellerDto.getId(),
                 sellerDto.getMemberId(),
                 sellerDto.getSellerType(),
@@ -29,6 +29,6 @@ public class PostSyncSellerUseCase {
                 sellerDto.getUpdatedAt()
         );
 
-        return postSellerRepository.save(newSeller);
+        return salesPostSellerRepository.save(newSeller);
     }
 }

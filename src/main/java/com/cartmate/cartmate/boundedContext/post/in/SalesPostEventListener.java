@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.post.in;
 
-import com.cartmate.cartmate.boundedContext.post.app.PostFacade;
+import com.cartmate.cartmate.boundedContext.post.app.SalesPostFacade;
 import com.cartmate.cartmate.shared.member.event.SellerCreatedEvent;
 import com.cartmate.cartmate.shared.member.event.SellerUpdatedEvent;
 import lombok.RequiredArgsConstructor;
@@ -13,19 +13,19 @@ import static org.springframework.transaction.event.TransactionPhase.AFTER_COMMI
 
 @Component
 @RequiredArgsConstructor
-public class PostEventListener {
-    private final PostFacade postFacade;
+public class SalesPostEventListener {
+    private final SalesPostFacade salesPostFacade;
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(SellerCreatedEvent event) {
-        postFacade.syncSeller(event.getSeller());
+        salesPostFacade.syncSeller(event.getSeller());
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(SellerUpdatedEvent event) {
-        postFacade.syncSeller(event.getSeller());
+        salesPostFacade.syncSeller(event.getSeller());
     }
 
 }

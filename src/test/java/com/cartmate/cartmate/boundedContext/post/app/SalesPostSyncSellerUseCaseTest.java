@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.app;
 
-import com.cartmate.cartmate.boundedContext.post.domain.PostSeller;
-import com.cartmate.cartmate.boundedContext.post.out.PostSellerRepository;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
+import com.cartmate.cartmate.boundedContext.post.out.SalesPostSellerRepository;
 import com.cartmate.cartmate.shared.member.dto.SellerDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,41 +18,41 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 @DataJpaTest
-@Import(PostSyncSellerUseCase.class)
+@Import(SalesPostSyncSellerUseCase.class)
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-public class PostSyncSellerUseCaseTest {
+public class SalesPostSyncSellerUseCaseTest {
 
-    @Autowired PostSyncSellerUseCase postSyncSellerUseCase;
+    @Autowired SalesPostSyncSellerUseCase salesPostSyncSellerUseCase;
     @Autowired
-    PostSellerRepository postSellerRepository;
+    SalesPostSellerRepository salesPostSellerRepository;
     @Autowired
     TestEntityManager em;
 
     @Test
     @DisplayName("판매자 생성 이벤트 수신 시 저장된다.")
     void sellerInsert() {
-        postSyncSellerUseCase.syncSeller(sellerDto("첫번째 상점"));
+        salesPostSyncSellerUseCase.syncSeller(sellerDto("첫번째 상점"));
         em.flush();
         em.clear();
 
-        PostSeller saved = postSellerRepository.findById(1).orElseThrow();
+        SalesPostSeller saved = salesPostSellerRepository.findById(1).orElseThrow();
         assertThat(saved.getBusinessName()).isEqualTo("첫번째 상점");
     }
 
     @Test
     @DisplayName("이미 있는 판매자는 새로 저장되지 않고 정보가 수정된다.")
     void sellerUpdate() {
-        postSyncSellerUseCase.syncSeller(sellerDto("첫번째 상점"));
+        salesPostSyncSellerUseCase.syncSeller(sellerDto("첫번째 상점"));
         em.flush();
         em.clear();
 
-        postSyncSellerUseCase.syncSeller(sellerDto("두번째 상점"));
+        salesPostSyncSellerUseCase.syncSeller(sellerDto("두번째 상점"));
         em.flush();
         em.clear();
 
-        assertThat(postSellerRepository.count()).isEqualTo(1);
-        PostSeller updated = postSellerRepository.findById(1).orElseThrow();
+        assertThat(salesPostSellerRepository.count()).isEqualTo(1);
+        SalesPostSeller updated = salesPostSellerRepository.findById(1).orElseThrow();
         assertThat(updated.getBusinessName()).isEqualTo("두번째 상점");
     }
 
