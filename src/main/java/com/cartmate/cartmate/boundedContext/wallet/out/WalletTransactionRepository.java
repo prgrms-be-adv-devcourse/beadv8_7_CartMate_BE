@@ -1,6 +1,8 @@
 package com.cartmate.cartmate.boundedContext.wallet.out;
 
+import com.cartmate.cartmate.boundedContext.wallet.domain.ReferenceType;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransaction;
+import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransactionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,5 +14,9 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
     Page<WalletTransaction> findByWalletIdOrderByCreatedAtDescIdDesc(
             Long walletId,
             Pageable pageable
+    );
+
+    Optional<WalletTransaction> findByTypeAndReferenceIdAndReferenceType(
+            WalletTransactionType transactionType, Long referenceId, ReferenceType referenceType
     );
 }

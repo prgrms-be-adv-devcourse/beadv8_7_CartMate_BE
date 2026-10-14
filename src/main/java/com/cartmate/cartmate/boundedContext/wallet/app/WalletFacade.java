@@ -46,8 +46,8 @@ public class WalletFacade {
 
     // 잔액 사용과 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void use(Long walletId, Long amount) {
-        walletPaymentUseCase.use(walletId, amount);
+    public void use(Long walletId, Long amount, Long referenceId) {
+        walletPaymentUseCase.use(walletId, amount, referenceId);
     }
 
     // 결제 환불에 따른 잔액 복구와 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
