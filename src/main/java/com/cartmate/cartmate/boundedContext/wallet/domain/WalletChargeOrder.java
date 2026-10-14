@@ -68,10 +68,26 @@ public class WalletChargeOrder {
 
     public void complete() {
         if (status != ChargeStatus.PENDING) {
-            throw new IllegalArgumentException("완료할 수 없는 주문입니다.");
+            throw new IllegalArgumentException("완료할 수 없는 충전 주문입니다.");
         }
 
         this.status = ChargeStatus.COMPLETED;
+    }
+
+    public void fail() {
+        if (status != ChargeStatus.PENDING) {
+            throw new IllegalArgumentException("실패처리 할수 없는 충전 주문입니다.");
+        }
+
+        this.status = ChargeStatus.FAILED;
+    }
+
+    public void cancel() {
+        if (status != ChargeStatus.PENDING) {
+            throw new IllegalArgumentException("취소할 수 없는 충전 주문입니다.");
+        }
+
+        this.status = ChargeStatus.CANCELED;
     }
 
     private WalletChargeOrder(Wallet wallet, Long amount, String idempotencyKey) {
