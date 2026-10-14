@@ -1,5 +1,12 @@
+server:
+  port: 8985
 spring:
   application:
     name: cartmate
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+custom:
+  member:
+    seller:
+      minAge: 19
+

@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.member.domain;
 
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
+import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -47,6 +48,7 @@ public class Member extends BaseIdAndTime {
 
     public static Member create(String email, String encodedPassword, String nickname,
                                 String phone, LocalDate birthDate) {
+
         Member member = new Member();
         member.email = email;
         member.password = encodedPassword;
@@ -56,5 +58,9 @@ public class Member extends BaseIdAndTime {
         member.role = MemberRole.BUYER;
         member.status = MemberStatus.ACTIVE;
         return member;
+    }
+
+    public MemberDto toDto() {
+        return new MemberDto(getId(), email, nickname, role.name());
     }
 }
