@@ -1,10 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
-import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
-import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
+import com.cartmate.cartmate.boundedContext.wallet.domain.*;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeOrderRepository;
-import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransaction;
-import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransactionType;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,19 +17,35 @@ public class WalletChargeUseCase {
     private final WalletTransactionRepository walletTransactionRepository;
 
     // 지갑 잔액을 충전하고 충전 거래 내역을 저장한다.
-    public void charge(Long walletId, Long amount) {
+    public void charge(Long walletId, String orderNumber) {
 
-        Wallet wallet = walletRepository.findById(walletId)
-                .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
+        WalletChargeOrder chargeOrder = walletChargeOrderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new IllegalArgumentException("주문번호가 없습니다."));
 
+        if (!chargeOrder.getWallet().getId().equals(walletId)) {
+            throw new IllegalArgumentException("지갑의 소유자가 아닙니다.");
+        }
+
+        if (chargeOrder.getStatus() != ChargeStatus.PENDING) {
+            throw new IllegalArgumentException("완료할 수 없는 주문입니다.");
+        }
+
+        if (chargeOrder.getStatus() == ChargeStatus.COMPLETED) {
+            return;
+        }
+
+        Wallet wallet = chargeOrder.getWallet();
+        Long amount = chargeOrder.getAmount();
         wallet.charge(amount);
 
-        WalletTransaction walletTransaction = WalletTransaction.create(
+        chargeOrder.complete();
+
+        WalletTransaction transaction = WalletTransaction.create(
                 wallet, WalletTransactionType.CHARGE, amount, wallet.getBalance(),
-                null, null
+                chargeOrder.getId(), ReferenceType.CHARGE_ORDER
         );
 
-        walletTransactionRepository.save(walletTransaction);
+        walletTransactionRepository.save(transaction);
     }
 
     // 충전 주문을 생성하거나, 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.

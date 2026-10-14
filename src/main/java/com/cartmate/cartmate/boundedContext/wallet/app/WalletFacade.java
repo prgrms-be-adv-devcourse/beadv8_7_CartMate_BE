@@ -40,8 +40,8 @@ public class WalletFacade {
 
     // 잔액 충전과 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void charge(Long walletId, Long amount) {
-        walletChargeUseCase.charge(walletId, amount);
+    public void charge(Long walletId, String orderNumber) {
+        walletChargeUseCase.charge(walletId, orderNumber);
     }
 
     // 잔액 사용과 거래 내역 저장을 하나의 트랜잭션으로 처리한다.

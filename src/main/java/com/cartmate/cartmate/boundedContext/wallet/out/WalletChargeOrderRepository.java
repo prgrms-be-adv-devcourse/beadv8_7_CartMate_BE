@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface WalletChargeOrderRepository extends JpaRepository<WalletChargeOrder, Long> {
 
     Optional<WalletChargeOrder> findByIdempotencyKey(String idempotencyKey);
+
+    Optional<WalletChargeOrder> findByOrderNumber(String orderNumber);
 }
