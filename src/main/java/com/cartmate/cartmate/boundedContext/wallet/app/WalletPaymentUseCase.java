@@ -18,16 +18,16 @@ public class WalletPaymentUseCase {
     private final HoldingRepository holdingRepository;
 
     // 지갑 잔액을 차감하고 사용 거래 내역을 저장한다.
-    public void use(Long walletId, Long amount, Long referenceId, Long orderId, Long paymentId) {
+    public void use(Long walletId, Long amount, Long orderId, Long paymentId) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
 
-        if (referenceId == null) {
+        if (paymentId == null) {
             throw new IllegalArgumentException("유효한 결제ID가 필요합니다.");
         }
 
         Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndReferenceIdAndReferenceType(
-                WalletTransactionType.USE, referenceId, ReferenceType.PAYMENT
+                WalletTransactionType.USE, paymentId, ReferenceType.PAYMENT
         );
 
         if (existing.isPresent()) {
@@ -52,7 +52,7 @@ public class WalletPaymentUseCase {
 
         WalletTransaction walletTransaction = WalletTransaction.create(
                 wallet, WalletTransactionType.USE, amount, wallet.getBalance(),
-                referenceId, ReferenceType.PAYMENT
+                paymentId, ReferenceType.PAYMENT
         );
 
         holdingRepository.save(holding);
@@ -60,16 +60,16 @@ public class WalletPaymentUseCase {
     }
 
     // 결제 취소 금액을 지갑에 복구하고 환불 거래 내역을 저장한다.
-    public void refund(Long walletId, Long amount, Long referenceId, Long orderId, Long paymentId) {
+    public void refund(Long walletId, Long amount, Long orderId, Long paymentId) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
 
-        if (referenceId == null) {
+        if (paymentId == null) {
             throw new IllegalArgumentException("유효한 결제ID가 필요합니다.");
         }
 
         Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndReferenceIdAndReferenceType(
-                WalletTransactionType.REFUND, referenceId, ReferenceType.PAYMENT
+                WalletTransactionType.REFUND, paymentId, ReferenceType.PAYMENT
         );
 
         if (existing.isPresent()) {
@@ -103,7 +103,7 @@ public class WalletPaymentUseCase {
 
         WalletTransaction walletTransaction = WalletTransaction.create(
                 wallet, WalletTransactionType.REFUND, amount, wallet.getBalance(),
-                referenceId, ReferenceType.PAYMENT
+                paymentId, ReferenceType.PAYMENT
         );
 
         holdingRepository.save(holding);
