@@ -29,7 +29,7 @@ public class PostSeller {
     private LocalDateTime modifyDate;
 
     public PostSeller(int id, int memberId, String sellerType, String businessName, String businessNumber, String phoneNumber, String bankName,
-                      String accountHolder, String accountNumber, String status, LocalDateTime createDate, LocalDateTime modifyDate) {
+                      String accountHolder, String accountNumber, String status, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.memberId = memberId;
         this.sellerType = sellerType;
@@ -40,8 +40,8 @@ public class PostSeller {
         this.accountHolder = accountHolder;
         this.accountNumber = accountNumber;
         this.status = status;
-        this.createDate = createDate;
-        this.modifyDate = modifyDate;
+        this.createDate = createdAt;
+        this.modifyDate = updatedAt;
     }
 
 }

@@ -25,8 +25,8 @@ public class PostSyncSellerUseCase {
                 sellerDto.getAccountHolder(),
                 sellerDto.getAccountNumber(),
                 sellerDto.getStatus(),
-                sellerDto.getCreateDate(),
-                sellerDto.getModifyDate()
+                sellerDto.getCreatedAt(),
+                sellerDto.getUpdatedAt()
         );
 
         return postSellerRepository.save(newSeller);
