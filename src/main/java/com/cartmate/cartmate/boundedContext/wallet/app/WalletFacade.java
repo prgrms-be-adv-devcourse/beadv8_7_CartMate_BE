@@ -38,25 +38,25 @@ public class WalletFacade {
         return walletQueryUseCase.getTransactions(walletId, pageable);
     }
 
-    // 잔액 충전과 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
+    // 주문 금액 충전·거래 내역 저장·주문 완료를 하나의 트랜잭션으로 처리한다. 완료 주문은 재충전하지 않는다.
     @Transactional
     public void charge(Long walletId, String orderNumber) {
         walletChargeUseCase.charge(walletId, orderNumber);
     }
 
-    // 잔액 사용과 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
+    // 결제 ID 기준으로 중복 사용을 확인하고 잔액 차감과 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
     public void use(Long walletId, Long amount, Long referenceId) {
         walletPaymentUseCase.use(walletId, amount, referenceId);
     }
 
-    // 결제 환불에 따른 잔액 복구와 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
+    // 결제 ID 기준으로 중복 환불을 확인하고 잔액 복구와 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
     public void refund(Long walletId, Long amount, Long referenceId) {
         walletPaymentUseCase.refund(walletId, amount, referenceId);
     }
 
-    // 멱등성 키를 기준으로 충전 주문 생성을 요청한다.
+    // 충전 주문을 생성하거나 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.
     @Transactional
     public WalletChargeOrder chargeOrder(Long walletId, Long amount, String idempotencyKey) {
         return walletChargeUseCase.createChargeOrder(walletId, amount, idempotencyKey);
