@@ -21,9 +21,9 @@ public class WalletSettlementUseCase {
             throw new IllegalArgumentException("정산ID나 주문ID가 필요합니다.");
         }
 
-        List<Holding> existing = holdingRepository.findAllByOrderIdIn(orderIds);
-
-        for (Holding holding : existing) {
+        for (Long orderId : orderIds) {
+            Holding holding = holdingRepository.findByOrderId(orderId)
+                    .orElseThrow(() -> new IllegalArgumentException("홀딩이 없는 주문입니다."));
 
             if (holding.getStatus() == HoldingStatus.SETTLED) {
                 if (!holding.getSettlementId().equals(settlementId)) {
