@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.domain.cart.entity;
+package com.cartmate.cartmate.domain.cart.groupshared.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -8,40 +8,48 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+
 @Getter
 @Entity
 @Table(
-        name = "group_cart_member",
+        name = "shared_group_purchase_member",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_group_cart_member_cart_member",
-                columnNames = {"group_cart_id", "member_id"}
+                name = "uk_shared_group_purchase_member",
+                columnNames = {"shared_group_purchase_id", "member_id"}
         )
 )
+
+
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class GroupCartMember {
+public class SharedGroupPurchaseMember {
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "group_cart_id", nullable = false)
-    private GroupCart groupCart;
+    @JoinColumn(name = "shared_group_purchase_id", nullable = false)
+    private SharedGroupPurchase sharedGroupPurchase;
 
     @Column(nullable = false)
     private Long memberId;
+
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    private GroupCartMember(GroupCart groupCart, Long memberId) {
-        this.groupCart = groupCart;
+
+    private SharedGroupPurchaseMember(SharedGroupPurchase sharedGroupPurchase, Long memberId) {
+        this.sharedGroupPurchase = sharedGroupPurchase;
         this.memberId = memberId;
     }
 
-    static GroupCartMember create(GroupCart groupCart, Long memberId) {
-        return new GroupCartMember(groupCart, memberId);
+
+    static SharedGroupPurchaseMember create(SharedGroupPurchase sharedGroupPurchase, Long memberId) {
+        return new SharedGroupPurchaseMember(sharedGroupPurchase, memberId);
     }
 
     public boolean is(Long memberId) {

@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.domain.cart.dto;
+package com.cartmate.cartmate.domain.cart.personal.dto;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

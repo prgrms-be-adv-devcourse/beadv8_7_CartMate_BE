@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.domain.cart.entity;
+package com.cartmate.cartmate.domain.cart.personal.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;

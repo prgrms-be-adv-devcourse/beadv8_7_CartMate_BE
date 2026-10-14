@@ -1,7 +1,7 @@
-package com.cartmate.cartmate.domain.cart.dto;
+package com.cartmate.cartmate.domain.cart.personal.dto;
 
 import com.cartmate.cartmate.domain.cart.client.CartProductInfo;
-import com.cartmate.cartmate.domain.cart.entity.CartItem;
+import com.cartmate.cartmate.domain.cart.personal.entity.CartItem;
 
 public record CartItemResponse(
         Long cartItemId,

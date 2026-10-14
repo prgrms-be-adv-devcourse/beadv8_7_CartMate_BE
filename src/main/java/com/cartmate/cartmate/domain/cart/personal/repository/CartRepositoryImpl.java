@@ -1,13 +1,13 @@
-package com.cartmate.cartmate.domain.cart.repository;
+package com.cartmate.cartmate.domain.cart.personal.repository;
 
-import com.cartmate.cartmate.domain.cart.entity.Cart;
+import com.cartmate.cartmate.domain.cart.personal.entity.Cart;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
 
-import static com.cartmate.cartmate.domain.cart.entity.QCart.cart;
-import static com.cartmate.cartmate.domain.cart.entity.QCartItem.cartItem;
+import static com.cartmate.cartmate.domain.cart.personal.entity.QCart.cart;
+import static com.cartmate.cartmate.domain.cart.personal.entity.QCartItem.cartItem;
 
 @RequiredArgsConstructor
 public class CartRepositoryImpl implements CartRepositoryCustom {

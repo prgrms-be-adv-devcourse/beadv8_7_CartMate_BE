@@ -1,12 +1,12 @@
-package com.cartmate.cartmate.domain.cart.service;
+package com.cartmate.cartmate.domain.cart.personal.service;
 
 import com.cartmate.cartmate.domain.cart.client.CartProductInfo;
 import com.cartmate.cartmate.domain.cart.client.ProductClient;
-import com.cartmate.cartmate.domain.cart.dto.CartItemResponse;
-import com.cartmate.cartmate.domain.cart.dto.CartResponse;
-import com.cartmate.cartmate.domain.cart.entity.Cart;
-import com.cartmate.cartmate.domain.cart.entity.CartItem;
-import com.cartmate.cartmate.domain.cart.repository.CartRepository;
+import com.cartmate.cartmate.domain.cart.personal.dto.CartItemResponse;
+import com.cartmate.cartmate.domain.cart.personal.dto.CartResponse;
+import com.cartmate.cartmate.domain.cart.personal.entity.Cart;
+import com.cartmate.cartmate.domain.cart.personal.entity.CartItem;
+import com.cartmate.cartmate.domain.cart.personal.repository.CartRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

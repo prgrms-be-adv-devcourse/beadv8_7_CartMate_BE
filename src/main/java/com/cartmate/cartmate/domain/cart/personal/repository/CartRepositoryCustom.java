@@ -1,6 +1,6 @@
-package com.cartmate.cartmate.domain.cart.repository;
+package com.cartmate.cartmate.domain.cart.personal.repository;
 
-import com.cartmate.cartmate.domain.cart.entity.Cart;
+import com.cartmate.cartmate.domain.cart.personal.entity.Cart;
 
 import java.util.Optional;
 

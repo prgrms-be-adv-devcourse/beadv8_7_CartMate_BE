@@ -1,9 +1,9 @@
-package com.cartmate.cartmate.domain.cart.controller;
+package com.cartmate.cartmate.domain.cart.personal.controller;
 
-import com.cartmate.cartmate.domain.cart.dto.CartItemAddRequest;
-import com.cartmate.cartmate.domain.cart.dto.CartItemQuantityUpdateRequest;
-import com.cartmate.cartmate.domain.cart.dto.CartResponse;
-import com.cartmate.cartmate.domain.cart.service.CartService;
+import com.cartmate.cartmate.domain.cart.personal.dto.CartItemAddRequest;
+import com.cartmate.cartmate.domain.cart.personal.dto.CartItemQuantityUpdateRequest;
+import com.cartmate.cartmate.domain.cart.personal.dto.CartResponse;
+import com.cartmate.cartmate.domain.cart.personal.service.CartService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
