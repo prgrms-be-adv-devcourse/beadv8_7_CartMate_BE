@@ -26,12 +26,12 @@ public class WalletChargeUseCase {
             throw new IllegalArgumentException("지갑의 소유자가 아닙니다.");
         }
 
-        if (chargeOrder.getStatus() != ChargeStatus.PENDING) {
-            throw new IllegalArgumentException("완료할 수 없는 주문입니다.");
-        }
-
         if (chargeOrder.getStatus() == ChargeStatus.COMPLETED) {
             return;
+        }
+
+        if (chargeOrder.getStatus() != ChargeStatus.PENDING) {
+            throw new IllegalArgumentException("완료할 수 없는 주문입니다.");
         }
 
         Wallet wallet = chargeOrder.getWallet();
