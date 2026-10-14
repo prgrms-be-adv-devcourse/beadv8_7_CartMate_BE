@@ -1,9 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
-import com.cartmate.cartmate.boundedContext.wallet.domain.ReferenceType;
-import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
-import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransaction;
-import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransactionType;
+import com.cartmate.cartmate.boundedContext.wallet.domain.*;
+import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +15,10 @@ public class WalletPaymentUseCase {
 
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
+    private final HoldingRepository holdingRepository;
 
     // 지갑 잔액을 차감하고 사용 거래 내역을 저장한다.
-    public void use(Long walletId, Long amount, Long referenceId) {
+    public void use(Long walletId, Long amount, Long referenceId, Long orderId) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
 
@@ -47,11 +46,16 @@ public class WalletPaymentUseCase {
 
         wallet.use(amount);
 
+        Holding holding = Holding.create(
+                wallet, orderId, amount
+        );
+
         WalletTransaction walletTransaction = WalletTransaction.create(
                 wallet, WalletTransactionType.USE, amount, wallet.getBalance(),
                 referenceId, ReferenceType.PAYMENT
         );
 
+        holdingRepository.save(holding);
         walletTransactionRepository.save(walletTransaction);
     }
 

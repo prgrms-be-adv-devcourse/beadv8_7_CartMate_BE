@@ -46,8 +46,8 @@ public class WalletFacade {
 
     // 결제 ID 기준으로 중복 사용을 확인하고 잔액 차감과 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void use(Long walletId, Long amount, Long referenceId) {
-        walletPaymentUseCase.use(walletId, amount, referenceId);
+    public void use(Long walletId, Long amount, Long referenceId, Long orderId) {
+        walletPaymentUseCase.use(walletId, amount, referenceId, orderId);
     }
 
     // 결제 ID 기준으로 중복 환불을 확인하고 잔액 복구와 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
