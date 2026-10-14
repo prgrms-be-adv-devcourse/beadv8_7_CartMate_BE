@@ -45,4 +45,27 @@ public class Holding {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public static Holding create(Wallet wallet, Long orderId, Long amount) {
+        if (wallet == null) {
+            throw new IllegalArgumentException("지갑은 필수입니다.");
+        }
+
+        if (orderId == null) {
+            throw new IllegalArgumentException("주문ID는 필수입니다.");
+        }
+
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("홀딩금액은 0이상이어야 합니다.");
+        }
+
+        return new Holding(wallet, orderId, amount);
+    }
+
+    private Holding(Wallet wallet, Long orderId, Long amount) {
+        this.wallet = wallet;
+        this.orderId = orderId;
+        this.amount = amount;
+        this.status = HoldingStatus.RESERVED;
+    }
 }
