@@ -18,7 +18,7 @@ public class WalletPaymentUseCase {
     private final HoldingRepository holdingRepository;
 
     // 지갑 잔액을 차감하고 사용 거래 내역을 저장한다.
-    public void use(Long walletId, Long amount, Long referenceId, Long orderId) {
+    public void use(Long walletId, Long amount, Long referenceId, Long orderId, Long paymentId) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
 
@@ -47,7 +47,7 @@ public class WalletPaymentUseCase {
         wallet.use(amount);
 
         Holding holding = Holding.create(
-                wallet, orderId, amount
+                wallet, orderId, amount, paymentId
         );
 
         WalletTransaction walletTransaction = WalletTransaction.create(
@@ -60,7 +60,7 @@ public class WalletPaymentUseCase {
     }
 
     // 결제 취소 금액을 지갑에 복구하고 환불 거래 내역을 저장한다.
-    public void refund(Long walletId, Long amount, Long referenceId) {
+    public void refund(Long walletId, Long amount, Long referenceId, Long orderId, Long paymentId) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
 
@@ -86,6 +86,19 @@ public class WalletPaymentUseCase {
             return;
         }
 
+        Holding holding = holdingRepository.findByOrderIdAndPaymentId(orderId, paymentId)
+                .orElseThrow(() -> new IllegalArgumentException("홀딩 내역을 찾을 수 없습니다."));
+
+        if (!holding.getWallet().getId().equals(walletId)) {
+            throw new IllegalArgumentException("지갑ID가 일치하지 않습니다.");
+        }
+
+        if (!holding.getAmount().equals(amount)) {
+            throw new IllegalArgumentException("홀딩금액과 금액이 일치하지 않습니다.");
+        }
+
+        holding.cancel();
+
         wallet.refund(amount);
 
         WalletTransaction walletTransaction = WalletTransaction.create(
@@ -93,6 +106,7 @@ public class WalletPaymentUseCase {
                 referenceId, ReferenceType.PAYMENT
         );
 
+        holdingRepository.save(holding);
         walletTransactionRepository.save(walletTransaction);
     }
 }

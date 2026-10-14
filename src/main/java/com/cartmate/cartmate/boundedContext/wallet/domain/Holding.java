@@ -28,6 +28,9 @@ public class Holding {
     @Column(name = "order_id", nullable = false)
     private Long orderId;
 
+    @Column(name = "payment_id", nullable = false)
+    private Long paymentId;
+
     @Column(nullable = false)
     private Long amount;
 
@@ -46,7 +49,7 @@ public class Holding {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static Holding create(Wallet wallet, Long orderId, Long amount) {
+    public static Holding create(Wallet wallet, Long orderId, Long amount, Long paymentId) {
         if (wallet == null) {
             throw new IllegalArgumentException("지갑은 필수입니다.");
         }
@@ -59,12 +62,28 @@ public class Holding {
             throw new IllegalArgumentException("홀딩금액은 0이상이어야 합니다.");
         }
 
-        return new Holding(wallet, orderId, amount);
+        if (paymentId == null) {
+            throw new IllegalArgumentException("결제ID는 필수입니다.");
+        }
+
+        return new Holding(wallet, orderId, amount, paymentId);
+    }
+    public void cancel() {
+        if (status == HoldingStatus.CANCELED) {
+            throw new IllegalArgumentException("이미 취소된 홀딩입니다.");
+        }
+
+        if (status != HoldingStatus.RESERVED) {
+            throw new IllegalArgumentException("취소할수 없는 홀딩입니다.");
+        }
+
+        this.status = HoldingStatus.CANCELED;
     }
 
-    private Holding(Wallet wallet, Long orderId, Long amount) {
+    private Holding(Wallet wallet, Long orderId, Long amount, Long paymentId) {
         this.wallet = wallet;
         this.orderId = orderId;
+        this.paymentId = paymentId;
         this.amount = amount;
         this.status = HoldingStatus.RESERVED;
     }
