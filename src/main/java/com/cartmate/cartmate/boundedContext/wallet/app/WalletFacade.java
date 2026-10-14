@@ -52,8 +52,8 @@ public class WalletFacade {
 
     // 결제 환불에 따른 잔액 복구와 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void refund(Long walletId, Long amount) {
-        walletPaymentUseCase.refund(walletId, amount);
+    public void refund(Long walletId, Long amount, Long referenceId) {
+        walletPaymentUseCase.refund(walletId, amount, referenceId);
     }
 
     // 멱등성 키를 기준으로 충전 주문 생성을 요청한다.

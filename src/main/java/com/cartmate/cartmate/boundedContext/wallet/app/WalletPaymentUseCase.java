@@ -56,15 +56,37 @@ public class WalletPaymentUseCase {
     }
 
     // 결제 취소 금액을 지갑에 복구하고 환불 거래 내역을 저장한다.
-    public void refund(Long walletId, Long amount) {
+    public void refund(Long walletId, Long amount, Long referenceId) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
+
+        if (referenceId == null) {
+            throw new IllegalArgumentException("유효한 결제ID가 필요합니다.");
+        }
+
+        Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndReferenceIdAndReferenceType(
+                WalletTransactionType.REFUND, referenceId, ReferenceType.PAYMENT
+        );
+
+        if (existing.isPresent()) {
+            WalletTransaction transaction = existing.get();
+
+            if (!transaction.getWallet().getId().equals(walletId)) {
+                throw new IllegalArgumentException("지갑ID가 일치하지 않습니다.");
+            }
+
+            if (!transaction.getAmount().equals(amount)) {
+                throw new IllegalArgumentException("요청한 금액과 일치하지 않습니다.");
+            }
+
+            return;
+        }
 
         wallet.refund(amount);
 
         WalletTransaction walletTransaction = WalletTransaction.create(
                 wallet, WalletTransactionType.REFUND, amount, wallet.getBalance(),
-                null, null
+                referenceId, ReferenceType.PAYMENT
         );
 
         walletTransactionRepository.save(walletTransaction);
