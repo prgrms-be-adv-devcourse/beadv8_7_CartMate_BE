@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class WalletFacade {
@@ -16,6 +18,7 @@ public class WalletFacade {
     private final WalletQueryUseCase walletQueryUseCase;
     private final WalletChargeUseCase walletChargeUseCase;
     private final WalletPaymentUseCase walletPaymentUseCase;
+    private final WalletSettlementUseCase walletSettlementUseCase;
 
     // 회원 지갑 생성을 요청한다.
     @Transactional
@@ -44,13 +47,13 @@ public class WalletFacade {
         walletChargeUseCase.charge(walletId, orderNumber);
     }
 
-    // 결제 ID 기준으로 중복 사용을 확인하고 잔액 차감과 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
+    // 결제 ID 기준으로 중복 사용을 확인하고 잔액차감·홀딩생성·거래내역저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
     public void use(Long walletId, Long amount, Long orderId, Long paymentId) {
         walletPaymentUseCase.use(walletId, amount, orderId, paymentId);
     }
 
-    // 결제 ID 기준으로 중복 환불을 확인하고 잔액 복구와 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
+    // 결제 ID 기준으로 중복 환불을 확인하고 홀딩취소·잔액복구·환불거래저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
     public void refund(Long walletId, Long amount, Long orderId, Long paymentId) {
         walletPaymentUseCase.refund(walletId, amount, orderId, paymentId);
@@ -68,9 +71,15 @@ public class WalletFacade {
         walletChargeUseCase.cancel(walletId, orderNumber);
     }
 
-    // 실패가 확정된 대기 주문을 실패 처리한다. 이미 실패한 주문은 재처리하지 않으며 잔액은 변경하지 않는다.
+    // 대기 중인 충전 주문을 실패 처리한다. 이미 실패한 주문은 재처리하지 않으며 잔액은 변경하지 않는다.
     @Transactional
     public void fail(Long walletId, String orderNumber) {
         walletChargeUseCase.fail(walletId, orderNumber);
+    }
+
+    // 주문별 홀딩의 정산 ID 기록과 정산 완료 전환을 하나의 트랜잭션으로 처리한다. 같은 정산으로 완료된 홀딩은 건너뛴다.
+    @Transactional
+    public void settle(List<Long> orderIds, Long settlementId) {
+        walletSettlementUseCase.settle(orderIds, settlementId);
     }
 }

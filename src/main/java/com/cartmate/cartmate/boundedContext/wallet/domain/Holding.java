@@ -31,6 +31,9 @@ public class Holding {
     @Column(name = "payment_id", nullable = false)
     private Long paymentId;
 
+    @Column(name = "settlement_id")
+    private Long settlementId;
+
     @Column(nullable = false)
     private Long amount;
 
@@ -40,6 +43,9 @@ public class Holding {
 
     @Version
     private Long version;
+
+    @Column(name = "settle_at")
+    private LocalDateTime settledAt;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -78,6 +84,24 @@ public class Holding {
         }
 
         this.status = HoldingStatus.CANCELED;
+    }
+
+    public void settle(Long settlementId) {
+        if (settlementId == null) {
+            throw new IllegalArgumentException("정산ID는 필수입니다.");
+        }
+
+        if (status == HoldingStatus.SETTLED) {
+            throw new IllegalArgumentException("이미 정산된 홀딩입니다.");
+        }
+
+        if (status != HoldingStatus.RESERVED) {
+            throw new IllegalArgumentException("정산할 수 없는 홀딩입니다.");
+        }
+
+        this.status = HoldingStatus.SETTLED;
+        this.settlementId = settlementId;
+        this.settledAt = LocalDateTime.now();
     }
 
     private Holding(Wallet wallet, Long orderId, Long amount, Long paymentId) {
