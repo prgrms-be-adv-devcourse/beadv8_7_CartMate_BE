@@ -16,7 +16,7 @@ public class WalletChargeUseCase {
     private final WalletChargeOrderRepository walletChargeOrderRepository;
     private final WalletTransactionRepository walletTransactionRepository;
 
-    // 지갑 잔액을 충전하고 충전 거래 내역을 저장한다.
+    // 대기 주문의 금액을 충전하고 거래 내역과 완료 상태를 기록한다. 완료된 주문은 재처리하지 않는다.
     public void charge(Long walletId, String orderNumber) {
 
         WalletChargeOrder chargeOrder = walletChargeOrderRepository.findByOrderNumber(orderNumber)
@@ -83,7 +83,37 @@ public class WalletChargeUseCase {
             return walletChargeOrderRepository.save(chargeOrder);
         });
 
+    }
 
+    // 주문 소유자를 확인하고 취소를 요청한다. 이미 취소된 주문은 재처리하지 않는다.
+    public void cancel(Long walletId, String orderNumber) {
+        WalletChargeOrder chargeOrder = walletChargeOrderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new IllegalArgumentException("주문번호가 없습니다."));
 
+        if (!chargeOrder.getWallet().getId().equals(walletId)) {
+            throw new IllegalArgumentException("지갑 소유주가 아닙니다.");
+        }
+
+        if (chargeOrder.getStatus() == ChargeStatus.CANCELED) {
+            return;
+        }
+
+        chargeOrder.cancel();
+    }
+
+    // 주문 소유자를 확인하고 실패 처리를 요청한다. 이미 실패한 주문은 재처리하지 않는다.
+    public void fail(Long walletId, String orderNumber) {
+        WalletChargeOrder chargeOrder = walletChargeOrderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new IllegalArgumentException("주문번호가 없습니다."));
+
+        if (!chargeOrder.getWallet().getId().equals(walletId)) {
+            throw new IllegalArgumentException("지갑 소유주가 아닙니다.");
+        }
+
+        if (chargeOrder.getStatus() == ChargeStatus.FAILED) {
+            return;
+        }
+
+        chargeOrder.fail();
     }
 }

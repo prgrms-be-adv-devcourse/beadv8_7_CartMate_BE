@@ -61,4 +61,16 @@ public class WalletFacade {
     public WalletChargeOrder chargeOrder(Long walletId, Long amount, String idempotencyKey) {
         return walletChargeUseCase.createChargeOrder(walletId, amount, idempotencyKey);
     }
+
+    // 대기 중인 충전 주문을 취소한다. 이미 취소된 주문은 재처리하지 않으며 잔액은 변경하지 않는다.
+    @Transactional
+    public void cancel(Long walletId, String orderNumber) {
+        walletChargeUseCase.cancel(walletId, orderNumber);
+    }
+
+    // 실패가 확정된 대기 주문을 실패 처리한다. 이미 실패한 주문은 재처리하지 않으며 잔액은 변경하지 않는다.
+    @Transactional
+    public void fail(Long walletId, String orderNumber) {
+        walletChargeUseCase.fail(walletId, orderNumber);
+    }
 }
