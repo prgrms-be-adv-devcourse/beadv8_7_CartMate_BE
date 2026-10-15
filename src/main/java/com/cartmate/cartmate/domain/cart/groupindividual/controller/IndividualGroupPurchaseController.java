@@ -2,6 +2,7 @@ package com.cartmate.cartmate.domain.cart.groupindividual.controller;
 
 import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseCreateResponse;
+import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseDashboardResponse;
 import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseDeadlineUpdateRequest;
 import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseProductAddRequest;
@@ -58,6 +59,15 @@ public class IndividualGroupPurchaseController {
             @PathVariable Long id
     ) {
         return ResponseEntity.ok(individualGroupPurchaseService.getDetail(memberId, id));
+    }
+
+
+    @GetMapping("/{id}/dashboard")
+    public ResponseEntity<IndividualGroupPurchaseDashboardResponse> getDashboard(
+            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(individualGroupPurchaseService.getDashboard(memberId, id));
     }
 
 

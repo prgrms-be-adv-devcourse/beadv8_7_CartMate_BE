@@ -4,8 +4,10 @@ import com.cartmate.cartmate.domain.cart.client.CartProductOptions;
 import com.cartmate.cartmate.domain.cart.client.ProductClient;
 import com.cartmate.cartmate.domain.cart.common.InviteCodeGenerator;
 import com.cartmate.cartmate.domain.cart.groupindividual.client.IndividualGroupPurchaseOrderClient;
+import com.cartmate.cartmate.domain.cart.groupindividual.client.IndividualGroupPurchaseOrderLine;
 import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseCreateResponse;
+import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseDashboardResponse;
 import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.domain.cart.groupindividual.dto.IndividualGroupPurchaseSummaryResponse;
 import com.cartmate.cartmate.domain.cart.groupindividual.entity.IndividualGroupPurchase;
@@ -84,6 +86,20 @@ public class IndividualGroupPurchaseService {
             throw new IllegalArgumentException("공동구매 생성자만 볼 수 있습니다.");
         }
         return toDetailResponse(purchase, memberId);
+    }
+
+
+    public IndividualGroupPurchaseDashboardResponse getDashboard(Long memberId, Long individualGroupPurchaseId) {
+        IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findWithProductsById(individualGroupPurchaseId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매입니다."));
+        if (!purchase.isCreator(memberId)) {
+            throw new IllegalArgumentException("공동구매 생성자만 볼 수 있습니다.");
+        }
+        List<IndividualGroupPurchaseOrderLine> lines = orderClient.findOrderLines(individualGroupPurchaseId);
+        List<Long> productIds = purchase.getProducts().stream()
+                .map(IndividualGroupPurchaseProduct::getProductId)
+                .toList();
+        return IndividualGroupPurchaseDashboardResponse.of(purchase, productOptionsOf(productIds), lines, now());
     }
 
     public List<IndividualGroupPurchaseSummaryResponse> getMyList(Long memberId) {

@@ -263,7 +263,6 @@ class CartServiceTest {
         }
     }
 
-    // DB 없이 테스트하므로 항목 ID를 직접 채워 넣는다
     private Cart cartWithItem(Long cartItemId, Long inventoryId, int quantity) {
         Cart cart = Cart.create(MEMBER_ID);
         CartItem item = cart.addItem(100L, inventoryId, quantity);

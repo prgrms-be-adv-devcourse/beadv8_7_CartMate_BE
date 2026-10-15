@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CartController {
 
-    // TODO: 인증 적용 후 로그인 회원 정보로 교체
     private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
     private final CartService cartService;

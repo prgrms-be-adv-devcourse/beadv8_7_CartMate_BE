@@ -44,7 +44,6 @@ public class Cart {
         return new Cart(memberId);
     }
 
-    // 같은 SKU가 이미 있으면 수량만 증가
     public CartItem addItem(Long productId, Long inventoryId, int quantity) {
         Optional<CartItem> existing = findItemByInventoryId(inventoryId);
         if (existing.isPresent()) {

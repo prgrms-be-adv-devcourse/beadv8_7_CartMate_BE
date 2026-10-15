@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-// TODO: product 도메인 구현 완료 후 실제 구현체로 교체
 @Component
 public class MockProductClient implements ProductClient {
 
@@ -34,8 +33,6 @@ public class MockProductClient implements ProductClient {
                 .toList();
     }
 
-    // 위 임시 SKU 데이터를 상품별로 묶어서 옵션 목록을 만든다.
-    // 상품은 옵션이 하나라도 판매 중이면 판매 중으로 본다. (정강이 보호대는 유일한 옵션이 판매 중지라 상품도 판매 중지)
     @Override
     public List<CartProductOptions> findAllProductOptions(Collection<Long> productIds) {
         return productIds.stream()
