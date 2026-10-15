@@ -73,4 +73,13 @@ public class Member extends BaseIdAndTime {
             throw new ServiceException("401-MEMBER_LOGIN_FAILED", "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
     }
+
+    public void updateProfile(String nickname, String phone) {
+        this.nickname = nickname;
+        this.phone = phone;
+    }
+
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
 }
