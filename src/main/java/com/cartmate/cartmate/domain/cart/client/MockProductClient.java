@@ -3,6 +3,7 @@ package com.cartmate.cartmate.domain.cart.client;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,6 +31,29 @@ public class MockProductClient implements ProductClient {
         return inventoryIds.stream()
                 .map(PRODUCTS::get)
                 .filter(Objects::nonNull)
+                .toList();
+    }
+
+    // 위 임시 SKU 데이터를 상품별로 묶어서 옵션 목록을 만든다.
+    // 상품은 옵션이 하나라도 판매 중이면 판매 중으로 본다. (정강이 보호대는 유일한 옵션이 판매 중지라 상품도 판매 중지)
+    @Override
+    public List<CartProductOptions> findAllProductOptions(Collection<Long> productIds) {
+        return productIds.stream()
+                .distinct()
+                .map(productId -> PRODUCTS.values().stream()
+                        .filter(info -> info.productId().equals(productId))
+                        .sorted(Comparator.comparing(CartProductInfo::inventoryId))
+                        .toList())
+                .filter(infos -> !infos.isEmpty())
+                .map(infos -> new CartProductOptions(
+                        infos.get(0).productId(),
+                        infos.get(0).productName(),
+                        infos.get(0).imageUrl(),
+                        infos.stream().anyMatch(CartProductInfo::purchasable),
+                        infos.stream()
+                                .map(info -> new CartProductOptions.Option(
+                                        info.inventoryId(), info.optionName(), info.price(), info.purchasable()))
+                                .toList()))
                 .toList();
     }
 }
