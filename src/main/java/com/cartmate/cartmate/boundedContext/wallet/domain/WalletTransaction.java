@@ -61,10 +61,10 @@ public class WalletTransaction {
             Wallet wallet,
             WalletTransactionType type,
             Long orderId,
-            Long amount,
-            Long balanceAfter,
             Long referenceId,
-            ReferenceType referenceType
+            ReferenceType referenceType,
+            Long amount,
+            Long balanceAfter
 
     ) {
         if (wallet == null || type == null) {

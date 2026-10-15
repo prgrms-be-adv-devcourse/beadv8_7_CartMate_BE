@@ -16,6 +16,7 @@ public class WalletPaymentUseCase {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final HoldingRepository holdingRepository;
+    private final LedgerRecorder ledgerRecorder;
 
     // 지갑 잔액을 차감하고 사용 거래 내역을 저장한다.
     public void use(Long walletId, Long amount, Long orderId, Long paymentId) {
@@ -50,13 +51,11 @@ public class WalletPaymentUseCase {
                 wallet, orderId, amount, paymentId
         );
 
-        WalletTransaction walletTransaction = WalletTransaction.create(
-                wallet, WalletTransactionType.USE, orderId, amount, wallet.getBalance(),
-                paymentId, ReferenceType.PAYMENT
-        );
-
         holdingRepository.save(holding);
-        walletTransactionRepository.save(walletTransaction);
+
+        ledgerRecorder.record(
+                wallet, WalletTransactionType.USE, orderId,
+                paymentId, ReferenceType.PAYMENT, amount);
     }
 
     // 결제 취소 금액을 지갑에 복구하고 환불 거래 내역을 저장한다.
@@ -101,12 +100,10 @@ public class WalletPaymentUseCase {
 
         wallet.refund(amount);
 
-        WalletTransaction walletTransaction = WalletTransaction.create(
-                wallet, WalletTransactionType.REFUND, orderId, amount, wallet.getBalance(),
-                paymentId, ReferenceType.PAYMENT
-        );
-
         holdingRepository.save(holding);
-        walletTransactionRepository.save(walletTransaction);
+
+        ledgerRecorder.record(
+                wallet, WalletTransactionType.REFUND, orderId,
+                paymentId, ReferenceType.PAYMENT, amount);
     }
 }

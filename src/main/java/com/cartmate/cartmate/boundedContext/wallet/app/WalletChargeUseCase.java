@@ -3,7 +3,6 @@ package com.cartmate.cartmate.boundedContext.wallet.app;
 import com.cartmate.cartmate.boundedContext.wallet.domain.*;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeOrderRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
-import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +13,7 @@ import java.util.Optional;
 public class WalletChargeUseCase {
     private final WalletRepository walletRepository;
     private final WalletChargeOrderRepository walletChargeOrderRepository;
-    private final WalletTransactionRepository walletTransactionRepository;
+    private final LedgerRecorder ledgerRecorder;
 
     // 대기 주문의 금액을 충전하고 거래 내역과 완료 상태를 기록한다. 완료된 주문은 재처리하지 않는다.
     public void charge(Long walletId, String orderNumber, String paymentKey, Long amount) {
@@ -50,12 +49,8 @@ public class WalletChargeUseCase {
 
         chargeOrder.complete(paymentKey);
 
-        WalletTransaction transaction = WalletTransaction.create(
-                wallet, WalletTransactionType.CHARGE, null, amount, wallet.getBalance(),
-                chargeOrder.getId(), ReferenceType.CHARGE_ORDER
-        );
-
-        walletTransactionRepository.save(transaction);
+        ledgerRecorder.record(wallet, WalletTransactionType.CHARGE, null,
+                chargeOrder.getId(), ReferenceType.CHARGE_ORDER, amount);
     }
 
     // 충전 주문을 생성하거나, 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.
