@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,9 +23,21 @@ public class WalletSettlementUseCase {
             throw new IllegalArgumentException("정산ID나 주문ID가 필요합니다.");
         }
 
-        for (Long orderId : orderIds) {
-            Holding holding = holdingRepository.findByOrderId(orderId)
-                    .orElseThrow(() -> new IllegalArgumentException("홀딩이 없는 주문입니다."));
+        List<Holding> holdings = holdingRepository.findAllByOrderIdIn(orderIds);
+
+        if (holdings.isEmpty()) {
+            throw new IllegalArgumentException("홀딩 내역이 없습니다.");
+        }
+
+        Set<Long> exist = holdings.stream()
+                .map(Holding::getOrderId)
+                .collect(Collectors.toSet());
+
+        if (!exist.containsAll(orderIds)) {
+            throw new IllegalArgumentException("홀딩이 없는 주문이 있습니다.");
+        }
+
+        for (Holding holding : holdings) {
 
             if (holding.getStatus() == HoldingStatus.SETTLED) {
                 if (!holding.getSettlementId().equals(settlementId)) {
@@ -31,6 +45,7 @@ public class WalletSettlementUseCase {
                 }
                 continue;
             }
+
             holding.settle(settlementId);
         }
 
