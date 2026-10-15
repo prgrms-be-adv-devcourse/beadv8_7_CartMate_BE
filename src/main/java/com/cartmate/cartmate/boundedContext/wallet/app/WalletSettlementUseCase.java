@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,7 +22,10 @@ public class WalletSettlementUseCase {
             throw new IllegalArgumentException("정산ID나 주문ID가 필요합니다.");
         }
 
-        List<Holding> holdings = holdingRepository.findAllByOrderIdIn(orderIds);
+        List<Holding> holdings = holdingRepository.findAllByOrderIdIn(orderIds)
+                .stream()
+                .filter(walletHolding -> walletHolding.getStatus() != HoldingStatus.CANCELED)
+                .toList();
 
         if (holdings.isEmpty()) {
             throw new IllegalArgumentException("홀딩 내역이 없습니다.");
