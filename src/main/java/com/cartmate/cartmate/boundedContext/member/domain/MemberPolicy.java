@@ -32,4 +32,29 @@ public class MemberPolicy {
     public boolean canRegisterAsSeller(LocalDate birthDate) {
         return Period.between(birthDate, LocalDate.now()).getYears() >= SELLER_MIN_AGE;
     }
+
+    public static final String PHONE_CODE_REGEX = "^\\d{6}$";
+
+    private static int PHONE_CODE_TTL_SECONDS;
+    private static int PHONE_VERIFIED_TTL_SECONDS;
+    private static int PHONE_MAX_ATTEMPTS;
+
+    @Value("${custom.member.phone.codeTtlSeconds:180}")
+    public void setPhoneCodeTtlSeconds(int seconds) {
+        PHONE_CODE_TTL_SECONDS = seconds;
+    }
+
+    @Value("${custom.member.phone.verifiedTtlSeconds:600}")
+    public void setPhoneVerifiedTtlSeconds(int seconds) {
+        PHONE_VERIFIED_TTL_SECONDS = seconds;
+    }
+
+    @Value("${custom.member.phone.maxAttempts:5}")
+    public void setPhoneMaxAttempts(int attempts) {
+        PHONE_MAX_ATTEMPTS = attempts;
+    }
+
+    public int getPhoneCodeTtlSeconds() { return PHONE_CODE_TTL_SECONDS; }
+    public int getPhoneVerifiedTtlSeconds() { return PHONE_VERIFIED_TTL_SECONDS; }
+    public int getPhoneMaxAttempts() { return PHONE_MAX_ATTEMPTS; }
 }

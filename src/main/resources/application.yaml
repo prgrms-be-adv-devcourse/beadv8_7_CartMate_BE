@@ -9,4 +9,7 @@ custom:
   member:
     seller:
       minAge: 19
-
+    phone:
+      codeTtlSeconds: 180
+      verifiedTtlSeconds: 600
+      maxAttempts: 5
