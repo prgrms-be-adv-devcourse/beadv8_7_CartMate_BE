@@ -43,8 +43,8 @@ public class WalletFacade {
 
     // 주문 금액 충전·거래 내역 저장·주문 완료를 하나의 트랜잭션으로 처리한다. 완료 주문은 재충전하지 않는다.
     @Transactional
-    public void charge(Long walletId, String orderNumber) {
-        walletChargeUseCase.charge(walletId, orderNumber);
+    public void charge(Long walletId, String orderNumber, String paymentKey, Long amount) {
+        walletChargeUseCase.charge(walletId, orderNumber, paymentKey, amount);
     }
 
     // 결제 ID 기준으로 중복 사용을 확인하고 잔액차감·홀딩생성·거래내역저장을 하나의 트랜잭션으로 처리한다.

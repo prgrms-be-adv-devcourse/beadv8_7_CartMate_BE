@@ -17,7 +17,7 @@ public class WalletChargeUseCase {
     private final WalletTransactionRepository walletTransactionRepository;
 
     // 대기 주문의 금액을 충전하고 거래 내역과 완료 상태를 기록한다. 완료된 주문은 재처리하지 않는다.
-    public void charge(Long walletId, String orderNumber) {
+    public void charge(Long walletId, String orderNumber, String paymentKey, Long amount) {
 
         WalletChargeOrder chargeOrder = walletChargeOrderRepository.findByOrderNumber(orderNumber)
                 .orElseThrow(() -> new IllegalArgumentException("주문번호가 없습니다."));
@@ -26,7 +26,18 @@ public class WalletChargeUseCase {
             throw new IllegalArgumentException("지갑의 소유자가 아닙니다.");
         }
 
+        if (paymentKey == null || paymentKey.isBlank()) {
+            throw new IllegalArgumentException("paymentKey는 필수입니다.");
+        }
+
+        if (!chargeOrder.getAmount().equals(amount)) {
+            throw new IllegalArgumentException("충전 금액이 일치하지 않습니다.");
+        }
+
         if (chargeOrder.getStatus() == ChargeStatus.COMPLETED) {
+            if (!paymentKey.equals(chargeOrder.getPaymentKey())) {
+                throw new IllegalArgumentException("paymentKey가 일치하지 않습니다.");
+            }
             return;
         }
 
@@ -35,10 +46,9 @@ public class WalletChargeUseCase {
         }
 
         Wallet wallet = chargeOrder.getWallet();
-        Long amount = chargeOrder.getAmount();
         wallet.charge(amount);
 
-        chargeOrder.complete();
+        chargeOrder.complete(paymentKey);
 
         WalletTransaction transaction = WalletTransaction.create(
                 wallet, WalletTransactionType.CHARGE, null, amount, wallet.getBalance(),

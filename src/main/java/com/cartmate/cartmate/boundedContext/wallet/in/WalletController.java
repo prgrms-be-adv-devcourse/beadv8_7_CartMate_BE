@@ -1,11 +1,9 @@
 package com.cartmate.cartmate.boundedContext.wallet.in;
 
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
+import com.cartmate.cartmate.boundedContext.wallet.app.WalletRetryService;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
-import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
-import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletChargeOrderRequest;
-import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletChargeOrderResponse;
-import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class WalletController {
 
     private final WalletFacade walletFacade;
+    private final WalletRetryService walletRetryService;
 
     @GetMapping("/me")
     public ResponseEntity<WalletBalanceResponse> getMyWallet(
@@ -64,5 +63,25 @@ public class WalletController {
                 wallet.walletId(), chargeOrderRequest.amount(), chargeOrderRequest.idempotencyKey());
 
         return ResponseEntity.ok(WalletChargeOrderResponse.from(chargeOrder));
+    }
+
+    @PostMapping("/me/charges/confirm")
+    public ResponseEntity<WalletBalanceResponse> walletChargeConfirm(
+            Authentication authentication,
+            @Valid @RequestBody WalletChargeConfirmRequest chargeConfirmRequest
+            ) {
+        Long memberId = Long.valueOf(authentication.getName());
+
+        WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
+
+        walletRetryService.charge(
+                wallet.walletId(),
+                chargeConfirmRequest.orderNumber(),
+                chargeConfirmRequest.paymentKey(),
+                chargeConfirmRequest.amount()
+
+        );
+
+        return ResponseEntity.ok(walletFacade.getWallet(memberId));
     }
 }

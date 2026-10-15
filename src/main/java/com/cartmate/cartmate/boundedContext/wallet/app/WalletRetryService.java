@@ -18,9 +18,9 @@ public class WalletRetryService {
             delay = 100
     )
     public void charge(
-            Long walletId, String orderNumber
+            Long walletId, String orderNumber, String paymentKey, Long amount
     ) {
-        walletFacade.charge(walletId, orderNumber);
+        walletFacade.charge(walletId, orderNumber, paymentKey, amount);
     }
 
 }

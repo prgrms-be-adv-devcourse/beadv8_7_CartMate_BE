@@ -66,12 +66,17 @@ public class WalletChargeOrder {
 
     }
 
-    public void complete() {
+    public void complete(String paymentKey) {
         if (status != ChargeStatus.PENDING) {
             throw new IllegalArgumentException("완료할 수 없는 충전 주문입니다.");
         }
 
+        if (paymentKey == null || paymentKey.isBlank()) {
+            throw new IllegalArgumentException("paymentKey는 필수입니다.");
+        }
+
         this.status = ChargeStatus.COMPLETED;
+        this.paymentKey = paymentKey;
     }
 
     public void fail() {
