@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.member.domain;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import jakarta.persistence.*;
@@ -62,5 +63,14 @@ public class Member extends BaseIdAndTime {
 
     public MemberDto toDto() {
         return new MemberDto(getId(), email, nickname, role.name());
+    }
+
+    public void validateCanLogin() {
+        if (status == MemberStatus.SUSPENDED) {
+            throw new ServiceException("403-MEMBER_SUSPENDED", "이용이 정지된 계정입니다.");
+        }
+        if (status == MemberStatus.WITHDRAWN) {
+            throw new ServiceException("401-MEMBER_LOGIN_FAILED", "이메일 또는 비밀번호가 올바르지 않습니다.");
+        }
     }
 }

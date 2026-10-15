@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.member.app;
 
 import com.cartmate.cartmate.boundedContext.member.domain.Member;
+import com.cartmate.cartmate.boundedContext.member.dto.LoginResult;
 import com.cartmate.cartmate.boundedContext.member.dto.SignupRequest;
 import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import lombok.RequiredArgsConstructor;
@@ -49,5 +50,12 @@ public class MemberFacade {
 
     public void verifyPhoneCode(String phone, String code) {
         memberVerifyPhoneCodeUseCase.verify(phone, code);
+    }
+
+    private final MemberLoginUseCase memberLoginUseCase;
+
+    @Transactional(readOnly = true)
+    public LoginResult login(String email, String password) {
+        return memberLoginUseCase.login(email, password);
     }
 }
