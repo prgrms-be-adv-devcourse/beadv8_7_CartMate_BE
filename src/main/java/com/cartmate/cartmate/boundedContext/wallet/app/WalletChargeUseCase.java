@@ -41,7 +41,7 @@ public class WalletChargeUseCase {
         chargeOrder.complete();
 
         WalletTransaction transaction = WalletTransaction.create(
-                wallet, WalletTransactionType.CHARGE, amount, wallet.getBalance(),
+                wallet, WalletTransactionType.CHARGE, null, amount, wallet.getBalance(),
                 chargeOrder.getId(), ReferenceType.CHARGE_ORDER
         );
 

@@ -26,8 +26,8 @@ public class WalletPaymentUseCase {
             throw new IllegalArgumentException("유효한 결제ID가 필요합니다.");
         }
 
-        Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndReferenceIdAndReferenceType(
-                WalletTransactionType.USE, paymentId, ReferenceType.PAYMENT
+        Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndOrderIdAndReferenceIdAndReferenceType(
+                WalletTransactionType.USE, orderId, paymentId, ReferenceType.PAYMENT
         );
 
         if (existing.isPresent()) {
@@ -51,7 +51,7 @@ public class WalletPaymentUseCase {
         );
 
         WalletTransaction walletTransaction = WalletTransaction.create(
-                wallet, WalletTransactionType.USE, amount, wallet.getBalance(),
+                wallet, WalletTransactionType.USE, orderId, amount, wallet.getBalance(),
                 paymentId, ReferenceType.PAYMENT
         );
 
@@ -68,8 +68,8 @@ public class WalletPaymentUseCase {
             throw new IllegalArgumentException("유효한 결제ID가 필요합니다.");
         }
 
-        Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndReferenceIdAndReferenceType(
-                WalletTransactionType.REFUND, paymentId, ReferenceType.PAYMENT
+        Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndOrderIdAndReferenceIdAndReferenceType(
+                WalletTransactionType.REFUND, orderId, paymentId, ReferenceType.PAYMENT
         );
 
         if (existing.isPresent()) {
@@ -102,7 +102,7 @@ public class WalletPaymentUseCase {
         wallet.refund(amount);
 
         WalletTransaction walletTransaction = WalletTransaction.create(
-                wallet, WalletTransactionType.REFUND, amount, wallet.getBalance(),
+                wallet, WalletTransactionType.REFUND, orderId, amount, wallet.getBalance(),
                 paymentId, ReferenceType.PAYMENT
         );
 

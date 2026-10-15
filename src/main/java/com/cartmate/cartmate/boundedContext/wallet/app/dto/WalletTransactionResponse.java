@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public record WalletTransactionResponse(
         Long transactionId,
         WalletTransactionType transactionType,
+        Long orderId,
         Long amount,
         Long balanceAfter,
         LocalDateTime createdAt
@@ -17,6 +18,7 @@ public record WalletTransactionResponse(
         return new WalletTransactionResponse(
                 walletTransaction.getId(),
                 walletTransaction.getType(),
+                walletTransaction.getOrderId(),
                 walletTransaction.getAmount(),
                 walletTransaction.getBalanceAfter(),
                 walletTransaction.getCreatedAt()

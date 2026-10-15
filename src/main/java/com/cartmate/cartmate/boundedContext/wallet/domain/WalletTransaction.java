@@ -29,6 +29,9 @@ public class WalletTransaction {
     @Column(name = "type", nullable = false)
     private WalletTransactionType type;
 
+    @Column(name = "order_id")
+    private Long orderId;
+
     @Column(name = "reference_id")
     private Long referenceId;
 
@@ -53,6 +56,7 @@ public class WalletTransaction {
     public static WalletTransaction create(
             Wallet wallet,
             WalletTransactionType type,
+            Long orderId,
             Long amount,
             Long balanceAfter,
             Long referenceId,
@@ -75,6 +79,7 @@ public class WalletTransaction {
 
         walletTransaction.wallet = wallet;
         walletTransaction.type = type;
+        walletTransaction.orderId = orderId;
         walletTransaction.amount = amount;
         walletTransaction.balanceAfter = balanceAfter;
         walletTransaction.referenceId = referenceId;

@@ -16,7 +16,7 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
             Pageable pageable
     );
 
-    Optional<WalletTransaction> findByTypeAndReferenceIdAndReferenceType(
-            WalletTransactionType transactionType, Long referenceId, ReferenceType referenceType
+    Optional<WalletTransaction> findByTypeAndOrderIdAndReferenceIdAndReferenceType(
+            WalletTransactionType transactionType, Long orderId, Long referenceId, ReferenceType referenceType
     );
 }
