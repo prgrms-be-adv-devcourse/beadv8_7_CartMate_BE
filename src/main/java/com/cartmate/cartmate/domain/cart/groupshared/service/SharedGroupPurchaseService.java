@@ -11,7 +11,9 @@ import com.cartmate.cartmate.domain.cart.groupshared.entity.SharedGroupPurchase;
 import com.cartmate.cartmate.domain.cart.groupshared.entity.SharedGroupPurchaseItem;
 import com.cartmate.cartmate.domain.cart.groupshared.entity.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.domain.cart.groupshared.repository.SharedGroupPurchaseRepository;
+import com.cartmate.cartmate.domain.cart.groupshared.event.SharedGroupPurchaseClosedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class SharedGroupPurchaseService {
     private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final ProductClient productClient;
     private final InviteCodeGenerator inviteCodeGenerator;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public SharedGroupPurchaseCreateResponse create(Long memberId, SharedGroupPurchaseCreateRequest request) {
@@ -111,6 +114,7 @@ public class SharedGroupPurchaseService {
         SharedGroupPurchase purchase = getPurchaseForUpdate(sharedGroupPurchaseId);
         Set<Long> unavailable = productClient.findUnavailableInventoryIds(inventoryIdsOf(purchase));
         purchase.close(memberId, unavailable, now());
+        publishClosedEventIfClosed(purchase);
     }
 
     @Transactional
@@ -125,6 +129,7 @@ public class SharedGroupPurchaseService {
         if (purchase.getStatus() == SharedGroupPurchaseStatus.OPEN && !purchase.isEditable(now)) {
             Set<Long> unavailable = productClient.findUnavailableInventoryIds(inventoryIdsOf(purchase));
             purchase.closeByDeadline(unavailable, now);
+            publishClosedEventIfClosed(purchase);
         }
     }
 
@@ -137,6 +142,7 @@ public class SharedGroupPurchaseService {
         if (frozen && !now.isBefore(purchase.getFrozenAt().plus(SharedGroupPurchase.FROZEN_PERIOD))) {
             Set<Long> unavailable = productClient.findUnavailableInventoryIds(inventoryIdsOf(purchase));
             purchase.closeByFrozenTimeout(unavailable, now);
+            publishClosedEventIfClosed(purchase);
         }
     }
 
@@ -163,6 +169,13 @@ public class SharedGroupPurchaseService {
     private SharedGroupPurchase getPurchaseForUpdate(Long sharedGroupPurchaseId) {
         return sharedGroupPurchaseRepository.findByIdForUpdate(sharedGroupPurchaseId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매입니다."));
+    }
+
+
+    private void publishClosedEventIfClosed(SharedGroupPurchase purchase) {
+        if (purchase.getStatus() == SharedGroupPurchaseStatus.CLOSED) {
+            eventPublisher.publishEvent(SharedGroupPurchaseClosedEvent.from(purchase));
+        }
     }
 
     private SharedGroupPurchase getPurchase(Long sharedGroupPurchaseId) {
