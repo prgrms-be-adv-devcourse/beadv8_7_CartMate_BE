@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:tc:mysql:8.4:///cartmatedb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+
+logging:
+  level:
+    com.cartmate: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.testcontainers: INFO
+
+product:
+  global:
+    internalUrl: http://test-url.com

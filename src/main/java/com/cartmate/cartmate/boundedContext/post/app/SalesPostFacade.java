@@ -1,0 +1,35 @@
+package com.cartmate.cartmate.boundedContext.post.app;
+
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
+import com.cartmate.cartmate.boundedContext.post.dto.create.CreateSalesPostRequest;
+import com.cartmate.cartmate.boundedContext.post.out.SalesPostApiClient;
+import com.cartmate.cartmate.shared.member.dto.SellerDto;
+import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+
+@Service
+@RequiredArgsConstructor
+public class SalesPostFacade {
+    private final SalesPostSyncSellerUseCase salesPostSyncSellerUseCase;
+    private final SalesPostCreateUseCase salesPostCreateUseCase;
+    private final TransactionTemplate transactionTemplate;
+    private final SalesPostApiClient salesPostApiClient;
+
+    @Transactional
+    public SalesPostSeller syncSeller(SellerDto seller) {
+        return salesPostSyncSellerUseCase.syncSeller(seller);
+    }
+
+    public void registerSalesPost(CreateSalesPostRequest request) {
+        CreateProductRequest productRequest = transactionTemplate.execute(status -> {
+            SalesPost post = salesPostCreateUseCase.saveSalesPost(request);
+            return new CreateProductRequest(post.getId(), request.toCreateProductList());
+        });
+
+        salesPostApiClient.publishProducts(productRequest);
+    }
+}
