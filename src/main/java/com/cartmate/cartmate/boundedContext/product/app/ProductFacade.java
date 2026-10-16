@@ -12,8 +12,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ProductFacade {
-    private final ProductCreateDraftUseCase productCreateDraftUseCase;
-    private final ProductSaveUseCase productSaveUseCase;
+    private final ProductCreateUseCase productCreateUseCase;
     private final ProductImageSaveUseCase productImageSaveUseCase;
     private final ProductImageFileUploadUseCase productImageFileUploadUseCase;
     private final ProductImageFileDeleteUseCase productImageFileDeleteUseCase;
@@ -27,10 +26,9 @@ public class ProductFacade {
         List<UploadedImage> uploadedImageList = productImageFileUploadUseCase.uploadAll(request);
         try {
             List<CreateProduct> productIdList = transactionTemplate.execute(status -> {
-                List<CreateProduct> draftProductList = productCreateDraftUseCase.createProductDraft(request);
-                productSaveUseCase.publishProduct(draftProductList);
-                productImageSaveUseCase.saveProductImage(draftProductList, uploadedImageList);
-                return draftProductList;
+                List<CreateProduct> productList = productCreateUseCase.saveProduct(request);
+                productImageSaveUseCase.saveProductImage(productList, uploadedImageList);
+                return productList;
             });
         } catch (RuntimeException e) {
 //            deleteQuietly(uploaded);

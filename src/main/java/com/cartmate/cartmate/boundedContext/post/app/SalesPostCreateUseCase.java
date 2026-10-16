@@ -2,7 +2,6 @@ package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
-import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaveStatus;
 import com.cartmate.cartmate.boundedContext.post.dto.create.CreateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,18 +10,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class SalesPostCreateDraftUseCase {
+public class SalesPostCreateUseCase {
     private final SalesPostRepository salesPostRepository;
 
     @Transactional
-    public SalesPost createSalesPostDraft(CreateSalesPostRequest postDto) {
+    public SalesPost saveSalesPost(CreateSalesPostRequest postDto) {
         return salesPostRepository.save(
                 new SalesPost(
                         postDto.getSellerId(),
-                        "No Title",
-                        "No Content",
-                        SalesPostSaveStatus.DRAFT,
-                        SalesPostSaleStatus.PAUSED,
+                        postDto.getTitle(),
+                        postDto.getContent(),
+                        SalesPostSaleStatus.ON_SALE,
                         0L
                 ));
     }

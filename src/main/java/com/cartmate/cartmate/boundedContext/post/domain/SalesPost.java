@@ -22,36 +22,21 @@ public class SalesPost extends BaseIdAndTime {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    private SalesPostSaveStatus saveStatus;
-
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
     private SalesPostSaleStatus saleStatus;
 
     @Column(nullable = false, columnDefinition = "BIGINT")
     private Long viewCount;
 
-    public SalesPost(Long sellerId, String title, String content,
-                     SalesPostSaveStatus saveStatus, SalesPostSaleStatus saleStatus,
-                     Long viewCount) {
+    public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus saleStatus, Long viewCount) {
         this.sellerId = sellerId;
         this.title = title;
         this.content = content;
-        this.saveStatus = saveStatus;
         this.saleStatus = saleStatus;
         this.viewCount = viewCount;
     }
 
 
     public boolean isVisible() {
-        return saleStatus.isVisible() && saveStatus.isVisible();
+        return saleStatus.isVisible();
     }
-
-    public void publish(SalesPost salesPost) {
-        this.title = salesPost.getTitle();
-        this.content = salesPost.getContent();
-        this.saleStatus = SalesPostSaleStatus.ON_SALE;
-        this.saveStatus = SalesPostSaveStatus.PUBLISHED;
-    }
-
 }

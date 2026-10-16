@@ -145,7 +145,6 @@ class ProductRegisterTest {
         for (int seq = 0; seq < files.length; seq++) {
             images.add(new CreateProductImage(0L, SELLER_ID, 0L, null, seq, files[seq]));
         }
-        // 실제 생성자에 맞게 수정
         return new CreateProduct(0L, 0L, POST_ID, 1L, name, "설명", 10000L, images);
     }
 
