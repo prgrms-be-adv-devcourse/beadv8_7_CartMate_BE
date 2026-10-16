@@ -1,8 +1,10 @@
 package com.cartmate.cartmate.boundedContext.member.app;
 
 import com.cartmate.cartmate.boundedContext.member.domain.Member;
+import com.cartmate.cartmate.boundedContext.member.domain.SuspensionReleaseType;
 import com.cartmate.cartmate.boundedContext.member.dto.*;
 import com.cartmate.cartmate.boundedContext.member.out.MyPageDashboardQuery;
+import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,9 @@ public class MemberFacade {
     private final MemberVerifyPhoneCodeUseCase memberVerifyPhoneCodeUseCase;
     private final MemberProfileUseCase memberProfileUseCase;
     private final MemberChangePasswordUseCase memberChangePasswordUseCase;
+    private final AdminMemberSearchUseCase adminMemberSearchUseCase;
+    private final AdminMemberDetailUseCase adminMemberDetailUseCase;
+    private final AdminMemberStatusUseCase adminMemberStatusUseCase;
 
     @Transactional
     public MemberDto join(SignupRequest request) {
@@ -83,5 +88,34 @@ public class MemberFacade {
     @Transactional
     public void changePassword(Long memberId, ChangePasswordRequest request) {
         memberChangePasswordUseCase.changePassword(memberId, request);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<AdminMemberResponse> searchMembersForAdmin(AdminMemberSearchRequest condition, int page, int size) {
+        return adminMemberSearchUseCase.search(condition, page, size);
+    }
+    @Transactional(readOnly = true)
+    public AdminMemberDetailResponse getMemberDetailForAdmin(Long memberId) {
+        return adminMemberDetailUseCase.get(memberId);
+    }
+
+    @Transactional
+    public void suspendMember(Long adminId, Long memberId, AdminSuspendRequest request) {
+        adminMemberStatusUseCase.suspend(adminId, memberId, request);
+    }
+
+    @Transactional
+    public void activateMember(Long memberId) {
+        adminMemberStatusUseCase.activate(memberId, SuspensionReleaseType.MANUAL);
+    }
+
+    @Transactional
+    public AdminBulkStatusResponse changeMemberStatusBulk(Long adminId, AdminBulkStatusRequest request) {
+        return adminMemberStatusUseCase.bulk(adminId, request);
+    }
+
+    @Transactional
+    public int releaseExpiredSuspensions() {
+        return adminMemberStatusUseCase.releaseExpired();
     }
 }
