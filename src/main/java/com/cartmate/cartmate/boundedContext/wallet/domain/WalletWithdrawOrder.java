@@ -57,12 +57,16 @@ public class WalletWithdrawOrder {
             throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
         }
 
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new ServiceException(WalletErrorCode.WALLET_IDEMPOTENCY_KEY_REQUIRED);
+        }
+
         return new WalletWithdrawOrder(wallet, idempotencyKey, amount);
     }
 
     public void complete() {
         if (status != WithdrawStatus.PENDING) {
-            throw new IllegalArgumentException("현재 상태에서는 출금을 완료할 수 없습니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_WITHDRAW_NOT_COMPLETABLE);
         }
 
         this.status = WithdrawStatus.COMPLETED;
@@ -71,7 +75,7 @@ public class WalletWithdrawOrder {
     // 대기 중인 출금 요청을 실패 상태로 변경한다.
     public void fail() {
         if (status != WithdrawStatus.PENDING) {
-            throw new IllegalArgumentException("현재 상태에서는 출금 요청을 실패 처리할 수 없습니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_WITHDRAW_NOT_FAILABLE);
         }
 
         this.status = WithdrawStatus.FAILED;
@@ -80,7 +84,7 @@ public class WalletWithdrawOrder {
     // 대기 중인 출금 요청을 취소 상태로 변경한다.
     public void cancel() {
         if (status != WithdrawStatus.PENDING) {
-            throw new IllegalArgumentException("현재 상태에서는 출금 요청을 취소할 수 없습니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_WITHDRAW_NOT_CANCELABLE);
         }
 
         this.status = WithdrawStatus.CANCELED;

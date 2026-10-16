@@ -20,18 +20,25 @@ public class WalletWithdrawUseCase {
 
     // 대기 요청의 금액을 차감하고 출금 거래 내역과 완료 상태를 기록한다. 완료된 요청은 재처리하지 않는다.
     public void withdraw(Long walletId, Long withdrawOrderId) {
+        if (walletId == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_ID_REQUIRED);
+        }
+        if (withdrawOrderId == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_WITHDRAW_ORDER_ID_REQUIRED);
+        }
+
         WalletWithdrawOrder withdrawOrder = walletWithdrawOrderRepository.findById(withdrawOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("출금주문이 없습니다."));
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_WITHDRAW_ORDER_NOT_FOUND));
 
         if (!withdrawOrder.getWallet().getId().equals(walletId)) {
-            throw new IllegalArgumentException("지갑의 소유주가 아닙니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
         }
 
         if (withdrawOrder.getStatus() != WithdrawStatus.PENDING) {
             if (withdrawOrder.getStatus() == WithdrawStatus.COMPLETED) {
                 return;
             }
-            throw new IllegalArgumentException("현재상태에서는 출금을 완료할 수 없습니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_WITHDRAW_NOT_COMPLETABLE);
         }
 
         Long amount = withdrawOrder.getAmount();
@@ -45,6 +52,10 @@ public class WalletWithdrawUseCase {
 
     // 출금 요청을 생성하거나 같은 멱등성 키·지갑·금액의 기존 요청을 반환한다. 새 요청일 때만 잔액을 확인한다.
     public WalletWithdrawOrder createWithdrawOrder(Long walletId, Long amount, String idempotencyKey) {
+        if (walletId == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_ID_REQUIRED);
+        }
+
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
 
@@ -85,17 +96,17 @@ public class WalletWithdrawUseCase {
     // 출금 요청 소유자를 확인하고 취소한다. 이미 취소된 요청은 재처리하지 않으며 잔액은 변경하지 않는다.
     public void cancel(Long walletId, Long withdrawOrderId) {
         if (walletId == null) {
-            throw new IllegalArgumentException("지갑 ID는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ID_REQUIRED);
         }
         if (withdrawOrderId == null) {
-            throw new IllegalArgumentException("출금 요청 ID는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_WITHDRAW_ORDER_ID_REQUIRED);
         }
 
         WalletWithdrawOrder withdrawOrder = walletWithdrawOrderRepository.findById(withdrawOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("출금 요청을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_WITHDRAW_ORDER_NOT_FOUND));
 
         if (!withdrawOrder.getWallet().getId().equals(walletId)) {
-            throw new IllegalArgumentException("해당 지갑에 접근할 권한이 없습니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
         }
 
         if (withdrawOrder.getStatus() == WithdrawStatus.CANCELED) {
@@ -108,17 +119,17 @@ public class WalletWithdrawUseCase {
     // 출금 요청 소유자를 확인하고 실패 처리한다. 이미 실패한 요청은 재처리하지 않으며 잔액은 변경하지 않는다.
     public void fail(Long walletId, Long withdrawOrderId) {
         if (walletId == null) {
-            throw new IllegalArgumentException("지갑 ID는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ID_REQUIRED);
         }
         if (withdrawOrderId == null) {
-            throw new IllegalArgumentException("출금 요청 ID는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_WITHDRAW_ORDER_ID_REQUIRED);
         }
 
         WalletWithdrawOrder withdrawOrder = walletWithdrawOrderRepository.findById(withdrawOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("출금 요청을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_WITHDRAW_ORDER_NOT_FOUND));
 
         if (!withdrawOrder.getWallet().getId().equals(walletId)) {
-            throw new IllegalArgumentException("해당 지갑에 접근할 권한이 없습니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
         }
 
         if (withdrawOrder.getStatus() == WithdrawStatus.FAILED) {

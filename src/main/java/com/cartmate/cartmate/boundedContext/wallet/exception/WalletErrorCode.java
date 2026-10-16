@@ -35,6 +35,13 @@ public enum WalletErrorCode implements ErrorCode {
     WALLET_CHARGE_NOT_CANCELABLE("WALLET_CHARGE_NOT_CANCELABLE", "현재 상태에서는 충전 주문을 취소할 수 없습니다.", HttpStatus.CONFLICT),
     WALLET_CHARGE_NOT_FAILABLE("WALLET_CHARGE_NOT_FAILABLE", "현재 상태에서는 충전 주문을 실패 처리할 수 없습니다.", HttpStatus.CONFLICT),
 
+    // 출금 요청 조회·상태
+    WALLET_WITHDRAW_ORDER_ID_REQUIRED("WALLET_WITHDRAW_ORDER_ID_REQUIRED", "출금 요청 ID는 필수입니다.", HttpStatus.BAD_REQUEST),
+    WALLET_WITHDRAW_ORDER_NOT_FOUND("WALLET_WITHDRAW_ORDER_NOT_FOUND", "출금 요청을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    WALLET_WITHDRAW_NOT_COMPLETABLE("WALLET_WITHDRAW_NOT_COMPLETABLE", "현재 상태에서는 출금을 완료할 수 없습니다.", HttpStatus.CONFLICT),
+    WALLET_WITHDRAW_NOT_CANCELABLE("WALLET_WITHDRAW_NOT_CANCELABLE", "현재 상태에서는 출금 요청을 취소할 수 없습니다.", HttpStatus.CONFLICT),
+    WALLET_WITHDRAW_NOT_FAILABLE("WALLET_WITHDRAW_NOT_FAILABLE", "현재 상태에서는 출금 요청을 실패 처리할 수 없습니다.", HttpStatus.CONFLICT),
+
     // 기존 요청·거래와의 충돌
     WALLET_IDEMPOTENCY_CONFLICT("WALLET_IDEMPOTENCY_CONFLICT", "동일한 멱등성 키에 다른 요청 내용을 사용할 수 없습니다.", HttpStatus.CONFLICT),
     WALLET_TRANSACTION_AMOUNT_MISMATCH("WALLET_TRANSACTION_AMOUNT_MISMATCH", "요청 금액이 기존 거래 금액과 일치하지 않습니다.", HttpStatus.CONFLICT),
