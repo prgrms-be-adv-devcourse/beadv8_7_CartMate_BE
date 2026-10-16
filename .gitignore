@@ -1,19 +1,28 @@
-# Gradle
-.gradle/
 build/
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+bin/
+.gradle/
+/.link/
 
-# IntelliJ
 .idea/
 *.iml
-/out/
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.vscode/
+.factorypath
 
-# Environment
-.env
-.env.*
-
-# Logs
-*.log
-
-# OS
 .DS_Store
 Thumbs.db
+db.properties
+log/
+*.log
+
+.env
+.env.*
+!.env.example
+src/main/resources/application-dev.yaml

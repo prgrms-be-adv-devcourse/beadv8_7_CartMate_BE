@@ -1,0 +1,275 @@
+name: Gemini Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# 같은 PR에 새 커밋이 올라오면 이전 리뷰 실행은 취소
+concurrency:
+  group: gemini-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # 전체 히스토리 (diff 추출에 필요)
+
+      - name: Check API key
+        id: check_key
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GEMINI_API_KEY Secret이 설정되지 않았습니다."
+          else
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Get PR diff
+        id: diff
+        if: steps.check_key.outputs.has_key == 'true'
+        run: |
+          git diff "origin/${{ github.base_ref }}"...HEAD \
+            -- '*.java' '*.yml' '*.yaml' '*.gradle' '*.properties' '*.md' \
+            > /tmp/pr_diff.txt
+          if [ -s /tmp/pr_diff.txt ]; then
+            echo "has_diff=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_diff=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Call Gemini API and post review
+        if: steps.check_key.outputs.has_key == 'true' && steps.diff.outputs.has_diff == 'true'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_FULL_NAME: ${{ github.repository }}
+          GEMINI_MODEL: gemini-3.1-flash-lite
+          GEMINI_FALLBACK_MODEL: gemini-3.5-flash,gemini-3.6-flash
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import json, os, sys, urllib.request, urllib.error
+
+          # ── 설정 ──
+          API_KEY = os.environ["GEMINI_API_KEY"]
+          GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+          PR_NUMBER = os.environ["PR_NUMBER"]
+          REPO = os.environ["REPO_FULL_NAME"]
+          MODEL = os.environ["GEMINI_MODEL"]
+          FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "")
+          MAX_DIFF_CHARS = 100_000
+          MARKER = "<!-- gemini-code-review -->"
+
+          def http(url, method="GET", body=None, headers=None, timeout=30):
+              data = json.dumps(body).encode("utf-8") if body is not None else None
+              req = urllib.request.Request(url, data=data, method=method,
+                                           headers=headers or {})
+              with urllib.request.urlopen(req, timeout=timeout) as resp:
+                  return json.loads(resp.read().decode("utf-8") or "null")
+
+          # ── diff에 실제 줄 번호 주입 ──
+          def annotate_diff(raw: str) -> str:
+              """각 줄 앞에 새 파일 기준 줄 번호를 붙인다.
+              '+'(추가)·' '(컨텍스트) 줄은 번호, '-'(삭제) 줄은 번호 없음."""
+              out, new_ln, in_hunk, old_path = [], 0, False, ""
+              for line in raw.splitlines():
+                  if line.startswith("diff --git"):
+                      in_hunk = False
+                      continue
+                  if not in_hunk and line.startswith("--- "):
+                      old_path = line[4:]
+                      old_path = old_path[2:] if old_path.startswith("a/") else old_path
+                      continue
+                  if not in_hunk and line.startswith("+++ "):
+                      path = line[4:]
+                      if path == "/dev/null":
+                          out.append(f"\n### 파일: {old_path} (삭제됨)")
+                      else:
+                          path = path[2:] if path.startswith("b/") else path
+                          out.append(f"\n### 파일: {path}")
+                      continue
+                  if line.startswith("@@"):
+                      # @@ -a,b +c,d @@ → c 추출
+                      try:
+                          new_ln = int(line.split("+", 1)[1].split(" ", 1)[0].split(",")[0])
+                      except (IndexError, ValueError):
+                          new_ln = 0
+                      in_hunk = True
+                      out.append(line)
+                      continue
+                  if not in_hunk or line.startswith("\\"):
+                      continue  # 파일 헤더(index, ---) 및 "\ No newline" 무시
+                  tag, code = (line[:1] or " "), line[1:]
+                  if tag == "+":
+                      out.append(f"{new_ln:>5} + {code}"); new_ln += 1
+                  elif tag == "-":
+                      out.append(f"{'':>5} - {code}")
+                  else:
+                      out.append(f"{new_ln:>5}   {code}"); new_ln += 1
+              return "\n".join(out)
+
+          # ── diff 읽기 ──
+          with open("/tmp/pr_diff.txt", "r", encoding="utf-8", errors="replace") as f:
+              diff = annotate_diff(f.read())
+
+          truncated = len(diff) > MAX_DIFF_CHARS
+          if truncated:
+              diff = diff[:MAX_DIFF_CHARS] + "\n\n... (diff가 너무 길어 잘림)"
+
+          prompt = """
+          너는 Java/Spring 백엔드 시니어 개발자로서 Pull Request를 리뷰한다.
+          모든 응답은 한국어로 작성한다.
+
+          [기술스택]
+          • Language: Java 25
+          • Framework: Spring Boot 4.1.1, Spring Security, Spring Data JPA
+          • Database: MySQL
+          • Build Tool: Gradle
+          • Testing: JUnit 5, Testcontainers (MySQL)
+          • Libraries: Lombok, Hibernate Validator
+
+          [리뷰 우선순위]
+          1. 버그 및 잠재적 장애
+          2. 동시성/스레드 안전성
+          3. 리소스 누수
+          4. 예외 처리
+          5. 보안 취약점
+          6. 성능
+          7. Spring 안티패턴
+          8. API 설계
+
+          [규칙]
+          • diff에서 변경된 코드(+ 줄)만 리뷰하고, diff에 없는 코드는 추측하지 않는다.
+          • diff의 각 줄 맨 앞 숫자가 실제 소스 파일의 줄 번호다. 위치는 반드시 이 숫자를
+            그대로 사용하고 직접 계산하지 않는다. 번호가 없는 '-' 줄은 삭제된 코드다.
+          • 파일 경로는 "### 파일:" 헤더에 적힌 경로를 그대로 사용한다.
+          • 확실하지 않은 지적은 하지 않는다. 문제가 없으면 "특이사항 없음"이라고만 쓴다.
+          • 심각도 High → Medium → Low 순서로 정렬한다.
+
+          [출력 형식]
+          각 이슈마다:
+          • 심각도: [High / Medium / Low]
+          • 위치: [파일 경로:줄 번호 (예: src/main/java/.../AuthService.java:42)]
+          • 문제점: [어떤 부작용이나 에러가 발생할 수 있는지 설명]
+          • 개선 코드 (Fix): [구체적인 수정 제안 코드 블록]
+          """
+
+          # ── Gemini API 호출 (일시적 오류 시 재시도 → 대체 모델) ──
+          import time
+          RETRYABLE = {429, 500, 503, 504}
+          MAX_ATTEMPTS = 3
+          request_body = {
+              "contents": [{"parts": [
+                  {"text": prompt},
+                  {"text": f"아래는 PR의 git diff입니다:\n\n{diff}"},
+              ]}],
+              "generationConfig": {
+                  "maxOutputTokens": 8192,
+              },
+          }
+
+          models = [MODEL] + ([FALLBACK_MODEL] if FALLBACK_MODEL and FALLBACK_MODEL != MODEL else [])
+          data, last_error = None, ""
+          for model in models:
+              for attempt in range(1, MAX_ATTEMPTS + 1):
+                  try:
+                      data = http(
+                          f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                          method="POST",
+                          headers={"Content-Type": "application/json",
+                                   "x-goog-api-key": API_KEY},
+                          body=request_body,
+                          timeout=180,
+                      )
+                      MODEL = model  # 실제 응답한 모델을 코멘트에 표시
+                      break
+                  except urllib.error.HTTPError as e:
+                      last_error = f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:300]}"
+                      if e.code not in RETRYABLE:
+                          break  # 키·요청 오류는 재시도해도 소용없음
+                  except Exception as e:  # 타임아웃·네트워크 오류
+                      last_error = str(e)
+                  if attempt < MAX_ATTEMPTS:
+                      wait = 10 * 2 ** (attempt - 1)  # 10s → 20s
+                      print(f"[{model}] 시도 {attempt}/{MAX_ATTEMPTS} 실패, {wait}초 후 재시도: {last_error[:120]}")
+                      time.sleep(wait)
+              if data is not None:
+                  break
+              print(f"[{model}] 최종 실패, 다음 모델로 전환")
+
+          if data is None:
+              print(f"::warning::Gemini API 호출 실패 (모든 모델·재시도 소진): {last_error}")
+              sys.exit(0)  # 리뷰 실패가 PR을 막지 않도록 비차단 처리
+
+          candidates = data.get("candidates") or []
+          if not candidates:
+              print(f"::warning::응답에 candidates 없음: {json.dumps(data.get('promptFeedback', {}))}")
+              sys.exit(0)
+
+          cand = candidates[0]
+          parts = (cand.get("content") or {}).get("parts") or []
+          review_text = "".join(
+              p.get("text") or "" for p in parts
+              if isinstance(p, dict) and not p.get("thought")
+          ).strip()
+          finish = cand.get("finishReason", "")
+
+          if not review_text:
+              print(f"::warning::리뷰 본문이 비어 있음 (finishReason={finish})")
+              sys.exit(0)
+
+          notes = []
+          if finish == "MAX_TOKENS":
+              notes.append("⚠️ 출력 길이 제한으로 리뷰가 중간에 잘렸습니다.")
+          if truncated:
+              notes.append("⚠️ diff가 길어 일부만 리뷰되었습니다.")
+
+          comment_body = "\n".join([
+              MARKER,
+              "## 🤖 Gemini Code Review",
+              *notes,
+              "",
+              review_text,
+              "",
+              "---",
+              f"> 이 리뷰는 Google Gemini API(`{MODEL}`)로 자동 생성되었습니다.",
+          ])
+
+          # ── PR 코멘트 게시 (기존 봇 코멘트가 있으면 수정) ──
+          gh_headers = {"Authorization": f"Bearer {GITHUB_TOKEN}",
+                        "Accept": "application/vnd.github+json",
+                        "Content-Type": "application/json"}
+          api = f"https://api.github.com/repos/{REPO}"
+
+          existing_id = None
+          page = 1
+          while True:
+              comments = http(f"{api}/issues/{PR_NUMBER}/comments?per_page=100&page={page}",
+                              headers=gh_headers)
+              for c in comments:
+                  if MARKER in (c.get("body") or "") and c["user"]["type"] == "Bot":
+                      existing_id = c["id"]
+              if len(comments) < 100:
+                  break
+              page += 1
+
+          if existing_id:
+              http(f"{api}/issues/comments/{existing_id}", method="PATCH",
+                   body={"body": comment_body}, headers=gh_headers)
+              print(f"기존 리뷰 코멘트 수정 완료 (id={existing_id})")
+          else:
+              http(f"{api}/issues/{PR_NUMBER}/comments", method="POST",
+                   body={"body": comment_body}, headers=gh_headers)
+              print("PR 리뷰 코멘트 게시 완료")
+          PYTHON_SCRIPT
