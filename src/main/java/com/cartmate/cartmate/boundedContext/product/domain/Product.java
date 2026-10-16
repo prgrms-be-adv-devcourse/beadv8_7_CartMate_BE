@@ -18,21 +18,16 @@ import java.util.Objects;
 @NoArgsConstructor
 @Getter
 public class Product extends BaseIdAndTime {
-    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long sellerId;
 
-    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long salesPostId;
 
-    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long categoryId;
 
-    @Column(nullable = false)
     private String name;
 
     private String description;
 
-    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long basePrice;
 
     public Product(CreateProduct product) {

@@ -54,7 +54,6 @@ class ProductFacadeIntegrationTest {
     @Test
     @DisplayName("성공: 상품과 사진이 각자 맞는 상품 id로 저장된다")
     void registerSuccess() {
-        // 상품 0: 사진 2장, 상품 1: 사진 1장
         CreateProductRequest request = request(
                 product("아이폰", TestImageFiles.jpeg(), TestImageFiles.png()),
                 product("충전기", TestImageFiles.jpeg()));
@@ -71,7 +70,6 @@ class ProductFacadeIntegrationTest {
         Long iphoneId = idOf(products, "아이폰");
         Long chargerId = idOf(products, "충전기");
 
-        // 아이폰 사진 2장 (순서 0, 1), 충전기 사진 1장 (순서 0)
         assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), iphoneId))
                 .extracting(ProductImage::getImageSeq)
                 .containsExactlyInAnyOrder(0, 1);
@@ -79,9 +77,7 @@ class ProductFacadeIntegrationTest {
                 .extracting(ProductImage::getImageSeq)
                 .containsExactly(0);
 
-        // DB에 기록된 경로의 파일이 실제로 저장소에 있음
         assertThat(images).allMatch(i -> storage.exists(i.getS3Key()));
-        // 모든 상품이 서버가 만든 글 번호에 속함
         assertThat(products).allMatch(p -> Objects.equals(p.getSalesPostId(), POST_ID));
     }
 
@@ -103,7 +99,7 @@ class ProductFacadeIntegrationTest {
     @Test
     @DisplayName("업로드 실패: 중간에 저장이 실패하면 파일과 DB 모두 비어 있다")
     void uploadFailure() {
-        storage.failOnNthSave(2);   // 두 번째 파일 저장에서 실패
+        storage.failOnNthSave(2);
         CreateProductRequest request = request(
                 product("아이폰", TestImageFiles.jpeg(), TestImageFiles.png()),
                 product("충전기", TestImageFiles.jpeg()));
