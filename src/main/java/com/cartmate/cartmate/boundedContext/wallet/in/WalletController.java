@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletRetryService;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.*;
+import com.cartmate.cartmate.global.security.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,7 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -25,23 +26,23 @@ public class WalletController {
 
     @GetMapping("/me")
     public ResponseEntity<WalletBalanceResponse> getMyWallet(
-            Authentication authentication
-    ) {
-        Long memberId = Long.valueOf(authentication.getName());
+            @AuthenticationPrincipal SecurityUser user
+            ) {
+        Long memberId = user.memberId();
 
         return ResponseEntity.ok(walletFacade.getWallet(memberId));
     }
 
     @GetMapping("/me/transactions")
     public Page<WalletTransactionResponse> getMyWalletTransactions(
-            Authentication authentication,
+            @AuthenticationPrincipal SecurityUser user,
             @PageableDefault(
                     size = 20,
                     sort = {"createdAt", "id"},
                     direction = Sort.Direction.DESC
             ) Pageable pageable
     ) {
-        Long memberId = Long.valueOf(authentication.getName());
+        Long memberId = user.memberId();
 
         WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
 
@@ -52,10 +53,10 @@ public class WalletController {
 
     @PostMapping("/me/charges")
     public ResponseEntity<WalletChargeOrderResponse> walletChargeOrder(
-            Authentication authentication,
+            @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody WalletChargeOrderRequest chargeOrderRequest
     ) {
-        Long memberId = Long.valueOf(authentication.getName());
+        Long memberId = user.memberId();
 
         WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
 
@@ -67,10 +68,10 @@ public class WalletController {
 
     @PostMapping("/me/charges/confirm")
     public ResponseEntity<WalletBalanceResponse> walletChargeConfirm(
-            Authentication authentication,
+            @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody WalletChargeConfirmRequest chargeConfirmRequest
             ) {
-        Long memberId = Long.valueOf(authentication.getName());
+        Long memberId = user.memberId();
 
         WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
 
