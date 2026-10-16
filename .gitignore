@@ -1,5 +1,5 @@
 build/
-out/
+/out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 bin/
@@ -26,3 +26,5 @@ log/
 .env.*
 !.env.example
 src/main/resources/application-dev.yaml
+### Spring Initializr ###
+HELP.md

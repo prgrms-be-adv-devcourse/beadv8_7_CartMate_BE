@@ -1,8 +1,10 @@
 package com.cartmate.cartmate.global.exception;
 
 import com.cartmate.cartmate.global.rsData.RsData;
+import lombok.Getter;
 
-public class ServiceException extends RuntimeException{
+@Getter
+public class ServiceException extends RuntimeException {
 
     private final String resultCode;
     private final String msg;

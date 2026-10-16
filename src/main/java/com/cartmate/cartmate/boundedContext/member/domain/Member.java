@@ -82,4 +82,21 @@ public class Member extends BaseIdAndTime {
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
     }
+
+    public void suspend() {
+        if (status == MemberStatus.WITHDRAWN) {
+            throw new ServiceException("409-MEMBER_WITHDRAWN", "탈퇴한 회원은 정지할 수 없습니다.");
+        }
+        if (status == MemberStatus.SUSPENDED) {
+            throw new ServiceException("409-MEMBER_ALREADY_SUSPENDED", "이미 정지된 회원입니다.");
+        }
+        this.status = MemberStatus.SUSPENDED;
+    }
+
+    public void activate() {
+        if (status != MemberStatus.SUSPENDED) {
+            throw new ServiceException("409-MEMBER_NOT_SUSPENDED", "정지 상태가 아닌 회원입니다.");
+        }
+        this.status = MemberStatus.ACTIVE;
+    }
 }
