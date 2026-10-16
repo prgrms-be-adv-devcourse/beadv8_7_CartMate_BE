@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @Import(SharedGroupPurchaseConcurrencyTest.ClosedEventRecorder.class)
+@ActiveProfiles("test")
 class SharedGroupPurchaseConcurrencyTest {
 
     private static final int THREADS = 8;
