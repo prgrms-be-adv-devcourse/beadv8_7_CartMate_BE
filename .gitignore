@@ -24,3 +24,5 @@ log/
 
 .env
 src/main/resources/application-dev.yaml
+### Spring Initializr ###
+HELP.md
