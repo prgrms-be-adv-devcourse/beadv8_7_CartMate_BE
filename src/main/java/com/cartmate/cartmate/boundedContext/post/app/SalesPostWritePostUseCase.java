@@ -16,8 +16,8 @@ public class SalesPostWritePostUseCase {
     private final SalesPostRepository salesPostRepository;
 
     @Transactional
-    public void publishSalesPost(CreateSalesPostRequest postDto) {
-        SalesPost post = salesPostRepository.findById(postDto.getId())
+    public void publishSalesPost(Long postId) {
+        SalesPost post = salesPostRepository.findById(postId)
                 .orElseThrow(() -> new DomainException(POST_UPDATE_FAILED));
         post.publish(post);
     }

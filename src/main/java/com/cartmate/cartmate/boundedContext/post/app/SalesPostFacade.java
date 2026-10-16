@@ -30,7 +30,7 @@ public class SalesPostFacade {
         SalesPost post = salesPostCreateDraftUseCase.createSalesPostDraft(request);
         CreateProductRequest productRequest = new CreateProductRequest(post.getId(), request.toCreateProductList());
         salesPostApiClient.publishProducts(productRequest);
-        salesPostWritePostUseCase.publishSalesPost(request);
+        salesPostWritePostUseCase.publishSalesPost(post.getId());
         // 비동기 코드 이후
         return null;
     }
