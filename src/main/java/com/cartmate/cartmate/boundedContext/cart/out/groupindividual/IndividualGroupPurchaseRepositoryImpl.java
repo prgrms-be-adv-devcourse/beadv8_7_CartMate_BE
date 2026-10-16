@@ -2,18 +2,21 @@ package com.cartmate.cartmate.boundedContext.cart.out.groupindividual;
 
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchase;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
 
 import static com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.QIndividualGroupPurchase.individualGroupPurchase;
 import static com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.QIndividualGroupPurchaseProduct.individualGroupPurchaseProduct;
 
-@RequiredArgsConstructor
 public class IndividualGroupPurchaseRepositoryImpl implements IndividualGroupPurchaseRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
+
+    public IndividualGroupPurchaseRepositoryImpl(EntityManager entityManager) {
+        this.queryFactory = new JPAQueryFactory(entityManager);
+    }
 
     @Override
     public Optional<IndividualGroupPurchase> findByIdForUpdate(Long id) {

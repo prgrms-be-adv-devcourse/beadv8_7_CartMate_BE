@@ -3,8 +3,8 @@ package com.cartmate.cartmate.boundedContext.cart.out.groupshared;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
-import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,11 +14,13 @@ import static com.cartmate.cartmate.boundedContext.cart.domain.groupshared.QShar
 import static com.cartmate.cartmate.boundedContext.cart.domain.groupshared.QSharedGroupPurchaseItem.sharedGroupPurchaseItem;
 import static com.cartmate.cartmate.boundedContext.cart.domain.groupshared.QSharedGroupPurchaseMember.sharedGroupPurchaseMember;
 
-
-@RequiredArgsConstructor
 public class SharedGroupPurchaseRepositoryImpl implements SharedGroupPurchaseRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
+
+    public SharedGroupPurchaseRepositoryImpl(EntityManager entityManager) {
+        this.queryFactory = new JPAQueryFactory(entityManager);
+    }
 
     @Override
     public Optional<SharedGroupPurchase> findByIdForUpdate(Long id) {
@@ -40,7 +42,6 @@ public class SharedGroupPurchaseRepositoryImpl implements SharedGroupPurchaseRep
         return Optional.ofNullable(result);
     }
 
-
     @Override
     public Optional<SharedGroupPurchase> findWithDetailsById(Long id) {
         SharedGroupPurchase result = queryFactory
@@ -59,7 +60,6 @@ public class SharedGroupPurchaseRepositoryImpl implements SharedGroupPurchaseRep
         return Optional.of(result);
     }
 
-
     @Override
     public List<SharedGroupPurchase> findAllByParticipant(Long memberId) {
         return queryFactory
@@ -69,7 +69,6 @@ public class SharedGroupPurchaseRepositoryImpl implements SharedGroupPurchaseRep
                 .orderBy(sharedGroupPurchase.id.desc())
                 .fetch();
     }
-
 
     @Override
     public List<Long> findIdsToCloseByDeadline(LocalDateTime now) {
@@ -82,7 +81,6 @@ public class SharedGroupPurchaseRepositoryImpl implements SharedGroupPurchaseRep
                 )
                 .fetch();
     }
-
 
     @Override
     public List<Long> findIdsToReleaseFrozen(LocalDateTime now) {
