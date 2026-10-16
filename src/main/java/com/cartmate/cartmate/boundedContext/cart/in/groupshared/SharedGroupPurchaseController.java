@@ -9,7 +9,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurc
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseJoinRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseMaxParticipantsUpdateRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseSummaryResponse;
-import com.cartmate.cartmate.boundedContext.cart.app.groupshared.SharedGroupPurchaseService;
+import com.cartmate.cartmate.boundedContext.cart.app.groupshared.SharedGroupPurchaseFacade;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,14 +28,14 @@ public class SharedGroupPurchaseController {
 
     private static final String BASE_PATH = "/group-purchases/shared/";
 
-    private final SharedGroupPurchaseService sharedGroupPurchaseService;
+    private final SharedGroupPurchaseFacade sharedGroupPurchaseFacade;
 
     @PostMapping
     public ResponseEntity<SharedGroupPurchaseCreateResponse> create(
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @Valid @RequestBody SharedGroupPurchaseCreateRequest request
     ) {
-        SharedGroupPurchaseCreateResponse response = sharedGroupPurchaseService.create(memberId, request);
+        SharedGroupPurchaseCreateResponse response = sharedGroupPurchaseFacade.create(memberId, request);
         return ResponseEntity.created(URI.create(BASE_PATH + response.id())).body(response);
     }
 
@@ -44,7 +44,7 @@ public class SharedGroupPurchaseController {
     public ResponseEntity<List<SharedGroupPurchaseSummaryResponse>> getMyList(
             @RequestHeader(MEMBER_ID_HEADER) Long memberId
     ) {
-        return ResponseEntity.ok(sharedGroupPurchaseService.getMyList(memberId));
+        return ResponseEntity.ok(sharedGroupPurchaseFacade.getMyList(memberId));
     }
 
 
@@ -53,7 +53,7 @@ public class SharedGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(sharedGroupPurchaseService.getDetail(memberId, id));
+        return ResponseEntity.ok(sharedGroupPurchaseFacade.getDetail(memberId, id));
     }
 
 
@@ -63,8 +63,8 @@ public class SharedGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @Valid @RequestBody SharedGroupPurchaseJoinRequest request
     ) {
-        Long id = sharedGroupPurchaseService.join(memberId, request.inviteCode());
-        return ResponseEntity.ok(sharedGroupPurchaseService.getDetail(memberId, id));
+        Long id = sharedGroupPurchaseFacade.join(memberId, request.inviteCode());
+        return ResponseEntity.ok(sharedGroupPurchaseFacade.getDetail(memberId, id));
     }
 
 
@@ -73,7 +73,7 @@ public class SharedGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable Long id
     ) {
-        sharedGroupPurchaseService.leave(memberId, id);
+        sharedGroupPurchaseFacade.leave(memberId, id);
         return ResponseEntity.noContent().build();
     }
 
@@ -84,7 +84,7 @@ public class SharedGroupPurchaseController {
             @PathVariable Long id,
             @PathVariable Long targetMemberId
     ) {
-        sharedGroupPurchaseService.kick(memberId, id, targetMemberId);
+        sharedGroupPurchaseFacade.kick(memberId, id, targetMemberId);
         return ResponseEntity.noContent().build();
     }
 
@@ -95,7 +95,7 @@ public class SharedGroupPurchaseController {
             @PathVariable Long id,
             @Valid @RequestBody SharedGroupPurchaseMaxParticipantsUpdateRequest request
     ) {
-        sharedGroupPurchaseService.increaseMaxParticipants(memberId, id, request.maxParticipants());
+        sharedGroupPurchaseFacade.increaseMaxParticipants(memberId, id, request.maxParticipants());
         return ResponseEntity.noContent().build();
     }
 
@@ -106,7 +106,7 @@ public class SharedGroupPurchaseController {
             @PathVariable Long id,
             @Valid @RequestBody SharedGroupPurchaseItemAddRequest request
     ) {
-        sharedGroupPurchaseService.addItem(memberId, id, request.inventoryId(), request.quantity());
+        sharedGroupPurchaseFacade.addItem(memberId, id, request.inventoryId(), request.quantity());
         return ResponseEntity.noContent().build();
     }
 
@@ -118,7 +118,7 @@ public class SharedGroupPurchaseController {
             @PathVariable Long itemId,
             @Valid @RequestBody SharedGroupPurchaseItemQuantityUpdateRequest request
     ) {
-        sharedGroupPurchaseService.changeItemQuantity(memberId, id, itemId, request.quantity());
+        sharedGroupPurchaseFacade.changeItemQuantity(memberId, id, itemId, request.quantity());
         return ResponseEntity.noContent().build();
     }
 
@@ -129,7 +129,7 @@ public class SharedGroupPurchaseController {
             @PathVariable Long itemId,
             @Valid @RequestBody SharedGroupPurchaseItemOptionUpdateRequest request
     ) {
-        sharedGroupPurchaseService.changeItemOption(memberId, id, itemId, request.inventoryId());
+        sharedGroupPurchaseFacade.changeItemOption(memberId, id, itemId, request.inventoryId());
         return ResponseEntity.noContent().build();
     }
 
@@ -139,7 +139,7 @@ public class SharedGroupPurchaseController {
             @PathVariable Long id,
             @PathVariable Long itemId
     ) {
-        sharedGroupPurchaseService.removeItem(memberId, id, itemId);
+        sharedGroupPurchaseFacade.removeItem(memberId, id, itemId);
         return ResponseEntity.noContent().build();
     }
 
@@ -149,7 +149,7 @@ public class SharedGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable Long id
     ) {
-        sharedGroupPurchaseService.close(memberId, id);
+        sharedGroupPurchaseFacade.close(memberId, id);
         return ResponseEntity.noContent().build();
     }
 
@@ -158,7 +158,7 @@ public class SharedGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable Long id
     ) {
-        sharedGroupPurchaseService.cancel(memberId, id);
+        sharedGroupPurchaseFacade.cancel(memberId, id);
         return ResponseEntity.noContent().build();
     }
 
@@ -167,7 +167,7 @@ public class SharedGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable Long id
     ) {
-        SharedGroupPurchaseCreateResponse response = sharedGroupPurchaseService.duplicate(memberId, id);
+        SharedGroupPurchaseCreateResponse response = sharedGroupPurchaseFacade.duplicate(memberId, id);
         return ResponseEntity.created(URI.create(BASE_PATH + response.id())).body(response);
     }
 }
