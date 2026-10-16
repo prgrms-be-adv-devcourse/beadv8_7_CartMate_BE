@@ -80,4 +80,16 @@ public class Wallet {
         this.memberId = memberId;
         this.balance = 0L;
     }
+
+    public void withdraw(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
+        }
+
+        if (this.balance < amount) {
+            throw new ServiceException(WalletErrorCode.WALLET_INSUFFICIENT_BALANCE);
+        }
+
+        this.balance -= amount;
+    }
 }

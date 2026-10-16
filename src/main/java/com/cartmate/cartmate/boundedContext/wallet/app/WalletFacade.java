@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.wallet.app;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
+import com.cartmate.cartmate.boundedContext.wallet.domain.WalletWithdrawOrder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ public class WalletFacade {
     private final WalletChargeUseCase walletChargeUseCase;
     private final WalletPaymentUseCase walletPaymentUseCase;
     private final WalletSettlementUseCase walletSettlementUseCase;
+    private final WalletWithdrawUseCase walletWithdrawUseCase;
 
     // 회원 지갑 생성을 요청한다.
     @Transactional
@@ -81,5 +83,17 @@ public class WalletFacade {
     @Transactional
     public void settle(List<Long> orderIds, Long settlementId) {
         walletSettlementUseCase.settle(orderIds, settlementId);
+    }
+
+    // 잔액 차감·출금 요청 완료·거래 내역 저장을 하나의 트랜잭션으로 처리한다. 완료된 요청은 재처리하지 않는다.
+    @Transactional
+    public void withdraw(Long walletId, Long withdrawOrderId) {
+        walletWithdrawUseCase.withdraw(walletId, withdrawOrderId);
+    }
+
+    // 출금 요청을 생성하거나 같은 멱등성 키·지갑·금액의 기존 요청을 반환한다. 생성 시 잔액은 차감하지 않는다.
+    @Transactional
+    public WalletWithdrawOrder withdrawOrder(Long walletId, Long amount, String idempotencyKey) {
+        return walletWithdrawUseCase.createWithdrawOrder(walletId, amount, idempotencyKey);
     }
 }

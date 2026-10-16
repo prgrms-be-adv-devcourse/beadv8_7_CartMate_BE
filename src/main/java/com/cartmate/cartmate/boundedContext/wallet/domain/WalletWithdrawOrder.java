@@ -60,6 +60,14 @@ public class WalletWithdrawOrder {
         return new WalletWithdrawOrder(wallet, idempotencyKey, amount);
     }
 
+    public void complete() {
+        if (status != WithdrawStatus.PENDING) {
+            throw new IllegalArgumentException("출금 대기상태가 아닙니다.");
+        }
+
+        this.status = WithdrawStatus.COMPLETED;
+    }
+
     private WalletWithdrawOrder(Wallet wallet, String idempotencyKey, Long amount) {
         this.wallet = wallet;
         this.idempotencyKey = idempotencyKey;
