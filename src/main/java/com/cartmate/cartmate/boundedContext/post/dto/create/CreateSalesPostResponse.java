@@ -10,6 +10,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateSalesPostResponse {
-    private int postId;
-    private List<Integer> productIdList;
+    private Long postId;
+    private List<Long> productIdList;
 }

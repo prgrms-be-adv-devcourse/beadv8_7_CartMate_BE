@@ -55,7 +55,7 @@ public class ProductImageFileUploadUseCase {
         return futures.stream().map(CompletableFuture::join).toList();
     }
 
-    private UploadedImage upload(int postId, ImageUploadTask task, List<String> uploadedKeys) {
+    private UploadedImage upload(Long postId, ImageUploadTask task, List<String> uploadedKeys) {
         ImageType type = typeDetectorPolicy.detect(task.getFile());
         String key = "posts/%d/%s.%s".formatted(postId, UUID.randomUUID(), type.getExtension());
 

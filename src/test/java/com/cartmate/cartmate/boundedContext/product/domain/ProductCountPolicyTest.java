@@ -104,8 +104,8 @@ class ProductCountPolicyTest {
     private CreateProduct product(int imageCount) {
         List<CreateProductImage> images = new ArrayList<>();
         for (int i = 0; i < imageCount; i++) {
-            images.add(new CreateProductImage(0, 0, 0, null, i, null));
+            images.add(new CreateProductImage(0L, 0L, 0L, null, i, null));
         }
-        return new CreateProduct(0, 0, 0, 1, "상품", "설명", "10000", images);
+        return new CreateProduct(0L, 0L, 0L, 1L, "상품", "설명", 10000L, images);
     }
 }

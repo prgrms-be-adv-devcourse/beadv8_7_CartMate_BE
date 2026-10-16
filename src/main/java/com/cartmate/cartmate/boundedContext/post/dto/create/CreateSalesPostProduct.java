@@ -12,15 +12,15 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateSalesPostProduct {
-    private int id;
-    private int salesPostId;
-    private int categoryId;
+    private Long id;
+    private Long salesPostId;
+    private Long categoryId;
     private String name;
     private String description;
-    private String basePrice;
+    private Long basePrice;
     private List<CreateSalesPostProductImage> productImageList;
 
-    public CreateProduct toCreateProduct(int sellerId) {
+    public CreateProduct toCreateProduct(Long sellerId) {
         List<CreateProductImage> productImages = productImageList.stream()
                 .map(image -> image.toCreateProductImage(sellerId))
                 .toList();

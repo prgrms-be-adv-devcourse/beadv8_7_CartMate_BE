@@ -11,8 +11,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateSalesPostRequest {
-    private int id;
-    private int sellerId;
+    private Long id;
+    private Long sellerId;
     private String title;
     private String content;
     private List<CreateSalesPostProduct> productList;

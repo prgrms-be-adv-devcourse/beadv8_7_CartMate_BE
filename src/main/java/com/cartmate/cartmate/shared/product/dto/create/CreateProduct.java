@@ -11,16 +11,16 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateProduct {
-    private int id;
-    private int sellerId;
-    private int salesPostId;
-    private int categoryId;
+    private Long id;
+    private Long sellerId;
+    private Long salesPostId;
+    private Long categoryId;
     private String name;
     private String description;
-    private String basePrice;
+    private Long basePrice;
     private List<CreateProductImage> productImageList;
 
-    public void assignProductId(int id) {
+    public void assignProductId(Long id) {
         this.id = id;
     }
 }

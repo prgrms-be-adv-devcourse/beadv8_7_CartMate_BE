@@ -1,7 +1,8 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
 import com.cartmate.cartmate.boundedContext.post.dto.create.CreateSalesPostRequest;
-import com.cartmate.cartmate.global.entity.BaseGeneratedInfo;
+
+import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -13,8 +14,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "POST_POST")
 @NoArgsConstructor
 @Getter
-public class SalesPost extends BaseGeneratedInfo {
-    private int sellerId;
+public class SalesPost extends BaseIdAndTime {
+    private Long sellerId;
     private String title;
     private String content;
     @Enumerated(EnumType.STRING)

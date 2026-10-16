@@ -31,8 +31,8 @@ import static org.mockito.Mockito.reset;
 @ActiveProfiles("test")
 class ProductFacadeIntegrationTest {
 
-    private static final int POST_ID = 101;
-    private static final int SELLER_ID = 7;
+    private static final Long POST_ID = 101L;
+    private static final Long SELLER_ID = 7L;
 
     @Autowired ProductFacade productFacade;
     @Autowired ProductRepository productRepository;
@@ -67,8 +67,8 @@ class ProductFacadeIntegrationTest {
         assertThat(images).hasSize(3);
         assertThat(storage.savedCount()).isEqualTo(3);
 
-        int iphoneId = idOf(products, "아이폰");
-        int chargerId = idOf(products, "충전기");
+        Long iphoneId = idOf(products, "아이폰");
+        Long chargerId = idOf(products, "충전기");
 
         // 아이폰 사진 2장 (순서 0, 1), 충전기 사진 1장 (순서 0)
         assertThat(images).filteredOn(i -> i.getProductId() == iphoneId)
@@ -142,13 +142,13 @@ class ProductFacadeIntegrationTest {
     private CreateProduct product(String name, MockMultipartFile... files) {
         List<CreateProductImage> images = new ArrayList<>();
         for (int seq = 0; seq < files.length; seq++) {
-            images.add(new CreateProductImage(0, SELLER_ID, 0, null, seq, files[seq]));
+            images.add(new CreateProductImage(0L, SELLER_ID, 0L, null, seq, files[seq]));
         }
         // 실제 생성자에 맞게 수정
-        return new CreateProduct(0, 0, POST_ID, 1, name, "설명", "10000", images);
+        return new CreateProduct(0L, 0L, POST_ID, 1L, name, "설명", 10000L, images);
     }
 
-    private int idOf(List<Product> products, String name) {
+    private Long idOf(List<Product> products, String name) {
         return products.stream()
                 .filter(p -> p.getName().equals(name))
                 .findFirst()

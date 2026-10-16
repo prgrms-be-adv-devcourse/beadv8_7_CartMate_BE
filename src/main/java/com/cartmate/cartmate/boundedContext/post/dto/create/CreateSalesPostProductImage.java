@@ -10,13 +10,13 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateSalesPostProductImage {
-    private int id;
-    private int productId;
+    private Long id;
+    private Long productId;
     private String s3Key;
     private int image_seq;
     private MultipartFile file;
 
-    public CreateProductImage toCreateProductImage(int sellerId) {
+    public CreateProductImage toCreateProductImage(Long sellerId) {
         return new CreateProductImage(
                 id,
                 sellerId,

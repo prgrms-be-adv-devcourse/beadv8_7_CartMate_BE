@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 public class SellerDto {
-    private int id;
-    private int memberId;
+    private Long id;
+    private Long memberId;
     private String sellerType;
     private String businessName;
     private String businessNumber;

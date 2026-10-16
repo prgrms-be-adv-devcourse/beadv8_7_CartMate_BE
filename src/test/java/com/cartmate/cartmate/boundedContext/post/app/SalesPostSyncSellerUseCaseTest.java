@@ -36,7 +36,7 @@ public class SalesPostSyncSellerUseCaseTest {
         em.flush();
         em.clear();
 
-        SalesPostSeller saved = salesPostSellerRepository.findById(1).orElseThrow();
+        SalesPostSeller saved = salesPostSellerRepository.findById(1L).orElseThrow();
         assertThat(saved.getBusinessName()).isEqualTo("첫번째 상점");
     }
 
@@ -52,14 +52,14 @@ public class SalesPostSyncSellerUseCaseTest {
         em.clear();
 
         assertThat(salesPostSellerRepository.count()).isEqualTo(1);
-        SalesPostSeller updated = salesPostSellerRepository.findById(1).orElseThrow();
+        SalesPostSeller updated = salesPostSellerRepository.findById(1L).orElseThrow();
         assertThat(updated.getBusinessName()).isEqualTo("두번째 상점");
     }
 
     private SellerDto sellerDto(String businessName) {
         return new SellerDto(
-                1,
-                1,
+                1L,
+                1L,
                 "INDIVIDUAL",
                 businessName,
                 "123-45-67890",
