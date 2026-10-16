@@ -43,17 +43,13 @@ public class WalletWithdrawUseCase {
                 withdrawOrder.getId(), ReferenceType.WITHDRAW_ORDER, withdrawOrder.getIdempotencyKey(), amount);
     }
 
-    // 출금 요청을 생성하거나 같은 멱등성 키·지갑·금액의 기존 요청을 반환한다.
+    // 출금 요청을 생성하거나 같은 멱등성 키·지갑·금액의 기존 요청을 반환한다. 새 요청일 때만 잔액을 확인한다.
     public WalletWithdrawOrder createWithdrawOrder(Long walletId, Long amount, String idempotencyKey) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
 
         if (amount == null || amount <= 0) {
             throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
-        }
-
-        if (wallet.getBalance() < amount) {
-            throw new ServiceException(WalletErrorCode.WALLET_INSUFFICIENT_BALANCE);
         }
 
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
@@ -75,6 +71,10 @@ public class WalletWithdrawUseCase {
         }
 
         return existing.orElseGet(() -> {
+            if (wallet.getBalance() < amount) {
+                throw new ServiceException(WalletErrorCode.WALLET_INSUFFICIENT_BALANCE);
+            }
+
             WalletWithdrawOrder withdrawOrder = WalletWithdrawOrder.create(
                     wallet, idempotencyKey, amount
             );
