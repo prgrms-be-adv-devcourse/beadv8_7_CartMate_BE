@@ -16,7 +16,14 @@ public class ProductCreateDraftUseCase {
 
     public List<CreateProduct> createProductDraft(CreateProductRequest request) {
         request.getProductList().forEach(createProduct -> {
-            Product product = productRepository.save(new Product(createProduct));
+            Product product = productRepository.save(new Product(
+                    createProduct.getSellerId(),
+                    createProduct.getSalesPostId(),
+                    0L,
+                    "Unknown",
+                    "No description",
+                    0L
+            ));
             createProduct.assignProductId(product.getId());
         });
 
