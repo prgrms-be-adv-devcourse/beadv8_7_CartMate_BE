@@ -23,4 +23,16 @@ public class WalletRetryService {
         walletFacade.charge(walletId, orderNumber, paymentKey, amount);
     }
 
+    // 낙관적 락 충돌로 롤백된 출금 처리를 최대 3회 재시도한다.
+    @Retryable(
+            value = OptimisticLockingFailureException.class,
+            maxRetries = 3,
+            delay = 100
+    )
+    public void withdraw(
+            Long walletId, Long withdrawOrderId
+    ) {
+        walletFacade.withdraw(walletId, withdrawOrderId);
+    }
+
 }
