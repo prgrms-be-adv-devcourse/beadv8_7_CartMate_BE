@@ -9,6 +9,7 @@ import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +17,7 @@ public class SalesPostFacade {
     private final SalesPostSyncSellerUseCase salesPostSyncSellerUseCase;
     private final SalesPostCreateDraftUseCase salesPostCreateDraftUseCase;
     private final SalesPostWritePostUseCase salesPostWritePostUseCase;
+    private final TransactionTemplate transactionTemplate;
     private final SalesPostApiClient salesPostApiClient;
 
     @Transactional
@@ -23,12 +25,15 @@ public class SalesPostFacade {
         return salesPostSyncSellerUseCase.syncSeller(seller);
     }
 
-    @Transactional
     public void registerSalesPost(CreateSalesPostRequest request) {
-        SalesPost post = salesPostCreateDraftUseCase.createSalesPostDraft(request);
-        CreateProductRequest productRequest = new CreateProductRequest(post.getId(), request.toCreateProductList());
+        // DB 작업
+        CreateProductRequest productRequest = transactionTemplate.execute(status -> {
+            SalesPost post = salesPostCreateDraftUseCase.createSalesPostDraft(request);
+            salesPostWritePostUseCase.publishSalesPost(post.getId());
+            return new CreateProductRequest(post.getId(), request.toCreateProductList());
+        });
+
+        // 이게 API 호출이라 이걸 비동기로 할거임
         salesPostApiClient.publishProducts(productRequest);
-        salesPostWritePostUseCase.publishSalesPost(post.getId());
-        // 비동기 코드 이후
     }
 }

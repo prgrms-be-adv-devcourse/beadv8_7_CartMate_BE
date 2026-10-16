@@ -6,6 +6,7 @@ import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -14,6 +15,7 @@ import java.util.List;
 public class ProductCreateDraftUseCase {
     private final ProductRepository productRepository;
 
+    @Transactional
     public List<CreateProduct> createProductDraft(CreateProductRequest request) {
         request.getProductList().forEach(createProduct -> {
             Product product = productRepository.save(new Product(

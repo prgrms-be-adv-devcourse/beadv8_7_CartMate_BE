@@ -7,6 +7,7 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -15,7 +16,7 @@ import java.util.List;
 public class ProductSaveUseCase {
     private final ProductRepository productRepository;
 
-
+    @Transactional
     public void publishProduct(List<CreateProduct> productList) {
         productList.forEach(createProduct -> {
             Product product = productRepository.findById(createProduct.getId())
