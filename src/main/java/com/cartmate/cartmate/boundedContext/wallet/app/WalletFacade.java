@@ -96,4 +96,16 @@ public class WalletFacade {
     public WalletWithdrawOrder withdrawOrder(Long walletId, Long amount, String idempotencyKey) {
         return walletWithdrawUseCase.createWithdrawOrder(walletId, amount, idempotencyKey);
     }
+
+    // 대기 중인 출금 요청을 취소한다. 이미 취소된 요청은 재처리하지 않으며 잔액은 변경하지 않는다.
+    @Transactional
+    public void cancelWithdraw(Long walletId, Long withdrawOrderId) {
+        walletWithdrawUseCase.cancel(walletId, withdrawOrderId);
+    }
+
+    // 실패가 확정된 대기 출금 요청을 실패 처리한다. 이미 실패한 요청은 재처리하지 않으며 잔액은 변경하지 않는다.
+    @Transactional
+    public void failWithdraw(Long walletId, Long withdrawOrderId) {
+        walletWithdrawUseCase.fail(walletId, withdrawOrderId);
+    }
 }

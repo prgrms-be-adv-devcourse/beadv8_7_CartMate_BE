@@ -62,10 +62,28 @@ public class WalletWithdrawOrder {
 
     public void complete() {
         if (status != WithdrawStatus.PENDING) {
-            throw new IllegalArgumentException("출금 대기상태가 아닙니다.");
+            throw new IllegalArgumentException("현재 상태에서는 출금을 완료할 수 없습니다.");
         }
 
         this.status = WithdrawStatus.COMPLETED;
+    }
+
+    // 대기 중인 출금 요청을 실패 상태로 변경한다.
+    public void fail() {
+        if (status != WithdrawStatus.PENDING) {
+            throw new IllegalArgumentException("현재 상태에서는 출금 요청을 실패 처리할 수 없습니다.");
+        }
+
+        this.status = WithdrawStatus.FAILED;
+    }
+
+    // 대기 중인 출금 요청을 취소 상태로 변경한다.
+    public void cancel() {
+        if (status != WithdrawStatus.PENDING) {
+            throw new IllegalArgumentException("현재 상태에서는 출금 요청을 취소할 수 없습니다.");
+        }
+
+        this.status = WithdrawStatus.CANCELED;
     }
 
     private WalletWithdrawOrder(Wallet wallet, String idempotencyKey, Long amount) {

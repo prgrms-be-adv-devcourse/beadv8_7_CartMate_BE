@@ -81,4 +81,50 @@ public class WalletWithdrawUseCase {
             return walletWithdrawOrderRepository.save(withdrawOrder);
         });
     }
+
+    // 출금 요청 소유자를 확인하고 취소한다. 이미 취소된 요청은 재처리하지 않으며 잔액은 변경하지 않는다.
+    public void cancel(Long walletId, Long withdrawOrderId) {
+        if (walletId == null) {
+            throw new IllegalArgumentException("지갑 ID는 필수입니다.");
+        }
+        if (withdrawOrderId == null) {
+            throw new IllegalArgumentException("출금 요청 ID는 필수입니다.");
+        }
+
+        WalletWithdrawOrder withdrawOrder = walletWithdrawOrderRepository.findById(withdrawOrderId)
+                .orElseThrow(() -> new IllegalArgumentException("출금 요청을 찾을 수 없습니다."));
+
+        if (!withdrawOrder.getWallet().getId().equals(walletId)) {
+            throw new IllegalArgumentException("해당 지갑에 접근할 권한이 없습니다.");
+        }
+
+        if (withdrawOrder.getStatus() == WithdrawStatus.CANCELED) {
+            return;
+        }
+
+        withdrawOrder.cancel();
+    }
+
+    // 출금 요청 소유자를 확인하고 실패 처리한다. 이미 실패한 요청은 재처리하지 않으며 잔액은 변경하지 않는다.
+    public void fail(Long walletId, Long withdrawOrderId) {
+        if (walletId == null) {
+            throw new IllegalArgumentException("지갑 ID는 필수입니다.");
+        }
+        if (withdrawOrderId == null) {
+            throw new IllegalArgumentException("출금 요청 ID는 필수입니다.");
+        }
+
+        WalletWithdrawOrder withdrawOrder = walletWithdrawOrderRepository.findById(withdrawOrderId)
+                .orElseThrow(() -> new IllegalArgumentException("출금 요청을 찾을 수 없습니다."));
+
+        if (!withdrawOrder.getWallet().getId().equals(walletId)) {
+            throw new IllegalArgumentException("해당 지갑에 접근할 권한이 없습니다.");
+        }
+
+        if (withdrawOrder.getStatus() == WithdrawStatus.FAILED) {
+            return;
+        }
+
+        withdrawOrder.fail();
+    }
 }
