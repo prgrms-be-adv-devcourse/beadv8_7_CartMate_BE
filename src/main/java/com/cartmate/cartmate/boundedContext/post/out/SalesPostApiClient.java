@@ -1,8 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.out;
 
-import com.cartmate.cartmate.global.response.ResponseData;
+import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
@@ -18,7 +17,7 @@ public class SalesPostApiClient {
                 .build();
     }
 
-    public ResponseData<CreateProductResponse> publishProducts(CreateProductRequest request) {
+    public RsData<Void> publishProducts(CreateProductRequest request) {
         return restClient.post()
                 .uri("/product")
                 .body(request)

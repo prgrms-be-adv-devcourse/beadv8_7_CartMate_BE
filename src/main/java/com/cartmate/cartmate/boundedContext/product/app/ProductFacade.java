@@ -1,11 +1,8 @@
 package com.cartmate.cartmate.boundedContext.product.app;
 
 import com.cartmate.cartmate.boundedContext.product.dto.upload.UploadedImage;
-import com.cartmate.cartmate.global.code.SuccessCode;
-import com.cartmate.cartmate.global.response.ResponseData;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -23,7 +20,7 @@ public class ProductFacade {
     private final ProductSupport productSupport;
     private final TransactionTemplate transactionTemplate;
 
-    public ResponseData<CreateProductResponse> registerProduct(CreateProductRequest request) {
+    public void registerProduct(CreateProductRequest request) {
         productSupport.validateProductCount(request.getProductList());
         productSupport.validateProductFormat(request.getProductList());
 
@@ -35,14 +32,6 @@ public class ProductFacade {
                 productImageSaveUseCase.saveProductImage(draftProductList, uploadedImageList);
                 return draftProductList;
             });
-
-            return new ResponseData<>(
-                    SuccessCode.PRODUCT_CREATED,
-                    new CreateProductResponse(
-                            request.getPostId(),
-                            productIdList
-                    )
-            );
         } catch (RuntimeException e) {
 //            deleteQuietly(uploaded);
             throw e;
