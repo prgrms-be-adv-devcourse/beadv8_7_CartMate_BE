@@ -59,4 +59,11 @@ public class Payout {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    private Payout(Long sellerId, Long orderId, Long orderItemId) {
+        this.sellerId = sellerId;
+        this.orderId = orderId;
+        this.orderItemId = orderItemId;
+        this.status = PayoutStatus.PENDING;
+    }
 }
