@@ -99,4 +99,20 @@ public class Member extends BaseIdAndTime {
         }
         this.status = MemberStatus.ACTIVE;
     }
+
+    public void becomeSeller() {
+        if (role == MemberRole.SELLER) {
+            throw new ServiceException("409-SELLER_ALREADY_REGISTERED", "이미 판매자로 등록된 회원입니다.");
+        }
+        if (role == MemberRole.ADMIN) {
+            throw new ServiceException("400-SELLER_ADMIN_NOT_ALLOWED", "관리자 계정은 판매자로 등록할 수 없습니다.");
+        }
+        if (status != MemberStatus.ACTIVE) {
+            throw new ServiceException("403-MEMBER_NOT_ACTIVE", "정상 상태인 회원만 판매자로 등록할 수 있습니다.");
+        }
+        if (!MemberPolicy.canRegisterAsSellerStatic(birthDate)) {
+            throw new ServiceException("403-SELLER_UNDERAGE", "만 %d세 이상만 판매자로 등록할 수 있습니다.".formatted(MemberPolicy.sellerMinAge()));
+        }
+        this.role = MemberRole.SELLER;
+    }
 }
