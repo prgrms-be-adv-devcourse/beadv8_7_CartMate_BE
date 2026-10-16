@@ -7,7 +7,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualG
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseProductAddRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseSummaryResponse;
-import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseService;
+import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class IndividualGroupPurchaseController {
 
     private static final String MEMBER_ID_HEADER = "X-Member-Id";
     private static final String BASE_PATH = "/group-purchases/individual/";
-    private final IndividualGroupPurchaseService individualGroupPurchaseService;
+    private final IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
 
     @PostMapping
@@ -33,7 +33,7 @@ public class IndividualGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @Valid @RequestBody IndividualGroupPurchaseCreateRequest request
     ) {
-        IndividualGroupPurchaseCreateResponse response = individualGroupPurchaseService.create(memberId, request);
+        IndividualGroupPurchaseCreateResponse response = individualGroupPurchaseFacade.create(memberId, request);
         return ResponseEntity.created(URI.create(BASE_PATH + response.id())).body(response);
     }
 
@@ -41,7 +41,7 @@ public class IndividualGroupPurchaseController {
     public ResponseEntity<List<IndividualGroupPurchaseSummaryResponse>> getMyList(
             @RequestHeader(MEMBER_ID_HEADER) Long memberId
     ) {
-        return ResponseEntity.ok(individualGroupPurchaseService.getMyList(memberId));
+        return ResponseEntity.ok(individualGroupPurchaseFacade.getMyList(memberId));
     }
 
 
@@ -50,7 +50,7 @@ public class IndividualGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable @Pattern(regexp = "^[a-z0-9]{12}$") String inviteCode
     ) {
-        return ResponseEntity.ok(individualGroupPurchaseService.getByInviteCode(memberId, inviteCode));
+        return ResponseEntity.ok(individualGroupPurchaseFacade.getByInviteCode(memberId, inviteCode));
     }
 
     @GetMapping("/{id}")
@@ -58,7 +58,7 @@ public class IndividualGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(individualGroupPurchaseService.getDetail(memberId, id));
+        return ResponseEntity.ok(individualGroupPurchaseFacade.getDetail(memberId, id));
     }
 
 
@@ -67,7 +67,7 @@ public class IndividualGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(individualGroupPurchaseService.getDashboard(memberId, id));
+        return ResponseEntity.ok(individualGroupPurchaseFacade.getDashboard(memberId, id));
     }
 
 
@@ -77,7 +77,7 @@ public class IndividualGroupPurchaseController {
             @PathVariable Long id,
             @Valid @RequestBody IndividualGroupPurchaseProductAddRequest request
     ) {
-        individualGroupPurchaseService.addProduct(memberId, id, request.productId());
+        individualGroupPurchaseFacade.addProduct(memberId, id, request.productId());
         return ResponseEntity.noContent().build();
     }
 
@@ -88,7 +88,7 @@ public class IndividualGroupPurchaseController {
             @PathVariable Long id,
             @PathVariable Long productId
     ) {
-        individualGroupPurchaseService.removeProduct(memberId, id, productId);
+        individualGroupPurchaseFacade.removeProduct(memberId, id, productId);
         return ResponseEntity.noContent().build();
     }
 
@@ -99,7 +99,7 @@ public class IndividualGroupPurchaseController {
             @PathVariable Long id,
             @Valid @RequestBody IndividualGroupPurchaseDeadlineUpdateRequest request
     ) {
-        individualGroupPurchaseService.changeDeadline(memberId, id, request.deadlineAt());
+        individualGroupPurchaseFacade.changeDeadline(memberId, id, request.deadlineAt());
         return ResponseEntity.noContent().build();
     }
 
@@ -108,7 +108,7 @@ public class IndividualGroupPurchaseController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable Long id
     ) {
-        individualGroupPurchaseService.close(memberId, id);
+        individualGroupPurchaseFacade.close(memberId, id);
         return ResponseEntity.noContent().build();
     }
 }
