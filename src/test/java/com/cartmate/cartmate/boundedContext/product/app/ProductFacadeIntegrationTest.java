@@ -20,6 +20,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -71,10 +72,10 @@ class ProductFacadeIntegrationTest {
         Long chargerId = idOf(products, "충전기");
 
         // 아이폰 사진 2장 (순서 0, 1), 충전기 사진 1장 (순서 0)
-        assertThat(images).filteredOn(i -> i.getProductId() == iphoneId)
+        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), iphoneId))
                 .extracting(ProductImage::getImageSeq)
                 .containsExactlyInAnyOrder(0, 1);
-        assertThat(images).filteredOn(i -> i.getProductId() == chargerId)
+        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), chargerId))
                 .extracting(ProductImage::getImageSeq)
                 .containsExactly(0);
 
