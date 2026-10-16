@@ -18,6 +18,6 @@ logging:
     org.hibernate.orm.jdbc.bind: TRACE
     org.testcontainers: INFO
 
-custom:
+product:
   global:
     internalUrl: http://test-url.com
