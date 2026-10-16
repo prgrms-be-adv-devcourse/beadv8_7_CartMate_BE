@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletRetryService;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.*;
+import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,16 +26,16 @@ public class WalletController {
     private final WalletRetryService walletRetryService;
 
     @GetMapping("/me")
-    public ResponseEntity<WalletBalanceResponse> getMyWallet(
+    public RsData<WalletBalanceResponse> getMyWallet(
             @AuthenticationPrincipal SecurityUser user
             ) {
         Long memberId = user.memberId();
 
-        return ResponseEntity.ok(walletFacade.getWallet(memberId));
+        return new RsData<>("200-1", "지갑 조회 성공했습니다.", walletFacade.getWallet(memberId));
     }
 
     @GetMapping("/me/transactions")
-    public Page<WalletTransactionResponse> getMyWalletTransactions(
+    public RsData<Page<WalletTransactionResponse>> getMyWalletTransactions(
             @AuthenticationPrincipal SecurityUser user,
             @PageableDefault(
                     size = 20,
@@ -48,11 +49,12 @@ public class WalletController {
 
         Long walletId = wallet.walletId();
 
-        return walletFacade.getTransactions(walletId, pageable);
+        return new RsData<>("200-1", "거래 내역 조회 성공했습니다.", walletFacade.getTransactions(walletId, pageable));
     }
 
     @PostMapping("/me/charges")
-    public ResponseEntity<WalletChargeOrderResponse> walletChargeOrder(
+    @ResponseStatus(HttpStatus.CREATED)
+    public RsData<WalletChargeOrderResponse> walletChargeOrder(
             @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody WalletChargeOrderRequest chargeOrderRequest
     ) {
@@ -63,11 +65,11 @@ public class WalletController {
         WalletChargeOrder chargeOrder = walletFacade.chargeOrder(
                 wallet.walletId(), chargeOrderRequest.amount(), chargeOrderRequest.idempotencyKey());
 
-        return ResponseEntity.ok(WalletChargeOrderResponse.from(chargeOrder));
+        return new RsData<>("201-1", "충전 주문이 생성되었습니다.", WalletChargeOrderResponse.from(chargeOrder));
     }
 
     @PostMapping("/me/charges/confirm")
-    public ResponseEntity<WalletBalanceResponse> walletChargeConfirm(
+    public RsData<WalletBalanceResponse> walletChargeConfirm(
             @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody WalletChargeConfirmRequest chargeConfirmRequest
             ) {
@@ -83,6 +85,6 @@ public class WalletController {
 
         );
 
-        return ResponseEntity.ok(walletFacade.getWallet(memberId));
+        return new RsData<>("200-1", "지갑 충전이 완료되었습니다.", walletFacade.getWallet(memberId));
     }
 }
