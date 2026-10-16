@@ -51,35 +51,35 @@ class ProductFacadeIntegrationTest {
         reset(productImageSaveUseCase);
     }
 
-//    @Test
-//    @DisplayName("성공: 상품과 사진이 각자 맞는 상품 id로 저장된다")
-//    void registerSuccess() {
-//        CreateProductRequest request = request(
-//                product("아이폰", TestImageFiles.jpeg(), TestImageFiles.png()),
-//                product("충전기", TestImageFiles.jpeg()));
-//
-//        productFacade.registerProduct(request);
-//
-//        List<Product> products = productRepository.findAll();
-//        List<ProductImage> images = productImageRepository.findAll();
-//
-//        assertThat(products).hasSize(2);
-//        assertThat(images).hasSize(3);
-//        assertThat(storage.savedCount()).isEqualTo(3);
-//
-//        Long iphoneId = idOf(products, "아이폰");
-//        Long chargerId = idOf(products, "충전기");
-//
-//        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), iphoneId))
-//                .extracting(ProductImage::getImageSeq)
-//                .containsExactlyInAnyOrder(0, 1);
-//        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), chargerId))
-//                .extracting(ProductImage::getImageSeq)
-//                .containsExactly(0);
-//
-//        assertThat(images).allMatch(i -> storage.exists(i.getS3Key()));
-//        assertThat(products).allMatch(p -> Objects.equals(p.getSalesPostId(), POST_ID));
-//    }
+    @Test
+    @DisplayName("성공: 상품과 사진이 각자 맞는 상품 id로 저장된다")
+    void registerSuccess() {
+        CreateProductRequest request = request(
+                product("아이폰", TestImageFiles.jpeg(), TestImageFiles.png()),
+                product("충전기", TestImageFiles.jpeg()));
+
+        productFacade.registerProduct(request);
+
+        List<Product> products = productRepository.findAll();
+        List<ProductImage> images = productImageRepository.findAll();
+
+        assertThat(products).hasSize(2);
+        assertThat(images).hasSize(3);
+        assertThat(storage.savedCount()).isEqualTo(3);
+
+        Long iphoneId = idOf(products, "아이폰");
+        Long chargerId = idOf(products, "충전기");
+
+        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), iphoneId))
+                .extracting(ProductImage::getImageSeq)
+                .containsExactlyInAnyOrder(0, 1);
+        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), chargerId))
+                .extracting(ProductImage::getImageSeq)
+                .containsExactly(0);
+
+        assertThat(images).allMatch(i -> storage.exists(i.getS3Key()));
+        assertThat(products).allMatch(p -> Objects.equals(p.getSalesPostId(), POST_ID));
+    }
 
     @Test
     @DisplayName("검증 실패: 가짜 이미지가 섞이면 아무것도 저장되지 않는다")
