@@ -10,4 +10,6 @@ public interface WalletChargeOrderRepository extends JpaRepository<WalletChargeO
     Optional<WalletChargeOrder> findByIdempotencyKey(String idempotencyKey);
 
     Optional<WalletChargeOrder> findByOrderNumber(String orderNumber);
+
+    boolean existsByIdempotencyKey(String idempotencyKey);
 }

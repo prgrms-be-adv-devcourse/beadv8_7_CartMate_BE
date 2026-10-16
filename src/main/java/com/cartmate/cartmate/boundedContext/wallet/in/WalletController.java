@@ -63,8 +63,11 @@ public class WalletController {
 
         WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
 
-        WalletChargeOrder chargeOrder = walletFacade.chargeOrder(
-                wallet.walletId(), chargeOrderRequest.amount(), chargeOrderRequest.idempotencyKey());
+        WalletChargeOrder chargeOrder = walletRetryService.chargeOrder(
+                wallet.walletId(),
+                chargeOrderRequest.amount(),
+                chargeOrderRequest.idempotencyKey()
+        );
 
         return new RsData<>("201-1", "충전 주문이 생성되었습니다.", WalletChargeOrderResponse.from(chargeOrder));
     }
