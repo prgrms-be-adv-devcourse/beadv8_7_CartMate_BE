@@ -24,8 +24,8 @@ public class SalesPostSeller {
     private String accountHolder;
     private String accountNumber;
     private String status;
-    private LocalDateTime createDate;
-    private LocalDateTime modifyDate;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public SalesPostSeller(int id, int memberId, String sellerType, String businessName, String businessNumber, String phoneNumber, String bankName,
                       String accountHolder, String accountNumber, String status, LocalDateTime createdAt, LocalDateTime updatedAt) {
@@ -39,8 +39,8 @@ public class SalesPostSeller {
         this.accountHolder = accountHolder;
         this.accountNumber = accountNumber;
         this.status = status;
-        this.createDate = createdAt;
-        this.modifyDate = updatedAt;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
 }
