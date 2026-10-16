@@ -16,4 +16,8 @@ logging:
     com.cartmate: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
-    org.testcontainers: WARN
+    org.testcontainers: INFO
+
+custom:
+  global:
+    internalUrl: http://test-url.com
