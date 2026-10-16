@@ -13,6 +13,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+//TODO: Payment 연동 시 전체 결제·환불 트랜잭션 바깥에서 충돌 처리
 public class WalletPaymentUseCase {
 
     private final WalletRepository walletRepository;

@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.wallet.domain.WalletWithdrawOrder;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeOrderRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletWithdrawOrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.resilience.annotation.Retryable;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+// TODO: 추후 분산 락 도입 시 동시성 제어 및 재시도 정책 재검토
 public class WalletRetryService {
 
     private final WalletFacade walletFacade;
@@ -20,9 +22,15 @@ public class WalletRetryService {
 
     // 낙관적 락 충돌로 롤백된 충전 처리를 최대 3회 재시도한다.
     @Retryable(
-            value = OptimisticLockingFailureException.class,
+            value = {
+                    OptimisticLockingFailureException.class, //낙관적 락 충돌
+                    CannotAcquireLockException.class    // DB 락 획득 실패(데드락 등)
+            },
             maxRetries = 3,
-            delay = 100
+            delay = 100,
+            multiplier = 2,
+            jitter = 50,
+            maxDelay = 1000
     )
     public void charge(
             Long walletId, String orderNumber, String paymentKey, Long amount
@@ -32,9 +40,15 @@ public class WalletRetryService {
 
     // 낙관적 락 충돌로 롤백된 출금 처리를 최대 3회 재시도한다.
     @Retryable(
-            value = OptimisticLockingFailureException.class,
+            value = {
+                    OptimisticLockingFailureException.class,
+                    CannotAcquireLockException.class
+            },
             maxRetries = 3,
-            delay = 100
+            delay = 100,
+            multiplier = 2,
+            jitter = 50,
+            maxDelay = 1000
     )
     public void withdraw(
             Long walletId, Long withdrawOrderId

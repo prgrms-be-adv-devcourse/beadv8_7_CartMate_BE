@@ -81,6 +81,7 @@ public class WalletController {
 
         WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
 
+        // TODO: 토스 결제 승인 API 연동 후 승인 결과의 주문번호·금액을 검증하고 지갑에 충전 반영
         walletRetryService.charge(
                 wallet.walletId(),
                 chargeConfirmRequest.orderNumber(),
