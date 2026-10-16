@@ -28,7 +28,7 @@ public class WalletSettlementUseCase {
             throw new ServiceException(WalletErrorCode.WALLET_ORDER_IDS_REQUIRED);
         }
 
-        if (orderIds.contains(null)) {
+        if (orderIds.stream().anyMatch(orderId -> orderId == null)) {
             throw new ServiceException(WalletErrorCode.WALLET_ORDER_IDS_CONTAIN_NULL);
         }
 
