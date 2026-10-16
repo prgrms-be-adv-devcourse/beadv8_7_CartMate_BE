@@ -55,7 +55,7 @@ public class WalletPaymentUseCase {
 
         ledgerRecorder.record(
                 wallet, WalletTransactionType.USE, orderId,
-                paymentId, ReferenceType.PAYMENT, amount);
+                paymentId, ReferenceType.PAYMENT, null, amount);
     }
 
     // 결제 취소 금액을 지갑에 복구하고 환불 거래 내역을 저장한다.
@@ -104,6 +104,6 @@ public class WalletPaymentUseCase {
 
         ledgerRecorder.record(
                 wallet, WalletTransactionType.REFUND, orderId,
-                paymentId, ReferenceType.PAYMENT, amount);
+                paymentId, ReferenceType.PAYMENT, null, amount);
     }
 }

@@ -50,7 +50,7 @@ public class WalletChargeUseCase {
         chargeOrder.complete(paymentKey);
 
         ledgerRecorder.record(wallet, WalletTransactionType.CHARGE, null,
-                chargeOrder.getId(), ReferenceType.CHARGE_ORDER, amount);
+                chargeOrder.getId(), ReferenceType.CHARGE_ORDER, chargeOrder.getIdempotencyKey(), amount);
     }
 
     // 충전 주문을 생성하거나, 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.

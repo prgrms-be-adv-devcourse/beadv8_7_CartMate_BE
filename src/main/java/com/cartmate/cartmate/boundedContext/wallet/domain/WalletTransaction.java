@@ -43,6 +43,9 @@ public class WalletTransaction {
     @Column(name = "reference_type")
     private ReferenceType referenceType;
 
+    @Column(name = "idempotency_key")
+    private String idempotencyKey;
+
     @Column(name = "amount", nullable = false)
     private Long amount;
 
@@ -63,6 +66,7 @@ public class WalletTransaction {
             Long orderId,
             Long referenceId,
             ReferenceType referenceType,
+            String idempotencyKey,
             Long amount,
             Long balanceAfter
 
@@ -88,6 +92,7 @@ public class WalletTransaction {
         walletTransaction.balanceAfter = balanceAfter;
         walletTransaction.referenceId = referenceId;
         walletTransaction.referenceType = referenceType;
+        walletTransaction.idempotencyKey = idempotencyKey;
 
         return walletTransaction;
     }

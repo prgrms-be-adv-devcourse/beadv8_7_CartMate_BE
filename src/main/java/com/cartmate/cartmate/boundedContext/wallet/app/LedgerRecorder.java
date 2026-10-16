@@ -20,10 +20,11 @@ public class LedgerRecorder {
             Long orderId,
             Long referenceId,
             ReferenceType referenceType,
+            String idempotency,
             Long amount
     ) {
         WalletTransaction walletTransaction = WalletTransaction.create(
-                wallet, transactionType, orderId, referenceId, referenceType, amount, wallet.getBalance()
+                wallet, transactionType, orderId, referenceId, referenceType, idempotency, amount, wallet.getBalance()
         );
 
         walletTransactionRepository.save(walletTransaction);
