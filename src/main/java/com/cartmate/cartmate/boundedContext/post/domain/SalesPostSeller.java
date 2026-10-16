@@ -13,7 +13,9 @@ import java.time.LocalDateTime;
 @Table(name = "POST_SELLER")
 @NoArgsConstructor
 @Getter
-public class SalesPostSeller extends BaseManualIdAndTime {
+public class SalesPostSeller {
+    @Id
+    private Long id;
     private Long memberId;
     private String sellerType;
     private String businessName;
@@ -23,9 +25,12 @@ public class SalesPostSeller extends BaseManualIdAndTime {
     private String accountHolder;
     private String accountNumber;
     private String status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    public SalesPostSeller(Long memberId, String sellerType, String businessName, String businessNumber, String phoneNumber, String bankName,
+    public SalesPostSeller(Long id, Long memberId, String sellerType, String businessName, String businessNumber, String phoneNumber, String bankName,
                       String accountHolder, String accountNumber, String status, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.id = id;
         this.memberId = memberId;
         this.sellerType = sellerType;
         this.businessName = businessName;
@@ -35,6 +40,8 @@ public class SalesPostSeller extends BaseManualIdAndTime {
         this.accountHolder = accountHolder;
         this.accountNumber = accountNumber;
         this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
 }

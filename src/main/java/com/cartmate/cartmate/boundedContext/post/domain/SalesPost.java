@@ -21,7 +21,7 @@ public class SalesPost extends BaseIdAndTime {
     @Enumerated(EnumType.STRING)
     private SalesPostSaleStatus saleStatus;
     private SalesPostSaveStatus saveStatus;
-    private int viewCount;
+    private Long viewCount;
 
     public SalesPost(CreateSalesPostRequest postDto) {
         this.sellerId = postDto.getSellerId();

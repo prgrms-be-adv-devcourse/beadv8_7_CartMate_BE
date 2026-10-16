@@ -15,6 +15,7 @@ public class SalesPostSyncSellerUseCase {
     @Transactional
     public SalesPostSeller syncSeller(SellerDto sellerDto) {
         SalesPostSeller newSeller = new SalesPostSeller(
+                sellerDto.getId(),
                 sellerDto.getMemberId(),
                 sellerDto.getSellerType(),
                 sellerDto.getBusinessName(),
