@@ -82,7 +82,7 @@ class ProductFacadeIntegrationTest {
         // DB에 기록된 경로의 파일이 실제로 저장소에 있음
         assertThat(images).allMatch(i -> storage.exists(i.getS3Key()));
         // 모든 상품이 서버가 만든 글 번호에 속함
-        assertThat(products).allMatch(p -> p.getSalesPostId() == POST_ID);
+        assertThat(products).allMatch(p -> Objects.equals(p.getSalesPostId(), POST_ID));
     }
 
     @Test

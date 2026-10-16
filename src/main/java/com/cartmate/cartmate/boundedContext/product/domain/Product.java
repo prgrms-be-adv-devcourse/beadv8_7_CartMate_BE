@@ -5,6 +5,7 @@ import com.cartmate.cartmate.global.code.ErrorCode;
 import com.cartmate.cartmate.global.exception.DomainException;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -17,11 +18,21 @@ import java.util.Objects;
 @NoArgsConstructor
 @Getter
 public class Product extends BaseIdAndTime {
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long sellerId;
+
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long salesPostId;
+
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long categoryId;
+
+    @Column(nullable = false)
     private String name;
+
     private String description;
+
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long basePrice;
 
     public Product(CreateProduct product) {
