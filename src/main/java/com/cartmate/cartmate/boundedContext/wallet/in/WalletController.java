@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletRetryService;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.*;
+import com.cartmate.cartmate.boundedContext.wallet.domain.WalletWithdrawOrder;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
 import jakarta.validation.Valid;
@@ -86,5 +87,38 @@ public class WalletController {
         );
 
         return new RsData<>("200-1", "지갑 충전이 완료되었습니다.", walletFacade.getWallet(memberId));
+    }
+
+    @PostMapping("/me/withdraws")
+    @ResponseStatus(HttpStatus.CREATED)
+    public RsData<WalletWithdrawOrderResponse> walletWithdrawOrder(
+            @AuthenticationPrincipal SecurityUser user,
+            @Valid @RequestBody WalletWithdrawOrderRequest withdrawOrderRequest
+    ) {
+        Long memberId = user.memberId();
+
+        WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
+
+        WalletWithdrawOrder withdrawOrder = walletFacade.withdrawOrder(
+                wallet.walletId(), withdrawOrderRequest.amount(), withdrawOrderRequest.idempotencyKey());
+
+        return new RsData<>("201-1", "출금 주문이 생성되었습니다.", WalletWithdrawOrderResponse.from(withdrawOrder));
+    }
+
+    @PostMapping("/me/withdraws/confirm")
+    public RsData<WalletBalanceResponse> walletWithdrawConfirm(
+            @AuthenticationPrincipal SecurityUser user,
+            @Valid @RequestBody WalletWithdrawConfirmRequest withdrawConfirmRequest
+    ) {
+        Long memberId = user.memberId();
+
+        WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
+
+        walletRetryService.withdraw(
+                wallet.walletId(),
+                withdrawConfirmRequest.withdrawOrderId()
+        );
+
+        return new RsData<>("200-1", "지갑 출금이 완료되었습니다.", walletFacade.getWallet(memberId));
     }
 }
