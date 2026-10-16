@@ -1,7 +1,6 @@
 package com.cartmate.cartmate.boundedContext.product.domain;
 
 import com.cartmate.cartmate.global.code.ErrorCode;
-
 import com.cartmate.cartmate.global.exception.DomainException;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
@@ -10,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.util.Objects;
 
@@ -18,21 +18,31 @@ import java.util.Objects;
 @NoArgsConstructor
 @Getter
 public class Product extends BaseIdAndTime {
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long sellerId;
 
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long salesPostId;
 
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long categoryId;
 
+    @Column(nullable = false)
     private String name;
 
     private String description;
 
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long basePrice;
 
-    public Product(CreateProduct product) {
-        this.sellerId = product.getSellerId();
-        this.salesPostId = product.getSalesPostId();
+
+    public Product(Long sellerId, Long salesPostId, Long categoryId, String name, String description, Long basePrice) {
+        this.sellerId = sellerId;
+        this.salesPostId = salesPostId;
+        this.categoryId = categoryId;
+        this.name = name;
+        this.description = description;
+        this.basePrice = basePrice;
     }
 
     public void publish(CreateProduct product) {
