@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.global.exception;
 
+import com.cartmate.cartmate.global.code.ErrorCode;
 import lombok.Getter;
 
 @Getter
