@@ -4,7 +4,6 @@ import com.cartmate.cartmate.boundedContext.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.product.dto.upload.UploadedImage;
 import com.cartmate.cartmate.boundedContext.product.out.ProductImageRepository;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductImage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

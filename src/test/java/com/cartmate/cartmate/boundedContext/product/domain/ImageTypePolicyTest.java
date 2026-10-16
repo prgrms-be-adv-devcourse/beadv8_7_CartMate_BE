@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.product.domain;
 
-import com.cartmate.cartmate.global.exception.DomainException;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
@@ -41,7 +41,7 @@ public class ImageTypePolicyTest {
         MockMultipartFile file = file("fake.jpg", "hello world!!".getBytes());
 
         assertThatThrownBy(() -> policy.detect(file))
-                .isInstanceOf(DomainException.class);
+                .isInstanceOf(ServiceException.class);
     }
 
     @Test
@@ -50,7 +50,7 @@ public class ImageTypePolicyTest {
         MockMultipartFile file = file("empty.jpg", new byte[0]);
 
         assertThatThrownBy(() -> policy.detect(file))
-                .isInstanceOf(DomainException.class);
+                .isInstanceOf(ServiceException.class);
     }
 
     @Test
@@ -59,14 +59,14 @@ public class ImageTypePolicyTest {
         MockMultipartFile file = file("short.jpg", new byte[]{(byte) 0xFF, (byte) 0xD8});
 
         assertThatThrownBy(() -> policy.detect(file))
-                .isInstanceOf(DomainException.class);
+                .isInstanceOf(ServiceException.class);
     }
 
     @Test
     @DisplayName("null 파일은 거절된다")
     void rejectNullFile() {
         assertThatThrownBy(() -> policy.detect(null))
-                .isInstanceOf(DomainException.class);
+                .isInstanceOf(ServiceException.class);
     }
 
 

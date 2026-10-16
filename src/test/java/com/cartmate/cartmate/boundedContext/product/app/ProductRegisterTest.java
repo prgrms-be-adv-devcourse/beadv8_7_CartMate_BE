@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.product.out.ProductRepository;
-import com.cartmate.cartmate.global.exception.DomainException;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProductImage;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
@@ -30,15 +30,19 @@ import static org.mockito.Mockito.reset;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class ProductFacadeIntegrationTest {
+class ProductRegisterTest {
 
     private static final Long POST_ID = 101L;
     private static final Long SELLER_ID = 7L;
 
-    @Autowired ProductFacade productFacade;
-    @Autowired ProductRepository productRepository;
-    @Autowired ProductImageRepository productImageRepository;
-    @Autowired FakeImageStorage storage;
+    @Autowired
+    ProductFacade productFacade;
+    @Autowired
+    ProductRepository productRepository;
+    @Autowired
+    ProductImageRepository productImageRepository;
+    @Autowired
+    FakeImageStorage storage;
 
     @MockitoSpyBean
     ProductImageSaveUseCase productImageSaveUseCase;
@@ -51,35 +55,35 @@ class ProductFacadeIntegrationTest {
         reset(productImageSaveUseCase);
     }
 
-//    @Test
-//    @DisplayName("성공: 상품과 사진이 각자 맞는 상품 id로 저장된다")
-//    void registerSuccess() {
-//        CreateProductRequest request = request(
-//                product("아이폰", TestImageFiles.jpeg(), TestImageFiles.png()),
-//                product("충전기", TestImageFiles.jpeg()));
-//
-//        productFacade.registerProduct(request);
-//
-//        List<Product> products = productRepository.findAll();
-//        List<ProductImage> images = productImageRepository.findAll();
-//
-//        assertThat(products).hasSize(2);
-//        assertThat(images).hasSize(3);
-//        assertThat(storage.savedCount()).isEqualTo(3);
-//
-//        Long iphoneId = idOf(products, "아이폰");
-//        Long chargerId = idOf(products, "충전기");
-//
-//        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), iphoneId))
-//                .extracting(ProductImage::getImageSeq)
-//                .containsExactlyInAnyOrder(0, 1);
-//        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), chargerId))
-//                .extracting(ProductImage::getImageSeq)
-//                .containsExactly(0);
-//
-//        assertThat(images).allMatch(i -> storage.exists(i.getS3Key()));
-//        assertThat(products).allMatch(p -> Objects.equals(p.getSalesPostId(), POST_ID));
-//    }
+    @Test
+    @DisplayName("성공: 상품과 사진이 각자 맞는 상품 id로 저장된다")
+    void registerSuccess() {
+        CreateProductRequest request = request(
+                product("아이폰", TestImageFiles.jpeg(), TestImageFiles.png()),
+                product("충전기", TestImageFiles.jpeg()));
+
+        productFacade.registerProduct(request);
+
+        List<Product> products = productRepository.findAll();
+        List<ProductImage> images = productImageRepository.findAll();
+
+        assertThat(products).hasSize(2);
+        assertThat(images).hasSize(3);
+        assertThat(storage.savedCount()).isEqualTo(3);
+
+        Long iphoneId = idOf(products, "아이폰");
+        Long chargerId = idOf(products, "충전기");
+
+        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), iphoneId))
+                .extracting(ProductImage::getImageSeq)
+                .containsExactlyInAnyOrder(0, 1);
+        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), chargerId))
+                .extracting(ProductImage::getImageSeq)
+                .containsExactly(0);
+
+        assertThat(images).allMatch(i -> storage.exists(i.getS3Key()));
+        assertThat(products).allMatch(p -> Objects.equals(p.getSalesPostId(), POST_ID));
+    }
 
     @Test
     @DisplayName("검증 실패: 가짜 이미지가 섞이면 아무것도 저장되지 않는다")
@@ -89,7 +93,7 @@ class ProductFacadeIntegrationTest {
                 product("충전기", TestImageFiles.fake()));
 
         assertThatThrownBy(() -> productFacade.registerProduct(request))
-                .isInstanceOf(DomainException.class);
+                .isInstanceOf(ServiceException.class);
 
         assertThat(productRepository.count()).isZero();
         assertThat(productImageRepository.count()).isZero();
@@ -105,7 +109,7 @@ class ProductFacadeIntegrationTest {
                 product("충전기", TestImageFiles.jpeg()));
 
         assertThatThrownBy(() -> productFacade.registerProduct(request))
-                .isInstanceOf(DomainException.class);
+                .isInstanceOf(ServiceException.class);
 
         assertThat(storage.savedCount()).isZero();
         assertThat(productRepository.count()).isZero();
@@ -141,7 +145,6 @@ class ProductFacadeIntegrationTest {
         for (int seq = 0; seq < files.length; seq++) {
             images.add(new CreateProductImage(0L, SELLER_ID, 0L, null, seq, files[seq]));
         }
-        // 실제 생성자에 맞게 수정
         return new CreateProduct(0L, 0L, POST_ID, 1L, name, "설명", 10000L, images);
     }
 

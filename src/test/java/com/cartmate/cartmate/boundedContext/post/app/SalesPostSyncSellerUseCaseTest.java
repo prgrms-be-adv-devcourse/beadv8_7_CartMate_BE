@@ -23,7 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class SalesPostSyncSellerUseCaseTest {
 
-    @Autowired SalesPostSyncSellerUseCase salesPostSyncSellerUseCase;
+    @Autowired
+    SalesPostSyncSellerUseCase salesPostSyncSellerUseCase;
     @Autowired
     SalesPostSellerRepository salesPostSellerRepository;
     @Autowired
