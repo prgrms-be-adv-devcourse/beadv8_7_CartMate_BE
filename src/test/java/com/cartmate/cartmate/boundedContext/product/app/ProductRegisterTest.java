@@ -30,15 +30,19 @@ import static org.mockito.Mockito.reset;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class ProductFacadeIntegrationTest {
+class ProductRegisterTest {
 
     private static final Long POST_ID = 101L;
     private static final Long SELLER_ID = 7L;
 
-    @Autowired ProductFacade productFacade;
-    @Autowired ProductRepository productRepository;
-    @Autowired ProductImageRepository productImageRepository;
-    @Autowired FakeImageStorage storage;
+    @Autowired
+    ProductFacade productFacade;
+    @Autowired
+    ProductRepository productRepository;
+    @Autowired
+    ProductImageRepository productImageRepository;
+    @Autowired
+    FakeImageStorage storage;
 
     @MockitoSpyBean
     ProductImageSaveUseCase productImageSaveUseCase;
