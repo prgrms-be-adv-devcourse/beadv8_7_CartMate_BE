@@ -25,8 +25,8 @@ public class SalesPostSyncSellerUseCase {
                 sellerDto.getAccountHolder(),
                 sellerDto.getAccountNumber(),
                 sellerDto.getStatus(),
-                sellerDto.getCreatedAt(),
-                sellerDto.getUpdatedAt()
+                sellerDto.getCreateDate(),
+                sellerDto.getModifyDate()
         );
 
         return salesPostSellerRepository.save(newSeller);

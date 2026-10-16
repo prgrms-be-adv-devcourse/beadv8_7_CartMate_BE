@@ -18,6 +18,6 @@ public class SellerDto {
     private String accountHolder;
     private String accountNumber;
     private String status;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private LocalDateTime createDate;
+    private LocalDateTime modifyDate;
 }
