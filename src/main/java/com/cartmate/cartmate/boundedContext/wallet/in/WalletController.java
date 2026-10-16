@@ -102,8 +102,11 @@ public class WalletController {
 
         WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
 
-        WalletWithdrawOrder withdrawOrder = walletFacade.withdrawOrder(
-                wallet.walletId(), withdrawOrderRequest.amount(), withdrawOrderRequest.idempotencyKey());
+        WalletWithdrawOrder withdrawOrder = walletRetryService.withdrawOrder(
+                wallet.walletId(),
+                withdrawOrderRequest.amount(),
+                withdrawOrderRequest.idempotencyKey()
+        );
 
         return new RsData<>("201-1", "출금 주문이 생성되었습니다.", WalletWithdrawOrderResponse.from(withdrawOrder));
     }

@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface WalletWithdrawOrderRepository extends JpaRepository<WalletWithdrawOrder, Long> {
 
     Optional<WalletWithdrawOrder> findByIdempotencyKey(String idempotencyKey);
+
+    boolean existsByIdempotencyKey(String idempotencyKey);
 }
