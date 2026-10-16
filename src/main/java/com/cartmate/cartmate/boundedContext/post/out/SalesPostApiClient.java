@@ -11,7 +11,7 @@ import org.springframework.web.client.RestClient;
 public class SalesPostApiClient {
     private final RestClient restClient;
 
-    public SalesPostApiClient(@Value("${custom.global.internalUrl}") String internalUrl) {
+    public SalesPostApiClient(@Value("${product.global.internalUrl}") String internalUrl) {
         this.restClient = RestClient.builder()
                 .baseUrl(internalUrl + "/api/products")
                 .build();
