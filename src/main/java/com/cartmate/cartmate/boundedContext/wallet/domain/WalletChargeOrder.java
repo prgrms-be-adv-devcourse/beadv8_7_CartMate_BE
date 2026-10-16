@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.domain;
 
+import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -55,11 +57,11 @@ public class WalletChargeOrder {
 
     public static WalletChargeOrder create(Wallet wallet, Long amount, String idempotencyKey) {
         if (wallet == null) {
-            throw new IllegalArgumentException("지갑은 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INTERNAL_WALLET_MISSING);
         }
 
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("충전금액은 0보다 커야 합니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
         }
 
         return new WalletChargeOrder(wallet, amount, idempotencyKey);
@@ -68,11 +70,11 @@ public class WalletChargeOrder {
 
     public void complete(String paymentKey) {
         if (status != ChargeStatus.PENDING) {
-            throw new IllegalArgumentException("완료할 수 없는 충전 주문입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_CHARGE_NOT_COMPLETABLE);
         }
 
         if (paymentKey == null || paymentKey.isBlank()) {
-            throw new IllegalArgumentException("paymentKey는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_PAYMENT_KEY_REQUIRED);
         }
 
         this.status = ChargeStatus.COMPLETED;
@@ -81,7 +83,7 @@ public class WalletChargeOrder {
 
     public void fail() {
         if (status != ChargeStatus.PENDING) {
-            throw new IllegalArgumentException("실패처리 할수 없는 충전 주문입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_CHARGE_NOT_FAILABLE);
         }
 
         this.status = ChargeStatus.FAILED;
@@ -89,7 +91,7 @@ public class WalletChargeOrder {
 
     public void cancel() {
         if (status != ChargeStatus.PENDING) {
-            throw new IllegalArgumentException("취소할 수 없는 충전 주문입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_CHARGE_NOT_CANCELABLE);
         }
 
         this.status = ChargeStatus.CANCELED;

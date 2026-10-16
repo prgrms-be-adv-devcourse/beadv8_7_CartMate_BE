@@ -1,9 +1,11 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.domain.*;
+import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,13 +21,11 @@ public class WalletPaymentUseCase {
     private final LedgerRecorder ledgerRecorder;
 
     // 지갑 잔액을 차감하고 사용 거래 내역을 저장한다.
-    public void use(Long walletId, Long amount, Long orderId, Long paymentId) {
-        Wallet wallet = walletRepository.findById(walletId)
-                .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
+    public void use(Long walletId, Long amount, Long paymentId, Long orderId) {
+        validatePaymentRequest(walletId, amount, paymentId, orderId);
 
-        if (paymentId == null) {
-            throw new IllegalArgumentException("유효한 결제ID가 필요합니다.");
-        }
+        Wallet wallet = walletRepository.findById(walletId)
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
 
         Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndOrderIdAndReferenceIdAndReferenceType(
                 WalletTransactionType.USE, orderId, paymentId, ReferenceType.PAYMENT
@@ -35,11 +35,11 @@ public class WalletPaymentUseCase {
             WalletTransaction transaction = existing.get();
 
             if (!transaction.getWallet().getId().equals(walletId)) {
-                throw new IllegalArgumentException("지갑 소유주가 아닙니다.");
+                throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
             }
 
             if (!transaction.getAmount().equals(amount)) {
-                throw new IllegalArgumentException("금액이 일치하지 않습니다.");
+                throw new ServiceException(WalletErrorCode.WALLET_TRANSACTION_AMOUNT_MISMATCH);
             }
 
             return;
@@ -59,13 +59,12 @@ public class WalletPaymentUseCase {
     }
 
     // 결제 취소 금액을 지갑에 복구하고 환불 거래 내역을 저장한다.
-    public void refund(Long walletId, Long amount, Long orderId, Long paymentId) {
-        Wallet wallet = walletRepository.findById(walletId)
-                .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
+    public void refund(Long walletId, Long amount, Long paymentId, Long orderId) {
+        validatePaymentRequest(walletId, amount, paymentId, orderId);
 
-        if (paymentId == null) {
-            throw new IllegalArgumentException("유효한 결제ID가 필요합니다.");
-        }
+        Wallet wallet = walletRepository.findById(walletId)
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
+
 
         Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndOrderIdAndReferenceIdAndReferenceType(
                 WalletTransactionType.REFUND, orderId, paymentId, ReferenceType.PAYMENT
@@ -75,25 +74,25 @@ public class WalletPaymentUseCase {
             WalletTransaction transaction = existing.get();
 
             if (!transaction.getWallet().getId().equals(walletId)) {
-                throw new IllegalArgumentException("지갑ID가 일치하지 않습니다.");
+                throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
             }
 
             if (!transaction.getAmount().equals(amount)) {
-                throw new IllegalArgumentException("요청한 금액과 일치하지 않습니다.");
+                throw new ServiceException(WalletErrorCode.WALLET_TRANSACTION_AMOUNT_MISMATCH);
             }
 
             return;
         }
 
         Holding holding = holdingRepository.findByOrderIdAndPaymentId(orderId, paymentId)
-                .orElseThrow(() -> new IllegalArgumentException("홀딩 내역을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_HOLDING_NOT_FOUND));
 
         if (!holding.getWallet().getId().equals(walletId)) {
-            throw new IllegalArgumentException("지갑ID가 일치하지 않습니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
         }
 
         if (!holding.getAmount().equals(amount)) {
-            throw new IllegalArgumentException("홀딩금액과 금액이 일치하지 않습니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_AMOUNT_MISMATCH);
         }
 
         holding.cancel();
@@ -105,5 +104,25 @@ public class WalletPaymentUseCase {
         ledgerRecorder.record(
                 wallet, WalletTransactionType.REFUND, orderId,
                 paymentId, ReferenceType.PAYMENT, null, amount);
+    }
+
+    private void validatePaymentRequest(
+            Long walletId, Long amount, Long paymentId, Long orderId
+    ) {
+        if (walletId == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_ID_REQUIRED);
+        }
+
+        if (amount == null || amount <= 0) {
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
+        }
+
+        if (paymentId == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_PAYMENT_ID_REQUIRED);
+        }
+
+        if (orderId == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_ORDER_ID_REQUIRED);
+        }
     }
 }

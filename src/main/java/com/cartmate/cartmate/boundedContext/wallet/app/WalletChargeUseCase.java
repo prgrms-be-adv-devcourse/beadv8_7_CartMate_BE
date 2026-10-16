@@ -3,10 +3,13 @@ package com.cartmate.cartmate.boundedContext.wallet.app;
 import com.cartmate.cartmate.boundedContext.wallet.domain.*;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeOrderRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+
+import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -19,29 +22,29 @@ public class WalletChargeUseCase {
     public void charge(Long walletId, String orderNumber, String paymentKey, Long amount) {
 
         WalletChargeOrder chargeOrder = walletChargeOrderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new IllegalArgumentException("주문번호가 없습니다."));
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_CHARGE_ORDER_NOT_FOUND));
 
         if (!chargeOrder.getWallet().getId().equals(walletId)) {
-            throw new IllegalArgumentException("지갑의 소유자가 아닙니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
         }
 
         if (paymentKey == null || paymentKey.isBlank()) {
-            throw new IllegalArgumentException("paymentKey는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_PAYMENT_KEY_REQUIRED);
         }
 
         if (!chargeOrder.getAmount().equals(amount)) {
-            throw new IllegalArgumentException("충전 금액이 일치하지 않습니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_CHARGE_AMOUNT_MISMATCH);
         }
 
         if (chargeOrder.getStatus() == ChargeStatus.COMPLETED) {
             if (!paymentKey.equals(chargeOrder.getPaymentKey())) {
-                throw new IllegalArgumentException("paymentKey가 일치하지 않습니다.");
+                throw new ServiceException(WalletErrorCode.WALLET_PAYMENT_KEY_MISMATCH);
             }
             return;
         }
 
         if (chargeOrder.getStatus() != ChargeStatus.PENDING) {
-            throw new IllegalArgumentException("완료할 수 없는 주문입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_CHARGE_NOT_COMPLETABLE);
         }
 
         Wallet wallet = chargeOrder.getWallet();
@@ -57,14 +60,14 @@ public class WalletChargeUseCase {
     public WalletChargeOrder createChargeOrder(Long walletId, Long amount, String idempotencyKey) {
 
         Wallet wallet = walletRepository.findById(walletId)
-                .orElseThrow(() -> new IllegalArgumentException("지갑이 존재하지 않습니다."));
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
 
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("충전금액은 0보다 커야합니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
         }
 
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new IllegalArgumentException("멱등성 키는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_IDEMPOTENCY_KEY_REQUIRED);
         }
 
         Optional<WalletChargeOrder> existing = walletChargeOrderRepository.findByIdempotencyKey(idempotencyKey);
@@ -73,11 +76,11 @@ public class WalletChargeUseCase {
             WalletChargeOrder chargeOrder = existing.get();
 
             if (!chargeOrder.getWallet().getId().equals(walletId)) {
-                throw new IllegalArgumentException("멱등성키를 사용할 수 없습니다.");
+                throw new ServiceException(WalletErrorCode.WALLET_IDEMPOTENCY_CONFLICT);
             }
 
             if (!chargeOrder.getAmount().equals(amount)) {
-                throw new IllegalArgumentException("같은 멱등성키에 다른금액을 사용할 수 없습니다.");
+                throw new ServiceException(WalletErrorCode.WALLET_IDEMPOTENCY_CONFLICT);
             }
         }
 
@@ -93,10 +96,10 @@ public class WalletChargeUseCase {
     // 주문 소유자를 확인하고 취소를 요청한다. 이미 취소된 주문은 재처리하지 않는다.
     public void cancel(Long walletId, String orderNumber) {
         WalletChargeOrder chargeOrder = walletChargeOrderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new IllegalArgumentException("주문번호가 없습니다."));
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_CHARGE_ORDER_NOT_FOUND));
 
         if (!chargeOrder.getWallet().getId().equals(walletId)) {
-            throw new IllegalArgumentException("지갑 소유주가 아닙니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
         }
 
         if (chargeOrder.getStatus() == ChargeStatus.CANCELED) {
@@ -109,10 +112,10 @@ public class WalletChargeUseCase {
     // 주문 소유자를 확인하고 실패 처리를 요청한다. 이미 실패한 주문은 재처리하지 않는다.
     public void fail(Long walletId, String orderNumber) {
         WalletChargeOrder chargeOrder = walletChargeOrderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new IllegalArgumentException("주문번호가 없습니다."));
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_CHARGE_ORDER_NOT_FOUND));
 
         if (!chargeOrder.getWallet().getId().equals(walletId)) {
-            throw new IllegalArgumentException("지갑 소유주가 아닙니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
         }
 
         if (chargeOrder.getStatus() == ChargeStatus.FAILED) {

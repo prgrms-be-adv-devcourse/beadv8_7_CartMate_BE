@@ -4,11 +4,14 @@ import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +23,7 @@ public class WalletQueryUseCase {
     public WalletBalanceResponse getWallet(Long memberId) {
         Wallet wallet = walletRepository.findByMemberId(memberId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("지갑이 존재하지 않습니다."));
+                        new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
         return WalletBalanceResponse.from(wallet);
     }
 

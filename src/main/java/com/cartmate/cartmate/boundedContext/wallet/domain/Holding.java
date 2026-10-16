@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.domain;
 
+import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -61,30 +63,30 @@ public class Holding {
 
     public static Holding create(Wallet wallet, Long orderId, Long amount, Long paymentId) {
         if (wallet == null) {
-            throw new IllegalArgumentException("지갑은 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INTERNAL_WALLET_MISSING);
         }
 
         if (orderId == null) {
-            throw new IllegalArgumentException("주문ID는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_ORDER_ID_REQUIRED);
         }
 
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("홀딩금액은 0이상이어야 합니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
         }
 
         if (paymentId == null) {
-            throw new IllegalArgumentException("결제ID는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_PAYMENT_ID_REQUIRED);
         }
 
         return new Holding(wallet, orderId, amount, paymentId);
     }
     public void cancel() {
         if (status == HoldingStatus.CANCELED) {
-            throw new IllegalArgumentException("이미 취소된 홀딩입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_ALREADY_CANCELED);
         }
 
         if (status != HoldingStatus.RESERVED) {
-            throw new IllegalArgumentException("취소할수 없는 홀딩입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_NOT_CANCELABLE);
         }
 
         this.status = HoldingStatus.CANCELED;
@@ -92,15 +94,15 @@ public class Holding {
 
     public void settle(Long settlementId) {
         if (settlementId == null) {
-            throw new IllegalArgumentException("정산ID는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_SETTLEMENT_ID_REQUIRED);
         }
 
         if (status == HoldingStatus.SETTLED) {
-            throw new IllegalArgumentException("이미 정산된 홀딩입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_ALREADY_SETTLED);
         }
 
         if (status != HoldingStatus.RESERVED) {
-            throw new IllegalArgumentException("정산할 수 없는 홀딩입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_NOT_SETTLEABLE);
         }
 
         this.status = HoldingStatus.SETTLED;

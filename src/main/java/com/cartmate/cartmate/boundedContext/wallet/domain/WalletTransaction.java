@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.domain;
 
+import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -71,16 +73,20 @@ public class WalletTransaction {
             Long balanceAfter
 
     ) {
-        if (wallet == null || type == null) {
-            throw new IllegalArgumentException("지갑과 거래타입은 필수입니다.");
+        if (wallet == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_INTERNAL_WALLET_MISSING);
+        }
+
+        if (type == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_INTERNAL_TRANSACTION_TYPE_MISSING);
         }
 
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("거래금액은 0이상이어야 합니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
         }
 
         if (balanceAfter == null || balanceAfter < 0) {
-            throw new IllegalArgumentException("거래 후 잔액은 0이상이어야합니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_BALANCE_AFTER);
         }
 
         WalletTransaction walletTransaction = new WalletTransaction();

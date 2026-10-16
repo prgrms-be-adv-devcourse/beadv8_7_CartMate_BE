@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.domain;
 
+import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -40,7 +42,7 @@ public class Wallet {
 
     public static Wallet createWallet(Long memberId) {
         if (memberId == null) {
-            throw new IllegalArgumentException("회원 ID는 필수입니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_MEMBER_ID_REQUIRED);
         }
 
         return new Wallet(memberId);
@@ -48,7 +50,7 @@ public class Wallet {
 
     public void charge(Long amount) {
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
         }
 
         this.balance += amount;
@@ -56,11 +58,11 @@ public class Wallet {
 
     public void use(Long amount) {
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("사용 금액은 0보다 커야 합니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
         }
 
         if (this.balance < amount) {
-            throw new IllegalArgumentException("잔액이 부족합니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INSUFFICIENT_BALANCE);
         }
 
         this.balance -= amount;
@@ -68,7 +70,7 @@ public class Wallet {
 
     public void refund(Long amount) {
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("환불금액은 0보다 커야 합니다.");
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
         }
 
         this.balance += amount;
