@@ -3,7 +3,7 @@ package com.cartmate.cartmate.boundedContext.cart.in.personal;
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartItemAddRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartItemQuantityUpdateRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartResponse;
-import com.cartmate.cartmate.boundedContext.cart.app.personal.CartService;
+import com.cartmate.cartmate.boundedContext.cart.app.personal.CartFacade;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +16,11 @@ public class CartController {
 
     private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
-    private final CartService cartService;
+    private final CartFacade cartFacade;
 
     @GetMapping
     public ResponseEntity<CartResponse> getCart(@RequestHeader(MEMBER_ID_HEADER) Long memberId) {
-        return ResponseEntity.ok(cartService.getCart(memberId));
+        return ResponseEntity.ok(cartFacade.getCart(memberId));
     }
 
     @PostMapping("/items")
@@ -28,7 +28,7 @@ public class CartController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @Valid @RequestBody CartItemAddRequest request
     ) {
-        cartService.addItem(memberId, request.inventoryId(), request.quantity());
+        cartFacade.addItem(memberId, request.inventoryId(), request.quantity());
         return ResponseEntity.noContent().build();
     }
 
@@ -38,7 +38,7 @@ public class CartController {
             @PathVariable Long cartItemId,
             @Valid @RequestBody CartItemQuantityUpdateRequest request
     ) {
-        cartService.changeQuantity(memberId, cartItemId, request.quantity());
+        cartFacade.changeQuantity(memberId, cartItemId, request.quantity());
         return ResponseEntity.noContent().build();
     }
 
@@ -47,13 +47,13 @@ public class CartController {
             @RequestHeader(MEMBER_ID_HEADER) Long memberId,
             @PathVariable Long cartItemId
     ) {
-        cartService.removeItem(memberId, cartItemId);
+        cartFacade.removeItem(memberId, cartItemId);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/items")
     public ResponseEntity<Void> clear(@RequestHeader(MEMBER_ID_HEADER) Long memberId) {
-        cartService.clear(memberId);
+        cartFacade.clear(memberId);
         return ResponseEntity.noContent().build();
     }
 }

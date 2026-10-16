@@ -179,8 +179,6 @@ public class SharedGroupPurchaseService {
         }
     }
 
-    // 엔티티 → 마감 이벤트 변환. shared 계약이 cart 엔티티를 몰라도 되게, 보내는 쪽(cart)에서 값만 꺼내 담는다.
-    // 트랜잭션 안이라 참여자·항목(지연 로딩)을 읽어도 안전하다.
     private SharedGroupPurchaseClosedEvent toClosedEvent(SharedGroupPurchase purchase) {
         List<Long> participantMemberIds = purchase.getMembers().stream()
                 .map(SharedGroupPurchaseMember::getMemberId)

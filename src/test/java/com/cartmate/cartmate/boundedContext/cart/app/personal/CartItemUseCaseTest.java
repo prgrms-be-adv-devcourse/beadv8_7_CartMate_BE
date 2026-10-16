@@ -7,12 +7,12 @@ import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartResponse;
 import com.cartmate.cartmate.boundedContext.cart.domain.personal.Cart;
 import com.cartmate.cartmate.boundedContext.cart.domain.personal.CartItem;
 import com.cartmate.cartmate.boundedContext.cart.out.personal.CartRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
-class CartServiceTest {
+class CartItemUseCaseTest {
 
     private static final Long MEMBER_ID = 1L;
 
@@ -46,8 +46,12 @@ class CartServiceTest {
     @Mock
     private ProductClient productClient;
 
-    @InjectMocks
-    private CartService cartService;
+    private CartItemUseCase cartItemUseCase;
+
+    @BeforeEach
+    void setUp() {
+        cartItemUseCase = new CartItemUseCase(new CartSupport(cartRepository), productClient);
+    }
 
     @Nested
     @DisplayName("addItem")
@@ -60,7 +64,7 @@ class CartServiceTest {
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
             given(cartRepository.save(any(Cart.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-            cartService.addItem(MEMBER_ID, 1L, 2);
+            cartItemUseCase.addItem(MEMBER_ID, 1L, 2);
 
             ArgumentCaptor<Cart> captor = ArgumentCaptor.forClass(Cart.class);
             then(cartRepository).should().save(captor.capture());
@@ -80,7 +84,7 @@ class CartServiceTest {
             given(productClient.findByInventoryId(1L)).willReturn(Optional.of(UNIFORM_M));
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            cartService.addItem(MEMBER_ID, 1L, 2);
+            cartItemUseCase.addItem(MEMBER_ID, 1L, 2);
 
             then(cartRepository).should(never()).save(any());
             assertThat(cart.getItems()).hasSize(1);
@@ -94,7 +98,7 @@ class CartServiceTest {
             given(productClient.findByInventoryId(1L)).willReturn(Optional.of(UNIFORM_M));
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            cartService.addItem(MEMBER_ID, 1L, 3);
+            cartItemUseCase.addItem(MEMBER_ID, 1L, 3);
 
             assertThat(cart.getItems()).hasSize(1);
             assertThat(cart.getItems().get(0).getQuantity()).isEqualTo(5);
@@ -105,7 +109,7 @@ class CartServiceTest {
         void notFoundInventory() {
             given(productClient.findByInventoryId(999L)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> cartService.addItem(MEMBER_ID, 999L, 1))
+            assertThatThrownBy(() -> cartItemUseCase.addItem(MEMBER_ID, 999L, 1))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("존재하지 않는 상품 옵션입니다.");
             verifyNoInteractions(cartRepository);
@@ -116,71 +120,10 @@ class CartServiceTest {
         void notPurchasable() {
             given(productClient.findByInventoryId(5L)).willReturn(Optional.of(SHIN_GUARD));
 
-            assertThatThrownBy(() -> cartService.addItem(MEMBER_ID, 5L, 1))
+            assertThatThrownBy(() -> cartItemUseCase.addItem(MEMBER_ID, 5L, 1))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("구매할 수 없는 상품입니다.");
             verifyNoInteractions(cartRepository);
-        }
-    }
-
-    @Nested
-    @DisplayName("getCart")
-    class GetCart {
-
-        @Test
-        @DisplayName("장바구니가 없으면 빈 응답을 반환한다")
-        void emptyWhenAbsent() {
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
-
-            CartResponse response = cartService.getCart(MEMBER_ID);
-
-            assertThat(response.cartId()).isNull();
-            assertThat(response.items()).isEmpty();
-            assertThat(response.totalPrice()).isZero();
-            verifyNoInteractions(productClient);
-        }
-
-        @Test
-        @DisplayName("상품 정보를 합쳐서 응답하고, 총액은 구매 가능한 상품만 더한다")
-        void totalPriceOnlyPurchasable() {
-            Cart cart = Cart.create(MEMBER_ID);
-            cart.addItem(100L, 1L, 2);
-            cart.addItem(300L, 5L, 1);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
-            given(productClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(UNIFORM_M, SHIN_GUARD));
-
-            CartResponse response = cartService.getCart(MEMBER_ID);
-
-            assertThat(response.items()).hasSize(2);
-            CartItemResponse uniform = findByInventoryId(response, 1L);
-            assertThat(uniform.productName()).isEqualTo("축구 유니폼");
-            assertThat(uniform.totalPrice()).isEqualTo(78000L);
-            assertThat(uniform.purchasable()).isTrue();
-            assertThat(findByInventoryId(response, 5L).purchasable()).isFalse();
-            assertThat(response.totalPrice()).isEqualTo(78000L);
-        }
-
-        @Test
-        @DisplayName("상품 정보를 찾을 수 없는 항목은 구매 불가로 표시한다")
-        void missingProductInfo() {
-            Cart cart = Cart.create(MEMBER_ID);
-            cart.addItem(100L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
-            given(productClient.findAllByInventoryIds(anyCollection())).willReturn(List.of());
-
-            CartResponse response = cartService.getCart(MEMBER_ID);
-
-            CartItemResponse item = findByInventoryId(response, 1L);
-            assertThat(item.productName()).isNull();
-            assertThat(item.purchasable()).isFalse();
-            assertThat(response.totalPrice()).isZero();
-        }
-
-        private CartItemResponse findByInventoryId(CartResponse response, Long inventoryId) {
-            return response.items().stream()
-                    .filter(item -> item.inventoryId().equals(inventoryId))
-                    .findFirst()
-                    .orElseThrow();
         }
     }
 
@@ -194,7 +137,7 @@ class CartServiceTest {
             Cart cart = cartWithItem(10L, 1L, 2);
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            cartService.changeQuantity(MEMBER_ID, 10L, 7);
+            cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7);
 
             assertThat(cart.getItems().get(0).getQuantity()).isEqualTo(7);
         }
@@ -205,7 +148,7 @@ class CartServiceTest {
             Cart cart = cartWithItem(10L, 1L, 2);
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            assertThatThrownBy(() -> cartService.changeQuantity(MEMBER_ID, 99L, 7))
+            assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 99L, 7))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("장바구니에 없는 상품입니다.");
         }
@@ -215,7 +158,7 @@ class CartServiceTest {
         void cartNotFound() {
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> cartService.changeQuantity(MEMBER_ID, 10L, 7))
+            assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("장바구니가 존재하지 않습니다.");
         }
@@ -231,7 +174,7 @@ class CartServiceTest {
             Cart cart = cartWithItem(10L, 1L, 2);
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            cartService.removeItem(MEMBER_ID, 10L);
+            cartItemUseCase.removeItem(MEMBER_ID, 10L);
 
             assertThat(cart.getItems()).isEmpty();
         }
@@ -249,7 +192,7 @@ class CartServiceTest {
             cart.addItem(100L, 2L, 1);
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            cartService.clear(MEMBER_ID);
+            cartItemUseCase.clear(MEMBER_ID);
 
             assertThat(cart.getItems()).isEmpty();
         }
@@ -259,7 +202,7 @@ class CartServiceTest {
         void noCart() {
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
 
-            assertThatCode(() -> cartService.clear(MEMBER_ID)).doesNotThrowAnyException();
+            assertThatCode(() -> cartItemUseCase.clear(MEMBER_ID)).doesNotThrowAnyException();
         }
     }
 
