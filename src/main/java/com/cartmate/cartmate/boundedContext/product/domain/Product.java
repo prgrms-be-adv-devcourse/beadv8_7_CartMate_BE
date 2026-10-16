@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.product.domain;
 
-import com.cartmate.cartmate.global.code.ErrorCode;
-import com.cartmate.cartmate.global.exception.DomainException;
+import com.cartmate.cartmate.global.code.ProductErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
 import jakarta.persistence.Column;
@@ -9,7 +9,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.ColumnDefault;
 
 import java.util.Objects;
 
@@ -47,7 +46,7 @@ public class Product extends BaseIdAndTime {
 
     public void publish(CreateProduct product) {
         if (!Objects.equals(this.sellerId, product.getSellerId())) {
-            throw new DomainException(ErrorCode.PRODUCT_ACCESS_DENIED);
+            throw new ServiceException(ProductErrorCode.PRODUCT_ACCESS_DENIED);
         }
         this.categoryId = product.getCategoryId();
         this.name = product.getName();

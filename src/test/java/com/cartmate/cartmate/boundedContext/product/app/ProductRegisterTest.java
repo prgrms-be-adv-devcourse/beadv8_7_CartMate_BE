@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.product.out.ProductRepository;
-import com.cartmate.cartmate.global.exception.DomainException;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProductImage;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
@@ -93,7 +93,7 @@ class ProductRegisterTest {
                 product("충전기", TestImageFiles.fake()));
 
         assertThatThrownBy(() -> productFacade.registerProduct(request))
-                .isInstanceOf(DomainException.class);
+                .isInstanceOf(ServiceException.class);
 
         assertThat(productRepository.count()).isZero();
         assertThat(productImageRepository.count()).isZero();
@@ -109,7 +109,7 @@ class ProductRegisterTest {
                 product("충전기", TestImageFiles.jpeg()));
 
         assertThatThrownBy(() -> productFacade.registerProduct(request))
-                .isInstanceOf(DomainException.class);
+                .isInstanceOf(ServiceException.class);
 
         assertThat(storage.savedCount()).isZero();
         assertThat(productRepository.count()).isZero();

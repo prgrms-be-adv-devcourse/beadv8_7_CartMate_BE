@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.product.out;
 
-import com.cartmate.cartmate.global.code.ErrorCode;
-import com.cartmate.cartmate.global.exception.DomainException;
+import com.cartmate.cartmate.global.code.ProductErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -30,7 +30,7 @@ public class DevImageStorage implements ImageStorage {
             Files.createDirectories(path.getParent());
             Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new DomainException(ErrorCode.PRODUCT_IMAGE_UPLOAD_FAILED);
+            throw new ServiceException(ProductErrorCode.PRODUCT_IMAGE_UPLOAD_FAILED);
         }
     }
 

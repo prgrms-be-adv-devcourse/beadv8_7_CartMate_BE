@@ -1,14 +1,13 @@
 package com.cartmate.cartmate.boundedContext.product.domain;
 
-import com.cartmate.cartmate.global.code.ErrorCode;
-import com.cartmate.cartmate.global.exception.DomainException;
+import com.cartmate.cartmate.global.code.ProductErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 
 
 @Service
@@ -18,7 +17,7 @@ public class ImageTypePolicy {
 
     public ImageType detect(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new DomainException(ErrorCode.PRODUCT_IMAGE_INVALID_TYPE);
+            throw new ServiceException(ProductErrorCode.PRODUCT_IMAGE_INVALID_TYPE);
         }
 
         byte[] header = readHeader(file);
@@ -33,7 +32,7 @@ public class ImageTypePolicy {
             return ImageType.WEBP;
         }
 
-        throw new DomainException(ErrorCode.PRODUCT_IMAGE_INVALID_TYPE);
+        throw new ServiceException(ProductErrorCode.PRODUCT_IMAGE_INVALID_TYPE);
     }
 
     private byte[] readHeader(MultipartFile file) {
@@ -41,11 +40,11 @@ public class ImageTypePolicy {
             byte[] header = new byte[HEADER_SIZE];
             int read = in.readNBytes(header, 0, HEADER_SIZE);
             if (read < HEADER_SIZE) {
-                throw new DomainException(ErrorCode.PRODUCT_IMAGE_INVALID_TYPE);
+                throw new ServiceException(ProductErrorCode.PRODUCT_IMAGE_INVALID_TYPE);
             }
             return header;
         } catch (IOException e) {
-            throw new DomainException(ErrorCode.PRODUCT_IMAGE_INVALID_TYPE);
+            throw new ServiceException(ProductErrorCode.PRODUCT_IMAGE_INVALID_TYPE);
         }
     }
 

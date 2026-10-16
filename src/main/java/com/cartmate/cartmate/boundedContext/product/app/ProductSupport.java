@@ -3,8 +3,8 @@ package com.cartmate.cartmate.boundedContext.product.app;
 import com.cartmate.cartmate.boundedContext.product.domain.ImageTypePolicy;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductCountPolicy;
 import com.cartmate.cartmate.boundedContext.product.dto.upload.ImageUploadTask;
-import com.cartmate.cartmate.global.code.ErrorCode;
-import com.cartmate.cartmate.global.exception.DomainException;
+import com.cartmate.cartmate.global.code.ProductErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProductImage;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +21,11 @@ public class ProductSupport {
 
     public void validateProductCount(List<CreateProduct> productList) {
         if (!productCountPolicy.isSafeProductCount(productList)) {
-            throw new DomainException(ErrorCode.PRODUCT_COUNT_INVALID);
+            throw new ServiceException(ProductErrorCode.PRODUCT_COUNT_INVALID);
         }
 
         if (!productCountPolicy.isSafeProductImageCount(productList)) {
-            throw new DomainException(ErrorCode.PRODUCT_IMAGE_COUNT_EXCEEDED);
+            throw new ServiceException(ProductErrorCode.PRODUCT_IMAGE_COUNT_EXCEEDED);
         }
     }
 

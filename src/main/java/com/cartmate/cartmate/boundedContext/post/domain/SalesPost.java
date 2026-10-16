@@ -1,7 +1,5 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
-import com.cartmate.cartmate.boundedContext.post.dto.create.CreateSalesPostRequest;
-
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import jakarta.persistence.*;
 import lombok.Getter;

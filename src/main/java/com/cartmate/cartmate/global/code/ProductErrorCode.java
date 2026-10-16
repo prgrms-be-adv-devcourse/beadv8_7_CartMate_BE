@@ -1,14 +1,11 @@
 package com.cartmate.cartmate.global.code;
 
+import com.cartmate.cartmate.global.exception.ErrorCode;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 @Getter
-public enum ErrorCode {
-    POST_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "POST_UPDATE_FAILED", "게시글 수정에 실패했습니다."),
-    POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "POST_ACCESS_DENIED", "게시글 수정 권한이 없습니다."),
-    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "POST_NOT_FOUND", "게시글을 찾을 수 없습니다."),
-
+public enum ProductErrorCode implements ErrorCode {
     PRODUCT_COUNT_INVALID(HttpStatus.BAD_REQUEST, "PRODUCT_COUNT_INVALID", "등록이 가능한 상품 수량을 초과했습니다."),
     PRODUCT_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PRODUCT_UPDATE_FAILED", "상품정보 수정에 실패했습니다."),
     PRODUCT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "PRODUCT_ACCESS_DENIED", "상품정보 수정 권한이 없습니다."),
@@ -24,10 +21,14 @@ public enum ErrorCode {
     private final String code;
     private final String message;
 
-    ErrorCode(HttpStatus status, String code, String message) {
+    ProductErrorCode(HttpStatus status, String code, String message) {
         this.status = status;
         this.code = code;
         this.message = message;
     }
 
+    @Override
+    public String getMsg() {
+        return this.message;
+    }
 }
