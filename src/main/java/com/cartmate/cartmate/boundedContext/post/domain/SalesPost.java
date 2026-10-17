@@ -11,7 +11,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "POST_POST")
+@Table(name = "POST_SALES_POST")
 @NoArgsConstructor
 @Getter
 public class SalesPost extends BaseIdAndTime {

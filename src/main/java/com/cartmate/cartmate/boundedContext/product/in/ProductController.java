@@ -21,7 +21,7 @@ public class ProductController {
 
     @PostMapping("/product")
     public ResponseEntity<Void> registerProduct(@RequestPart("request") CreateProductRequest request,
-                                                @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+                                                @RequestPart(value = "images") List<MultipartFile> images) {
         productFacade.registerProduct(request, images);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }

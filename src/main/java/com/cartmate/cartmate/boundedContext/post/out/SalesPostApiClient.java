@@ -10,6 +10,9 @@ import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Service
 public class SalesPostApiClient {
@@ -21,16 +24,13 @@ public class SalesPostApiClient {
                 .build();
     }
 
-    public void registerProducts(CreateProductRequest request) {
+    public void registerProducts(CreateProductRequest request, List<MultipartFile> images) {
         MultipartBodyBuilder body = new MultipartBodyBuilder();
         body.part("request", request, MediaType.APPLICATION_JSON);   // file은 빠진 채로 JSON
 
-        request.getProductList().forEach(product ->
-                product.getProductImageList().forEach(image -> {
-                        body.part("images", image.getFile().getResource());
-                    }
-                )
-        );
+        if (images != null) {
+            images.forEach(file -> body.part("images", file.getResource()));
+        }
 
         try {
             restClient.post()

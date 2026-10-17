@@ -15,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -31,14 +34,14 @@ public class SalesPostFacade {
         return salesPostSyncSellerUseCase.syncSeller(seller);
     }
 
-    public void registerSalesPost(CreateSalesPostRequest request) {
+    public void registerSalesPost(CreateSalesPostRequest request, List<MultipartFile> images) {
         CreateProductRequest productRequest = transactionTemplate.execute(status -> {
             SalesPost post = salesPostCreateUseCase.saveSalesPost(request);
             return new CreateProductRequest(post.getId(), request.toCreateProductList());
         });
 
         try{
-            salesPostApiClient.registerProducts(productRequest);
+            salesPostApiClient.registerProducts(productRequest, images);
         } catch(ServiceException e) {
             salesPostDeleteUseCase.deleteSalesPostByEvent(productRequest.getPostId());
             GlobalConfig.getEventPublisher().publish(

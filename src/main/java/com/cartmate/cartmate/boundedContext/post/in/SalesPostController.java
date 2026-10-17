@@ -7,7 +7,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -17,8 +21,10 @@ public class SalesPostController {
 
 
     @PostMapping("/post")
-    public ResponseEntity<Void> registerSalesPost(CreateSalesPostRequest request) {
-        salesPostFacade.registerSalesPost(request);
+    public ResponseEntity<Void> registerSalesPost(
+            @RequestPart("request") CreateSalesPostRequest request,
+            @RequestPart("images") List<MultipartFile> images) {
+        salesPostFacade.registerSalesPost(request, images);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.dto.CreateSalesPostRequest;
+import com.cartmate.cartmate.boundedContext.product.app.TestImageFiles;
 import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
@@ -15,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -47,9 +49,11 @@ class SalesPostCompensationTest {
     @DisplayName("상품 API가 실패하면 글이 지워지고 삭제 이벤트가 발행된다")
     void deletePostWhenProductApiFails() {
         doThrow(new ServiceException(ProductErrorCode.PRODUCT_CREATE_FAILED))
-                .when(salesPostApiClient).registerProducts(any());
+                .when(salesPostApiClient).registerProducts(any(), any());
 
-        assertThatThrownBy(() -> salesPostFacade.registerSalesPost(request()))
+        List<MultipartFile> images = getDummyImages(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.png());
+
+        assertThatThrownBy(() -> salesPostFacade.registerSalesPost(request(), images))
                 .isInstanceOf(ServiceException.class);
 
         assertThat(salesPostRepository.count()).isZero();
@@ -59,7 +63,8 @@ class SalesPostCompensationTest {
     @Test
     @DisplayName("상품 API가 성공하면 글이 남고 삭제 이벤트는 발행되지 않는다")
     void keepPostWhenProductApiSucceeds() {
-        salesPostFacade.registerSalesPost(request());
+        List<MultipartFile> images = getDummyImages(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.png());
+        salesPostFacade.registerSalesPost(request(), images);
 
         assertThat(salesPostRepository.count()).isEqualTo(1);
         assertThat(events.stream(PostDeletedEvent.class)).isEmpty();
@@ -67,5 +72,9 @@ class SalesPostCompensationTest {
 
     private CreateSalesPostRequest request() {
         return new CreateSalesPostRequest(null, 7L, "아이폰 팝니다", "상태 좋아요", List.of());
+    }
+
+    private List<MultipartFile> getDummyImages(MultipartFile... files) {
+        return List.of(files);
     }
 }
