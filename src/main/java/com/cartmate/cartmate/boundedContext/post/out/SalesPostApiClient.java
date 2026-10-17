@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.post.out;
 
 import com.cartmate.cartmate.global.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
+import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;

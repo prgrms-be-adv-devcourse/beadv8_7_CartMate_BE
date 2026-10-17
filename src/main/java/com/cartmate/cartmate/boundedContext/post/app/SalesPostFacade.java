@@ -2,11 +2,15 @@ package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
-import com.cartmate.cartmate.boundedContext.post.dto.create.CreateSalesPostRequest;
+import com.cartmate.cartmate.boundedContext.post.dto.CreateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.shared.member.dto.SellerDto;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
+import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
+import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
+import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.shared.product.dto.ProductRollbackRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,14 +40,19 @@ public class SalesPostFacade {
         try{
             salesPostApiClient.registerProducts(productRequest);
         } catch(ServiceException e) {
-            salesPostDeleteUseCase.deleteSalesPostByServer(productRequest.getPostId());
+            salesPostDeleteUseCase.deleteSalesPostByEvent(productRequest.getPostId());
+            GlobalConfig.getEventPublisher().publish(
+                    new PostDeletedEvent(
+                            new SalesPostRollbackRequest(productRequest.getPostId())
+                    )
+            );
             throw e;
         }
     }
 
     @Transactional
-    public void deleteSalesPostByUser(Long id) {
-        salesPostDeleteUseCase.deleteSalesPostByUser(id);
+    public void deleteSalesPostByUser(Long postId) {
+        salesPostDeleteUseCase.deleteSalesPostByUser(postId);
     }
 
 }

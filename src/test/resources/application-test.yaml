@@ -1,7 +1,10 @@
 spring:
   datasource:
-    url: jdbc:tc:mysql:8.4:///cartmatedb
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+#    url: jdbc:tc:mysql:8.4:///cartmatedb
+#    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    url: jdbc:mysql://localhost:3306/cartmatedb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: root
+    password: 1234
 
   jpa:
     hibernate:

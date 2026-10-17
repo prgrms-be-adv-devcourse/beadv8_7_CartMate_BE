@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.in;
 
 import com.cartmate.cartmate.boundedContext.post.app.SalesPostFacade;
-import com.cartmate.cartmate.boundedContext.post.dto.create.CreateSalesPostRequest;
+import com.cartmate.cartmate.boundedContext.post.dto.CreateSalesPostRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
