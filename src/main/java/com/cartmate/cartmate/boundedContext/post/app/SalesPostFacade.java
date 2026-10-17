@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
 import com.cartmate.cartmate.boundedContext.post.dto.create.CreateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostApiClient;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.member.dto.SellerDto;
 import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class SalesPostFacade {
     private final SalesPostSyncSellerUseCase salesPostSyncSellerUseCase;
     private final SalesPostCreateUseCase salesPostCreateUseCase;
+    private final SalesPostUpdateUseCase salesPostUpdateUseCase;
+    private final SalesPostDeleteUseCase salesPostDeleteUseCase;
     private final TransactionTemplate transactionTemplate;
     private final SalesPostApiClient salesPostApiClient;
 
@@ -30,6 +33,17 @@ public class SalesPostFacade {
             return new CreateProductRequest(post.getId(), request.toCreateProductList());
         });
 
-        salesPostApiClient.publishProducts(productRequest);
+        try{
+            salesPostApiClient.registerProducts(productRequest);
+        } catch(ServiceException e) {
+            salesPostDeleteUseCase.deleteSalesPostByServer(productRequest.getPostId());
+            throw e;
+        }
     }
+
+    @Transactional
+    public void deleteSalesPostByUser(Long id) {
+        salesPostDeleteUseCase.deleteSalesPostByUser(id);
+    }
+
 }

@@ -39,4 +39,9 @@ public class SalesPost extends BaseIdAndTime {
     public boolean isVisible() {
         return saleStatus.isVisible();
     }
+
+    public SalesPost delete() {
+        this.saleStatus = SalesPostSaleStatus.DELETED;
+        return this;
+    }
 }
