@@ -72,4 +72,32 @@ public class Delivery {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+
+    public static Delivery create(
+            Long memberId, Long orderId, PurchaseType purchaseType,
+            String receiverName, String receiverPhone,
+            String zipCode, String address, String addressDetail
+    ) {
+        return new Delivery(
+                memberId, orderId, purchaseType,
+                receiverName, receiverPhone, zipCode, address, addressDetail
+        );
+    }
+
+    private Delivery(
+            Long memberId, Long orderId, PurchaseType purchaseType,
+            String receiverName, String receiverPhone,
+            String zipCode, String address, String addressDetail
+    ) {
+        this.memberId = memberId;
+        this.orderId = orderId;
+        this.purchaseType = purchaseType;
+        this.receiverName = receiverName;
+        this.receiverPhone = receiverPhone;
+        this.zipCode = zipCode;
+        this.address = address;
+        this.addressDetail = addressDetail;
+        this.status = DeliveryStatus.PREPARING;
+    }
 }

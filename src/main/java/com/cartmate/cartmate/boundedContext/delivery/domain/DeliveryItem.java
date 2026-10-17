@@ -26,4 +26,18 @@ public class DeliveryItem {
 
     @Column(name = "quantity", nullable = false)
     private Long quantity;
+
+    public static DeliveryItem create(Delivery delivery, Long orderItemId, Long quantity) {
+        return new DeliveryItem(delivery, orderItemId, quantity);
+    }
+
+    private DeliveryItem(
+            Delivery delivery,
+            Long orderItemId,
+            Long quantity
+    ) {
+        this.delivery = delivery;
+        this.orderItemId = orderItemId;
+        this.quantity = quantity;
+    }
 }
