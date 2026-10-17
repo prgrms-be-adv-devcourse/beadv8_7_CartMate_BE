@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.delivery.out;
 
+import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryDetailResponse;
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
