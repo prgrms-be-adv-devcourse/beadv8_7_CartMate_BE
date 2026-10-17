@@ -13,6 +13,7 @@ public record DeliveryCreateCommand(
         String zipCode,
         String address,
         String addressDetail,
+        String idempotencyKey,
         List<Item> deliveryItem
 ) {
     public record Item(

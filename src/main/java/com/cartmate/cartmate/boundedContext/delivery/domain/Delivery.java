@@ -53,6 +53,9 @@ public class Delivery {
     @Column(name = "status", nullable = false)
     private DeliveryStatus status;
 
+    @Column(name = "idempotency_key", nullable = false, unique = true)
+    private String idempotencyKey;
+
     @Column(name = "shipped_at")
     private LocalDateTime shippedAt;    //배송출발시간
 
@@ -77,18 +80,18 @@ public class Delivery {
     public static Delivery create(
             Long memberId, Long orderId, PurchaseType purchaseType,
             String receiverName, String receiverPhone,
-            String zipCode, String address, String addressDetail
+            String zipCode, String address, String addressDetail, String idempotencyKey
     ) {
         return new Delivery(
                 memberId, orderId, purchaseType,
-                receiverName, receiverPhone, zipCode, address, addressDetail
+                receiverName, receiverPhone, zipCode, address, addressDetail, idempotencyKey
         );
     }
 
     private Delivery(
             Long memberId, Long orderId, PurchaseType purchaseType,
             String receiverName, String receiverPhone,
-            String zipCode, String address, String addressDetail
+            String zipCode, String address, String addressDetail, String idempotencyKey
     ) {
         this.memberId = memberId;
         this.orderId = orderId;
@@ -99,5 +102,6 @@ public class Delivery {
         this.address = address;
         this.addressDetail = addressDetail;
         this.status = DeliveryStatus.PREPARING;
+        this.idempotencyKey = idempotencyKey;
     }
 }

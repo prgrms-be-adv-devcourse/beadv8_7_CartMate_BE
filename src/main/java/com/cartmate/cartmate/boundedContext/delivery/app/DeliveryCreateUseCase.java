@@ -8,6 +8,8 @@ import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class DeliveryCreateUseCase {
@@ -18,6 +20,27 @@ public class DeliveryCreateUseCase {
     public void create(DeliveryCreateCommand createCommand) {
         validatedCreate(createCommand);
 
+        Optional<Delivery> existing = deliveryRepository.findByIdempotencyKey(createCommand.idempotencyKey());
+
+        if (existing.isPresent()) {
+            Delivery delivery = existing.get();
+
+            if (!delivery.getMemberId().equals(createCommand.memberId())
+                    || !delivery.getOrderId().equals(createCommand.orderId())
+                    || delivery.getPurchaseType() != createCommand.purchaseType()
+                    || !delivery.getReceiverName().equals(createCommand.receiverName())
+                    || !delivery.getReceiverPhone().equals(createCommand.receiverPhone())
+                    || !delivery.getZipCode().equals(createCommand.zipCode())
+                    || !delivery.getAddress().equals(createCommand.address())
+                    || !delivery.getAddressDetail().equals(createCommand.addressDetail())
+            ) {
+                throw new IllegalArgumentException(
+                        "동일한 멱등키에 다른 배송 요청이 전달되었습니다."
+                );
+            }
+            return;
+        }
+
         Delivery delivery = Delivery.create(
                 createCommand.memberId(),
                 createCommand.orderId(),
@@ -26,7 +49,8 @@ public class DeliveryCreateUseCase {
                 createCommand.receiverPhone(),
                 createCommand.zipCode(),
                 createCommand.address(),
-                createCommand.addressDetail()
+                createCommand.addressDetail(),
+                createCommand.idempotencyKey()
                 );
 
         deliveryRepository.save(delivery);
@@ -82,6 +106,10 @@ public class DeliveryCreateUseCase {
             if (item.quantity() == null || item.quantity() <= 0) {
                 throw new IllegalArgumentException("배송 수량은 0보다 커야 합니다.");
             }
+        }
+
+        if (createCommand.idempotencyKey() == null || createCommand.idempotencyKey().isBlank()) {
+            throw new IllegalArgumentException("멱등키가 필요합니다.");
         }
     }
 }
