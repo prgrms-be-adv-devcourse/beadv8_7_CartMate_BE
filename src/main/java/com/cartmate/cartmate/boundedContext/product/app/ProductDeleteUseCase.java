@@ -28,6 +28,6 @@ public class ProductDeleteUseCase {
         if (productList.isEmpty()) {
             return;
         }
-        productList.forEach(Product::delete);
+        productRepository.deleteAll(productList);
     }
 }

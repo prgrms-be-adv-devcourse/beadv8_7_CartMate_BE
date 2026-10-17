@@ -34,6 +34,6 @@ public class SalesPostDeleteUseCase {
     @Transactional
     public void deleteSalesPostByEvent(Long postId) {
         salesPostRepository.findById(postId)
-                .ifPresent(SalesPost::delete);
+                .ifPresent(salesPostRepository::delete);
     }
 }
