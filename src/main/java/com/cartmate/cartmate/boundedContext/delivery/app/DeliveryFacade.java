@@ -1,7 +1,10 @@
 package com.cartmate.cartmate.boundedContext.delivery.app;
 
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryCreateCommand;
+import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,9 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeliveryFacade {
 
     private final DeliveryCreateUseCase deliveryCreateUseCase;
+    private final DeliveryQueryUseCase deliveryQueryUseCase;
 
     @Transactional
     public void createDelivery(DeliveryCreateCommand createCommand) {
         deliveryCreateUseCase.create(createCommand);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<DeliveryResponse> getMyDeliveries(Long memberId, Pageable pageable) {
+        return deliveryQueryUseCase.getMyDeliveries(memberId, pageable);
     }
 }

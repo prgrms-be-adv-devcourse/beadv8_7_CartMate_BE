@@ -24,12 +24,18 @@ public class Delivery {
     @Column(name = "member_id", nullable = false)
     private Long memberId;
 
+    @Column(name = "seller_id", nullable = false)
+    private Long sellerId;
+
     @Column(name = "order_id", nullable = false)
     private Long orderId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "purchase_type", nullable = false)
     private PurchaseType purchaseType;
+
+    @Column(name = "carrier")
+    private String carrier;
 
     @Column(name = "tracking_number")
     private String trackingNumber;
@@ -78,22 +84,23 @@ public class Delivery {
 
 
     public static Delivery create(
-            Long memberId, Long orderId, PurchaseType purchaseType,
+            Long memberId, Long sellerId, Long orderId, PurchaseType purchaseType,
             String receiverName, String receiverPhone,
             String zipCode, String address, String addressDetail, String idempotencyKey
     ) {
         return new Delivery(
-                memberId, orderId, purchaseType,
+                memberId, sellerId, orderId, purchaseType,
                 receiverName, receiverPhone, zipCode, address, addressDetail, idempotencyKey
         );
     }
 
     private Delivery(
-            Long memberId, Long orderId, PurchaseType purchaseType,
+            Long memberId, Long sellerId, Long orderId, PurchaseType purchaseType,
             String receiverName, String receiverPhone,
             String zipCode, String address, String addressDetail, String idempotencyKey
     ) {
         this.memberId = memberId;
+        this.sellerId = sellerId;
         this.orderId = orderId;
         this.purchaseType = purchaseType;
         this.receiverName = receiverName;

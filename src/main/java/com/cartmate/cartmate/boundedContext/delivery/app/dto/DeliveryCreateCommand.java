@@ -6,6 +6,7 @@ import java.util.List;
 
 public record DeliveryCreateCommand(
         Long memberId,
+        Long sellerId,
         Long orderId,
         PurchaseType purchaseType,
         String receiverName,

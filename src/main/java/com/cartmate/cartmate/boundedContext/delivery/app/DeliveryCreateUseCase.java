@@ -43,6 +43,7 @@ public class DeliveryCreateUseCase {
 
         Delivery delivery = Delivery.create(
                 createCommand.memberId(),
+                createCommand.sellerId(),
                 createCommand.orderId(),
                 createCommand.purchaseType(),
                 createCommand.receiverName(),
@@ -72,6 +73,11 @@ public class DeliveryCreateUseCase {
         if (createCommand.memberId() == null) {
             throw new IllegalArgumentException("회원 ID가 필요합니다.");
         }
+
+        if (createCommand.sellerId() == null) {
+            throw new IllegalArgumentException("판매자 ID가 필요합니다.");
+        }
+
         if (createCommand.orderId() == null) {
             throw new IllegalArgumentException("주문 ID가 필요합니다.");
         }
