@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostRequest;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,9 +13,11 @@ import org.springframework.data.support.PageableExecutionUtils;
 import static com.cartmate.cartmate.boundedContext.post.domain.QSalesPost.salesPost;
 import java.util.List;
 
-@RequiredArgsConstructor
 public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
     private final JPAQueryFactory queryFactory;
+    public SalesPostQueryRepositoryImpl(EntityManager entityManager) {
+        this.queryFactory = new JPAQueryFactory(entityManager);
+    }
 
     @Override
     public Page<SalesPost> selectSalesPostAll(SelectSalesPostRequest request, Pageable pageable) {
