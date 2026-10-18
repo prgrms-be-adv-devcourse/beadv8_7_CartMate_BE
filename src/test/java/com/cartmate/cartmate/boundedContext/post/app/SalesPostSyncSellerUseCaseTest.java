@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostSellerRepository;
+import com.cartmate.cartmate.global.global.QuerydslConfig;
 import com.cartmate.cartmate.shared.member.dto.SellerDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 @DataJpaTest
-@Import(SalesPostSyncSellerUseCase.class)
+@Import({SalesPostSyncSellerUseCase.class, QuerydslConfig.class})
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class SalesPostSyncSellerUseCaseTest {
