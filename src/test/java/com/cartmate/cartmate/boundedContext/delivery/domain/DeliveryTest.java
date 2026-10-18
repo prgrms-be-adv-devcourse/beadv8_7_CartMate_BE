@@ -5,6 +5,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -84,6 +86,95 @@ class DeliveryTest {
 
         assertThat(delivery.getCarrier()).isEqualTo("CJ대한통운");
         assertThat(delivery.getTrackingNumber()).isEqualTo("658219384910");
+    }
+
+    @Test
+    @DisplayName("배송준비 상태에서 출발 처리하면 배송중이 되고 출발 시각이 기록된다")
+    void ship() {
+        Delivery delivery = newDelivery();
+        delivery.prepare("CJ대한통운", "658219384910");
+
+        delivery.ship();
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.SHIPPING);
+        assertThat(delivery.getShippedAt()).isNotNull();
+        assertThat(delivery.getCarrier()).isEqualTo("CJ대한통운");
+        assertThat(delivery.getTrackingNumber()).isEqualTo("658219384910");
+    }
+
+    @Test
+    @DisplayName("이미 배송중이면 다시 출발 처리해도 성공하고 출발 시각이 바뀌지 않는다")
+    void shipIsIdempotent() {
+        Delivery delivery = newDelivery();
+        delivery.prepare("CJ대한통운", "658219384910");
+        delivery.ship();
+        LocalDateTime firstShippedAt = delivery.getShippedAt();
+
+        delivery.ship();
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.SHIPPING);
+        assertThat(delivery.getShippedAt()).isEqualTo(firstShippedAt);
+    }
+
+    @Test
+    @DisplayName("배송요청, 배송완료, 배송취소 상태에서는 출발 처리할 수 없다")
+    void shipInvalidStatus() {
+        for (DeliveryStatus status : new DeliveryStatus[]{
+                DeliveryStatus.REQUESTED, DeliveryStatus.DELIVERED, DeliveryStatus.CANCELED}) {
+            Delivery delivery = newDelivery();
+            ReflectionTestUtils.setField(delivery, "status", status);
+
+            assertThatThrownBy(delivery::ship)
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("409-DELIVERY_INVALID_STATUS");
+            assertThat(delivery.getStatus()).isEqualTo(status);
+            assertThat(delivery.getShippedAt()).isNull();
+        }
+    }
+
+    @Test
+    @DisplayName("배송중 상태에서 완료 처리하면 배송완료가 되고 완료 시각이 기록된다")
+    void deliver() {
+        Delivery delivery = newDelivery();
+        delivery.prepare("CJ대한통운", "658219384910");
+        delivery.ship();
+
+        delivery.deliver();
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.DELIVERED);
+        assertThat(delivery.getDeliveredAt()).isNotNull();
+        assertThat(delivery.getShippedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("이미 배송완료면 다시 완료 처리해도 성공하고 완료 시각이 바뀌지 않는다")
+    void deliverIsIdempotent() {
+        Delivery delivery = newDelivery();
+        delivery.prepare("CJ대한통운", "658219384910");
+        delivery.ship();
+        delivery.deliver();
+        LocalDateTime firstDeliveredAt = delivery.getDeliveredAt();
+
+        delivery.deliver();
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.DELIVERED);
+        assertThat(delivery.getDeliveredAt()).isEqualTo(firstDeliveredAt);
+    }
+
+    @Test
+    @DisplayName("배송요청, 배송준비, 배송취소 상태에서는 완료 처리할 수 없다")
+    void deliverInvalidStatus() {
+        for (DeliveryStatus status : new DeliveryStatus[]{
+                DeliveryStatus.REQUESTED, DeliveryStatus.PREPARING, DeliveryStatus.CANCELED}) {
+            Delivery delivery = newDelivery();
+            ReflectionTestUtils.setField(delivery, "status", status);
+
+            assertThatThrownBy(delivery::deliver)
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("409-DELIVERY_INVALID_STATUS");
+            assertThat(delivery.getStatus()).isEqualTo(status);
+            assertThat(delivery.getDeliveredAt()).isNull();
+        }
     }
 
     @Test

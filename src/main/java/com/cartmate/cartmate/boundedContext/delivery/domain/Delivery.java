@@ -146,4 +146,30 @@ public class Delivery {
         this.trackingNumber = newTrackingNumber;
         this.status = DeliveryStatus.PREPARING;
     }
+
+    // 배송준비를 배송중으로 바꾸고 출발 시각을 기록한다. 이미 배송중이면 아무것도 하지 않아 재요청해도 안전하다.
+    public void ship() {
+        if (this.status == DeliveryStatus.SHIPPING) {
+            return;
+        }
+        if (this.status != DeliveryStatus.PREPARING) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_STATUS);
+        }
+
+        this.status = DeliveryStatus.SHIPPING;
+        this.shippedAt = LocalDateTime.now();
+    }
+
+    // 배송중을 배송완료로 바꾸고 완료 시각을 기록한다. 이미 배송완료면 아무것도 하지 않아 재실행해도 안전하다.
+    public void deliver() {
+        if (this.status == DeliveryStatus.DELIVERED) {
+            return;
+        }
+        if (this.status != DeliveryStatus.SHIPPING) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_STATUS);
+        }
+
+        this.status = DeliveryStatus.DELIVERED;
+        this.deliveredAt = LocalDateTime.now();
+    }
 }
