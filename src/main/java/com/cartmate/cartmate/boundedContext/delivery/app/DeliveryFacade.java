@@ -21,6 +21,7 @@ public class DeliveryFacade {
     private final DeliveryShipUseCase deliveryShipUseCase;
     private final DeliveryDeliverUseCase deliveryDeliverUseCase;
     private final DeliveryConfirmUseCase deliveryConfirmUseCase;
+    private final DeliveryAutoConfirmUseCase deliveryAutoConfirmUseCase;
 
     @Transactional
     public void createDelivery(DeliveryCreateCommand createCommand) {
@@ -40,6 +41,11 @@ public class DeliveryFacade {
     @Transactional
     public DeliveryResponse confirmDelivery(Long deliveryId, Long memberId) {
         return deliveryConfirmUseCase.confirm(deliveryId, memberId);
+    }
+
+    @Transactional
+    public void autoConfirmDelivery(Long deliveryId) {
+        deliveryAutoConfirmUseCase.confirm(deliveryId);
     }
 
     @Transactional
