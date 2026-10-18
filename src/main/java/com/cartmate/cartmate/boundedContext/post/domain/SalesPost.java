@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
+import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProduct;
+import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
@@ -9,6 +11,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "POST_SALES_POST")
@@ -30,6 +35,9 @@ public class SalesPost extends BaseIdAndTime {
     @Column(nullable = false, columnDefinition = "BIGINT")
     private Long viewCount;
 
+    @OneToMany(mappedBy = "salesPost", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    private List<SalesPostProduct> productList = new ArrayList<>();
+
     public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount) {
         this.sellerId = sellerId;
         this.title = title;
@@ -40,6 +48,24 @@ public class SalesPost extends BaseIdAndTime {
 
     public SalesPostRollbackRequest toRollbackDto() {
         return new SalesPostRollbackRequest(this.getId());
+    }
+
+    public SelectSalesPostResponse toSelectResultDto() {
+        List<SelectSalesPostProduct> resultList = productList
+                .stream()
+                .map(SalesPostProduct::toSelectProductDto)
+                .toList();
+        return new SelectSalesPostResponse(
+                getId(),
+                sellerId,
+                title,
+                content,
+                viewCount,
+                status,
+                resultList,
+                getCreateDate(),
+                getModifyDate()
+        );
     }
 
 

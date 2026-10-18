@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
 
+import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProductImage;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.*;
@@ -22,7 +23,7 @@ public class SalesPostProductImage extends BaseManualIdAndTime {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
-    private SalesPostProduct product;
+    private SalesPostProduct salesPostProduct;
 
     @Column(nullable = false)
     private String s3Key;
@@ -31,12 +32,22 @@ public class SalesPostProductImage extends BaseManualIdAndTime {
     private int imageSeq;
 
 
-    public SalesPostProductImage(Long id, Long sellerId, SalesPostProduct product, String s3Key,
+    public SalesPostProductImage(Long id, Long sellerId, SalesPostProduct salesPostProduct, String s3Key,
                                  int imageSeq, LocalDateTime createDate, LocalDateTime modifyDate) {
         super(id, createDate, modifyDate);
         this.sellerId = sellerId;
-        this.product = product;
+        this.salesPostProduct = salesPostProduct;
         this.s3Key = s3Key;
         this.imageSeq = imageSeq;
+    }
+
+    public SelectSalesPostProductImage toSelectProductImageDto() {
+        return new SelectSalesPostProductImage(
+                getId(),
+                s3Key,
+                imageSeq,
+                getCreateDate(),
+                getModifyDate()
+        );
     }
 }
