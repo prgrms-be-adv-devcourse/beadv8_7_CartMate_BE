@@ -37,6 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -186,6 +187,44 @@ class ClaimControllerTest {
         mvc.perform(get("/api/claims/seller"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.resultCode").value("403-DELIVERY_SELLER_ONLY"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/claims/{claimId}/approve는 본문 없이 수락 처리하고 RsData로 응답한다")
+    void approveClaim() throws Exception {
+        SellerClaimResponse response = new SellerClaimResponse(
+                7L, 5L, 100L, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다",
+                ClaimStatus.APPROVED, null,
+                List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
+        when(deliveryFacade.approveClaim(7L, 1L)).thenReturn(response);
+
+        mvc.perform(patch("/api/claims/7/approve"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.claimId").value(7))
+                .andExpect(jsonPath("$.data.status").value("APPROVED"))
+                .andExpect(jsonPath("$.data.orderId").value(100));
+    }
+
+    @Test
+    @DisplayName("수락에서 권한 없음 403, 상태 불일치 409, 없는 클레임 404로 변환된다")
+    void approveClaimErrors() throws Exception {
+        when(deliveryFacade.approveClaim(6L, 1L))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_ACCESS_DENIED));
+        when(deliveryFacade.approveClaim(7L, 1L))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_INVALID_STATUS));
+        when(deliveryFacade.approveClaim(8L, 1L))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_NOT_FOUND));
+
+        mvc.perform(patch("/api/claims/6/approve"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.resultCode").value("403-DELIVERY_ACCESS_DENIED"));
+        mvc.perform(patch("/api/claims/7/approve"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.resultCode").value("409-DELIVERY_CLAIM_INVALID_STATUS"));
+        mvc.perform(patch("/api/claims/8/approve"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-DELIVERY_CLAIM_NOT_FOUND"));
     }
 
     @Test

@@ -15,6 +15,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,6 +54,16 @@ public class ClaimController {
     ) {
         return new RsData<>("200-1", "판매자 교환·환불 목록 조회 성공했습니다.",
                 deliveryFacade.getSellerClaims(user.memberId(), status, claimType, pageable));
+    }
+
+    // 판매자가 접수된 교환·환불을 수락한다.
+    @PatchMapping("/{claimId}/approve")
+    public RsData<SellerClaimResponse> approveClaim(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long claimId
+    ) {
+        return new RsData<>("200-1", "교환·환불이 수락되었습니다.",
+                deliveryFacade.approveClaim(claimId, user.memberId()));
     }
 
     // 수령인(구매자) 본인이 배송완료된 배송에서 상품을 골라 교환·환불을 접수한다.
