@@ -5,13 +5,18 @@ import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryClaimCreate
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryClaimResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryDetailResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryResponse;
+import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerClaimResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerDeliveryResponse;
+import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimStatus;
+import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -65,6 +70,13 @@ public class DeliveryFacade {
     @Transactional(readOnly = true)
     public Page<DeliveryClaimResponse> getMyClaims(Long memberId, Pageable pageable) {
         return deliveryClaimQueryUseCase.getMyClaims(memberId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SellerClaimResponse> getSellerClaims(
+            Long memberId, List<ClaimStatus> statuses, ClaimType claimType, Pageable pageable
+    ) {
+        return deliveryClaimQueryUseCase.getSellerClaims(memberId, statuses, claimType, pageable);
     }
 
     @Transactional(readOnly = true)
