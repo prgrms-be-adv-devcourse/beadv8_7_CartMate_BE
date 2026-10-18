@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 public class DeliveryClaim {
 
+    public static final int DETAIL_MAX_LENGTH = 1000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -36,7 +38,7 @@ public class DeliveryClaim {
     @Column(name = "reason", nullable = false)
     private ClaimReason reason;
 
-    @Column(name = "detail", length = 1000)
+    @Column(name = "detail", length = DETAIL_MAX_LENGTH)
     private String detail;      //상세 사유
 
     @Enumerated(EnumType.STRING)
