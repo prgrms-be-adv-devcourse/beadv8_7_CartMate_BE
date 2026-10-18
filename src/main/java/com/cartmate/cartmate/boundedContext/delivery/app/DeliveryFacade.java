@@ -1,12 +1,11 @@
 package com.cartmate.cartmate.boundedContext.delivery.app;
 
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryCreateCommand;
+import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryClaimCreateCommand;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryClaimResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryDetailResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerDeliveryResponse;
-import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimReason;
-import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -48,10 +47,8 @@ public class DeliveryFacade {
     }
 
     @Transactional
-    public DeliveryClaimResponse createClaim(
-            Long deliveryId, Long memberId, ClaimType claimType, ClaimReason reason, String detail
-    ) {
-        return deliveryClaimCreateUseCase.create(deliveryId, memberId, claimType, reason, detail);
+    public DeliveryClaimResponse createClaim(DeliveryClaimCreateCommand command) {
+        return deliveryClaimCreateUseCase.create(command);
     }
 
     @Transactional

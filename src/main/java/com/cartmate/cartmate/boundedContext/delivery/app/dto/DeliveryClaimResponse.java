@@ -4,8 +4,10 @@ import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimReason;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryClaim;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryClaimItem;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record DeliveryClaimResponse(
         Long claimId,
@@ -14,9 +16,10 @@ public record DeliveryClaimResponse(
         ClaimReason reason,
         String detail,
         ClaimStatus status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        List<Item> items
 ) {
-    public static DeliveryClaimResponse from(DeliveryClaim claim) {
+    public static DeliveryClaimResponse from(DeliveryClaim claim, List<DeliveryClaimItem> claimItems) {
         return new DeliveryClaimResponse(
                 claim.getId(),
                 claim.getDelivery().getId(),
@@ -24,7 +27,24 @@ public record DeliveryClaimResponse(
                 claim.getReason(),
                 claim.getDetail(),
                 claim.getStatus(),
-                claim.getCreatedAt()
+                claim.getCreatedAt(),
+                claimItems.stream().map(Item::from).toList()
         );
+    }
+
+    public record Item(
+            Long deliveryItemId,
+            Long orderItemId,
+            String productName,
+            Long quantity
+    ) {
+        public static Item from(DeliveryClaimItem claimItem) {
+            return new Item(
+                    claimItem.getDeliveryItem().getId(),
+                    claimItem.getDeliveryItem().getOrderItemId(),
+                    claimItem.getDeliveryItem().getProductName(),
+                    claimItem.getQuantity()
+            );
+        }
     }
 }
