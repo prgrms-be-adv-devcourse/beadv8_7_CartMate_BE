@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
-import com.cartmate.cartmate.boundedContext.post.dto.create.CreateSalesPostRequest;
+import com.cartmate.cartmate.boundedContext.post.dto.CreateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;

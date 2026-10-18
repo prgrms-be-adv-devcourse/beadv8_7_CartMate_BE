@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.boundedContext.product.dto.upload;
+package com.cartmate.cartmate.boundedContext.product.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

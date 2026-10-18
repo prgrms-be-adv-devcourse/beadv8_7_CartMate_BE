@@ -6,24 +6,27 @@ import com.cartmate.cartmate.boundedContext.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductImage;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
+import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
+import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
+import com.cartmate.cartmate.shared.product.dto.CreateProduct;
+import com.cartmate.cartmate.shared.product.dto.CreateProductImage;
+import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
@@ -43,26 +46,33 @@ class ProductRegisterTest {
     ProductImageRepository productImageRepository;
     @Autowired
     FakeImageStorage storage;
-
     @MockitoSpyBean
-    ProductImageSaveUseCase productImageSaveUseCase;
+    ProductCreateUseCase productCreateUseCase;
+    @Autowired
+    ApplicationEventPublisher eventPublisher;
 
     @BeforeEach
     void setUp() {
         productImageRepository.deleteAll();
         productRepository.deleteAll();
         storage.reset();
-        reset(productImageSaveUseCase);
+        reset(productCreateUseCase);
     }
 
     @Test
     @DisplayName("성공: 상품과 사진이 각자 맞는 상품 id로 저장된다")
     void registerSuccess() {
         CreateProductRequest request = request(
-                product("아이폰", TestImageFiles.jpeg(), TestImageFiles.png()),
-                product("충전기", TestImageFiles.jpeg()));
+                getDummyProduct("아이폰", 2),
+                getDummyProduct("충전기", 1)
+        );
+        List<MultipartFile> imageList = getDummyImages(
+                TestImageFiles.jpeg(),
+                TestImageFiles.png(),
+                TestImageFiles.png()
+        );
 
-        productFacade.registerProduct(request);
+        productFacade.registerProduct(request, imageList);
 
         List<Product> products = productRepository.findAll();
         List<ProductImage> images = productImageRepository.findAll();
@@ -74,10 +84,10 @@ class ProductRegisterTest {
         Long iphoneId = idOf(products, "아이폰");
         Long chargerId = idOf(products, "충전기");
 
-        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), iphoneId))
+        assertThat(images).filteredOn(i -> Objects.equals(i.getProduct().getId(), iphoneId))
                 .extracting(ProductImage::getImageSeq)
                 .containsExactlyInAnyOrder(0, 1);
-        assertThat(images).filteredOn(i -> Objects.equals(i.getProductId(), chargerId))
+        assertThat(images).filteredOn(i -> Objects.equals(i.getProduct().getId(), chargerId))
                 .extracting(ProductImage::getImageSeq)
                 .containsExactly(0);
 
@@ -89,10 +99,15 @@ class ProductRegisterTest {
     @DisplayName("검증 실패: 가짜 이미지가 섞이면 아무것도 저장되지 않는다")
     void validationFailure() {
         CreateProductRequest request = request(
-                product("아이폰", TestImageFiles.jpeg()),
-                product("충전기", TestImageFiles.fake()));
+                getDummyProduct("아이폰", 1),
+                getDummyProduct("충전기", 1)
+        );
+        List<MultipartFile> imageList = getDummyImages(
+                TestImageFiles.jpeg(),
+                TestImageFiles.fake()
+        );
 
-        assertThatThrownBy(() -> productFacade.registerProduct(request))
+        assertThatThrownBy(() -> productFacade.registerProduct(request, imageList))
                 .isInstanceOf(ServiceException.class);
 
         assertThat(productRepository.count()).isZero();
@@ -105,10 +120,16 @@ class ProductRegisterTest {
     void uploadFailure() {
         storage.failOnNthSave(2);
         CreateProductRequest request = request(
-                product("아이폰", TestImageFiles.jpeg(), TestImageFiles.png()),
-                product("충전기", TestImageFiles.jpeg()));
+                getDummyProduct("아이폰", 2),
+                getDummyProduct("충전기", 1)
+        );
+        List<MultipartFile> imageList = getDummyImages(
+                TestImageFiles.jpeg(),
+                TestImageFiles.png(),
+                TestImageFiles.png()
+        );
 
-        assertThatThrownBy(() -> productFacade.registerProduct(request))
+        assertThatThrownBy(() -> productFacade.registerProduct(request, imageList))
                 .isInstanceOf(ServiceException.class);
 
         assertThat(storage.savedCount()).isZero();
@@ -117,35 +138,69 @@ class ProductRegisterTest {
     }
 
     @Test
-    @DisplayName("DB 저장 실패: 사진 저장이 실패하면 상품까지 함께 롤백된다")
+    @DisplayName("DB 저장 실패: 상품 저장이 실패하면 DB와 파일 모두 비어 있다")
     void dbSaveFailure() {
         doThrow(new RuntimeException("테스트용 DB 실패"))
-                .when(productImageSaveUseCase).saveProductImage(any(), any());
+                .when(productCreateUseCase).saveProduct(any(), any());
 
         CreateProductRequest request = request(
-                product("아이폰", TestImageFiles.jpeg()));
+                getDummyProduct("아이폰", 1)
+        );
+        List<MultipartFile> imageList = getDummyImages(
+                TestImageFiles.jpeg()
+        );
 
-        assertThatThrownBy(() -> productFacade.registerProduct(request))
+        assertThatThrownBy(() -> productFacade.registerProduct(request, imageList))
                 .isInstanceOf(RuntimeException.class);
 
-        assertThat(productRepository.count()).isZero();        // 상품도 롤백됨
+        assertThat(productRepository.count()).isZero();
         assertThat(productImageRepository.count()).isZero();
-        // 파일 정리(deleteQuietly) 구현 후 아래 검증 추가
-        // assertThat(storage.savedCount()).isZero();
+        assertThat(storage.savedCount()).isZero();
     }
 
-    // ===== 테스트 데이터 =====
+    @Test
+    @DisplayName("글 삭제 이벤트를 받으면 상품, 이미지, 파일이 모두 지워진다")
+    void cleanupWhenPostDeleted() {
+        productFacade.registerProduct(
+                request(getDummyProduct("아이폰", 2), getDummyProduct("충전기", 1)),
+                getDummyImages(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.png())
+        );
+        assertThat(productRepository.count()).isEqualTo(2);
+        assertThat(storage.savedCount()).isEqualTo(3);
+
+        eventPublisher.publishEvent(new PostDeletedEvent(new SalesPostRollbackRequest(POST_ID)));
+
+        assertSoftly(softly -> {
+            softly.assertThat(productRepository.count()).as("상품 수").isZero();
+            softly.assertThat(productImageRepository.count()).as("이미지 row 수").isZero();
+            softly.assertThat(storage.savedCount()).as("저장된 파일 수").isZero();
+        });
+    }
+
+    @Test
+    @DisplayName("지울 상품이 없어도 에러 없이 끝난다")
+    void cleanupWhenNothingToDelete() {
+        assertThatCode(() ->
+                eventPublisher.publishEvent(new PostDeletedEvent(new SalesPostRollbackRequest(POST_ID))))
+                .doesNotThrowAnyException();
+
+        assertThat(productRepository.count()).isZero();
+    }
 
     private CreateProductRequest request(CreateProduct... products) {
         return new CreateProductRequest(POST_ID, List.of(products));
     }
 
-    private CreateProduct product(String name, MockMultipartFile... files) {
+    private CreateProduct getDummyProduct(String name, int imageCount) {
         List<CreateProductImage> images = new ArrayList<>();
-        for (int seq = 0; seq < files.length; seq++) {
-            images.add(new CreateProductImage(0L, SELLER_ID, 0L, null, seq, files[seq]));
+        for (int seq = 0; seq < imageCount; seq++) {
+            images.add(new CreateProductImage(null, SELLER_ID, null, null, seq, null));
         }
-        return new CreateProduct(0L, 0L, POST_ID, 1L, name, "설명", 10000L, images);
+        return new CreateProduct(null, SELLER_ID, POST_ID, 1L, name, "설명", 10000L, images);
+    }
+
+    private List<MultipartFile> getDummyImages(MultipartFile... files) {
+        return List.of(files);
     }
 
     private Long idOf(List<Product> products, String name) {
