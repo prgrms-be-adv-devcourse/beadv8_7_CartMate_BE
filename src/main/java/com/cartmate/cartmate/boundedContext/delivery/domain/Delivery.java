@@ -62,7 +62,7 @@ public class Delivery {
     @Column(name = "idempotency_key", nullable = false, unique = true)
     private String idempotencyKey;
 
-    @Column(name = "request_hash", length = 64, updatable = false)
+    @Column(name = "request_hash", nullable = false, length = 64, updatable = false)
     private String requestHash;     //요청 내용 SHA-256 해시 (멱등키 재요청 비교용)
 
     @Column(name = "shipped_at")

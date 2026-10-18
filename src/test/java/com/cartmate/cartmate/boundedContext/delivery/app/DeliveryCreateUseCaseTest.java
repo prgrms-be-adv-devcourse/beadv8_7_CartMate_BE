@@ -101,18 +101,4 @@ class DeliveryCreateUseCaseTest {
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining("409-DELIVERY_IDEMPOTENCY_CONFLICT");
     }
-
-    @Test
-    @DisplayName("해시가 없는 기존 배송은 기본 정보로 비교한다")
-    void legacyWithoutHash() {
-        DeliveryCreateCommand c = command(10L, items(2));
-        when(deliveryRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.of(saved(c, null)));
-
-        useCase.create(c);
-        verify(deliveryRepository, never()).save(any());
-
-        assertThatThrownBy(() -> useCase.create(command(11L, items(2))))
-                .isInstanceOf(ServiceException.class)
-                .hasMessageContaining("409-DELIVERY_IDEMPOTENCY_CONFLICT");
-    }
 }

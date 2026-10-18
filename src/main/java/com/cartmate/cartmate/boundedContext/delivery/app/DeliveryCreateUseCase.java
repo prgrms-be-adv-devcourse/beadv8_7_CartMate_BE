@@ -32,7 +32,8 @@ public class DeliveryCreateUseCase {
         Optional<Delivery> existing = deliveryRepository.findByIdempotencyKey(createCommand.idempotencyKey());
 
         if (existing.isPresent()) {
-            if (!isSameRequest(existing.get(), createCommand, requestHash)) {
+            // 같은 멱등키의 기존 배송과 요청 내용(해시)이 다르면 충돌이다.
+            if (!existing.get().getRequestHash().equals(requestHash)) {
                 throw new ServiceException(DeliveryErrorCode.DELIVERY_IDEMPOTENCY_CONFLICT);
             }
             return;
@@ -74,24 +75,6 @@ public class DeliveryCreateUseCase {
             }
             deliveryItemOptionRepository.saveAll(options);
         }
-    }
-
-    // 같은 멱등키로 들어온 요청이 기존 배송과 같은 내용인지 확인한다.
-    private boolean isSameRequest(Delivery delivery, DeliveryCreateCommand createCommand, String requestHash) {
-        if (delivery.getRequestHash() != null) {
-            return delivery.getRequestHash().equals(requestHash);
-        }
-
-        // 해시 도입 전에 저장된 배송은 해시가 없어 배송 기본 정보만 비교한다.
-        return delivery.getMemberId().equals(createCommand.memberId())
-                && delivery.getSellerId().equals(createCommand.sellerId())
-                && delivery.getOrderId().equals(createCommand.orderId())
-                && delivery.getPurchaseType() == createCommand.purchaseType()
-                && delivery.getReceiverName().equals(createCommand.receiverName())
-                && delivery.getReceiverPhone().equals(createCommand.receiverPhone())
-                && delivery.getZipCode().equals(createCommand.zipCode())
-                && delivery.getAddress().equals(createCommand.address())
-                && delivery.getAddressDetail().equals(createCommand.addressDetail());
     }
 
     private void validatedCreate(DeliveryCreateCommand createCommand) {
