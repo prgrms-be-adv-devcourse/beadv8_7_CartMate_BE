@@ -5,19 +5,20 @@ import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionalEventListener;
-
-import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
-import static org.springframework.transaction.event.TransactionPhase.AFTER_COMMIT;
 
 @Component
 @RequiredArgsConstructor
 public class ProductEventListener {
     private final ProductFacade productFacade;
 
+    // 논리 삭제
+//    @EventListener
+//    public void handle(PostLogicalDeletedEvent event) {
+//        productFacade.deleteProductByServer(event.getRequest());
+//    }
+
     @EventListener
     public void handle(PostDeletedEvent event) {
-        productFacade.deleteProductByEvent(event.getSalesPostRollbackRequest());
+        productFacade.deleteProductByServer(event.getRequest());
     }
 }

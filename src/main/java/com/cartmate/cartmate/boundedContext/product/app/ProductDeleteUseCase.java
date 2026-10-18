@@ -23,11 +23,12 @@ public class ProductDeleteUseCase {
     }
 
     @Transactional
-    public void deleteProductByEvent(Long postId) {
+    public void deleteProductByServer(Long postId) {
         List<Product> productList = productRepository.findBySalesPostId(postId);
         if (productList.isEmpty()) {
             return;
         }
         productRepository.deleteAll(productList);
     }
+
 }

@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.product.domain;
 
 
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
+import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,5 +34,16 @@ public class ProductImage extends BaseIdAndTime {
         this.product = product;
         this.s3Key = s3Key;
         this.imageSeq = imageSeq;
+    }
+
+    public SyncProductImage toSyncProductImage() {
+        return new SyncProductImage(
+                getId(),
+                getSellerId(),
+                getS3Key(),
+                getImageSeq(),
+                getCreateDate(),
+                getModifyDate()
+        );
     }
 }

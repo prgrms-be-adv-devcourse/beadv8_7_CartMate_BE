@@ -23,7 +23,7 @@ public class ProductImageFileDeleteUseCase {
         uploadedImages.forEach(image -> imageStorage.delete(image.getS3Key()));
     }
 
-    public void deleteImageByEvent(Long postId) {
+    public void deleteImageByServer(Long postId) {
         List<Long> productIds = productRepository.findBySalesPostId(postId)
                 .stream()
                 .map(Product::getId)

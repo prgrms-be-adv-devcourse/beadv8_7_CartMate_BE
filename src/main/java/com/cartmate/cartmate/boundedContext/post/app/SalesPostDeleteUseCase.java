@@ -36,4 +36,15 @@ public class SalesPostDeleteUseCase {
         salesPostRepository.findById(postId)
                 .ifPresent(salesPostRepository::delete);
     }
+
+    public void deleteSalesPostByServer(Long postId) {
+        salesPostRepository.findById(postId)
+                .ifPresent(salesPostRepository::delete);
+
+        GlobalConfig.getEventPublisher().publish(
+                new PostDeletedEvent(
+                        new SalesPostRollbackRequest(postId)
+                )
+        );
+    }
 }

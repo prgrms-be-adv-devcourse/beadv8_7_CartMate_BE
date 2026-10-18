@@ -7,5 +7,5 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class PostDeletedEvent {
-    private final SalesPostRollbackRequest salesPostRollbackRequest;
+    private final SalesPostRollbackRequest request;
 }

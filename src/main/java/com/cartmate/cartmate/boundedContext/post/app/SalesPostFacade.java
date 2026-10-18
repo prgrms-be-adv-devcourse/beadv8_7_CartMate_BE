@@ -10,7 +10,9 @@ import com.cartmate.cartmate.shared.member.dto.SellerDto;
 import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
 import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
-import com.cartmate.cartmate.shared.product.dto.ProductRollbackRequest;
+import com.cartmate.cartmate.shared.product.dto.RollbackProductRequest;
+import com.cartmate.cartmate.shared.product.dto.SyncProduct;
+import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SalesPostFacade {
     private final SalesPostSyncSellerUseCase salesPostSyncSellerUseCase;
+    private final SalesPostSyncProductUseCase salesPostSyncProductUseCase;
     private final SalesPostCreateUseCase salesPostCreateUseCase;
     private final SalesPostUpdateUseCase salesPostUpdateUseCase;
     private final SalesPostDeleteUseCase salesPostDeleteUseCase;
@@ -44,11 +47,6 @@ public class SalesPostFacade {
             salesPostApiClient.registerProducts(productRequest, images);
         } catch(ServiceException e) {
             salesPostDeleteUseCase.deleteSalesPostByEvent(productRequest.getPostId());
-            GlobalConfig.getEventPublisher().publish(
-                    new PostDeletedEvent(
-                            new SalesPostRollbackRequest(productRequest.getPostId())
-                    )
-            );
             throw e;
         }
     }
@@ -56,6 +54,17 @@ public class SalesPostFacade {
     @Transactional
     public void deleteSalesPostByUser(Long postId) {
         salesPostDeleteUseCase.deleteSalesPostByUser(postId);
+    }
+
+    // 스케줄러에 의한 삭제
+    @Transactional
+    public void deleteProductByServer(RollbackProductRequest request) {
+        salesPostDeleteUseCase.deleteSalesPostByServer(request.getPostId());
+    }
+
+    @Transactional
+    public void syncProduct(SyncProductRequest request) {
+        salesPostSyncProductUseCase.syncProduct(request);
     }
 
 }

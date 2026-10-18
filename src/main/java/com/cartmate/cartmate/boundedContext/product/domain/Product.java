@@ -2,7 +2,10 @@ package com.cartmate.cartmate.boundedContext.product.domain;
 
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import com.cartmate.cartmate.shared.product.dto.ProductRollbackRequest;
+import com.cartmate.cartmate.shared.product.dto.RollbackProductRequest;
+import com.cartmate.cartmate.shared.product.dto.SyncProduct;
+import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
+import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -50,8 +53,28 @@ public class Product extends BaseIdAndTime {
         this.status = status;
     }
 
-    public ProductRollbackRequest toRollbackDto() {
-        return new ProductRollbackRequest(this.getId());
+    public RollbackProductRequest toRollbackDto() {
+        return new RollbackProductRequest(this.getId());
+    }
+
+    public SyncProduct toSyncProduct() {
+        List<SyncProductImage> imageList = this.getProductImageList()
+                .stream()
+                .map(ProductImage::toSyncProductImage)
+                .toList();
+
+        return new SyncProduct(
+                this.getId(),
+                this.getSellerId(),
+                this.getSalesPostId(),
+                this.getCategoryId(),
+                this.getName(),
+                this.getDescription(),
+                this.getBasePrice(),
+                this.getCreateDate(),
+                this.getModifyDate(),
+                imageList
+        );
     }
 
 
