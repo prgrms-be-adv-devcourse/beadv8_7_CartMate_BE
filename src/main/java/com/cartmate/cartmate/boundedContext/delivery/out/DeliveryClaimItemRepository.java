@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface DeliveryClaimItemRepository extends JpaRepository<DeliveryClaimItem, Long> {
 
@@ -16,4 +17,9 @@ public interface DeliveryClaimItemRepository extends JpaRepository<DeliveryClaim
     boolean existsByDeliveryItemIdsAndClaimStatuses(
             @Param("deliveryItemIds") Collection<Long> deliveryItemIds,
             @Param("statuses") Collection<ClaimStatus> statuses);
+
+    // 여러 클레임의 상품을 배송상품과 함께 한 번에 조회한다. 상품마다 배송상품을 따로 조회하는 N+1을 막는다.
+    @Query("select ci from DeliveryClaimItem ci join fetch ci.deliveryItem "
+            + "where ci.claim.id in :claimIds order by ci.id")
+    List<DeliveryClaimItem> findAllWithDeliveryItemByClaimIds(@Param("claimIds") Collection<Long> claimIds);
 }
