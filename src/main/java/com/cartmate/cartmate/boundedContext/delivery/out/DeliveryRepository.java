@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.delivery.out;
 
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +15,7 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     boolean existsByIdempotencyKey(String idempotencyKey);
 
     Page<Delivery> findByMemberIdOrderByCreatedAtDescIdDesc(Long memberId, Pageable pageable);
+
+    Page<Delivery> findBySellerIdAndStatusOrderByCreatedAtDescIdDesc(
+            Long sellerId, DeliveryStatus status, Pageable pageable);
 }

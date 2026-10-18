@@ -2,9 +2,11 @@ package com.cartmate.cartmate.boundedContext.delivery.app;
 
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryDetailResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryResponse;
+import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerDeliveryResponse;
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItemOption;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemOptionRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemRepository;
@@ -135,6 +137,60 @@ class DeliveryQueryUseCaseTest {
         assertThatThrownBy(() -> useCase.getDeliveryDetails(99L, BUYER))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining("404-DELIVERY_NOT_FOUND");
+    }
+
+    @Test
+    @DisplayName("판매자 목록은 상태별로 조회하고 아이템과 옵션을 배송별로 묶어 응답한다")
+    void getSellerDeliveries() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(deliveryRepository.findBySellerIdAndStatusOrderByCreatedAtDescIdDesc(
+                SELLER_ID, DeliveryStatus.REQUESTED, pageable))
+                .thenReturn(new PageImpl<>(List.of(delivery), pageable, 1));
+        DeliveryItem shirt = DeliveryItem.create(delivery, 1000L, "티셔츠", 2L);
+        ReflectionTestUtils.setField(shirt, "id", 50L);
+        when(itemRepository.findByDeliveryIdIn(List.of(5L))).thenReturn(List.of(shirt));
+        when(optionRepository.findByDeliveryItemIdInOrderByDeliveryItemIdAscSortOrderAsc(List.of(50L)))
+                .thenReturn(List.of(DeliveryItemOption.create(shirt, "사이즈", "L", 0)));
+
+        Page<SellerDeliveryResponse> result =
+                useCase.getSellerDeliveries(SELLER_MEMBER, DeliveryStatus.REQUESTED, pageable);
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        SellerDeliveryResponse row = result.getContent().get(0);
+        assertThat(row.deliveryId()).isEqualTo(5L);
+        assertThat(row.orderId()).isEqualTo(100L);
+        assertThat(row.receiverName()).isEqualTo("홍길동");
+        assertThat(row.address()).isEqualTo("서울");
+        assertThat(row.items()).hasSize(1);
+        assertThat(row.items().get(0).productName()).isEqualTo("티셔츠");
+        assertThat(row.items().get(0).options())
+                .extracting(DeliveryDetailResponse.Option::optionName, DeliveryDetailResponse.Option::optionValue)
+                .containsExactly(tuple("사이즈", "L"));
+    }
+
+    @Test
+    @DisplayName("판매자 목록이 비어 있으면 아이템을 조회하지 않고 총 건수를 유지한다")
+    void getSellerDeliveriesEmpty() {
+        Pageable pageable = PageRequest.of(3, 20);
+        when(deliveryRepository.findBySellerIdAndStatusOrderByCreatedAtDescIdDesc(
+                SELLER_ID, DeliveryStatus.SHIPPING, pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 45));
+
+        Page<SellerDeliveryResponse> result =
+                useCase.getSellerDeliveries(SELLER_MEMBER, DeliveryStatus.SHIPPING, pageable);
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(45);
+        verifyNoInteractions(optionRepository);
+    }
+
+    @Test
+    @DisplayName("판매자가 아니면 판매자 목록 조회는 403 오류다")
+    void getSellerDeliveriesNotSeller() {
+        assertThatThrownBy(() -> useCase.getSellerDeliveries(
+                STRANGER, DeliveryStatus.REQUESTED, PageRequest.of(0, 20)))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("403-DELIVERY_SELLER_ONLY");
     }
 
     @Test

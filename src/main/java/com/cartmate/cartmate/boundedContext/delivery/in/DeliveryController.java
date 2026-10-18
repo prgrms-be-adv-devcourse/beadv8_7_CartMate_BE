@@ -3,6 +3,8 @@ package com.cartmate.cartmate.boundedContext.delivery.in;
 import com.cartmate.cartmate.boundedContext.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryDetailResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryResponse;
+import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerDeliveryResponse;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -35,6 +38,17 @@ public class DeliveryController {
         Long memberId = user.memberId();
 
         return new RsData<>("200-1", "배송 목록 조회 성공했습니다.", deliveryFacade.getMyDeliveries(memberId, pageable));
+    }
+
+    // 판매자 배송 관리 목록. 상태 탭(배송요청/준비/중/완료)별로 조회하며 기본은 배송요청이다.
+    @GetMapping("/seller")
+    public RsData<Page<SellerDeliveryResponse>> getSellerDeliveries(
+            @AuthenticationPrincipal SecurityUser user,
+            @RequestParam(defaultValue = "REQUESTED") DeliveryStatus status,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return new RsData<>("200-1", "판매자 배송 목록 조회 성공했습니다.",
+                deliveryFacade.getSellerDeliveries(user.memberId(), status, pageable));
     }
 
     @GetMapping("/{deliveryId}")

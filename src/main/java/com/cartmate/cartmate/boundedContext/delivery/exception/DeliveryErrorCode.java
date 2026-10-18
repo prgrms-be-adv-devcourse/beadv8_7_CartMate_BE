@@ -32,6 +32,7 @@ public enum DeliveryErrorCode implements ErrorCode {
     // 조회·접근
     DELIVERY_NOT_FOUND("DELIVERY_NOT_FOUND", "배송을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     DELIVERY_ACCESS_DENIED("DELIVERY_ACCESS_DENIED", "배송 조회 권한이 없습니다.", HttpStatus.FORBIDDEN),
+    DELIVERY_SELLER_ONLY("DELIVERY_SELLER_ONLY", "판매자만 조회할 수 있습니다.", HttpStatus.FORBIDDEN),
 
     // 기존 요청과의 충돌
     DELIVERY_IDEMPOTENCY_CONFLICT("DELIVERY_IDEMPOTENCY_CONFLICT", "동일한 멱등키에 다른 배송 요청이 전달되었습니다.", HttpStatus.CONFLICT);

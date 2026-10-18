@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.delivery.in;
 import com.cartmate.cartmate.boundedContext.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryDetailResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryResponse;
+import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerDeliveryResponse;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import com.cartmate.cartmate.boundedContext.delivery.exception.DeliveryErrorCode;
@@ -69,6 +70,41 @@ class DeliveryControllerTest {
                 .andExpect(jsonPath("$.data.content[0].deliveryId").value(5))
                 .andExpect(jsonPath("$.data.content[0].receiverName").value("홍길동"));
         verify(deliveryFacade).getMyDeliveries(eq(1L), any());
+    }
+
+    @Test
+    @DisplayName("판매자 목록은 status를 생략하면 배송요청 상태로 조회하고 status로 탭을 바꿀 수 있다")
+    void sellerDeliveries() throws Exception {
+        SellerDeliveryResponse row = new SellerDeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+                DeliveryStatus.REQUESTED, null, "홍길동", "010-0000-0000", "12345", "서울", "101호", null, null,
+                List.of(new DeliveryDetailResponse.Item(1000L, "티셔츠", 2L,
+                        List.of(new DeliveryDetailResponse.Option("사이즈", "L")))));
+        when(deliveryFacade.getSellerDeliveries(eq(1L), eq(DeliveryStatus.REQUESTED), any()))
+                .thenReturn(new PageImpl<>(List.of(row), PageRequest.of(0, 20), 1));
+        when(deliveryFacade.getSellerDeliveries(eq(1L), eq(DeliveryStatus.SHIPPING), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        mvc.perform(get("/api/deliveries/seller"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.content[0].orderId").value(100))
+                .andExpect(jsonPath("$.data.content[0].receiverPhone").value("010-0000-0000"))
+                .andExpect(jsonPath("$.data.content[0].items[0].productName").value("티셔츠"))
+                .andExpect(jsonPath("$.data.content[0].items[0].options[0].optionValue").value("L"));
+        mvc.perform(get("/api/deliveries/seller").param("status", "SHIPPING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("판매자가 아니면 판매자 목록은 403으로 변환된다")
+    void sellerDeliveriesForbidden() throws Exception {
+        when(deliveryFacade.getSellerDeliveries(eq(1L), any(), any()))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_SELLER_ONLY));
+
+        mvc.perform(get("/api/deliveries/seller"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.resultCode").value("403-DELIVERY_SELLER_ONLY"));
     }
 
     @Test
