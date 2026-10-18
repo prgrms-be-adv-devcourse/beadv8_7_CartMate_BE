@@ -3,6 +3,8 @@ package com.cartmate.cartmate.boundedContext.delivery.app;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryCreateCommand;
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItemOption;
+import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemOptionRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
 import com.cartmate.cartmate.boundedContext.delivery.exception.DeliveryErrorCode;
@@ -10,6 +12,8 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -18,6 +22,7 @@ public class DeliveryCreateUseCase {
 
     private final DeliveryRepository deliveryRepository;
     private final DeliveryItemRepository deliveryItemRepository;
+    private final DeliveryItemOptionRepository deliveryItemOptionRepository;
 
     public void create(DeliveryCreateCommand createCommand) {
         validatedCreate(createCommand);
@@ -59,10 +64,22 @@ public class DeliveryCreateUseCase {
         for (DeliveryCreateCommand.Item item : createCommand.deliveryItem()) {
             DeliveryItem deliveryItem = DeliveryItem.create(
                     delivery,
-                    item.orderItemId(), item.quantity()
+                    item.orderItemId(), item.productName(), item.quantity()
             );
 
             deliveryItemRepository.save(deliveryItem);
+
+            if (item.options() == null) {
+                continue;
+            }
+            List<DeliveryItemOption> options = new ArrayList<>();
+            for (int i = 0; i < item.options().size(); i++) {
+                DeliveryCreateCommand.Option option = item.options().get(i);
+                options.add(DeliveryItemOption.create(
+                        deliveryItem, option.optionName(), option.optionValue(), i
+                ));
+            }
+            deliveryItemOptionRepository.saveAll(options);
         }
     }
 
@@ -111,6 +128,19 @@ public class DeliveryCreateUseCase {
             }
             if (item.quantity() == null || item.quantity() <= 0) {
                 throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_QUANTITY);
+            }
+            if (item.options() != null) {
+                for (DeliveryCreateCommand.Option option : item.options()) {
+                    if (option == null) {
+                        throw new ServiceException(DeliveryErrorCode.DELIVERY_OPTION_CONTAIN_NULL);
+                    }
+                    if (option.optionName() == null || option.optionName().isBlank()) {
+                        throw new ServiceException(DeliveryErrorCode.DELIVERY_OPTION_NAME_REQUIRED);
+                    }
+                    if (option.optionValue() == null || option.optionValue().isBlank()) {
+                        throw new ServiceException(DeliveryErrorCode.DELIVERY_OPTION_VALUE_REQUIRED);
+                    }
+                }
             }
         }
 

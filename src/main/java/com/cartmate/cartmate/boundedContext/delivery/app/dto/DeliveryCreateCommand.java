@@ -19,6 +19,13 @@ public record DeliveryCreateCommand(
 ) {
     public record Item(
             Long orderItemId,
-            Long quantity
+            String productName,
+            Long quantity,
+            List<Option> options
+    ) {}
+
+    public record Option(
+            String optionName,
+            String optionValue
     ) {}
 }
