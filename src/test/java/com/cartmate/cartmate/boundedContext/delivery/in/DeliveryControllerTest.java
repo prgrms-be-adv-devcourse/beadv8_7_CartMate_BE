@@ -16,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -105,6 +107,36 @@ class DeliveryControllerTest {
         mvc.perform(get("/api/deliveries/seller"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.resultCode").value("403-DELIVERY_SELLER_ONLY"));
+    }
+
+    @Test
+    @DisplayName("PATCH ready는 요청 본문의 택배사와 송장번호로 준비 처리하고 RsData로 응답한다")
+    void readyDelivery() throws Exception {
+        DeliveryResponse response = new DeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+                "홍길동", DeliveryStatus.PREPARING, "CJ대한통운", "658219384910", null);
+        when(deliveryFacade.readyDelivery(5L, 1L, "CJ대한통운", "658219384910")).thenReturn(response);
+
+        mvc.perform(patch("/api/deliveries/5/ready")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"carrier\":\"CJ대한통운\",\"trackingNumber\":\"658219384910\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.status").value("PREPARING"))
+                .andExpect(jsonPath("$.data.carrier").value("CJ대한통운"))
+                .andExpect(jsonPath("$.data.trackingNumber").value("658219384910"));
+    }
+
+    @Test
+    @DisplayName("PATCH ready에서 상태가 맞지 않으면 409로 변환된다")
+    void readyDeliveryConflict() throws Exception {
+        when(deliveryFacade.readyDelivery(eq(6L), eq(1L), any(), any()))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_STATUS));
+
+        mvc.perform(patch("/api/deliveries/6/ready")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"carrier\":\"CJ대한통운\",\"trackingNumber\":\"1\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.resultCode").value("409-DELIVERY_INVALID_STATUS"));
     }
 
     @Test
