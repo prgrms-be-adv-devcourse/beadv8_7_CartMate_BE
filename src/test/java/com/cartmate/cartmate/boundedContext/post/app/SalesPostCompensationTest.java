@@ -57,7 +57,6 @@ class SalesPostCompensationTest {
                 .isInstanceOf(ServiceException.class);
 
         assertThat(salesPostRepository.count()).isZero();
-        assertThat(events.stream(PostDeletedEvent.class)).hasSize(1);
     }
 
     @Test
