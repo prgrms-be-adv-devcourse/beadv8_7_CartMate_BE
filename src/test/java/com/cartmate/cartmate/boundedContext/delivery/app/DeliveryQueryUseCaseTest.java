@@ -97,6 +97,9 @@ class DeliveryQueryUseCaseTest {
 
         assertThat(response.items()).hasSize(2);
         DeliveryDetailResponse.Item first = response.items().get(0);
+        assertThat(first.deliveryItemId()).isEqualTo(50L);
+        assertThat(response.items().get(1).deliveryItemId()).isEqualTo(51L);
+        assertThat(first.orderItemId()).isEqualTo(1000L);
         assertThat(first.productName()).isEqualTo("티셔츠");
         assertThat(first.options())
                 .extracting(DeliveryDetailResponse.Option::optionName, DeliveryDetailResponse.Option::optionValue)
@@ -162,6 +165,7 @@ class DeliveryQueryUseCaseTest {
         assertThat(row.receiverName()).isEqualTo("홍길동");
         assertThat(row.address()).isEqualTo("서울");
         assertThat(row.items()).hasSize(1);
+        assertThat(row.items().get(0).deliveryItemId()).isEqualTo(50L);
         assertThat(row.items().get(0).productName()).isEqualTo("티셔츠");
         assertThat(row.items().get(0).options())
                 .extracting(DeliveryDetailResponse.Option::optionName, DeliveryDetailResponse.Option::optionValue)

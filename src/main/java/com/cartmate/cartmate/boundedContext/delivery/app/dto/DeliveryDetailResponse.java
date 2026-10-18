@@ -62,6 +62,7 @@ public record DeliveryDetailResponse(
     }
 
     public record Item(
+            Long deliveryItemId,
             Long orderItemId,
             String productName,
             Long quantity,
@@ -69,6 +70,7 @@ public record DeliveryDetailResponse(
     ) {
         public static Item from(DeliveryItem deliveryItem, List<DeliveryItemOption> options) {
             return new Item(
+                    deliveryItem.getId(),
                     deliveryItem.getOrderItemId(),
                     deliveryItem.getProductName(),
                     deliveryItem.getQuantity(),

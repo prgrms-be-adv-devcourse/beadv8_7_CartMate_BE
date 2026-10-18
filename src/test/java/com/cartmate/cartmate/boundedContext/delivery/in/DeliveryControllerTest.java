@@ -79,7 +79,7 @@ class DeliveryControllerTest {
     void sellerDeliveries() throws Exception {
         SellerDeliveryResponse row = new SellerDeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
                 DeliveryStatus.REQUESTED, null, "홍길동", "010-0000-0000", "12345", "서울", "101호", null, null,
-                List.of(new DeliveryDetailResponse.Item(1000L, "티셔츠", 2L,
+                List.of(new DeliveryDetailResponse.Item(50L, 1000L, "티셔츠", 2L,
                         List.of(new DeliveryDetailResponse.Option("사이즈", "L")))));
         when(deliveryFacade.getSellerDeliveries(eq(1L), eq(DeliveryStatus.REQUESTED), any()))
                 .thenReturn(new PageImpl<>(List.of(row), PageRequest.of(0, 20), 1));
@@ -91,6 +91,7 @@ class DeliveryControllerTest {
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.data.content[0].orderId").value(100))
                 .andExpect(jsonPath("$.data.content[0].receiverPhone").value("010-0000-0000"))
+                .andExpect(jsonPath("$.data.content[0].items[0].deliveryItemId").value(50))
                 .andExpect(jsonPath("$.data.content[0].items[0].productName").value("티셔츠"))
                 .andExpect(jsonPath("$.data.content[0].items[0].options[0].optionValue").value("L"));
         mvc.perform(get("/api/deliveries/seller").param("status", "SHIPPING"))
@@ -205,13 +206,14 @@ class DeliveryControllerTest {
                 5L, 1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP, DeliveryStatus.PREPARING,
                 null, null, "홍길동", "010-0000-0000", "12345", "서울", "101호",
                 null, null, null, null, null,
-                List.of(new DeliveryDetailResponse.Item(1000L, "티셔츠", 2L,
+                List.of(new DeliveryDetailResponse.Item(50L, 1000L, "티셔츠", 2L,
                         List.of(new DeliveryDetailResponse.Option("사이즈", "L")))));
         when(deliveryFacade.getDeliveryDetails(5L, 1L)).thenReturn(response);
 
         mvc.perform(get("/api/deliveries/5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.items[0].deliveryItemId").value(50))
                 .andExpect(jsonPath("$.data.items[0].productName").value("티셔츠"))
                 .andExpect(jsonPath("$.data.items[0].options[0].optionName").value("사이즈"))
                 .andExpect(jsonPath("$.data.items[0].options[0].optionValue").value("L"));
