@@ -217,6 +217,10 @@ class DeliveryClaimCreateUseCaseTest {
     void invalidInputs() {
         List<Item> items = List.of(new Item(50L, 1L));
 
+        assertThatThrownBy(() -> useCase.create(new DeliveryClaimCreateCommand(
+                null, BUYER, ClaimType.REFUND, ClaimReason.OTHER, null, items)))
+                .isInstanceOf(ServiceException.class).hasMessageContaining("400-DELIVERY_ID_REQUIRED");
+        verify(deliveryRepository, never()).findById(any());
         assertThatThrownBy(() -> useCase.create(command(null, ClaimType.REFUND, ClaimReason.OTHER, null, items)))
                 .isInstanceOf(ServiceException.class).hasMessageContaining("400-DELIVERY_MEMBER_ID_REQUIRED");
         assertThatThrownBy(() -> useCase.create(command(BUYER, null, ClaimReason.OTHER, null, items)))

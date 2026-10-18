@@ -75,6 +75,9 @@ public class DeliveryClaimCreateUseCase {
     }
 
     private void validate(DeliveryClaimCreateCommand command) {
+        if (command.deliveryId() == null) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_ID_REQUIRED);
+        }
         if (command.memberId() == null) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_MEMBER_ID_REQUIRED);
         }
