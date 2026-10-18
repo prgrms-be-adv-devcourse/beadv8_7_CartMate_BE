@@ -1,9 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
-import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
-import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

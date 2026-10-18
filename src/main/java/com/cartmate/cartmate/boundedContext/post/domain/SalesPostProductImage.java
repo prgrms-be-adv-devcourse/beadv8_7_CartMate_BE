@@ -1,7 +1,6 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
 
-import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.*;
 import lombok.Getter;
