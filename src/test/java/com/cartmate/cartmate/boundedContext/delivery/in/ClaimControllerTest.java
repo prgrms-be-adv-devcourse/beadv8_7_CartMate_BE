@@ -15,6 +15,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,9 +31,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,7 +58,9 @@ class ClaimControllerTest {
     void setUp() {
         mvc = MockMvcBuilders.standaloneSetup(new ClaimController(deliveryFacade))
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .setCustomArgumentResolvers(
+                        new AuthenticationPrincipalArgumentResolver(),
+                        new PageableHandlerMethodArgumentResolver())
                 .build();
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                 new SecurityUser(1L, "a@a.com", "USER"), null, List.of()));
@@ -90,6 +98,41 @@ class ClaimControllerTest {
         assertThat(command.items())
                 .extracting(DeliveryClaimCreateCommand.Item::deliveryItemId, DeliveryClaimCreateCommand.Item::quantity)
                 .containsExactly(tuple(50L, 1L), tuple(51L, 2L));
+    }
+
+    @Test
+    @DisplayName("GET /api/claims/me는 로그인한 회원의 클레임 목록과 진행 상태를 RsData로 응답한다")
+    void myClaims() throws Exception {
+        DeliveryClaimResponse response = new DeliveryClaimResponse(
+                7L, 5L, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다",
+                ClaimStatus.APPROVED, null,
+                List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
+        when(deliveryFacade.getMyClaims(eq(1L), any()))
+                .thenReturn(new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1));
+
+        mvc.perform(get("/api/claims/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.content[0].claimId").value(7))
+                .andExpect(jsonPath("$.data.content[0].status").value("APPROVED"))
+                .andExpect(jsonPath("$.data.content[0].claimType").value("EXCHANGE"))
+                .andExpect(jsonPath("$.data.content[0].items[0].productName").value("티셔츠"));
+        verify(deliveryFacade).getMyClaims(eq(1L), any());
+    }
+
+    @Test
+    @DisplayName("GET /api/claims/me는 page와 size 파라미터를 페이징 정보로 전달한다")
+    void myClaimsPaging() throws Exception {
+        when(deliveryFacade.getMyClaims(eq(1L), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(2, 5), 0));
+
+        mvc.perform(get("/api/claims/me").param("page", "2").param("size", "5"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(deliveryFacade).getMyClaims(eq(1L), captor.capture());
+        assertThat(captor.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(captor.getValue().getPageSize()).isEqualTo(5);
     }
 
     @Test
