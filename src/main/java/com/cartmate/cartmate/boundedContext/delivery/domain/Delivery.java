@@ -62,6 +62,9 @@ public class Delivery {
     @Column(name = "idempotency_key", nullable = false, unique = true)
     private String idempotencyKey;
 
+    @Column(name = "request_hash", length = 64, updatable = false)
+    private String requestHash;     //요청 내용 SHA-256 해시 (멱등키 재요청 비교용)
+
     @Column(name = "shipped_at")
     private LocalDateTime shippedAt;    //배송출발시간
 
@@ -88,16 +91,29 @@ public class Delivery {
             String receiverName, String receiverPhone,
             String zipCode, String address, String addressDetail, String idempotencyKey
     ) {
+        return create(
+                memberId, sellerId, orderId, purchaseType,
+                receiverName, receiverPhone, zipCode, address, addressDetail, idempotencyKey, null
+        );
+    }
+
+    public static Delivery create(
+            Long memberId, Long sellerId, Long orderId, PurchaseType purchaseType,
+            String receiverName, String receiverPhone,
+            String zipCode, String address, String addressDetail, String idempotencyKey,
+            String requestHash
+    ) {
         return new Delivery(
                 memberId, sellerId, orderId, purchaseType,
-                receiverName, receiverPhone, zipCode, address, addressDetail, idempotencyKey
+                receiverName, receiverPhone, zipCode, address, addressDetail, idempotencyKey, requestHash
         );
     }
 
     private Delivery(
             Long memberId, Long sellerId, Long orderId, PurchaseType purchaseType,
             String receiverName, String receiverPhone,
-            String zipCode, String address, String addressDetail, String idempotencyKey
+            String zipCode, String address, String addressDetail, String idempotencyKey,
+            String requestHash
     ) {
         this.memberId = memberId;
         this.sellerId = sellerId;
@@ -110,5 +126,6 @@ public class Delivery {
         this.addressDetail = addressDetail;
         this.status = DeliveryStatus.PREPARING;
         this.idempotencyKey = idempotencyKey;
+        this.requestHash = requestHash;
     }
 }
