@@ -178,6 +178,69 @@ class DeliveryTest {
     }
 
     @Test
+    @DisplayName("배송완료 상태에서 구매확정하면 구매확정이 되고 확정 시각이 기록된다")
+    void confirm() {
+        Delivery delivery = newDelivery();
+        delivery.prepare("CJ대한통운", "658219384910");
+        delivery.ship();
+        delivery.deliver();
+
+        delivery.confirm();
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CONFIRMED);
+        assertThat(delivery.getConfirmedAt()).isNotNull();
+        assertThat(delivery.getDeliveredAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("이미 구매확정이면 다시 확정해도 성공하고 확정 시각이 바뀌지 않는다")
+    void confirmIsIdempotent() {
+        Delivery delivery = newDelivery();
+        delivery.prepare("CJ대한통운", "658219384910");
+        delivery.ship();
+        delivery.deliver();
+        delivery.confirm();
+        LocalDateTime firstConfirmedAt = delivery.getConfirmedAt();
+
+        delivery.confirm();
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CONFIRMED);
+        assertThat(delivery.getConfirmedAt()).isEqualTo(firstConfirmedAt);
+    }
+
+    @Test
+    @DisplayName("배송요청, 배송준비, 배송중, 배송취소 상태에서는 구매확정할 수 없다")
+    void confirmInvalidStatus() {
+        for (DeliveryStatus status : new DeliveryStatus[]{
+                DeliveryStatus.REQUESTED, DeliveryStatus.PREPARING,
+                DeliveryStatus.SHIPPING, DeliveryStatus.CANCELED}) {
+            Delivery delivery = newDelivery();
+            ReflectionTestUtils.setField(delivery, "status", status);
+
+            assertThatThrownBy(delivery::confirm)
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("409-DELIVERY_INVALID_STATUS");
+            assertThat(delivery.getStatus()).isEqualTo(status);
+            assertThat(delivery.getConfirmedAt()).isNull();
+        }
+    }
+
+    @Test
+    @DisplayName("구매확정된 배송은 준비·출발·완료 처리를 다시 할 수 없다")
+    void confirmedCannotMoveBack() {
+        Delivery delivery = newDelivery();
+        ReflectionTestUtils.setField(delivery, "status", DeliveryStatus.CONFIRMED);
+
+        assertThatThrownBy(() -> delivery.prepare("CJ대한통운", "658219384910"))
+                .isInstanceOf(ServiceException.class).hasMessageContaining("409-DELIVERY_INVALID_STATUS");
+        assertThatThrownBy(delivery::ship)
+                .isInstanceOf(ServiceException.class).hasMessageContaining("409-DELIVERY_INVALID_STATUS");
+        assertThatThrownBy(delivery::deliver)
+                .isInstanceOf(ServiceException.class).hasMessageContaining("409-DELIVERY_INVALID_STATUS");
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CONFIRMED);
+    }
+
+    @Test
     @DisplayName("배송중, 배송완료, 배송취소 상태에서는 준비 처리할 수 없다")
     void prepareInvalidStatus() {
         for (DeliveryStatus status : new DeliveryStatus[]{
