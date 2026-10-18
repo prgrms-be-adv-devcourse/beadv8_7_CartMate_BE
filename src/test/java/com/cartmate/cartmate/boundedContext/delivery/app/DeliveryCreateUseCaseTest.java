@@ -4,6 +4,8 @@ import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryCreateComma
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryCreateCommand.Item;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryCreateCommand.Option;
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItemOption;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemOptionRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemRepository;
@@ -19,9 +21,11 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -100,5 +104,64 @@ class DeliveryCreateUseCaseTest {
         assertThatThrownBy(() -> useCase.create(command(11L, items(2))))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining("409-DELIVERY_IDEMPOTENCY_CONFLICT");
+    }
+
+    @Test
+    @DisplayName("아이템을 상품명과 함께 저장하고 옵션은 입력 순서대로 sortOrder를 붙여 저장한다")
+    @SuppressWarnings("unchecked")
+    void createStoresItemsAndOptionsInOrder() {
+        when(deliveryRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
+
+        useCase.create(command(10L, items(2)));
+
+        ArgumentCaptor<DeliveryItem> itemCaptor = ArgumentCaptor.forClass(DeliveryItem.class);
+        verify(itemRepository).save(itemCaptor.capture());
+        assertThat(itemCaptor.getValue().getProductName()).isEqualTo("티셔츠");
+        assertThat(itemCaptor.getValue().getQuantity()).isEqualTo(2L);
+
+        ArgumentCaptor<List<DeliveryItemOption>> optionCaptor = ArgumentCaptor.forClass(List.class);
+        verify(optionRepository).saveAll(optionCaptor.capture());
+        assertThat(optionCaptor.getValue())
+                .extracting(DeliveryItemOption::getOptionName, DeliveryItemOption::getOptionValue,
+                        DeliveryItemOption::getSortOrder)
+                .containsExactly(tuple("사이즈", "L", 0), tuple("색상", "블랙", 1));
+    }
+
+    @Test
+    @DisplayName("옵션이 없거나 null인 아이템은 옵션을 저장하지 않는다")
+    void createWithoutOptions() {
+        when(deliveryRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
+
+        useCase.create(command(10L, List.of(
+                new Item(1000L, "양말", 1L, List.of()),
+                new Item(1001L, "모자", 1L, null))));
+
+        verify(itemRepository, times(2)).save(any(DeliveryItem.class));
+        verify(optionRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("입력값이 잘못되면 400 오류이고 저장하지 않는다")
+    void invalidInputs() {
+        assertInvalid(command(null, items(2)), "DELIVERY_SELLER_ID_REQUIRED");
+        assertInvalid(command(10L, null), "DELIVERY_ITEMS_REQUIRED");
+        assertInvalid(command(10L, List.of()), "DELIVERY_ITEMS_REQUIRED");
+        assertInvalid(command(10L, items(0)), "DELIVERY_INVALID_QUANTITY");
+        assertInvalid(command(10L, List.of(new Item(null, "티셔츠", 1L, List.of()))),
+                "DELIVERY_ORDER_ITEM_ID_REQUIRED");
+        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 1L, java.util.Arrays.asList((Option) null)))),
+                "DELIVERY_OPTION_CONTAIN_NULL");
+        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 1L, List.of(new Option(" ", "L"))))),
+                "DELIVERY_OPTION_NAME_REQUIRED");
+        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 1L, List.of(new Option("사이즈", null))))),
+                "DELIVERY_OPTION_VALUE_REQUIRED");
+
+        verify(deliveryRepository, never()).save(any());
+    }
+
+    private void assertInvalid(DeliveryCreateCommand command, String code) {
+        assertThatThrownBy(() -> useCase.create(command))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("400-" + code);
     }
 }

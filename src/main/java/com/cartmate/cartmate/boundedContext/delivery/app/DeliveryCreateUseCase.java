@@ -63,7 +63,7 @@ public class DeliveryCreateUseCase {
 
             deliveryItemRepository.save(deliveryItem);
 
-            if (item.options() == null) {
+            if (item.options() == null || item.options().isEmpty()) {
                 continue;
             }
             List<DeliveryItemOption> options = new ArrayList<>();
