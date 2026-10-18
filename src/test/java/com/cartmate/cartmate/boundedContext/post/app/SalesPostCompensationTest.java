@@ -56,7 +56,7 @@ class SalesPostCompensationTest {
         assertThatThrownBy(() -> salesPostFacade.registerSalesPost(request(), images))
                 .isInstanceOf(ServiceException.class);
 
-        assertThat(salesPostRepository.count()).isZero(); 
+        assertThat(salesPostRepository.count()).isZero();
     }
 
     @Test
