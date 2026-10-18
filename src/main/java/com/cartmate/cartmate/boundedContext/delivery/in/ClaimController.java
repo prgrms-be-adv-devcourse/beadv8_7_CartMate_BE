@@ -66,6 +66,16 @@ public class ClaimController {
                 deliveryFacade.approveClaim(claimId, user.memberId()));
     }
 
+    // 판매자가 수락한 교환·환불을 처리 완료로 바꾼다.
+    @PatchMapping("/{claimId}/complete")
+    public RsData<SellerClaimResponse> completeClaim(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long claimId
+    ) {
+        return new RsData<>("200-1", "교환·환불이 완료 처리되었습니다.",
+                deliveryFacade.completeClaim(claimId, user.memberId()));
+    }
+
     // 수령인(구매자) 본인이 배송완료된 배송에서 상품을 골라 교환·환불을 접수한다.
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
