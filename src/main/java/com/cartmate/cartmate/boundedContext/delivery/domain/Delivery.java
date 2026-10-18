@@ -113,7 +113,7 @@ public class Delivery {
         this.zipCode = zipCode;
         this.address = address;
         this.addressDetail = addressDetail;
-        this.status = DeliveryStatus.PREPARING;
+        this.status = DeliveryStatus.REQUESTED;
         this.idempotencyKey = idempotencyKey;
         this.requestHash = requestHash;
     }
