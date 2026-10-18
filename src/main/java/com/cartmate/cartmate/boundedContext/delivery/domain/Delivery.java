@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.delivery.domain;
 
+import com.cartmate.cartmate.boundedContext.delivery.exception.DeliveryErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -116,5 +118,32 @@ public class Delivery {
         this.status = DeliveryStatus.REQUESTED;
         this.idempotencyKey = idempotencyKey;
         this.requestHash = requestHash;
+    }
+
+    // 택배사와 송장번호를 등록하고 배송요청을 배송준비로 바꾼다.
+    // 이미 같은 송장 정보로 준비 처리된 경우에는 아무것도 하지 않아 재요청해도 안전하다.
+    public void prepare(String carrier, String trackingNumber) {
+        if (carrier == null || carrier.isBlank()) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CARRIER_REQUIRED);
+        }
+        if (trackingNumber == null || trackingNumber.isBlank()) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_TRACKING_NUMBER_REQUIRED);
+        }
+        String newCarrier = carrier.trim();
+        String newTrackingNumber = trackingNumber.trim();
+
+        if (this.status == DeliveryStatus.PREPARING) {
+            if (newCarrier.equals(this.carrier) && newTrackingNumber.equals(this.trackingNumber)) {
+                return;
+            }
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_ALREADY_PREPARED);
+        }
+        if (this.status != DeliveryStatus.REQUESTED) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_STATUS);
+        }
+
+        this.carrier = newCarrier;
+        this.trackingNumber = newTrackingNumber;
+        this.status = DeliveryStatus.PREPARING;
     }
 }
