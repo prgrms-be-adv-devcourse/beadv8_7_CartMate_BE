@@ -3,7 +3,10 @@ package com.cartmate.cartmate.boundedContext.post.in;
 import com.cartmate.cartmate.boundedContext.post.app.SalesPostFacade;
 import com.cartmate.cartmate.shared.member.event.SellerCreatedEvent;
 import com.cartmate.cartmate.shared.member.event.SellerUpdatedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductCreatedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -28,4 +31,8 @@ public class SalesPostEventListener {
         salesPostFacade.syncSeller(event.getSeller());
     }
 
+    @EventListener
+    public void handle(ProductCreatedEvent event) {
+        salesPostFacade.syncProduct(event.getRequest());
+    }
 }

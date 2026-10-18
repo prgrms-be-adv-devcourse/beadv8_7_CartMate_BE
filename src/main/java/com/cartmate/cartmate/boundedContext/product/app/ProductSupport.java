@@ -2,13 +2,15 @@ package com.cartmate.cartmate.boundedContext.product.app;
 
 import com.cartmate.cartmate.boundedContext.product.domain.ImageTypePolicy;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductCountPolicy;
-import com.cartmate.cartmate.boundedContext.product.dto.upload.ImageUploadTask;
+import com.cartmate.cartmate.boundedContext.product.dto.ImageUploadTask;
 import com.cartmate.cartmate.global.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductImage;
+import com.cartmate.cartmate.shared.product.dto.CreateProduct;
+import com.cartmate.cartmate.shared.product.dto.CreateProductImage;
+import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,5 +46,17 @@ public class ProductSupport {
             }
         }
         return tasks;
+    }
+
+    public void includeFileData(CreateProductRequest request, List<MultipartFile> images) {
+        int cursor = 0;
+        for (CreateProduct product : request.getProductList()) {
+            for (CreateProductImage image : product.getProductImageList()) {
+                image.assignFile(images.get(cursor++));
+            }
+        }
+        if (cursor != images.size()) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_CREATE_INVALID);
+        }
     }
 }

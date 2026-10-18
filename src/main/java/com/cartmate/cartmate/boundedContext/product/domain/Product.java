@@ -1,16 +1,17 @@
 package com.cartmate.cartmate.boundedContext.product.domain;
 
-import com.cartmate.cartmate.global.code.ProductErrorCode;
-import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import com.cartmate.cartmate.shared.product.dto.RollbackProductRequest;
+import com.cartmate.cartmate.shared.product.dto.SyncProduct;
+import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
+import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "PRODUCT_PRODUCT")
@@ -34,23 +35,64 @@ public class Product extends BaseIdAndTime {
     @Column(nullable = false, columnDefinition = "BIGINT")
     private Long basePrice;
 
+    @Column(nullable = false)
+    private ProductStatus status;
 
-    public Product(Long sellerId, Long salesPostId, Long categoryId, String name, String description, Long basePrice) {
+    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    private List<ProductImage> productImageList = new ArrayList<>();
+
+
+    public Product(Long sellerId, Long salesPostId, Long categoryId, String name,
+                   String description, Long basePrice, ProductStatus status) {
         this.sellerId = sellerId;
         this.salesPostId = salesPostId;
         this.categoryId = categoryId;
         this.name = name;
         this.description = description;
         this.basePrice = basePrice;
+        this.status = status;
     }
 
-    public void publish(CreateProduct product) {
-        if (!Objects.equals(this.sellerId, product.getSellerId())) {
-            throw new ServiceException(ProductErrorCode.PRODUCT_ACCESS_DENIED);
+    public RollbackProductRequest toRollbackDto() {
+        return new RollbackProductRequest(this.getId());
+    }
+
+    public SyncProduct toSyncProduct() {
+        List<SyncProductImage> imageList = this.getProductImageList()
+                .stream()
+                .map(ProductImage::toSyncProductImage)
+                .toList();
+
+        return new SyncProduct(
+                this.getId(),
+                this.getSellerId(),
+                this.getSalesPostId(),
+                this.getCategoryId(),
+                this.getName(),
+                this.getDescription(),
+                this.getBasePrice(),
+                this.getCreateDate(),
+                this.getModifyDate(),
+                imageList
+        );
+    }
+
+
+    public void addProductImage(List<UploadedImage> uploadedImageList) {
+        for (UploadedImage image : uploadedImageList) {
+            productImageList.add(
+                    new ProductImage(
+                            this.getSellerId(),
+                            this,
+                            image.getS3Key(),
+                            image.getImageSeq()
+                    )
+            );
         }
-        this.categoryId = product.getCategoryId();
-        this.name = product.getName();
-        this.description = product.getDescription();
-        this.basePrice = product.getBasePrice();
+    }
+
+    public Product delete() {
+        this.status = ProductStatus.DELETED;
+        return this;
     }
 }

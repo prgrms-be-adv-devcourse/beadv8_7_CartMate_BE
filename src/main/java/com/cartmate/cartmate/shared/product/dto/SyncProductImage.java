@@ -1,18 +1,19 @@
-package com.cartmate.cartmate.shared.product.dto.create;
+package com.cartmate.cartmate.shared.product.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateProductImage {
+public class SyncProductImage {
     private Long id;
     private Long sellerId;
-    private Long productId;
     private String s3Key;
     private int imageSeq;
-    private MultipartFile file;
+    private LocalDateTime createDate;
+    private LocalDateTime modifyDate;
 }

@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.boundedContext.post.dto.create;
+package com.cartmate.cartmate.shared.product.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateSalesPostResponse {
+public class CreateProductRequest {
     private Long postId;
-    private List<Long> productIdList;
+    private List<CreateProduct> productList;
 }
