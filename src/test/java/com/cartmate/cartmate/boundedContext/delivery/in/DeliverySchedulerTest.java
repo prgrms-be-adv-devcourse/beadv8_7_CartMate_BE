@@ -91,12 +91,13 @@ class DeliverySchedulerTest {
         LocalDateTime before = LocalDateTime.now();
 
         scheduler.confirmDelivered();
+        LocalDateTime after = LocalDateTime.now();
 
         ArgumentCaptor<LocalDateTime> cutoff = ArgumentCaptor.forClass(LocalDateTime.class);
         verify(deliveryRepository).findIdsByStatusAndDeliveredAtBefore(
                 org.mockito.ArgumentMatchers.eq(DeliveryStatus.DELIVERED), cutoff.capture());
-        Duration gap = Duration.between(cutoff.getValue(), before);
-        assertThat(gap.toDays()).isEqualTo(7L);
+        assertThat(cutoff.getValue()).isBetween(
+                before.minusDays(7), after.minusDays(7));
         verify(deliveryFacade, never()).autoConfirmDelivery(any());
     }
 
