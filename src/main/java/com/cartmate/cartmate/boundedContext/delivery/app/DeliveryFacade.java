@@ -17,10 +17,16 @@ public class DeliveryFacade {
 
     private final DeliveryCreateUseCase deliveryCreateUseCase;
     private final DeliveryQueryUseCase deliveryQueryUseCase;
+    private final DeliveryReadyUseCase deliveryReadyUseCase;
 
     @Transactional
     public void createDelivery(DeliveryCreateCommand createCommand) {
         deliveryCreateUseCase.create(createCommand);
+    }
+
+    @Transactional
+    public DeliveryResponse readyDelivery(Long deliveryId, Long memberId, String carrier, String trackingNumber) {
+        return deliveryReadyUseCase.ready(deliveryId, memberId, carrier, trackingNumber);
     }
 
     @Transactional(readOnly = true)
