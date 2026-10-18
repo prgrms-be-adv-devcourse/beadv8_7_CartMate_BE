@@ -7,6 +7,8 @@ import com.cartmate.cartmate.boundedContext.post.out.SalesPostProductImageReposi
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostProductRepository;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
+import com.cartmate.cartmate.global.code.SalesPostErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
 import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +25,12 @@ public class SalesPostSyncProductUseCase {
     private final SalesPostProductImageRepository salesPostProductImageRepository;
 
     public void syncProduct(SyncProductRequest request) {
-        SalesPost salesPost = salesPostRepository.findById(request.getProductList().getFirst().getId()).get();
+        if (request.getProductList() == null || request.getProductList().isEmpty()) {
+            throw new ServiceException(SalesPostErrorCode.POST_NOT_FOUND);
+        }
+
+        SalesPost salesPost = salesPostRepository.findById(request.getProductList().getFirst().getId())
+                .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
 
         List<SyncProduct> syncProductList = request.getProductList();
         syncProductList.forEach(product -> {
