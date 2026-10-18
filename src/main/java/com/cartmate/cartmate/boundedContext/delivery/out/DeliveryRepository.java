@@ -25,6 +25,11 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     List<Long> findIdsByStatusAndShippedAtBefore(
             @Param("status") DeliveryStatus status, @Param("before") LocalDateTime before);
 
+    // 지정한 시각 이전에 배송완료된 배송의 ID 목록. 자동 구매확정 대상 조회에 쓴다.
+    @Query("select d.id from Delivery d where d.status = :status and d.deliveredAt < :before order by d.id")
+    List<Long> findIdsByStatusAndDeliveredAtBefore(
+            @Param("status") DeliveryStatus status, @Param("before") LocalDateTime before);
+
     Page<Delivery> findBySellerIdAndStatusOrderByCreatedAtDescIdDesc(
             Long sellerId, DeliveryStatus status, Pageable pageable);
 }
