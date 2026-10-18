@@ -2,11 +2,13 @@ package com.cartmate.cartmate.boundedContext.delivery.app.dto;
 
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItemOption;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public record DeliveryDetailResponse(
         Long deliveryId,
@@ -29,7 +31,11 @@ public record DeliveryDetailResponse(
         LocalDateTime confirmedAt,
         List<Item> items
 ) {
-    public static DeliveryDetailResponse from(Delivery delivery, List<DeliveryItem> deliveryItems) {
+    public static DeliveryDetailResponse from(
+            Delivery delivery,
+            List<DeliveryItem> deliveryItems,
+            Map<Long, List<DeliveryItemOption>> optionsByItemId
+    ) {
         return new DeliveryDetailResponse(
                 delivery.getId(),
                 delivery.getMemberId(),
@@ -49,16 +55,34 @@ public record DeliveryDetailResponse(
                 delivery.getDeliveredAt(),
                 delivery.getCanceledAt(),
                 delivery.getConfirmedAt(),
-                deliveryItems.stream().map(Item::from).toList()
+                deliveryItems.stream()
+                        .map(item -> Item.from(item, optionsByItemId.getOrDefault(item.getId(), List.of())))
+                        .toList()
         );
     }
 
     public record Item(
             Long orderItemId,
-            Long quantity
+            String productName,
+            Long quantity,
+            List<Option> options
     ) {
-        public static Item from(DeliveryItem deliveryItem) {
-            return new Item(deliveryItem.getOrderItemId(), deliveryItem.getQuantity());
+        public static Item from(DeliveryItem deliveryItem, List<DeliveryItemOption> options) {
+            return new Item(
+                    deliveryItem.getOrderItemId(),
+                    deliveryItem.getProductName(),
+                    deliveryItem.getQuantity(),
+                    options.stream().map(Option::from).toList()
+            );
+        }
+    }
+
+    public record Option(
+            String optionName,
+            String optionValue
+    ) {
+        public static Option from(DeliveryItemOption option) {
+            return new Option(option.getOptionName(), option.getOptionValue());
         }
     }
 }

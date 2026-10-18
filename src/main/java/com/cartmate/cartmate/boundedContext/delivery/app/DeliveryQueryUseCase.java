@@ -4,6 +4,8 @@ import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryDetailRespo
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryResponse;
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItemOption;
+import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemOptionRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
 import com.cartmate.cartmate.boundedContext.delivery.exception.DeliveryErrorCode;
@@ -15,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +26,7 @@ public class DeliveryQueryUseCase {
 
     private final DeliveryRepository deliveryRepository;
     private final DeliveryItemRepository deliveryItemRepository;
+    private final DeliveryItemOptionRepository deliveryItemOptionRepository;
     private final SellerQuery sellerQuery;
 
     public Page<DeliveryResponse> getMyDeliveries(Long memberId, Pageable pageable) {
@@ -45,6 +50,12 @@ public class DeliveryQueryUseCase {
 
         List<DeliveryItem> items = deliveryItemRepository.findByDeliveryId(deliveryId);
 
-        return DeliveryDetailResponse.from(delivery, items);
+        List<Long> itemIds = items.stream().map(DeliveryItem::getId).toList();
+        Map<Long, List<DeliveryItemOption>> optionsByItemId = deliveryItemOptionRepository
+                .findByDeliveryItemIdInOrderByDeliveryItemIdAscSortOrderAsc(itemIds)
+                .stream()
+                .collect(Collectors.groupingBy(option -> option.getDeliveryItem().getId()));
+
+        return DeliveryDetailResponse.from(delivery, items, optionsByItemId);
     }
 }
