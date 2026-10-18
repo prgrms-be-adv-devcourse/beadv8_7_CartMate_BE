@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.delivery.domain;
 
+import com.cartmate.cartmate.boundedContext.delivery.exception.DeliveryErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -71,5 +73,18 @@ public class DeliveryClaim {
         this.reason = reason;
         this.detail = detail;
         this.status = ClaimStatus.REQUESTED;
+    }
+
+    // 판매자가 접수된 교환·환불을 수락한다. 이미 수락된 클레임이면 아무것도 하지 않아 재요청해도 안전하다.
+    public void approve() {
+        if (this.status == ClaimStatus.APPROVED) {
+            return;
+        }
+        if (this.status != ClaimStatus.REQUESTED) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_INVALID_STATUS);
+        }
+
+        this.status = ClaimStatus.APPROVED;
+        this.processedAt = LocalDateTime.now();
     }
 }
