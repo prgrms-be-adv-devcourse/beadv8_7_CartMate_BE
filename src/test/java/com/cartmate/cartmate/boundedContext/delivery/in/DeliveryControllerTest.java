@@ -170,6 +170,35 @@ class DeliveryControllerTest {
     }
 
     @Test
+    @DisplayName("PATCH confirm은 본문 없이 구매확정 처리하고 RsData로 응답한다")
+    void confirmDelivery() throws Exception {
+        DeliveryResponse response = new DeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+                "홍길동", DeliveryStatus.CONFIRMED, "CJ대한통운", "658219384910", null);
+        when(deliveryFacade.confirmDelivery(5L, 1L)).thenReturn(response);
+
+        mvc.perform(patch("/api/deliveries/5/confirm"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.status").value("CONFIRMED"));
+    }
+
+    @Test
+    @DisplayName("PATCH confirm에서 상태가 맞지 않으면 409, 본인 배송이 아니면 403으로 변환된다")
+    void confirmDeliveryErrors() throws Exception {
+        when(deliveryFacade.confirmDelivery(6L, 1L))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_STATUS));
+        when(deliveryFacade.confirmDelivery(7L, 1L))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_ACCESS_DENIED));
+
+        mvc.perform(patch("/api/deliveries/6/confirm"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.resultCode").value("409-DELIVERY_INVALID_STATUS"));
+        mvc.perform(patch("/api/deliveries/7/confirm"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.resultCode").value("403-DELIVERY_ACCESS_DENIED"));
+    }
+
+    @Test
     @DisplayName("배송 상세는 RsData로 감싸서 상품명과 옵션을 내려준다")
     void deliveryDetail() throws Exception {
         DeliveryDetailResponse response = new DeliveryDetailResponse(

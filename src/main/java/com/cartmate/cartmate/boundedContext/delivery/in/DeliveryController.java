@@ -75,6 +75,16 @@ public class DeliveryController {
                 deliveryFacade.shipDelivery(deliveryId, user.memberId()));
     }
 
+    // 수령인(구매자) 본인이 배송완료된 배송을 구매확정한다.
+    @PatchMapping("/{deliveryId}/confirm")
+    public RsData<DeliveryResponse> confirmDelivery(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long deliveryId
+    ) {
+        return new RsData<>("200-1", "구매확정 처리되었습니다.",
+                deliveryFacade.confirmDelivery(deliveryId, user.memberId()));
+    }
+
     @GetMapping("/{deliveryId}")
     public RsData<DeliveryDetailResponse> getDeliveryDetails(
             @AuthenticationPrincipal SecurityUser user,
