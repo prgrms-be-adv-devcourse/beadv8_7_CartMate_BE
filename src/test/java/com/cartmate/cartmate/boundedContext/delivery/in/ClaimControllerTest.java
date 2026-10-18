@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.delivery.in;
 import com.cartmate.cartmate.boundedContext.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryClaimCreateCommand;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryClaimResponse;
+import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerClaimResponse;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimReason;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimType;
@@ -133,6 +134,58 @@ class ClaimControllerTest {
         verify(deliveryFacade).getMyClaims(eq(1L), captor.capture());
         assertThat(captor.getValue().getPageNumber()).isEqualTo(2);
         assertThat(captor.getValue().getPageSize()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("GET /api/claims/seller는 주문번호와 상품을 포함한 목록을 RsData로 응답한다")
+    void sellerClaims() throws Exception {
+        SellerClaimResponse row = new SellerClaimResponse(
+                7L, 5L, 100L, ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
+                ClaimStatus.REQUESTED, null,
+                List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
+        when(deliveryFacade.getSellerClaims(eq(1L), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(row), PageRequest.of(0, 20), 1));
+
+        mvc.perform(get("/api/claims/seller"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.content[0].claimId").value(7))
+                .andExpect(jsonPath("$.data.content[0].orderId").value(100))
+                .andExpect(jsonPath("$.data.content[0].claimType").value("REFUND"))
+                .andExpect(jsonPath("$.data.content[0].status").value("REQUESTED"))
+                .andExpect(jsonPath("$.data.content[0].items[0].productName").value("티셔츠"));
+    }
+
+    @Test
+    @DisplayName("status는 쉼표로 여러 개, claimType은 하나를 받고 생략하면 null로 전달한다")
+    @SuppressWarnings("unchecked")
+    void sellerClaimsFilters() throws Exception {
+        when(deliveryFacade.getSellerClaims(eq(1L), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+        mvc.perform(get("/api/claims/seller").param("status", "REQUESTED,APPROVED").param("claimType", "EXCHANGE"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/claims/seller")).andExpect(status().isOk());
+
+        ArgumentCaptor<List<ClaimStatus>> statuses = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<ClaimType> types = ArgumentCaptor.forClass(ClaimType.class);
+        verify(deliveryFacade, org.mockito.Mockito.times(2))
+                .getSellerClaims(eq(1L), statuses.capture(), types.capture(), any());
+        assertThat(statuses.getAllValues().get(0)).containsExactly(ClaimStatus.REQUESTED, ClaimStatus.APPROVED);
+        assertThat(types.getAllValues().get(0)).isEqualTo(ClaimType.EXCHANGE);
+        assertThat(statuses.getAllValues().get(1)).isNull();
+        assertThat(types.getAllValues().get(1)).isNull();
+    }
+
+    @Test
+    @DisplayName("판매자가 아니면 판매자 목록은 403으로 변환된다")
+    void sellerClaimsForbidden() throws Exception {
+        when(deliveryFacade.getSellerClaims(eq(1L), any(), any(), any()))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_SELLER_ONLY));
+
+        mvc.perform(get("/api/claims/seller"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.resultCode").value("403-DELIVERY_SELLER_ONLY"));
     }
 
     @Test
