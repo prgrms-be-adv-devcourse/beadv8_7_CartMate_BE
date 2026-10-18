@@ -5,5 +5,6 @@ public enum DeliveryStatus {
     PREPARING,  //배송준비중 (판매자 확인 후)
     SHIPPING,   //배송중
     DELIVERED,  //배송완료
+    CONFIRMED,  //구매확정 (구매자 확인 후)
     CANCELED    //배송취소
 }
