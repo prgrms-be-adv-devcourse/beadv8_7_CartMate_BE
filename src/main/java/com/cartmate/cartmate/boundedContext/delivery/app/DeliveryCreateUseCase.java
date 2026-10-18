@@ -27,20 +27,12 @@ public class DeliveryCreateUseCase {
     public void create(DeliveryCreateCommand createCommand) {
         validatedCreate(createCommand);
 
+        String requestHash = DeliveryRequestHasher.hash(createCommand);
+
         Optional<Delivery> existing = deliveryRepository.findByIdempotencyKey(createCommand.idempotencyKey());
 
         if (existing.isPresent()) {
-            Delivery delivery = existing.get();
-
-            if (!delivery.getMemberId().equals(createCommand.memberId())
-                    || !delivery.getOrderId().equals(createCommand.orderId())
-                    || delivery.getPurchaseType() != createCommand.purchaseType()
-                    || !delivery.getReceiverName().equals(createCommand.receiverName())
-                    || !delivery.getReceiverPhone().equals(createCommand.receiverPhone())
-                    || !delivery.getZipCode().equals(createCommand.zipCode())
-                    || !delivery.getAddress().equals(createCommand.address())
-                    || !delivery.getAddressDetail().equals(createCommand.addressDetail())
-            ) {
+            if (!isSameRequest(existing.get(), createCommand, requestHash)) {
                 throw new ServiceException(DeliveryErrorCode.DELIVERY_IDEMPOTENCY_CONFLICT);
             }
             return;
@@ -56,8 +48,9 @@ public class DeliveryCreateUseCase {
                 createCommand.zipCode(),
                 createCommand.address(),
                 createCommand.addressDetail(),
-                createCommand.idempotencyKey()
-                );
+                createCommand.idempotencyKey(),
+                requestHash
+        );
 
         deliveryRepository.save(delivery);
 
@@ -81,6 +74,24 @@ public class DeliveryCreateUseCase {
             }
             deliveryItemOptionRepository.saveAll(options);
         }
+    }
+
+    // 같은 멱등키로 들어온 요청이 기존 배송과 같은 내용인지 확인한다.
+    private boolean isSameRequest(Delivery delivery, DeliveryCreateCommand createCommand, String requestHash) {
+        if (delivery.getRequestHash() != null) {
+            return delivery.getRequestHash().equals(requestHash);
+        }
+
+        // 해시 도입 전에 저장된 배송은 해시가 없어 배송 기본 정보만 비교한다.
+        return delivery.getMemberId().equals(createCommand.memberId())
+                && delivery.getSellerId().equals(createCommand.sellerId())
+                && delivery.getOrderId().equals(createCommand.orderId())
+                && delivery.getPurchaseType() == createCommand.purchaseType()
+                && delivery.getReceiverName().equals(createCommand.receiverName())
+                && delivery.getReceiverPhone().equals(createCommand.receiverPhone())
+                && delivery.getZipCode().equals(createCommand.zipCode())
+                && delivery.getAddress().equals(createCommand.address())
+                && delivery.getAddressDetail().equals(createCommand.addressDetail());
     }
 
     private void validatedCreate(DeliveryCreateCommand createCommand) {

@@ -89,17 +89,6 @@ public class Delivery {
     public static Delivery create(
             Long memberId, Long sellerId, Long orderId, PurchaseType purchaseType,
             String receiverName, String receiverPhone,
-            String zipCode, String address, String addressDetail, String idempotencyKey
-    ) {
-        return create(
-                memberId, sellerId, orderId, purchaseType,
-                receiverName, receiverPhone, zipCode, address, addressDetail, idempotencyKey, null
-        );
-    }
-
-    public static Delivery create(
-            Long memberId, Long sellerId, Long orderId, PurchaseType purchaseType,
-            String receiverName, String receiverPhone,
             String zipCode, String address, String addressDetail, String idempotencyKey,
             String requestHash
     ) {
