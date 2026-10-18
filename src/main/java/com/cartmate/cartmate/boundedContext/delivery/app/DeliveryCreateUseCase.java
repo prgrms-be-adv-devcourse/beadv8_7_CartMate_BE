@@ -5,6 +5,8 @@ import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
+import com.cartmate.cartmate.boundedContext.delivery.exception.DeliveryErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,9 +36,7 @@ public class DeliveryCreateUseCase {
                     || !delivery.getAddress().equals(createCommand.address())
                     || !delivery.getAddressDetail().equals(createCommand.addressDetail())
             ) {
-                throw new IllegalArgumentException(
-                        "동일한 멱등키에 다른 배송 요청이 전달되었습니다."
-                );
+                throw new ServiceException(DeliveryErrorCode.DELIVERY_IDEMPOTENCY_CONFLICT);
             }
             return;
         }
@@ -68,54 +68,54 @@ public class DeliveryCreateUseCase {
 
     private void validatedCreate(DeliveryCreateCommand createCommand) {
         if (createCommand == null) {
-            throw new IllegalArgumentException("배송 생성 정보가 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CREATE_COMMAND_REQUIRED);
         }
         if (createCommand.memberId() == null) {
-            throw new IllegalArgumentException("회원 ID가 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_MEMBER_ID_REQUIRED);
         }
 
         if (createCommand.sellerId() == null) {
-            throw new IllegalArgumentException("판매자 ID가 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_SELLER_ID_REQUIRED);
         }
 
         if (createCommand.orderId() == null) {
-            throw new IllegalArgumentException("주문 ID가 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_ORDER_ID_REQUIRED);
         }
         if (createCommand.purchaseType() == null) {
-            throw new IllegalArgumentException("배송 유형이 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_PURCHASE_TYPE_REQUIRED);
         }
         if (createCommand.receiverName() == null || createCommand.receiverName().isBlank()) {
-            throw new IllegalArgumentException("수령인 이름이 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_RECEIVER_NAME_REQUIRED);
         }
         if (createCommand.receiverPhone() == null || createCommand.receiverPhone().isBlank()) {
-            throw new IllegalArgumentException("수령인 연락처가 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_RECEIVER_PHONE_REQUIRED);
         }
         if (createCommand.zipCode() == null || createCommand.zipCode().isBlank()) {
-            throw new IllegalArgumentException("우편번호가 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_ZIP_CODE_REQUIRED);
         }
         if (createCommand.address() == null || createCommand.address().isBlank()) {
-            throw new IllegalArgumentException("기본주소가 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_ADDRESS_REQUIRED);
         }
         if (createCommand.addressDetail() == null) {
-            throw new IllegalArgumentException("상세주소는 null일 수 없습니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_ADDRESS_DETAIL_REQUIRED);
         }
         if (createCommand.deliveryItem() == null || createCommand.deliveryItem().isEmpty()) {
-            throw new IllegalArgumentException("배송 상품 목록이 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_ITEMS_REQUIRED);
         }
         for (DeliveryCreateCommand.Item item : createCommand.deliveryItem()) {
             if (item == null) {
-                throw new IllegalArgumentException("배송 상품 목록에 null을 포함할 수 없습니다.");
+                throw new ServiceException(DeliveryErrorCode.DELIVERY_ITEMS_CONTAIN_NULL);
             }
             if (item.orderItemId() == null) {
-                throw new IllegalArgumentException("주문상품 ID가 필요합니다.");
+                throw new ServiceException(DeliveryErrorCode.DELIVERY_ORDER_ITEM_ID_REQUIRED);
             }
             if (item.quantity() == null || item.quantity() <= 0) {
-                throw new IllegalArgumentException("배송 수량은 0보다 커야 합니다.");
+                throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_QUANTITY);
             }
         }
 
         if (createCommand.idempotencyKey() == null || createCommand.idempotencyKey().isBlank()) {
-            throw new IllegalArgumentException("멱등키가 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_IDEMPOTENCY_KEY_REQUIRED);
         }
     }
 }

@@ -36,7 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/members/me").authenticated()
                         .requestMatchers("/api/members/me", "/api/members/me/**").authenticated()
                         .requestMatchers("/api/wallets/me/**").authenticated()
-                        .requestMatchers("/api/deliveries/me/**").authenticated()
+                        .requestMatchers("/api/deliveries/**").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll() // 다른 모듈 개발 중이라 임시 허용
                 )

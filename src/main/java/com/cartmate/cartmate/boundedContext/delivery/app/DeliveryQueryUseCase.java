@@ -6,6 +6,8 @@ import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
+import com.cartmate.cartmate.boundedContext.delivery.exception.DeliveryErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.member.SellerQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,17 +31,17 @@ public class DeliveryQueryUseCase {
 
     public DeliveryDetailResponse getDeliveryDetails(Long deliveryId, Long memberId) {
         if (memberId == null) {
-            throw new IllegalArgumentException("회원 ID가 필요합니다.");
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_MEMBER_ID_REQUIRED);
         }
         Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new IllegalArgumentException("배송을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(DeliveryErrorCode.DELIVERY_NOT_FOUND));
 
         // 수령인이 아니면 해당 배송의 판매자인지 확인한다.
         boolean buyer = delivery.getMemberId().equals(memberId);
 
         if (!buyer && !sellerQuery.isSellerOwner(memberId, delivery.getSellerId())) {
-            throw new IllegalArgumentException("배송 조회 권한이 없습니다.");
-        };
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_ACCESS_DENIED);
+        }
 
         List<DeliveryItem> items = deliveryItemRepository.findByDeliveryId(deliveryId);
 
