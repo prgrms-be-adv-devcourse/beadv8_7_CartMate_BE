@@ -50,6 +50,9 @@ public class DeliveryClaim {
     @Column(name = "processed_at")
     private LocalDateTime processedAt;  //판매자 승인·거절 시각
 
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;  //처리 완료 시각
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;    //접수 시각
@@ -86,5 +89,18 @@ public class DeliveryClaim {
 
         this.status = ClaimStatus.APPROVED;
         this.processedAt = LocalDateTime.now();
+    }
+
+    // 수락된 교환·환불을 처리 완료로 바꾸고 완료 시각을 기록한다. 이미 완료된 클레임이면 아무것도 하지 않아 재요청해도 안전하다.
+    public void complete() {
+        if (this.status == ClaimStatus.COMPLETED) {
+            return;
+        }
+        if (this.status != ClaimStatus.APPROVED) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_INVALID_STATUS);
+        }
+
+        this.status = ClaimStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
     }
 }

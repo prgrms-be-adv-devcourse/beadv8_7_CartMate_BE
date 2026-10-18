@@ -61,6 +61,49 @@ class DeliveryClaimTest {
     }
 
     @Test
+    @DisplayName("수락된 클레임을 완료 처리하면 완료 상태가 되고 완료 시각이 기록되며 수락 시각은 유지된다")
+    void complete() {
+        DeliveryClaim claim = newClaim();
+        claim.approve();
+        LocalDateTime approvedAt = claim.getProcessedAt();
+
+        claim.complete();
+
+        assertThat(claim.getStatus()).isEqualTo(ClaimStatus.COMPLETED);
+        assertThat(claim.getCompletedAt()).isNotNull();
+        assertThat(claim.getProcessedAt()).isEqualTo(approvedAt);
+    }
+
+    @Test
+    @DisplayName("이미 완료된 클레임을 다시 완료 처리해도 성공하고 완료 시각이 바뀌지 않는다")
+    void completeIsIdempotent() {
+        DeliveryClaim claim = newClaim();
+        claim.approve();
+        claim.complete();
+        LocalDateTime firstCompletedAt = claim.getCompletedAt();
+
+        claim.complete();
+
+        assertThat(claim.getStatus()).isEqualTo(ClaimStatus.COMPLETED);
+        assertThat(claim.getCompletedAt()).isEqualTo(firstCompletedAt);
+    }
+
+    @Test
+    @DisplayName("수락 전이거나 거절된 클레임은 완료 처리할 수 없다")
+    void completeInvalidStatus() {
+        for (ClaimStatus status : new ClaimStatus[]{ClaimStatus.REQUESTED, ClaimStatus.REJECTED}) {
+            DeliveryClaim claim = newClaim();
+            ReflectionTestUtils.setField(claim, "status", status);
+
+            assertThatThrownBy(claim::complete)
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("409-DELIVERY_CLAIM_INVALID_STATUS");
+            assertThat(claim.getStatus()).isEqualTo(status);
+            assertThat(claim.getCompletedAt()).isNull();
+        }
+    }
+
+    @Test
     @DisplayName("거절됐거나 완료된 클레임은 수락할 수 없다")
     void approveInvalidStatus() {
         for (ClaimStatus status : new ClaimStatus[]{ClaimStatus.REJECTED, ClaimStatus.COMPLETED}) {
