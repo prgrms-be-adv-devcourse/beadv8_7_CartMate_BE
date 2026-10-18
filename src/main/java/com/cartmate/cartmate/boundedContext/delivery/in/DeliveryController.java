@@ -65,6 +65,16 @@ public class DeliveryController {
                 deliveryFacade.readyDelivery(deliveryId, user.memberId(), request.carrier(), request.trackingNumber()));
     }
 
+    // 판매자가 배송준비 상태의 배송을 배송중으로 처리한다.
+    @PatchMapping("/{deliveryId}/ship")
+    public RsData<DeliveryResponse> shipDelivery(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long deliveryId
+    ) {
+        return new RsData<>("200-1", "배송 출발 처리되었습니다.",
+                deliveryFacade.shipDelivery(deliveryId, user.memberId()));
+    }
+
     @GetMapping("/{deliveryId}")
     public RsData<DeliveryDetailResponse> getDeliveryDetails(
             @AuthenticationPrincipal SecurityUser user,

@@ -140,6 +140,36 @@ class DeliveryControllerTest {
     }
 
     @Test
+    @DisplayName("PATCH ship은 본문 없이 출발 처리하고 RsData로 응답한다")
+    void shipDelivery() throws Exception {
+        DeliveryResponse response = new DeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+                "홍길동", DeliveryStatus.SHIPPING, "CJ대한통운", "658219384910", null);
+        when(deliveryFacade.shipDelivery(5L, 1L)).thenReturn(response);
+
+        mvc.perform(patch("/api/deliveries/5/ship"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.status").value("SHIPPING"))
+                .andExpect(jsonPath("$.data.trackingNumber").value("658219384910"));
+    }
+
+    @Test
+    @DisplayName("PATCH ship에서 상태가 맞지 않으면 409, 권한이 없으면 403으로 변환된다")
+    void shipDeliveryErrors() throws Exception {
+        when(deliveryFacade.shipDelivery(6L, 1L))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_STATUS));
+        when(deliveryFacade.shipDelivery(7L, 1L))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_ACCESS_DENIED));
+
+        mvc.perform(patch("/api/deliveries/6/ship"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.resultCode").value("409-DELIVERY_INVALID_STATUS"));
+        mvc.perform(patch("/api/deliveries/7/ship"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.resultCode").value("403-DELIVERY_ACCESS_DENIED"));
+    }
+
+    @Test
     @DisplayName("배송 상세는 RsData로 감싸서 상품명과 옵션을 내려준다")
     void deliveryDetail() throws Exception {
         DeliveryDetailResponse response = new DeliveryDetailResponse(
