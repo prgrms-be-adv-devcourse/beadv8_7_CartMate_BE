@@ -18,6 +18,8 @@ public class DeliveryFacade {
     private final DeliveryCreateUseCase deliveryCreateUseCase;
     private final DeliveryQueryUseCase deliveryQueryUseCase;
     private final DeliveryReadyUseCase deliveryReadyUseCase;
+    private final DeliveryShipUseCase deliveryShipUseCase;
+    private final DeliveryDeliverUseCase deliveryDeliverUseCase;
 
     @Transactional
     public void createDelivery(DeliveryCreateCommand createCommand) {
@@ -27,6 +29,16 @@ public class DeliveryFacade {
     @Transactional
     public DeliveryResponse readyDelivery(Long deliveryId, Long memberId, String carrier, String trackingNumber) {
         return deliveryReadyUseCase.ready(deliveryId, memberId, carrier, trackingNumber);
+    }
+
+    @Transactional
+    public DeliveryResponse shipDelivery(Long deliveryId, Long memberId) {
+        return deliveryShipUseCase.ship(deliveryId, memberId);
+    }
+
+    @Transactional
+    public void deliverDelivery(Long deliveryId) {
+        deliveryDeliverUseCase.deliver(deliveryId);
     }
 
     @Transactional(readOnly = true)
