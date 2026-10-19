@@ -22,21 +22,4 @@ public class ProductImageFileDeleteUseCase {
     public void deleteImageByException(List<UploadedImage> uploadedImages) {
         uploadedImages.forEach(image -> imageStorage.delete(image.getS3Key()));
     }
-
-    public void deleteImageByServer(Long postId) {
-        List<Long> productIds = productRepository.findBySalesPostId(postId)
-                .stream()
-                .map(Product::getId)
-                .toList();
-
-        if (productIds.isEmpty()) {
-            return;
-        }
-
-        productImageRepository.findByProductIdIn(productIds)
-                .stream()
-                .map(ProductImage::getS3Key)
-                .forEach(imageStorage::delete);
-
-    }
 }

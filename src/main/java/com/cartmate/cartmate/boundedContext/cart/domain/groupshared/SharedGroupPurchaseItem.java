@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.domain.groupshared;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -109,14 +111,14 @@ public class SharedGroupPurchaseItem {
 
     void validateSameProduct(Long productId) {
         if (!this.productId.equals(productId)) {
-            throw new IllegalArgumentException("같은 상품의 옵션으로만 변경할 수 있습니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_ITEM_OPTION_MISMATCH);
         }
     }
 
 
     private void validateQuantity(int quantity) {
         if (quantity < MIN_QUANTITY || quantity > MAX_QUANTITY) {
-            throw new IllegalArgumentException("수량은 " + MIN_QUANTITY + "개 이상 " + MAX_QUANTITY + "개 이하여야 합니다.");
+            throw new ServiceException(CartErrorCode.CART_INVALID_QUANTITY);
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.domain.personal;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -59,7 +61,7 @@ public class Cart {
         return items.stream()
                 .filter(item -> item.getId().equals(cartItemId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("장바구니에 없는 상품입니다."));
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_ITEM_NOT_FOUND));
     }
 
     public void removeItem(Long cartItemId) {
