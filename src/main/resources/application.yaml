@@ -5,6 +5,11 @@ spring:
     name: cartmate
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  batch:
+    job:
+      enabled: false # Job은 스케줄러가 실행하므로 애플리케이션 시작 시 자동 실행하지 않는다
+    jdbc:
+      initialize-schema: always # MySQL에도 배치 메타데이터 테이블을 만든다
 custom:
   member:
     seller:
