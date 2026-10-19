@@ -40,7 +40,8 @@ public class DeliveryClaimCreateUseCase {
     public DeliveryClaimResponse create(DeliveryClaimCreateCommand command) {
         validate(command);
 
-        Delivery delivery = deliveryRepository.findById(command.deliveryId())
+        // 구매확정과 동시에 실행돼도 순서대로 처리되도록 배송을 잠그고 조회한다. 확정이 먼저면 아래 상태 검사에서 거부된다.
+        Delivery delivery = deliveryRepository.findByIdForUpdate(command.deliveryId())
                 .orElseThrow(() -> new ServiceException(DeliveryErrorCode.DELIVERY_NOT_FOUND));
 
         if (!delivery.getMemberId().equals(command.memberId())) {

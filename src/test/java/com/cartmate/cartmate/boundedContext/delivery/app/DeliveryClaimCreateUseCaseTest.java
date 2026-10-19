@@ -60,7 +60,7 @@ class DeliveryClaimCreateUseCaseTest {
         delivery.prepare("CJ대한통운", "658219384910");
         delivery.ship();
         delivery.deliver();
-        when(deliveryRepository.findById(5L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(delivery));
 
         DeliveryItem shirt = DeliveryItem.create(delivery, 1000L, "티셔츠", 10_000L, 2L);
         DeliveryItem socks = DeliveryItem.create(delivery, 1001L, "양말", 10_000L, 1L);
@@ -256,7 +256,7 @@ class DeliveryClaimCreateUseCaseTest {
     @Test
     @DisplayName("없는 배송은 404 오류다")
     void notFound() {
-        when(deliveryRepository.findById(99L)).thenReturn(Optional.empty());
+        when(deliveryRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.create(new DeliveryClaimCreateCommand(
                 99L, BUYER, ClaimType.REFUND, ClaimReason.OTHER, null, List.of(new Item(50L, 1L)))))
