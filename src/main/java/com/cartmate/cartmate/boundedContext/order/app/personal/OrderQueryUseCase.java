@@ -16,6 +16,7 @@ import java.util.List;
 class OrderQueryUseCase {
 
     private final OrderRepository orderRepository;
+    private final OrderSupport orderSupport;
 
     List<OrderSummaryResponse> getMyList(Long memberId) {
         return orderRepository.findAllByMember(memberId).stream()
@@ -26,9 +27,7 @@ class OrderQueryUseCase {
     OrderDetailResponse getDetail(Long memberId, Long orderId) {
         Order order = orderRepository.findWithItemsById(orderId)
                 .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_FOUND));
-        if (!order.isBuyer(memberId)) {
-            throw new ServiceException(OrderErrorCode.ORDER_BUYER_ONLY);
-        }
+        orderSupport.validateBuyer(order, memberId);
         return OrderDetailResponse.from(order);
     }
 }

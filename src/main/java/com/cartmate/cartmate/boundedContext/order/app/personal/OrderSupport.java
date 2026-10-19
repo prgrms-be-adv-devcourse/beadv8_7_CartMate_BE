@@ -17,4 +17,10 @@ class OrderSupport {
         return orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_FOUND));
     }
+
+    void validateBuyer(Order order, Long memberId) {
+        if (!order.isBuyer(memberId)) {
+            throw new ServiceException(OrderErrorCode.ORDER_BUYER_ONLY);
+        }
+    }
 }

@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateReques
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderSummaryResponse;
+import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,5 +42,15 @@ public class OrderFacade {
     @Transactional(readOnly = true)
     public OrderDetailResponse getDetail(Long memberId, Long orderId) {
         return orderQueryUseCase.getDetail(memberId, orderId);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderPaymentInfo getPaymentInfo(Long orderId, Long memberId, LocalDateTime now) {
+        return orderPaymentUseCase.getPaymentInfo(orderId, memberId, now);
+    }
+
+    @Transactional
+    public void applyPayment(Long orderId, Long memberId, LocalDateTime paidAt) {
+        orderPaymentUseCase.applyPayment(orderId, memberId, paidAt);
     }
 }

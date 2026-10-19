@@ -6,10 +6,10 @@ import com.cartmate.cartmate.boundedContext.order.domain.personal.Order.OrderLin
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -30,8 +30,12 @@ class OrderQueryUseCaseTest {
     @Mock
     private OrderRepository orderRepository;
 
-    @InjectMocks
     private OrderQueryUseCase queryUseCase;
+
+    @BeforeEach
+    void setUp() {
+        queryUseCase = new OrderQueryUseCase(orderRepository, new OrderSupport(orderRepository));
+    }
 
     @Test
     @DisplayName("주문한 회원이 아니면 주문 상세를 볼 수 없다")
