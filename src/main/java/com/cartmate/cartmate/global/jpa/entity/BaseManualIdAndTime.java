@@ -13,24 +13,23 @@ import java.time.LocalDateTime;
 
 @MappedSuperclass
 @Getter
-@EntityListeners(AuditingEntityListener.class)
 // id 직접 지정 엔티티용 (복제 테이블 등)
 public abstract class BaseManualIdAndTime extends BaseEntity {
 
     @Id
     private Long id;   // 자동 생성 없음. 원본 ID를 그대로 넣음
 
-    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
-    @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime modifyDate;
 
     protected BaseManualIdAndTime() {}
 
-    protected BaseManualIdAndTime(Long id) {
+    protected BaseManualIdAndTime(Long id, LocalDateTime createDate, LocalDateTime modifyDate) {
         this.id = id;
+        this.createDate = createDate;
+        this.modifyDate = modifyDate;
     }
 }

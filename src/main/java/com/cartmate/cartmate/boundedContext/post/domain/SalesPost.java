@@ -1,41 +1,80 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
-import com.cartmate.cartmate.boundedContext.post.dto.create.CreateSalesPostRequest;
-
+import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProduct;
+import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
+import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
+import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
+import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "POST_POST")
+@Table(name = "POST_SALES_POST")
 @NoArgsConstructor
 @Getter
 public class SalesPost extends BaseIdAndTime {
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long sellerId;
+
+    @Column(nullable = false)
     private String title;
+
     private String content;
+
     @Enumerated(EnumType.STRING)
-    private SalesPostSaleStatus saleStatus;
-    private SalesPostSaveStatus saveStatus;
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    private SalesPostSaleStatus status;
+
+    @Column(nullable = false, columnDefinition = "BIGINT")
     private Long viewCount;
 
-    public SalesPost(CreateSalesPostRequest postDto) {
-        this.sellerId = postDto.getSellerId();
+    @OneToMany(mappedBy = "salesPost", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    private List<SalesPostProduct> productList = new ArrayList<>();
+
+    public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount) {
+        this.sellerId = sellerId;
+        this.title = title;
+        this.content = content;
+        this.status = status;
+        this.viewCount = viewCount;
     }
+
+    public SalesPostRollbackRequest toRollbackDto() {
+        return new SalesPostRollbackRequest(this.getId());
+    }
+
+    public SelectSalesPostResponse toSelectResultDto() {
+        List<SelectSalesPostProduct> resultList = productList
+                .stream()
+                .map(SalesPostProduct::toSelectProductDto)
+                .toList();
+        return new SelectSalesPostResponse(
+                getId(),
+                sellerId,
+                title,
+                content,
+                viewCount,
+                status,
+                resultList,
+                getCreateDate(),
+                getModifyDate()
+        );
+    }
+
 
     public boolean isVisible() {
-        return saleStatus.isVisible() && saveStatus.isVisible();
+        return status.isVisible();
     }
 
-    public void publish(SalesPost salesPost) {
-        this.title = salesPost.getTitle();
-        this.content = salesPost.getContent();
-        this.saleStatus = SalesPostSaleStatus.ON_SALE;
-        this.saveStatus = SalesPostSaveStatus.PUBLISHED;
+    public SalesPost delete() {
+        this.status = SalesPostSaleStatus.DELETED;
+        return this;
     }
-
 }
