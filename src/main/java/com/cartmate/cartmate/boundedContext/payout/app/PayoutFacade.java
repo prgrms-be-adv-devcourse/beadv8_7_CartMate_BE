@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.payout.app;
 
+import com.cartmate.cartmate.boundedContext.payout.app.dto.PendingPayoutResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
@@ -50,6 +51,12 @@ public class PayoutFacade {
     @Transactional(readOnly = true)
     public SettlementDetailResponse getMySettlementDetail(Long memberId, String settlementId) {
         return payoutQueryUseCase.getMySettlementDetail(memberId, settlementId);
+    }
+
+    // 로그인한 판매자의 아직 지급되지 않은 구매확정 건을 조회한다.
+    @Transactional(readOnly = true)
+    public List<PendingPayoutResponse> getMyPendingPayouts(Long memberId) {
+        return payoutQueryUseCase.getMyPendingPayouts(memberId);
     }
 
     // 로그인한 판매자의 정산 정책(수수료율, 지급일, 다음 지급일)과 정산 현황을 조회한다.

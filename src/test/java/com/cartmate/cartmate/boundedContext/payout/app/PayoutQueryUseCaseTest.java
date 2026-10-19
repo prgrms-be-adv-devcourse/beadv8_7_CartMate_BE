@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.payout.app;
 
+import com.cartmate.cartmate.boundedContext.payout.app.dto.PendingPayoutResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
@@ -241,6 +242,38 @@ class PayoutQueryUseCaseTest {
         assertError(() -> useCase.getMySettlementDetail(MEMBER_ID, "abc"), PayoutErrorCode.PAYOUT_INVALID_SETTLEMENT_ID);
         verify(payoutRepository, never())
                 .findAllBySellerIdAndStatusAndScheduledAtOrderByConfirmedAtDescIdDesc(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("아직 지급되지 않은 정산을 PENDING 상태로 조회해 건별 응답으로 반환한다")
+    void getMyPendingPayouts() {
+        Payout shirt = payout(1L, "티셔츠", 2L, 24_000L, LocalDateTime.of(2026, 10, 25, 10, 0));
+        when(payoutRepository.findAllBySellerIdAndStatusOrderByScheduledAtAscConfirmedAtDescIdDesc(
+                SELLER_ID, PayoutStatus.PENDING)).thenReturn(List.of(shirt));
+
+        List<PendingPayoutResponse> result = useCase.getMyPendingPayouts(MEMBER_ID);
+
+        assertThat(result).containsExactly(new PendingPayoutResponse(
+                1L, LocalDate.of(2026, 11, 15), LocalDateTime.of(2026, 10, 23, 10, 0),
+                LocalDateTime.of(2026, 10, 25, 10, 0), "티셔츠", 2L, 24_000L, 720L, 23_280L));
+    }
+
+    @Test
+    @DisplayName("지급 대기 정산이 없으면 빈 목록을 반환한다")
+    void getMyPendingPayoutsEmpty() {
+        when(payoutRepository.findAllBySellerIdAndStatusOrderByScheduledAtAscConfirmedAtDescIdDesc(any(), any()))
+                .thenReturn(List.of());
+
+        assertThat(useCase.getMyPendingPayouts(MEMBER_ID)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("지급 대기 정산도 판매자만 조회할 수 있다")
+    void getMyPendingPayoutsSellerOnly() {
+        when(sellerQuery.findSellerIdByMemberId(99L)).thenReturn(Optional.empty());
+
+        assertError(() -> useCase.getMyPendingPayouts(99L), PayoutErrorCode.PAYOUT_SELLER_ONLY);
+        assertError(() -> useCase.getMyPendingPayouts(null), PayoutErrorCode.PAYOUT_MEMBER_ID_REQUIRED);
     }
 
     @Test

@@ -32,6 +32,9 @@ public interface PayoutRepository extends JpaRepository<Payout, Long> {
     List<Payout> findAllBySellerIdAndStatusAndScheduledAtOrderByConfirmedAtDescIdDesc(
             Long sellerId, PayoutStatus status, LocalDateTime scheduledAt);
 
+    // 판매자의 정산 중 상태가 같은 것을 지급 예정이 이른 순, 같으면 구매확정이 최근인 순으로 조회한다.
+    List<Payout> findAllBySellerIdAndStatusOrderByScheduledAtAscConfirmedAtDescIdDesc(Long sellerId, PayoutStatus status);
+
     // 지급 예정 시각과 상태가 같은 정산을 묶은 합계.
     interface SettlementSummary {
 

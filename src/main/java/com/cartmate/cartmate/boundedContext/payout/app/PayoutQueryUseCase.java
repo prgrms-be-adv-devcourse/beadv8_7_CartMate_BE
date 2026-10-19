@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.payout.app;
 
+import com.cartmate.cartmate.boundedContext.payout.app.dto.PendingPayoutResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
@@ -86,6 +87,17 @@ public class PayoutQueryUseCase {
         }
 
         return SettlementDetailResponse.of(key, payouts);
+    }
+
+    // 로그인한 판매자의 아직 지급되지 않은(PENDING) 구매확정 정산을 지급 예정일이 이른 순으로 반환한다.
+    // 회원 ID가 없으면 PAYOUT_MEMBER_ID_REQUIRED, 판매자가 아니면 PAYOUT_SELLER_ONLY 예외가 발생한다.
+    public List<PendingPayoutResponse> getMyPendingPayouts(Long memberId) {
+        Long sellerId = sellerIdOf(memberId);
+
+        return payoutRepository.findAllBySellerIdAndStatusOrderByScheduledAtAscConfirmedAtDescIdDesc(
+                        sellerId, PayoutStatus.PENDING).stream()
+                .map(PendingPayoutResponse::from)
+                .toList();
     }
 
     // 상태가 같은 묶음의 값을 모두 더한다.
