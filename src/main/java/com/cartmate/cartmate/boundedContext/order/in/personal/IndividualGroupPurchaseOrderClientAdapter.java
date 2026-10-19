@@ -2,30 +2,27 @@ package com.cartmate.cartmate.boundedContext.order.in.personal;
 
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderClient;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderLine;
-import com.cartmate.cartmate.boundedContext.order.app.personal.OrderFacade;
+import com.cartmate.cartmate.boundedContext.order.app.personal.IndividualGroupOrderQueryFacade;
 import com.cartmate.cartmate.boundedContext.order.out.personal.IndividualGroupPurchaseOrderLineView;
-import org.springframework.context.annotation.Lazy;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class IndividualGroupPurchaseOrderClientAdapter implements IndividualGroupPurchaseOrderClient {
 
-    private final OrderFacade orderFacade;
-
-    public IndividualGroupPurchaseOrderClientAdapter(@Lazy OrderFacade orderFacade) {
-        this.orderFacade = orderFacade;
-    }
+    private final IndividualGroupOrderQueryFacade individualGroupOrderQueryFacade;
 
     @Override
     public boolean hasOrders(Long individualGroupPurchaseId, Long productId) {
-        return orderFacade.hasActiveIndividualGroupOrder(individualGroupPurchaseId, productId);
+        return individualGroupOrderQueryFacade.hasActiveIndividualGroupOrder(individualGroupPurchaseId, productId);
     }
 
     @Override
     public List<IndividualGroupPurchaseOrderLine> findOrderLines(Long individualGroupPurchaseId) {
-        return orderFacade.findPaidIndividualGroupOrderLines(individualGroupPurchaseId).stream()
+        return individualGroupOrderQueryFacade.findPaidIndividualGroupOrderLines(individualGroupPurchaseId).stream()
                 .map(this::toOrderLine)
                 .toList();
     }

@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.in.personal;
 
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderLine;
-import com.cartmate.cartmate.boundedContext.order.app.personal.OrderFacade;
+import com.cartmate.cartmate.boundedContext.order.app.personal.IndividualGroupOrderQueryFacade;
 import com.cartmate.cartmate.boundedContext.order.out.personal.IndividualGroupPurchaseOrderLineView;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ class IndividualGroupPurchaseOrderClientAdapterTest {
     private static final Long PURCHASE_ID = 10L;
 
     @Mock
-    private OrderFacade orderFacade;
+    private IndividualGroupOrderQueryFacade individualGroupOrderQueryFacade;
 
     @InjectMocks
     private IndividualGroupPurchaseOrderClientAdapter adapter;
@@ -31,7 +31,7 @@ class IndividualGroupPurchaseOrderClientAdapterTest {
     @DisplayName("결제 완료된 주문 줄을 현황판용 주문 줄로 그대로 옮긴다")
     void findOrderLines() {
         LocalDateTime orderedAt = LocalDateTime.of(2026, 10, 19, 12, 0);
-        given(orderFacade.findPaidIndividualGroupOrderLines(PURCHASE_ID)).willReturn(List.of(
+        given(individualGroupOrderQueryFacade.findPaidIndividualGroupOrderLines(PURCHASE_ID)).willReturn(List.of(
                 new IndividualGroupPurchaseOrderLineView(100L, 1L, 2L, 4L, 3, 25000L, orderedAt)));
 
         List<IndividualGroupPurchaseOrderLine> lines = adapter.findOrderLines(PURCHASE_ID);
