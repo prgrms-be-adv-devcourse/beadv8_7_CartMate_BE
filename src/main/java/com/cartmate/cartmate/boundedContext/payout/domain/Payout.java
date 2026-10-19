@@ -90,6 +90,16 @@ public class Payout {
                 .atTime(LocalTime.MIN);
     }
 
+    // 대기 중인 정산을 지급 완료로 바꾸고 지급 시각을 기록한다.
+    public void complete(LocalDateTime now) {
+        if (status != PayoutStatus.PENDING) {
+            throw new ServiceException(PayoutErrorCode.PAYOUT_NOT_PENDING);
+        }
+
+        this.status = PayoutStatus.COMPLETED;
+        this.paidAt = now;
+    }
+
     private Payout(Long sellerId, Long orderId, Long orderItemId, Long salesAmount, LocalDateTime confirmedAt) {
         this.sellerId = sellerId;
         this.orderId = orderId;

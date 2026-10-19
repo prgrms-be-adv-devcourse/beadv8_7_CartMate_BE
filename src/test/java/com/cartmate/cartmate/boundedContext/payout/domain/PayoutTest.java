@@ -69,6 +69,29 @@ class PayoutTest {
     }
 
     @Test
+    @DisplayName("대기 정산을 완료하면 COMPLETED가 되고 지급 시각이 기록된다")
+    void complete() {
+        Payout payout = payout(10_000L, CONFIRMED_AT);
+        LocalDateTime paidAt = LocalDateTime.of(2026, 11, 15, 0, 10);
+
+        payout.complete(paidAt);
+
+        assertThat(payout.getStatus()).isEqualTo(PayoutStatus.COMPLETED);
+        assertThat(payout.getPaidAt()).isEqualTo(paidAt);
+    }
+
+    @Test
+    @DisplayName("이미 완료된 정산은 다시 완료할 수 없다")
+    void completeTwice() {
+        Payout payout = payout(10_000L, CONFIRMED_AT);
+        payout.complete(LocalDateTime.of(2026, 11, 15, 0, 10));
+
+        assertThatThrownBy(() -> payout.complete(LocalDateTime.of(2026, 11, 16, 0, 10)))
+                .isInstanceOfSatisfying(ServiceException.class, e -> assertThat(e.getResultCode())
+                        .isEqualTo(PayoutErrorCode.PAYOUT_NOT_PENDING.resultCode()));
+    }
+
+    @Test
     @DisplayName("필수 값이 없거나 금액이 음수이면 생성할 수 없다")
     void createValidation() {
         assertThatThrownBy(() -> Payout.create(null, 100L, 1000L, 1_000L, CONFIRMED_AT))
