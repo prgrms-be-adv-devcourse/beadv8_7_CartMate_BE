@@ -20,6 +20,7 @@ public class WalletFacade {
     private final WalletChargeUseCase walletChargeUseCase;
     private final WalletPaymentUseCase walletPaymentUseCase;
     private final WalletSettlementUseCase walletSettlementUseCase;
+    private final WalletPayoutUseCase walletPayoutUseCase;
     private final WalletWithdrawUseCase walletWithdrawUseCase;
 
     // 회원 지갑 생성을 요청한다.
@@ -59,6 +60,12 @@ public class WalletFacade {
     @Transactional
     public void refund(Long walletId, Long amount, Long paymentId, Long orderId, Long refundId) {
         walletPaymentUseCase.refund(walletId, amount, paymentId, orderId, refundId);
+    }
+
+    // 정산 ID 기준으로 중복 입금을 확인하고 잔액 입금·정산 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
+    @Transactional
+    public void depositPayout(Long walletId, Long amount, Long payoutId, Long orderId) {
+        walletPayoutUseCase.deposit(walletId, amount, payoutId, orderId);
     }
 
     // 충전 주문을 생성하거나 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.

@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.app.personal;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.cart.out.ProductClient;
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartItemResponse;
@@ -50,7 +51,7 @@ class CartItemUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        cartItemUseCase = new CartItemUseCase(new CartSupport(cartRepository), productClient);
+        cartItemUseCase = new CartItemUseCase(cartRepository, productClient);
     }
 
     @Nested
@@ -110,8 +111,8 @@ class CartItemUseCaseTest {
             given(productClient.findByInventoryId(999L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> cartItemUseCase.addItem(MEMBER_ID, 999L, 1))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("존재하지 않는 상품 옵션입니다.");
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("존재하지 않는 상품 옵션입니다.");
             verifyNoInteractions(cartRepository);
         }
 
@@ -121,8 +122,8 @@ class CartItemUseCaseTest {
             given(productClient.findByInventoryId(5L)).willReturn(Optional.of(SHIN_GUARD));
 
             assertThatThrownBy(() -> cartItemUseCase.addItem(MEMBER_ID, 5L, 1))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("구매할 수 없는 상품입니다.");
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("구매할 수 없는 상품입니다.");
             verifyNoInteractions(cartRepository);
         }
     }
@@ -149,8 +150,8 @@ class CartItemUseCaseTest {
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 99L, 7))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("장바구니에 없는 상품입니다.");
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("장바구니에 없는 상품입니다.");
         }
 
         @Test
@@ -159,8 +160,8 @@ class CartItemUseCaseTest {
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("장바구니가 존재하지 않습니다.");
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("장바구니가 존재하지 않습니다.");
         }
     }
 

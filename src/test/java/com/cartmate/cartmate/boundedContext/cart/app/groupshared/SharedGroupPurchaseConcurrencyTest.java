@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.app.groupshared;
 
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus;
@@ -40,7 +42,7 @@ class SharedGroupPurchaseConcurrencyTest {
     private static final long CREATOR = 9_000_001L;
 
     @Autowired
-    private SharedGroupPurchaseService service;
+    private SharedGroupPurchaseFacade facade;
 
     @Autowired
     private SharedGroupPurchaseRepository repository;
@@ -66,18 +68,18 @@ class SharedGroupPurchaseConcurrencyTest {
     @Test
     @DisplayName("마지막 한 자리에 여러 명이 동시에 참여해도 정원을 넘지 않는다")
     void lastSeatJoin() throws InterruptedException {
-        var created = service.create(CREATOR, new SharedGroupPurchaseCreateRequest("동시 참여", 3));
+        var created = facade.create(CREATOR, new SharedGroupPurchaseCreateRequest("동시 참여", 3));
         createdIds.add(created.id());
-        service.join(CREATOR + 1, created.inviteCode());
+        facade.join(CREATOR + 1, created.inviteCode());
 
         AtomicInteger success = new AtomicInteger();
         AtomicInteger full = new AtomicInteger();
         runConcurrently(index -> {
             try {
-                service.join(CREATOR + 100 + index, created.inviteCode());
+                facade.join(CREATOR + 100 + index, created.inviteCode());
                 success.incrementAndGet();
-            } catch (IllegalArgumentException e) {
-                if (e.getMessage().equals("참여 인원이 가득 찼습니다.")) {
+            } catch (ServiceException e) {
+                if (e.getResultCode().equals(CartErrorCode.CART_SHARED_FULL.resultCode())) {
                     full.incrementAndGet();
                 }
             }
@@ -92,16 +94,16 @@ class SharedGroupPurchaseConcurrencyTest {
     @Test
     @DisplayName("생성자의 마감 요청이 동시에 여러 번 와도 마감과 마감 이벤트는 한 번만 일어난다")
     void concurrentCreatorClose() throws InterruptedException {
-        var created = service.create(CREATOR, new SharedGroupPurchaseCreateRequest("동시 마감", 5));
+        var created = facade.create(CREATOR, new SharedGroupPurchaseCreateRequest("동시 마감", 5));
         createdIds.add(created.id());
-        service.addItem(CREATOR, created.id(), 4L, 2);
+        facade.addItem(CREATOR, created.id(), 4L, 2);
 
         AtomicInteger success = new AtomicInteger();
         runConcurrently(index -> {
             try {
-                service.close(CREATOR, created.id());
+                facade.close(CREATOR, created.id());
                 success.incrementAndGet();
-            } catch (IllegalArgumentException ignored) {
+            } catch (ServiceException ignored) {
             }
         });
 
@@ -121,7 +123,7 @@ class SharedGroupPurchaseConcurrencyTest {
         });
         createdIds.add(id);
 
-        runConcurrently(index -> service.closeByDeadline(id));
+        runConcurrently(index -> facade.closeByDeadline(id));
 
         assertThat(eventRecorder.countFor(id)).isEqualTo(1);
         assertThat(statusOf(id)).isEqualTo(SharedGroupPurchaseStatus.CLOSED);

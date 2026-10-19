@@ -6,6 +6,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartItemResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartResponse;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.cart.out.ProductClient;
+import com.cartmate.cartmate.boundedContext.cart.out.personal.CartRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,11 +19,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 class CartQueryUseCase {
 
-    private final CartSupport cartSupport;
+    private final CartRepository cartRepository;
     private final ProductClient productClient;
 
     CartResponse getCart(Long memberId) {
-        return cartSupport.findWithItems(memberId)
+        return cartRepository.findWithItemsByMemberId(memberId)
                 .map(this::toResponse)
                 .orElseGet(CartResponse::empty);
     }

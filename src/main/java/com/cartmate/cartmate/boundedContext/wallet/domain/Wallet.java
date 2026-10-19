@@ -76,6 +76,15 @@ public class Wallet {
         this.balance += amount;
     }
 
+    // 판매 정산금을 잔액에 입금한다.
+    public void deposit(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
+        }
+
+        this.balance += amount;
+    }
+
     private Wallet(Long memberId) {
         this.memberId = memberId;
         this.balance = 0L;

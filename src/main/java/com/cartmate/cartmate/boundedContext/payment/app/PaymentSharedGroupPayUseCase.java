@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+// 공동물품 구매 분담금 결제
 @Service
 @RequiredArgsConstructor
 public class PaymentSharedGroupPayUseCase {

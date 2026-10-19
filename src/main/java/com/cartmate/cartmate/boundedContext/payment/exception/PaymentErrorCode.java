@@ -15,10 +15,8 @@ public enum PaymentErrorCode implements ErrorCode {
     PAYMENT_ORDER_NOT_PAYABLE("PAYMENT_ORDER_NOT_PAYABLE", "결제할 수 없는 주문 상태입니다.", HttpStatus.CONFLICT),
     PAYMENT_IN_PROGRESS("PAYMENT_IN_PROGRESS", "이미 처리 중인 결제입니다. 잠시 후 다시 확인해주세요.", HttpStatus.CONFLICT),
     PAYMENT_NOT_FOUND("PAYMENT_NOT_FOUND", "결제 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
-    PAYMENT_ACCESS_DENIED("PAYMENT_ACCESS_DENIED", "본인의 결제만 조회·취소할 수 있습니다.", HttpStatus.FORBIDDEN),
-    PAYMENT_REFUND_NOT_ALLOWED("PAYMENT_REFUND_NOT_ALLOWED", "공동물품 구매는 확정 후 취소·환불할 수 없습니다.", HttpStatus.CONFLICT),
+    PAYMENT_ACCESS_DENIED("PAYMENT_ACCESS_DENIED", "본인의 결제만 조회할 수 있습니다.", HttpStatus.FORBIDDEN),
     PAYMENT_ALREADY_CANCELED("PAYMENT_ALREADY_CANCELED", "이미 취소된 결제입니다.", HttpStatus.CONFLICT);
-
 
     private final String code;
     private final String msg;

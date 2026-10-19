@@ -12,10 +12,12 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
+// 개인 주문(orders)과 공동 주문(shared_group_order)은 번호가 겹칠 수 있어서 결제 종류까지 묶어 UNIQUE
 @Entity
 @Table(
         name = "payment",
-        uniqueConstraints = @UniqueConstraint(name = "uk_payment_order_member", columnNames = {"order_id", "member_id"})
+        uniqueConstraints = @UniqueConstraint(name = "uk_payment_type_order_member",
+                columnNames = {"payment_type", "order_id", "member_id"})
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -65,14 +67,6 @@ public class Payment extends BaseIdAndTime {
         payment.status = PaymentStatus.PAID;
         payment.paidAt = LocalDateTime.now();
         return payment;
-    }
-
-    public void cancel() {
-        if (status == PaymentStatus.CANCELED) {
-            throw new ServiceException(PaymentErrorCode.PAYMENT_ALREADY_CANCELED);
-        }
-        this.status = PaymentStatus.CANCELED;
-        this.canceledAt = LocalDateTime.now();
     }
 
     public boolean isOwnedBy(Long memberId) {

@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.payment.out;
 
-// 결제에 필요한 주문 정보만
+// 결제에 필요한 개인 주문 정보만
 public record PaymentOrderInfo(
         Long orderId,
         Long memberId,

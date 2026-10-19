@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+// 개인 주문 결제 (일반 주문 + 개인물품 공동구매 주문)
 @Service
 @RequiredArgsConstructor
 public class PaymentPayUseCase {
@@ -25,8 +26,8 @@ public class PaymentPayUseCase {
     private final EventPublisher eventPublisher;
 
     public PaymentResponse payOrder(Long memberId, Long orderId) {
-        // 1. 이미 결제한 주문이면 새로 결제하지 않고 기존 결과를 돌려준다 (버튼 두 번, 재시도 대비)
-        var existing = paymentRepository.findByOrderIdAndMemberId(orderId, memberId);
+        // 1. 이미 결제한 주문이면 기존 결과 반환 (버튼 두 번, 재시도 대비)
+        var existing = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL, orderId, memberId);
         if (existing.isPresent()) {
             Payment payment = existing.get();
             if (payment.getStatus() == PaymentStatus.PAID) {
@@ -53,11 +54,10 @@ public class PaymentPayUseCase {
             payment = paymentRepository.saveAndFlush(
                     Payment.pay(orderId, memberId, walletId, order.amount(), PaymentType.INDIVIDUAL));
         } catch (DataIntegrityViolationException e) {
-            // 같은 주문 결제 요청이 동시에 들어온 경우
             throw new ServiceException(PaymentErrorCode.PAYMENT_IN_PROGRESS);
         }
 
-        // 4. 예치금 차감. 잔액 부족이면 예외 → 트랜잭션 전체 롤백 (결제 기록도 사라짐)
+        // 4. 예치금 차감 + 홀딩. 잔액 부족이면 예외 → 결제 기록까지 롤백
         paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), orderId);
 
         // 5. 결과 알림. order가 받아서 주문 상태를 바꾼다
