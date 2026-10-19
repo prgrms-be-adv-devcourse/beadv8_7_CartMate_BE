@@ -41,6 +41,9 @@ public class HoldingSettlement {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    // 정산(payoutId)이 홀딩에서 amount만큼 꺼냈다는 기록을 만든다.
+    // 홀딩이 없으면 WALLET_HOLDING_NOT_FOUND, 정산 ID가 없으면 WALLET_PAYOUT_ID_REQUIRED,
+    // 금액이 없거나 0 이하이면 WALLET_INVALID_AMOUNT 예외가 발생한다.
     public static HoldingSettlement create(Holding holding, Long payoutId, Long amount) {
         if (holding == null) {
             throw new ServiceException(WalletErrorCode.WALLET_HOLDING_NOT_FOUND);

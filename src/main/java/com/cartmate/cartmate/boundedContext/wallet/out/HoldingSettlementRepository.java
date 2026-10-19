@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface HoldingSettlementRepository extends JpaRepository<HoldingSettlement, Long> {
 
+    // 정산 한 건이 홀딩에서 꺼낸 기록 전부. 같은 정산이 이미 처리됐는지 확인할 때 쓴다.
     List<HoldingSettlement> findAllByPayoutId(Long payoutId);
 
     // 홀딩에서 정산으로 꺼낸 금액의 합계. 정산 기록이 없으면 0이다.
