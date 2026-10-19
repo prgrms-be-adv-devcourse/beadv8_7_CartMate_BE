@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.boundedContext.order.domain;
+package com.cartmate.cartmate.boundedContext.order.domain.groupshared;
 
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;

@@ -9,6 +9,9 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum OrderErrorCode implements ErrorCode {
 
+    // 조회
+    ORDER_NOT_FOUND("ORDER_NOT_FOUND", "존재하지 않는 공동 주문입니다.", HttpStatus.NOT_FOUND),
+
     // 공동 주문 생성
     ORDER_NO_ITEMS("ORDER_NO_ITEMS", "주문할 상품이 없습니다.", HttpStatus.BAD_REQUEST),
     ORDER_CREATOR_NOT_IN_PARTICIPANTS("ORDER_CREATOR_NOT_IN_PARTICIPANTS", "생성자는 참여자에 포함되어야 합니다.", HttpStatus.BAD_REQUEST),
