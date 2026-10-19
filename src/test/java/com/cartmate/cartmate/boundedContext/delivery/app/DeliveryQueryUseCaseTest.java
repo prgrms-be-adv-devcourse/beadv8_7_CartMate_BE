@@ -60,8 +60,8 @@ class DeliveryQueryUseCaseTest {
         ReflectionTestUtils.setField(delivery, "id", 5L);
         when(deliveryRepository.findById(5L)).thenReturn(Optional.of(delivery));
 
-        DeliveryItem shirt = DeliveryItem.create(delivery, 1000L, "티셔츠", 2L);
-        DeliveryItem socks = DeliveryItem.create(delivery, 1001L, "양말", 1L);
+        DeliveryItem shirt = DeliveryItem.create(delivery, 1000L, "티셔츠", 10_000L, 2L);
+        DeliveryItem socks = DeliveryItem.create(delivery, 1001L, "양말", 10_000L, 1L);
         ReflectionTestUtils.setField(shirt, "id", 50L);
         ReflectionTestUtils.setField(socks, "id", 51L);
         when(itemRepository.findByDeliveryId(5L)).thenReturn(List.of(shirt, socks));
@@ -149,7 +149,7 @@ class DeliveryQueryUseCaseTest {
         when(deliveryRepository.findBySellerIdAndStatusOrderByCreatedAtDescIdDesc(
                 SELLER_ID, DeliveryStatus.REQUESTED, pageable))
                 .thenReturn(new PageImpl<>(List.of(delivery), pageable, 1));
-        DeliveryItem shirt = DeliveryItem.create(delivery, 1000L, "티셔츠", 2L);
+        DeliveryItem shirt = DeliveryItem.create(delivery, 1000L, "티셔츠", 10_000L, 2L);
         ReflectionTestUtils.setField(shirt, "id", 50L);
         when(itemRepository.findByDeliveryIdIn(List.of(5L))).thenReturn(List.of(shirt));
         when(optionRepository.findByDeliveryItemIdInOrderByDeliveryItemIdAscSortOrderAsc(List.of(50L)))
