@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.payout.in;
 
 import com.cartmate.cartmate.boundedContext.payout.app.PayoutFacade;
+import com.cartmate.cartmate.boundedContext.payout.app.dto.PendingPayoutResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
@@ -147,6 +148,37 @@ class PayoutControllerTest {
                 .andExpect(jsonPath("$.data.items[0].quantity").value(2))
                 .andExpect(jsonPath("$.data.items[0].orderedAt").value("2026-10-23T09:00:00"));
         verify(payoutFacade).getMySettlementDetail(20L, "20261115-PENDING");
+    }
+
+    @Test
+    @DisplayName("정산 대기 내역은 RsData로 감싸서 내려가고 정산 상세가 아니라 대기 조회로 연결된다")
+    void pendingPayouts() throws Exception {
+        when(payoutFacade.getMyPendingPayouts(20L)).thenReturn(List.of(new PendingPayoutResponse(
+                1L, LocalDate.of(2026, 11, 15), LocalDateTime.of(2026, 10, 23, 9, 0),
+                LocalDateTime.of(2026, 10, 25, 10, 0), "티셔츠", 2L, 24_000L, 720L, 23_280L)));
+
+        mvc.perform(get("/api/settlements/pending"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data[0].payoutId").value(1))
+                .andExpect(jsonPath("$.data[0].settlementDate").value("2026-11-15"))
+                .andExpect(jsonPath("$.data[0].confirmedAt").value("2026-10-25T10:00:00"))
+                .andExpect(jsonPath("$.data[0].productName").value("티셔츠"))
+                .andExpect(jsonPath("$.data[0].quantity").value(2))
+                .andExpect(jsonPath("$.data[0].salesAmount").value(24000))
+                .andExpect(jsonPath("$.data[0].feeAmount").value(720))
+                .andExpect(jsonPath("$.data[0].payoutAmount").value(23280));
+        verify(payoutFacade, never()).getMySettlementDetail(any(), any());
+    }
+
+    @Test
+    @DisplayName("판매자가 아니면 정산 대기 조회도 403 오류로 변환된다")
+    void pendingPayoutsSellerOnly() throws Exception {
+        when(payoutFacade.getMyPendingPayouts(20L))
+                .thenThrow(new ServiceException(PayoutErrorCode.PAYOUT_SELLER_ONLY));
+
+        mvc.perform(get("/api/settlements/pending"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

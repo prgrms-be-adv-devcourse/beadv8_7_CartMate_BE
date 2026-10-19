@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.payout.in;
 
 import com.cartmate.cartmate.boundedContext.payout.app.PayoutFacade;
+import com.cartmate.cartmate.boundedContext.payout.app.dto.PendingPayoutResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
@@ -41,6 +42,13 @@ public class PayoutController {
     public RsData<SettlementInfoResponse> getMySettlementInfo(@AuthenticationPrincipal SecurityUser user) {
         return new RsData<>("200-1", "정산 정보 조회 성공했습니다.",
                 payoutFacade.getMySettlementInfo(user.memberId()));
+    }
+
+    // 판매자 본인의 아직 지급되지 않은 구매확정 건. 지급 예정일이 이른 순으로 건별로 내려간다.
+    @GetMapping("/pending")
+    public RsData<List<PendingPayoutResponse>> getMyPendingPayouts(@AuthenticationPrincipal SecurityUser user) {
+        return new RsData<>("200-1", "정산 대기 내역 조회 성공했습니다.",
+                payoutFacade.getMyPendingPayouts(user.memberId()));
     }
 
     // 판매자 본인의 정산 상세. 정산 ID(지급 예정일+상태, 예: 20261115-COMPLETED)에 묶인 판매 건과 합계를 내려준다.
