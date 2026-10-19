@@ -8,5 +8,6 @@ import java.time.LocalDateTime;
 public interface PaymentSharedGroupOrderClient {
     SharedGroupOrderPaymentInfo getPaymentInfo(Long sharedGroupOrderId, Long memberId, LocalDateTime now);
     void markStockReserved(Long sharedGroupOrderId);
-    void applyPayment(Long sharedGroupOrderId, Long memberId, LocalDateTime paidAt, TeamDeliveryAddress address);
+    void applyPayment(Long sharedGroupOrderId, Long memberId, Long paymentId, LocalDateTime paidAt,
+                      TeamDeliveryAddress address);
 }

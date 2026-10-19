@@ -25,7 +25,8 @@ public class SharedGroupOrderFacadeClient implements PaymentSharedGroupOrderClie
     }
 
     @Override
-    public void applyPayment(Long sharedGroupOrderId, Long memberId, LocalDateTime paidAt, TeamDeliveryAddress address) {
-        sharedGroupOrderFacade.applyPayment(sharedGroupOrderId, memberId, paidAt, address);
+    public void applyPayment(Long sharedGroupOrderId, Long memberId, Long paymentId, LocalDateTime paidAt,
+                             TeamDeliveryAddress address) {
+        sharedGroupOrderFacade.applyPayment(sharedGroupOrderId, memberId, paymentId, paidAt, address);
     }
 }

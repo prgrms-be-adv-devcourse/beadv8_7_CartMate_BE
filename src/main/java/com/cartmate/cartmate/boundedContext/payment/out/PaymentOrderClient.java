@@ -6,5 +6,5 @@ import java.time.LocalDateTime;
 
 public interface PaymentOrderClient {
     OrderPaymentInfo getPaymentInfo(Long orderId, Long memberId, LocalDateTime now);
-    void applyPayment(Long orderId, Long memberId, LocalDateTime paidAt);
+    void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt);
 }

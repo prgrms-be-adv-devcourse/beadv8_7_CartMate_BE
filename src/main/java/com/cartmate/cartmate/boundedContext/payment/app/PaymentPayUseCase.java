@@ -55,7 +55,7 @@ public class PaymentPayUseCase {
         paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), orderId);
 
         // order가 주문을 결제 완료로 바꾸고 OrderPaidEvent를 발행 (장바구니 비우기 등은 그쪽에서)
-        paymentOrderClient.applyPayment(orderId, memberId, payment.getPaidAt());
+        paymentOrderClient.applyPayment(orderId, memberId, payment.getId(), payment.getPaidAt());
 
         return PaymentResponse.from(payment);
     }

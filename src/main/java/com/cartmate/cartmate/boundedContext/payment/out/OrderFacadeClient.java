@@ -19,7 +19,7 @@ public class OrderFacadeClient implements PaymentOrderClient {
     }
 
     @Override
-    public void applyPayment(Long orderId, Long memberId, LocalDateTime paidAt) {
-        orderFacade.applyPayment(orderId, memberId, paidAt);
+    public void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt) {
+        orderFacade.applyPayment(orderId, memberId, paymentId, paidAt);
     }
 }
