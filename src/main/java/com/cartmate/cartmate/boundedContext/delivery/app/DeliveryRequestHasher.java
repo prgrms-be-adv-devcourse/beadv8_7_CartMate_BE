@@ -13,7 +13,7 @@ import java.util.List;
 // 멱등키와 서버 생성값은 제외하고, 규칙을 바꾸면 기존 해시와 달라지므로 VERSION을 올린다.
 public final class DeliveryRequestHasher {
 
-    private static final String VERSION = "v2";
+    private static final String VERSION = "v1";
 
     private DeliveryRequestHasher() {
     }
