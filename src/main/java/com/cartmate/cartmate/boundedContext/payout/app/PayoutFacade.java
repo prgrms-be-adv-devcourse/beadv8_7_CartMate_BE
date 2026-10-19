@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.payout.app;
 
+import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
@@ -42,5 +43,11 @@ public class PayoutFacade {
     @Transactional(readOnly = true)
     public List<SettlementResponse> getMySettlements(Long memberId, LocalDate startDate, LocalDate endDate) {
         return payoutQueryUseCase.getMySettlements(memberId, startDate, endDate);
+    }
+
+    // 로그인한 판매자의 정산 정책(수수료율, 지급일, 다음 지급일)과 정산 현황을 조회한다.
+    @Transactional(readOnly = true)
+    public SettlementInfoResponse getMySettlementInfo(Long memberId) {
+        return payoutQueryUseCase.getMySettlementInfo(memberId, LocalDate.now());
     }
 }

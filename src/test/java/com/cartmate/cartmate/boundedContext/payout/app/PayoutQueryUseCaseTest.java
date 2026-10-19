@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.payout.app;
 
+import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
@@ -123,5 +124,50 @@ class PayoutQueryUseCaseTest {
         assertError(() -> useCase.getMySettlements(MEMBER_ID, LocalDate.of(2026, 12, 1), LocalDate.of(2026, 11, 1)),
                 PayoutErrorCode.PAYOUT_INVALID_DATE_RANGE);
         verify(payoutRepository, never()).summarizeBySchedule(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("정산 정책과 지급 예정 금액, 지급 완료 금액을 합산해 정산 정보를 반환한다")
+    void getMySettlementInfo() {
+        LocalDateTime oct15 = LocalDateTime.of(2026, 10, 15, 0, 0);
+        LocalDateTime nov15 = LocalDateTime.of(2026, 11, 15, 0, 0);
+        SettlementSummary octCompleted = summary(oct15, PayoutStatus.COMPLETED, 3, 60_000L, 1_800L, 58_200L);
+        SettlementSummary octPending = summary(oct15, PayoutStatus.PENDING, 1, 5_000L, 150L, 4_850L);
+        SettlementSummary novPending = summary(nov15, PayoutStatus.PENDING, 2, 100_000L, 3_000L, 97_000L);
+        SettlementSummary novCompleted = summary(nov15, PayoutStatus.COMPLETED, 4, 40_000L, 1_200L, 38_800L);
+        when(payoutRepository.summarizeBySchedule(SELLER_ID, LISTED,
+                LocalDate.of(2000, 1, 1).atStartOfDay(), LocalDate.of(3000, 1, 1).atStartOfDay()))
+                .thenReturn(List.of(novPending, novCompleted, octCompleted, octPending));
+
+        SettlementInfoResponse info = useCase.getMySettlementInfo(MEMBER_ID, LocalDate.of(2026, 10, 20));
+
+        assertThat(info.feeRatePercent()).isEqualTo(3);
+        assertThat(info.payoutDayOfMonth()).isEqualTo(15);
+        assertThat(info.nextPayoutDate()).isEqualTo(LocalDate.of(2026, 11, 15));
+        assertThat(info.pendingPayoutCount()).isEqualTo(3L);
+        assertThat(info.pendingPayoutAmount()).isEqualTo(4_850L + 97_000L);
+        assertThat(info.completedPayoutAmount()).isEqualTo(58_200L + 38_800L);
+    }
+
+    @Test
+    @DisplayName("정산이 없으면 금액은 0이고 정책 정보만 반환한다")
+    void getMySettlementInfoWithoutPayouts() {
+        when(payoutRepository.summarizeBySchedule(any(), any(), any(), any())).thenReturn(List.of());
+
+        SettlementInfoResponse info = useCase.getMySettlementInfo(MEMBER_ID, LocalDate.of(2026, 10, 1));
+
+        assertThat(info.nextPayoutDate()).isEqualTo(LocalDate.of(2026, 10, 15));
+        assertThat(info.pendingPayoutCount()).isZero();
+        assertThat(info.pendingPayoutAmount()).isZero();
+        assertThat(info.completedPayoutAmount()).isZero();
+    }
+
+    @Test
+    @DisplayName("정산 정보도 판매자만 조회할 수 있다")
+    void getMySettlementInfoSellerOnly() {
+        when(sellerQuery.findSellerIdByMemberId(99L)).thenReturn(Optional.empty());
+
+        assertError(() -> useCase.getMySettlementInfo(99L, LocalDate.of(2026, 10, 1)), PayoutErrorCode.PAYOUT_SELLER_ONLY);
+        assertError(() -> useCase.getMySettlementInfo(null, LocalDate.of(2026, 10, 1)), PayoutErrorCode.PAYOUT_MEMBER_ID_REQUIRED);
     }
 }
