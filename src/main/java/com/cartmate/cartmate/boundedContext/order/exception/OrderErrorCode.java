@@ -13,6 +13,7 @@ public enum OrderErrorCode implements ErrorCode {
     ORDER_NOT_FOUND("ORDER_NOT_FOUND", "존재하지 않는 공동 주문입니다.", HttpStatus.NOT_FOUND),
 
     // 공동 주문 생성
+    ORDER_PRODUCT_NOT_FOUND("ORDER_PRODUCT_NOT_FOUND", "주문할 상품 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     ORDER_NO_ITEMS("ORDER_NO_ITEMS", "주문할 상품이 없습니다.", HttpStatus.BAD_REQUEST),
     ORDER_CREATOR_NOT_IN_PARTICIPANTS("ORDER_CREATOR_NOT_IN_PARTICIPANTS", "생성자는 참여자에 포함되어야 합니다.", HttpStatus.BAD_REQUEST),
     ORDER_DUPLICATE_PARTICIPANTS("ORDER_DUPLICATE_PARTICIPANTS", "참여자가 중복되었습니다.", HttpStatus.BAD_REQUEST),

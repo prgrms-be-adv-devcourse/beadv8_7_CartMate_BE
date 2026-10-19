@@ -2,6 +2,8 @@ package com.cartmate.cartmate.boundedContext.order.out.groupshared;
 
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderStatus;
+import com.cartmate.cartmate.boundedContext.order.domain.groupshared.QSharedGroupOrderParticipant;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
@@ -52,10 +54,15 @@ public class SharedGroupOrderRepositoryImpl implements SharedGroupOrderRepositor
 
     @Override
     public List<SharedGroupOrder> findAllByParticipant(Long memberId) {
+        QSharedGroupOrderParticipant mine = new QSharedGroupOrderParticipant("mine");
         return queryFactory
                 .selectFrom(sharedGroupOrder)
-                .join(sharedGroupOrder.participants, sharedGroupOrderParticipant)
-                .where(sharedGroupOrderParticipant.memberId.eq(memberId))
+                .distinct()
+                .leftJoin(sharedGroupOrder.participants, sharedGroupOrderParticipant).fetchJoin()
+                .where(JPAExpressions.selectOne()
+                        .from(mine)
+                        .where(mine.sharedGroupOrder.eq(sharedGroupOrder), mine.memberId.eq(memberId))
+                        .exists())
                 .orderBy(sharedGroupOrder.id.desc())
                 .fetch();
     }
