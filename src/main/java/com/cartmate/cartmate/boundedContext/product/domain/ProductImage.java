@@ -6,6 +6,7 @@ import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(

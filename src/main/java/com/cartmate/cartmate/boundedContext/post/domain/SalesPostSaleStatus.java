@@ -12,8 +12,4 @@ public enum SalesPostSaleStatus {
     SalesPostSaleStatus(String name) {
         this.name = name;
     }
-
-    public boolean isVisible() {
-        return this == ON_SALE || this == CLOSED;
-    }
 }

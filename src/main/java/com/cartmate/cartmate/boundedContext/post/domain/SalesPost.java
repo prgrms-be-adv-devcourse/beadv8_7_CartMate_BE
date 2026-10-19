@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ public class SalesPost extends BaseIdAndTime {
     private Long viewCount;
 
     @OneToMany(mappedBy = "salesPost", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    @SQLRestriction("status in ('ON_SALE')")
     private List<SalesPostProduct> productList = new ArrayList<>();
 
     public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount) {
@@ -60,11 +62,6 @@ public class SalesPost extends BaseIdAndTime {
                 getCreateDate(),
                 getModifyDate()
         );
-    }
-
-
-    public boolean isVisible() {
-        return status.isVisible();
     }
 
     public SalesPost delete() {

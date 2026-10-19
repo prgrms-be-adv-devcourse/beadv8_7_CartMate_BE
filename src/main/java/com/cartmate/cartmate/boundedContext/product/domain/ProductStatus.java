@@ -6,15 +6,12 @@ public enum ProductStatus {
     SUSPENDED("운영 중지"), // 관리자에 의한 판매자 정지
     CLOSED("판매 종료"),
     DELETED("삭제"),
-    ACTIVE("활성화"); // 사진
+    ACTIVE("활성화"),
+    INACTIVE("비활성화"); // 사진
 
     private String name;
 
     ProductStatus(String name) {
         this.name = name;
-    }
-
-    public boolean isVisible() {
-        return this == ON_SALE || this == CLOSED;
     }
 }
