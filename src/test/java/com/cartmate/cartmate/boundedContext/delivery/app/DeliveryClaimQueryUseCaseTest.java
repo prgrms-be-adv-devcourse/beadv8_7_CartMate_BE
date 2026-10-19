@@ -64,7 +64,7 @@ class DeliveryClaimQueryUseCaseTest {
     }
 
     private DeliveryClaimItem claimItem(DeliveryClaim claim, long itemId, long orderItemId, String name, long qty) {
-        DeliveryItem deliveryItem = DeliveryItem.create(claim.getDelivery(), orderItemId, name, 2L);
+        DeliveryItem deliveryItem = DeliveryItem.create(claim.getDelivery(), orderItemId, name, 10_000L, 2L);
         ReflectionTestUtils.setField(deliveryItem, "id", itemId);
         return DeliveryClaimItem.create(claim, deliveryItem, qty);
     }

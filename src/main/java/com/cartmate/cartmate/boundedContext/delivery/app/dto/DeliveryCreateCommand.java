@@ -20,6 +20,7 @@ public record DeliveryCreateCommand(
     public record Item(
             Long orderItemId,
             String productName,
+            Long unitPrice,     // 옵션 가격이 반영된 최종 단가
             Long quantity,
             List<Option> options
     ) {}

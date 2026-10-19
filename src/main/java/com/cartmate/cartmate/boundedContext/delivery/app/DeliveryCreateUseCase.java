@@ -58,7 +58,7 @@ public class DeliveryCreateUseCase {
         for (DeliveryCreateCommand.Item item : createCommand.deliveryItem()) {
             DeliveryItem deliveryItem = DeliveryItem.create(
                     delivery,
-                    item.orderItemId(), item.productName(), item.quantity()
+                    item.orderItemId(), item.productName(), item.unitPrice(), item.quantity()
             );
 
             deliveryItemRepository.save(deliveryItem);
@@ -119,6 +119,9 @@ public class DeliveryCreateUseCase {
             }
             if (item.orderItemId() == null) {
                 throw new ServiceException(DeliveryErrorCode.DELIVERY_ORDER_ITEM_ID_REQUIRED);
+            }
+            if (item.unitPrice() == null || item.unitPrice() < 0) {
+                throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_UNIT_PRICE);
             }
             if (item.quantity() == null || item.quantity() <= 0) {
                 throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_QUANTITY);
