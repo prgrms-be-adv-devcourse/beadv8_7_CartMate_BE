@@ -6,6 +6,8 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 custom:
+  wallet:
+    platform-member-id: ${PLATFORM_MEMBER_ID:1} # 판매 수수료를 받는 관리자 회원 ID. 환경마다 PLATFORM_MEMBER_ID로 바꾼다
   member:
     seller:
       minAge: 19
