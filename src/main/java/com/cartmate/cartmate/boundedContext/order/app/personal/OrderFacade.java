@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateReques
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderSummaryResponse;
+import com.cartmate.cartmate.boundedContext.order.out.personal.IndividualGroupPurchaseOrderLineView;
 import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -72,5 +73,15 @@ public class OrderFacade {
     @Transactional(readOnly = true)
     public List<Long> findIdsToCancelByDeadline(LocalDateTime now) {
         return orderCancelUseCase.findIdsToCancelByDeadline(now);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasActiveIndividualGroupOrder(Long individualGroupPurchaseId, Long productId) {
+        return orderQueryUseCase.hasActiveIndividualGroupOrder(individualGroupPurchaseId, productId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<IndividualGroupPurchaseOrderLineView> findPaidIndividualGroupOrderLines(Long individualGroupPurchaseId) {
+        return orderQueryUseCase.findPaidIndividualGroupOrderLines(individualGroupPurchaseId);
     }
 }
