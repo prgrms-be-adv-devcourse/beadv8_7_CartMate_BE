@@ -15,4 +15,8 @@ public interface OrderRepositoryCustom {
     List<Order> findAllByMember(Long memberId);
 
     List<Long> findIdsToCancelByDeadline(LocalDateTime now);
+
+    boolean existsActiveOrderByIndividualGroupPurchaseAndProduct(Long individualGroupPurchaseId, Long productId);
+
+    List<IndividualGroupPurchaseOrderLineView> findPaidOrderLines(Long individualGroupPurchaseId);
 }
