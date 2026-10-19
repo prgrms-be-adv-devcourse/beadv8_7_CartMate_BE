@@ -84,7 +84,7 @@ class OrderRepositoryTest {
     void findIdsToCancelByDeadline() {
         Order pending = orderRepository.save(personal(newOrderNumber(), BUYER));
         Order paid = personal(newOrderNumber(), BUYER);
-        paid.markPaid(NOW);
+        paid.markPaid(1L, NOW);
         orderRepository.save(paid);
         flushAndClear();
         LocalDateTime deadline = pending.getPaymentDeadlineAt();

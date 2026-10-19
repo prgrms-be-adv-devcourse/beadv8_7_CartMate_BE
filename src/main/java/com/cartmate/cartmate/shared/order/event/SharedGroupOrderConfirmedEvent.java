@@ -18,6 +18,9 @@ public record SharedGroupOrderConfirmedEvent(
             Long orderItemId,
             Long productId,
             Long inventoryId,
+            Long sellerId,
+            String productName,
+            String optionName,
             int quantity,
             long unitPrice
     ) {

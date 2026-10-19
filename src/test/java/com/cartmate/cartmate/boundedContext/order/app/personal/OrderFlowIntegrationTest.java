@@ -86,7 +86,7 @@ class OrderFlowIntegrationTest {
         orderIds.add(created.orderId());
         assertThat(created.totalAmount()).isEqualTo(103000L);
 
-        orderFacade.applyPayment(created.orderId(), buyer, LocalDateTime.now());
+        orderFacade.applyPayment(created.orderId(), buyer, created.orderId(), LocalDateTime.now());
 
         assertThat(orderFacade.getDetail(buyer, created.orderId()).status()).isEqualTo(OrderStatus.PAID);
         assertThat(cartFacade.getCart(buyer).items()).extracting(CartItemResponse::inventoryId).containsExactly(2L);
@@ -110,7 +110,7 @@ class OrderFlowIntegrationTest {
                 .hasMessageContaining(CartErrorCode.CART_INDIVIDUAL_PRODUCT_HAS_ORDERS.getMsg());
         assertThat(individualGroupPurchaseFacade.getDashboard(creator, purchaseId).orderCount()).isZero();
 
-        orderFacade.applyPayment(created.orderId(), buyer, LocalDateTime.now());
+        orderFacade.applyPayment(created.orderId(), buyer, created.orderId(), LocalDateTime.now());
 
         IndividualGroupPurchaseDashboardResponse dashboard = individualGroupPurchaseFacade.getDashboard(creator, purchaseId);
         assertThat(dashboard.orderCount()).isEqualTo(1);

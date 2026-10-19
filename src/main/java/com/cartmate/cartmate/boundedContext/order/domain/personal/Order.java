@@ -69,6 +69,8 @@ public class Order {
     })
     private DeliveryAddress deliveryAddress;
 
+    private Long paymentId;
+
     private LocalDateTime paidAt;
 
     private LocalDateTime canceledAt;
@@ -126,13 +128,21 @@ public class Order {
         return status == OrderStatus.PAYMENT_PENDING && !paidAt.isAfter(paymentDeadlineAt);
     }
 
-    public void markPaid(LocalDateTime paidAt) {
+    public boolean markPaid(Long paymentId, LocalDateTime paidAt) {
+        if (paymentId == null) {
+            throw new ServiceException(OrderErrorCode.ORDER_PAYMENT_ID_REQUIRED);
+        }
+        if (status == OrderStatus.PAID && paymentId.equals(this.paymentId)) {
+            return false;
+        }
         validatePaymentPending();
         if (!canAcceptPayment(paidAt)) {
             throw new ServiceException(OrderErrorCode.ORDER_PAYMENT_EXPIRED);
         }
         this.status = OrderStatus.PAID;
+        this.paymentId = paymentId;
         this.paidAt = paidAt;
+        return true;
     }
 
     public boolean cancelByBuyer(Long requesterId, LocalDateTime now) {

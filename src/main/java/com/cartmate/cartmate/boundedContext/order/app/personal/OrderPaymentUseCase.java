@@ -1,9 +1,11 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
 import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
@@ -34,24 +36,38 @@ class OrderPaymentUseCase {
         );
     }
 
-    void applyPayment(Long orderId, Long memberId, LocalDateTime paidAt) {
+    void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         orderSupport.validateBuyer(order, memberId);
-        order.markPaid(paidAt);
-        eventPublisher.publishEvent(toPaidEvent(order));
+        if (order.markPaid(paymentId, paidAt)) {
+            eventPublisher.publishEvent(toPaidEvent(order));
+        }
     }
 
     private OrderPaidEvent toPaidEvent(Order order) {
+        DeliveryAddress address = order.getDeliveryAddress();
         return new OrderPaidEvent(
                 order.getId(),
+                order.getOrderNumber(),
                 order.getBuyerMemberId(),
                 order.getOrderType().name(),
                 order.getIndividualGroupPurchaseId(),
                 order.getPaidAt(),
+                new DeliveryAddressInfo(
+                        address.getReceiverName(),
+                        address.getReceiverPhone(),
+                        address.getZipCode(),
+                        address.getAddress(),
+                        address.getAddressDetail()
+                ),
                 order.getItems().stream()
                         .map(item -> new OrderPaidEvent.Item(
+                                item.getId(),
                                 item.getProductId(),
                                 item.getInventoryId(),
+                                item.getSellerId(),
+                                item.getProductName(),
+                                item.getOptionName(),
                                 item.getQuantity(),
                                 item.getUnitPrice()))
                         .toList()

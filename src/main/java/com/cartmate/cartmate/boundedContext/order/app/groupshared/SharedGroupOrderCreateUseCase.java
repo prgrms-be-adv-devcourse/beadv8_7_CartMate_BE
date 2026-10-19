@@ -43,16 +43,26 @@ class SharedGroupOrderCreateUseCase {
         Map<Long, OrderProductInfo> products = orderProductClient.findAllByInventoryIds(inventoryIds).stream()
                 .collect(Collectors.toMap(OrderProductInfo::inventoryId, Function.identity()));
         return items.stream()
-                .map(item -> new OrderItemLine(
-                        item.productId(), item.inventoryId(), item.quantity(), priceOf(products, item.inventoryId())))
+                .map(item -> toItemLine(item, productOf(products, item.inventoryId())))
                 .toList();
     }
 
-    private long priceOf(Map<Long, OrderProductInfo> products, Long inventoryId) {
+    private OrderItemLine toItemLine(SharedGroupPurchaseClosedEvent.Item item, OrderProductInfo product) {
+        return new OrderItemLine(
+                item.productId(),
+                item.inventoryId(),
+                product.sellerId(),
+                product.productName(),
+                product.optionName(),
+                item.quantity(),
+                product.price());
+    }
+
+    private OrderProductInfo productOf(Map<Long, OrderProductInfo> products, Long inventoryId) {
         OrderProductInfo product = products.get(inventoryId);
         if (product == null) {
             throw new ServiceException(OrderErrorCode.ORDER_PRODUCT_NOT_FOUND);
         }
-        return product.price();
+        return product;
     }
 }

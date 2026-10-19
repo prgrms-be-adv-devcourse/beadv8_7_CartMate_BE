@@ -29,6 +29,7 @@ public enum OrderErrorCode implements ErrorCode {
     ORDER_NOT_PAYABLE("ORDER_NOT_PAYABLE", "결제할 수 없는 주문입니다.", HttpStatus.CONFLICT),
     ORDER_NOT_PAYING("ORDER_NOT_PAYING", "결제 중인 공동 주문이 아닙니다.", HttpStatus.CONFLICT),
     ORDER_STOCK_NOT_RESERVED("ORDER_STOCK_NOT_RESERVED", "재고를 선점하지 않은 공동 주문입니다.", HttpStatus.CONFLICT),
+    ORDER_PAYMENT_ID_REQUIRED("ORDER_PAYMENT_ID_REQUIRED", "결제 ID가 필요합니다.", HttpStatus.BAD_REQUEST),
     ORDER_ALREADY_PAID("ORDER_ALREADY_PAID", "이미 결제한 참여자입니다.", HttpStatus.CONFLICT),
     ORDER_TEAM_ADDRESS_REQUIRED("ORDER_TEAM_ADDRESS_REQUIRED", "생성자는 팀 배송지를 입력해야 합니다.", HttpStatus.BAD_REQUEST),
     ORDER_INVALID_DELIVERY_ADDRESS("ORDER_INVALID_DELIVERY_ADDRESS", "받는 사람, 연락처, 우편번호, 주소는 모두 입력해야 합니다.", HttpStatus.BAD_REQUEST),

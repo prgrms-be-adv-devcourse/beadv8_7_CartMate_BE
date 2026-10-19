@@ -48,7 +48,7 @@ class OrderCancelUseCaseTest {
     @DisplayName("결제한 주문을 주문자가 취소하면 환불이 필요하다고 알리는 취소 이벤트를 발행한다")
     void cancelPaidOrderByBuyer() {
         Order order = order();
-        order.markPaid(LocalDateTime.now());
+        order.markPaid(1L, LocalDateTime.now());
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
 
         cancelUseCase.cancelByBuyer(BUYER, ORDER_ID);
