@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
 import com.cartmate.cartmate.boundedContext.post.dto.CreateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
+import com.cartmate.cartmate.boundedContext.post.dto.UpdateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.page.PageResponse;
@@ -41,28 +42,33 @@ public class SalesPostFacade {
     }
 
     public void registerSalesPost(CreateSalesPostRequest request, List<MultipartFile> images) {
-        CreateProductRequest productRequest = transactionTemplate.execute(status -> {
-            SalesPost post = salesPostCreateUseCase.saveSalesPost(request);
-            return new CreateProductRequest(post.getId(), request.toCreateProductList());
+        SalesPost post = transactionTemplate.execute(status -> {
+            return salesPostCreateUseCase.saveSalesPost(request);
         });
 
         try{
+            CreateProductRequest productRequest = new CreateProductRequest(post.getId(), request.toCreateProductList());
             salesPostApiClient.registerProducts(productRequest, images);
+
+            transactionTemplate.execute(status -> {
+                return post.saveComplete();
+            });
         } catch(ServiceException e) {
-            salesPostDeleteUseCase.deleteSalesPostByEvent(productRequest.getPostId());
+            salesPostDeleteUseCase.deleteSalesPostByEvent(post.getId());
             throw e;
         }
     }
 
     public void deleteSalesPostByUser(Long postId, Long sellerId) {
-        SalesPost deletedPost = transactionTemplate.execute(status -> {
+        SalesPost post = transactionTemplate.execute(status -> {
             return salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId);
         });
         try {
-            salesPostApiClient.deleteProducts(deletedPost.getId());
-            deletedPost.deleteComplete();
+            salesPostApiClient.deleteProducts(post.getId());
+            transactionTemplate.execute(status -> {
+                return post.deleteComplete();
+            });
         } catch (ServiceException e) {
-            salesPostDeleteUseCase.rollbackSalesPostByProduct(postId);
             throw e;
         }
     }
@@ -98,5 +104,14 @@ public class SalesPostFacade {
     @Transactional
     public void deleteProductByUser(DeleteProductRequest request) {
         salesPostSyncProductUseCase.deleteProductByUser(request);
+    }
+
+    public void updateSalesPostByUser(UpdateSalesPostRequest request, List<MultipartFile> images) {
+        salesPostUpdateUseCase.validateUpdatable(request);
+        salesPostApiClient.updateProducts(request, images);
+
+        transactionTemplate.executeWithoutResult(status ->
+                salesPostUpdateUseCase.updateSalesPostByUser(request)
+        );
     }
 }

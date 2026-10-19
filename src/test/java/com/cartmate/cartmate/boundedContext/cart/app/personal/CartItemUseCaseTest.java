@@ -238,9 +238,9 @@ class CartItemUseCaseTest {
 
         private OrderPaidEvent paidEvent(String orderType, Long... inventoryIds) {
             List<OrderPaidEvent.Item> items = Arrays.stream(inventoryIds)
-                    .map(inventoryId -> new OrderPaidEvent.Item(100L, inventoryId, 1, 10000L))
+                    .map(inventoryId -> new OrderPaidEvent.Item(null, 100L, inventoryId, null, "상품", null, 1, 10000L))
                     .toList();
-            return new OrderPaidEvent(1L, MEMBER_ID, orderType, null, LocalDateTime.now(), items);
+            return new OrderPaidEvent(1L, "ORD-1", MEMBER_ID, orderType, null, LocalDateTime.now(), null, items);
         }
     }
 

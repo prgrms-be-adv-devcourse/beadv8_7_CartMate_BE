@@ -74,9 +74,14 @@ public class SalesPost extends BaseIdAndTime {
         return this;
     }
 
-    public SalesPost rollback() {
+    public SalesPost saveComplete() {
         this.status = SalesPostSaleStatus.ON_SALE;
         return this;
     }
 
+    public SalesPost updateContent(String title, String content) {
+        this.title = title;
+        this.content = content;
+        return this;
+    }
 }

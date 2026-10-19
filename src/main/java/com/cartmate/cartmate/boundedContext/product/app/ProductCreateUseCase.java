@@ -40,7 +40,8 @@ public class ProductCreateUseCase {
                     createProduct.getName(),
                     createProduct.getDescription(),
                     createProduct.getBasePrice(),
-                    ProductStatus.ON_SALE
+                    ProductStatus.ON_SALE,
+                    false
                 )
             );
             product.addProductImage(imagesByProduct.getOrDefault(i, List.of()));

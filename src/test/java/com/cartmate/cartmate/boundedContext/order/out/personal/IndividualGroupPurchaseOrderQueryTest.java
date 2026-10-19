@@ -144,7 +144,7 @@ class IndividualGroupPurchaseOrderQueryTest {
     }
 
     private Order paid(Order order) {
-        order.markPaid(NOW);
+        order.markPaid(1L, NOW);
         return order;
     }
 

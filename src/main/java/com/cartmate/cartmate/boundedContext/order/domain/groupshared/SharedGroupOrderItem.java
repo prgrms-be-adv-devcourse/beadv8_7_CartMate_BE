@@ -27,30 +27,39 @@ public class SharedGroupOrderItem {
     @Column(nullable = false)
     private Long inventoryId;
 
+    private Long sellerId;
+
+    @Column(nullable = false, length = 100)
+    private String productName;
+
+    @Column(length = 100)
+    private String optionName;
+
     @Column(nullable = false)
     private int quantity;
 
     @Column(nullable = false)
     private long unitPrice;
 
-    private SharedGroupOrderItem(SharedGroupOrder sharedGroupOrder, Long productId, Long inventoryId,
-                                 int quantity, long unitPrice) {
-        if (quantity < 1) {
+    private SharedGroupOrderItem(SharedGroupOrder sharedGroupOrder, SharedGroupOrder.OrderItemLine line) {
+        if (line.quantity() < 1) {
             throw new ServiceException(OrderErrorCode.ORDER_INVALID_QUANTITY);
         }
-        if (unitPrice < 0) {
+        if (line.unitPrice() < 0) {
             throw new ServiceException(OrderErrorCode.ORDER_INVALID_PRICE);
         }
         this.sharedGroupOrder = sharedGroupOrder;
-        this.productId = productId;
-        this.inventoryId = inventoryId;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
+        this.productId = line.productId();
+        this.inventoryId = line.inventoryId();
+        this.sellerId = line.sellerId();
+        this.productName = line.productName();
+        this.optionName = line.optionName();
+        this.quantity = line.quantity();
+        this.unitPrice = line.unitPrice();
     }
 
-    static SharedGroupOrderItem create(SharedGroupOrder sharedGroupOrder, Long productId, Long inventoryId,
-                                       int quantity, long unitPrice) {
-        return new SharedGroupOrderItem(sharedGroupOrder, productId, inventoryId, quantity, unitPrice);
+    static SharedGroupOrderItem create(SharedGroupOrder sharedGroupOrder, SharedGroupOrder.OrderItemLine line) {
+        return new SharedGroupOrderItem(sharedGroupOrder, line);
     }
 
     public long amount() {

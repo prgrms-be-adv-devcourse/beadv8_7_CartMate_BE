@@ -4,12 +4,15 @@ import com.cartmate.cartmate.boundedContext.post.app.SalesPostFacade;
 import com.cartmate.cartmate.boundedContext.post.dto.CreateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
+import com.cartmate.cartmate.boundedContext.post.dto.UpdateSalesPostRequest;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,6 +55,15 @@ public class SalesPostController {
             ) {
         salesPostFacade.deleteSalesPostByUser(postId, sellerId);
         return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @PatchMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> updateSalesPost(
+            @RequestPart("request") UpdateSalesPostRequest request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) {
+        salesPostFacade.updateSalesPostByUser(request, images);
+        return ResponseEntity.noContent().build();
     }
 
 }
