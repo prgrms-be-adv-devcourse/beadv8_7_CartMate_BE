@@ -74,6 +74,8 @@ class DeliveryRequestHasherTest {
         assertThat(DeliveryRequestHasher.hash(command("k", 10L, "서울",
                 List.of(new Item(1000L, "티셔츠", 10_000L, 3L, SHIRT.options()))))).isNotEqualTo(base);
         assertThat(DeliveryRequestHasher.hash(command("k", 10L, "서울",
+                List.of(new Item(1000L, "티셔츠", 12_000L, 2L, SHIRT.options()))))).isNotEqualTo(base);
+        assertThat(DeliveryRequestHasher.hash(command("k", 10L, "서울",
                 List.of(new Item(1000L, "티셔츠", 10_000L, 2L,
                         List.of(new Option("사이즈", "M"), new Option("색상", "블랙"))))))).isNotEqualTo(base);
     }

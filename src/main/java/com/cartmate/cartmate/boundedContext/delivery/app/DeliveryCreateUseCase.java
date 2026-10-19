@@ -120,6 +120,9 @@ public class DeliveryCreateUseCase {
             if (item.orderItemId() == null) {
                 throw new ServiceException(DeliveryErrorCode.DELIVERY_ORDER_ITEM_ID_REQUIRED);
             }
+            if (item.unitPrice() == null || item.unitPrice() < 0) {
+                throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_UNIT_PRICE);
+            }
             if (item.quantity() == null || item.quantity() <= 0) {
                 throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_QUANTITY);
             }

@@ -147,6 +147,8 @@ class DeliveryCreateUseCaseTest {
         assertInvalid(command(10L, null), "DELIVERY_ITEMS_REQUIRED");
         assertInvalid(command(10L, List.of()), "DELIVERY_ITEMS_REQUIRED");
         assertInvalid(command(10L, items(0)), "DELIVERY_INVALID_QUANTITY");
+        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", null, 1L, List.of()))), "DELIVERY_INVALID_UNIT_PRICE");
+        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", -1L, 1L, List.of()))), "DELIVERY_INVALID_UNIT_PRICE");
         assertInvalid(command(10L, List.of(new Item(null, "티셔츠", 10_000L, 1L, List.of()))),
                 "DELIVERY_ORDER_ITEM_ID_REQUIRED");
         assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 10_000L, 1L, java.util.Arrays.asList((Option) null)))),

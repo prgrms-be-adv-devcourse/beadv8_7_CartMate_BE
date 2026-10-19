@@ -13,7 +13,7 @@ import java.util.List;
 // 멱등키와 서버 생성값은 제외하고, 규칙을 바꾸면 기존 해시와 달라지므로 VERSION을 올린다.
 public final class DeliveryRequestHasher {
 
-    private static final String VERSION = "v1";
+    private static final String VERSION = "v2";
 
     private DeliveryRequestHasher() {
     }
@@ -37,6 +37,8 @@ public final class DeliveryRequestHasher {
                         .comparing(DeliveryCreateCommand.Item::orderItemId)
                         .thenComparing(DeliveryCreateCommand.Item::productName,
                                 Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(DeliveryCreateCommand.Item::unitPrice,
+                                Comparator.nullsFirst(Comparator.naturalOrder()))
                         .thenComparing(DeliveryCreateCommand.Item::quantity))
                 .toList();
 
@@ -44,6 +46,7 @@ public final class DeliveryRequestHasher {
         for (DeliveryCreateCommand.Item item : items) {
             append(sb, item.orderItemId());
             append(sb, item.productName());
+            append(sb, item.unitPrice());
             append(sb, item.quantity());
 
             // 옵션은 입력 순서가 sortOrder로 저장되므로 순서를 유지한다. null과 빈 목록은 같게 취급한다.
