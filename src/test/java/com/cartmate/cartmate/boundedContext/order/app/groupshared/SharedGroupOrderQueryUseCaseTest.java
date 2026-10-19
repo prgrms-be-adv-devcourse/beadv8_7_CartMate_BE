@@ -45,7 +45,7 @@ class SharedGroupOrderQueryUseCaseTest {
     void getDetail() {
         given(sharedGroupOrderRepository.findWithDetailsById(1L)).willReturn(Optional.of(order()));
         given(orderProductClient.findAllByInventoryIds(anyCollection()))
-                .willReturn(List.of(new OrderProductInfo(4L, 2L, "축구공", "5호", 25000, "ball.png")));
+                .willReturn(List.of(new OrderProductInfo(4L, 2L, 1L, "축구공", "5호", 25000, "ball.png", true)));
 
         SharedGroupOrderDetailResponse response = queryUseCase.getDetail(MEMBER, 1L);
 

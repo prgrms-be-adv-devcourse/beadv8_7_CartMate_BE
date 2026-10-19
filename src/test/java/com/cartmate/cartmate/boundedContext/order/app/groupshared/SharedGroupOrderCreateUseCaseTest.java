@@ -50,8 +50,8 @@ class SharedGroupOrderCreateUseCaseTest {
     void createWithPriceSnapshot() {
         given(sharedGroupOrderRepository.existsBySharedGroupPurchaseId(PURCHASE_ID)).willReturn(false);
         given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
-                new OrderProductInfo(4L, 2L, "축구공", "5호", 25000, null),
-                new OrderProductInfo(1L, 1L, "축구 유니폼", "M / 레드", 39000, null)));
+                new OrderProductInfo(4L, 2L, 1L, "축구공", "5호", 25000, null, true),
+                new OrderProductInfo(1L, 1L, 1L, "축구 유니폼", "M / 레드", 39000, null, true)));
 
         createUseCase.createFromClosedPurchase(event(List.of(1L, 2L, 3L),
                 new SharedGroupPurchaseClosedEvent.Item(2L, 4L, 2),
