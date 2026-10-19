@@ -47,7 +47,7 @@ class DeliveryCreateUseCaseTest {
     }
 
     private List<Item> items(long quantity) {
-        return List.of(new Item(1000L, "티셔츠", quantity,
+        return List.of(new Item(1000L, "티셔츠", 10_000L, quantity,
                 List.of(new Option("사이즈", "L"), new Option("색상", "블랙"))));
     }
 
@@ -133,8 +133,8 @@ class DeliveryCreateUseCaseTest {
         when(deliveryRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
 
         useCase.create(command(10L, List.of(
-                new Item(1000L, "양말", 1L, List.of()),
-                new Item(1001L, "모자", 1L, null))));
+                new Item(1000L, "양말", 10_000L, 1L, List.of()),
+                new Item(1001L, "모자", 10_000L, 1L, null))));
 
         verify(itemRepository, times(2)).save(any(DeliveryItem.class));
         verify(optionRepository, never()).saveAll(any());
@@ -147,13 +147,13 @@ class DeliveryCreateUseCaseTest {
         assertInvalid(command(10L, null), "DELIVERY_ITEMS_REQUIRED");
         assertInvalid(command(10L, List.of()), "DELIVERY_ITEMS_REQUIRED");
         assertInvalid(command(10L, items(0)), "DELIVERY_INVALID_QUANTITY");
-        assertInvalid(command(10L, List.of(new Item(null, "티셔츠", 1L, List.of()))),
+        assertInvalid(command(10L, List.of(new Item(null, "티셔츠", 10_000L, 1L, List.of()))),
                 "DELIVERY_ORDER_ITEM_ID_REQUIRED");
-        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 1L, java.util.Arrays.asList((Option) null)))),
+        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 10_000L, 1L, java.util.Arrays.asList((Option) null)))),
                 "DELIVERY_OPTION_CONTAIN_NULL");
-        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 1L, List.of(new Option(" ", "L"))))),
+        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 10_000L, 1L, List.of(new Option(" ", "L"))))),
                 "DELIVERY_OPTION_NAME_REQUIRED");
-        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 1L, List.of(new Option("사이즈", null))))),
+        assertInvalid(command(10L, List.of(new Item(1000L, "티셔츠", 10_000L, 1L, List.of(new Option("사이즈", null))))),
                 "DELIVERY_OPTION_VALUE_REQUIRED");
 
         verify(deliveryRepository, never()).save(any());

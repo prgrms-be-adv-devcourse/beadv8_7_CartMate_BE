@@ -13,9 +13,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DeliveryRequestHasherTest {
 
-    private static final Item SHIRT = new Item(1000L, "티셔츠", 2L,
+    private static final Item SHIRT = new Item(1000L, "티셔츠", 10_000L, 2L,
             List.of(new Option("사이즈", "L"), new Option("색상", "블랙")));
-    private static final Item SOCKS = new Item(1001L, "양말", 1L, List.of());
+    private static final Item SOCKS = new Item(1001L, "양말", 10_000L, 1L, List.of());
 
     private DeliveryCreateCommand command(String key, Long sellerId, String address, List<Item> items) {
         return new DeliveryCreateCommand(1L, sellerId, 100L, PurchaseType.INDIVIDUAL_GROUP,
@@ -48,7 +48,7 @@ class DeliveryRequestHasherTest {
     @Test
     @DisplayName("옵션 순서가 달라지면 다른 해시가 나온다")
     void optionOrderMatters() {
-        Item reversed = new Item(1000L, "티셔츠", 2L,
+        Item reversed = new Item(1000L, "티셔츠", 10_000L, 2L,
                 List.of(new Option("색상", "블랙"), new Option("사이즈", "L")));
 
         assertThat(DeliveryRequestHasher.hash(command("k", 10L, "서울", List.of(SHIRT))))
@@ -58,31 +58,31 @@ class DeliveryRequestHasherTest {
     @Test
     @DisplayName("옵션이 null이거나 비어 있으면 같은 해시가 나온다")
     void nullOptionsEqualsEmpty() {
-        Item withNull = new Item(1001L, "양말", 1L, null);
+        Item withNull = new Item(1001L, "양말", 10_000L, 1L, null);
 
         assertThat(DeliveryRequestHasher.hash(command("k", 10L, "서울", List.of(withNull))))
                 .isEqualTo(DeliveryRequestHasher.hash(command("k", 10L, "서울", List.of(SOCKS))));
     }
 
     @Test
-    @DisplayName("판매자, 주소, 수량, 옵션값 중 하나라도 다르면 다른 해시가 나온다")
+    @DisplayName("판매자, 주소, 단가, 수량, 옵션값 중 하나라도 다르면 다른 해시가 나온다")
     void differentContentDifferentHash() {
         String base = DeliveryRequestHasher.hash(command("k", 10L, "서울", List.of(SHIRT)));
 
         assertThat(DeliveryRequestHasher.hash(command("k", 11L, "서울", List.of(SHIRT)))).isNotEqualTo(base);
         assertThat(DeliveryRequestHasher.hash(command("k", 10L, "부산", List.of(SHIRT)))).isNotEqualTo(base);
         assertThat(DeliveryRequestHasher.hash(command("k", 10L, "서울",
-                List.of(new Item(1000L, "티셔츠", 3L, SHIRT.options()))))).isNotEqualTo(base);
+                List.of(new Item(1000L, "티셔츠", 10_000L, 3L, SHIRT.options()))))).isNotEqualTo(base);
         assertThat(DeliveryRequestHasher.hash(command("k", 10L, "서울",
-                List.of(new Item(1000L, "티셔츠", 2L,
+                List.of(new Item(1000L, "티셔츠", 10_000L, 2L,
                         List.of(new Option("사이즈", "M"), new Option("색상", "블랙"))))))).isNotEqualTo(base);
     }
 
     @Test
     @DisplayName("구분자가 값에 섞여도 다른 입력이 같은 해시로 합쳐지지 않는다")
     void delimiterInValueIsUnambiguous() {
-        Item a = new Item(1000L, "a|1:b", 1L, List.of());
-        Item b = new Item(1000L, "a", 1L, List.of(new Option("b", "1")));
+        Item a = new Item(1000L, "a|1:b", 10_000L, 1L, List.of());
+        Item b = new Item(1000L, "a", 10_000L, 1L, List.of(new Option("b", "1")));
 
         assertThat(DeliveryRequestHasher.hash(command("k", 10L, "서울", List.of(a))))
                 .isNotEqualTo(DeliveryRequestHasher.hash(command("k", 10L, "서울", List.of(b))));

@@ -62,8 +62,8 @@ class DeliveryClaimCreateUseCaseTest {
         delivery.deliver();
         when(deliveryRepository.findById(5L)).thenReturn(Optional.of(delivery));
 
-        DeliveryItem shirt = DeliveryItem.create(delivery, 1000L, "티셔츠", 2L);
-        DeliveryItem socks = DeliveryItem.create(delivery, 1001L, "양말", 1L);
+        DeliveryItem shirt = DeliveryItem.create(delivery, 1000L, "티셔츠", 10_000L, 2L);
+        DeliveryItem socks = DeliveryItem.create(delivery, 1001L, "양말", 10_000L, 1L);
         ReflectionTestUtils.setField(shirt, "id", 50L);
         ReflectionTestUtils.setField(socks, "id", 51L);
         when(itemRepository.findByDeliveryId(5L)).thenReturn(List.of(shirt, socks));
