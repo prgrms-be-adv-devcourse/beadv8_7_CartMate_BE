@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.domain;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -38,10 +40,10 @@ public class SharedGroupOrderItem {
     private SharedGroupOrderItem(SharedGroupOrder sharedGroupOrder, Long productId, Long inventoryId,
                                  int quantity, long unitPrice) {
         if (quantity < 1) {
-            throw new IllegalArgumentException("수량은 1개 이상이어야 합니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_INVALID_QUANTITY);
         }
         if (unitPrice < 0) {
-            throw new IllegalArgumentException("가격은 0원 이상이어야 합니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_INVALID_PRICE);
         }
         this.sharedGroupOrder = sharedGroupOrder;
         this.productId = productId;
@@ -65,7 +67,7 @@ public class SharedGroupOrderItem {
 
     void markRefunded(LocalDateTime now) {
         if (isRefunded()) {
-            throw new IllegalArgumentException("이미 환불한 항목입니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_ITEM_ALREADY_REFUNDED);
         }
         this.refundedAt = now;
     }

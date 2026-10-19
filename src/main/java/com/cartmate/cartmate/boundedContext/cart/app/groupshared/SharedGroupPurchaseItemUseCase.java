@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.app.groupshared;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.cart.out.ProductClient;
@@ -39,9 +41,9 @@ class SharedGroupPurchaseItemUseCase {
 
     private CartProductInfo getPurchasableProduct(Long inventoryId) {
         CartProductInfo product = productClient.findByInventoryId(inventoryId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품 옵션입니다."));
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_PRODUCT_OPTION_NOT_FOUND));
         if (!product.purchasable()) {
-            throw new IllegalArgumentException("구매할 수 없는 상품입니다.");
+            throw new ServiceException(CartErrorCode.CART_PRODUCT_NOT_PURCHASABLE);
         }
         return product;
     }

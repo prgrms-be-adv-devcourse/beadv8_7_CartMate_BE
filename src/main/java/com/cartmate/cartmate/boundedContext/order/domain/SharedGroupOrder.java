@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.domain;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -78,13 +80,13 @@ public class SharedGroupOrder {
     private SharedGroupOrder(Long sharedGroupPurchaseId, Long creatorMemberId, List<Long> participantMemberIds,
                              List<OrderItemLine> itemLines, LocalDateTime closedAt) {
         if (itemLines == null || itemLines.isEmpty()) {
-            throw new IllegalArgumentException("주문할 상품이 없습니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_NO_ITEMS);
         }
         if (participantMemberIds == null || !participantMemberIds.contains(creatorMemberId)) {
-            throw new IllegalArgumentException("생성자는 참여자에 포함되어야 합니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_CREATOR_NOT_IN_PARTICIPANTS);
         }
         if (participantMemberIds.stream().distinct().count() != participantMemberIds.size()) {
-            throw new IllegalArgumentException("참여자가 중복되었습니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_DUPLICATE_PARTICIPANTS);
         }
         this.sharedGroupPurchaseId = sharedGroupPurchaseId;
         this.creatorMemberId = creatorMemberId;
@@ -124,15 +126,15 @@ public class SharedGroupOrder {
 
     public boolean pay(Long memberId, LocalDateTime paidAt, DeliveryAddress teamDeliveryAddress) {
         if (!canAcceptPayment(paidAt)) {
-            throw new IllegalArgumentException("결제할 수 없는 공동 주문입니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_NOT_PAYABLE);
         }
         if (!stockReserved) {
-            throw new IllegalStateException("재고를 선점하지 않은 공동 주문입니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_STOCK_NOT_RESERVED);
         }
         SharedGroupOrderParticipant participant = getParticipant(memberId);
         if (isCreator(memberId)) {
             if (teamDeliveryAddress == null) {
-                throw new IllegalArgumentException("생성자는 팀 배송지를 입력해야 합니다.");
+                throw new ServiceException(OrderErrorCode.ORDER_TEAM_ADDRESS_REQUIRED);
             }
             this.teamDeliveryAddress = teamDeliveryAddress;
         }
@@ -169,12 +171,12 @@ public class SharedGroupOrder {
     public List<RefundShare> refundItem(Long requesterId, Long itemId, LocalDateTime now) {
         validateCreator(requesterId);
         if (status != SharedGroupOrderStatus.CONFIRMED) {
-            throw new IllegalArgumentException("확정된 공동 주문만 부분 환불할 수 있습니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_NOT_REFUNDABLE);
         }
         SharedGroupOrderItem item = items.stream()
                 .filter(i -> i.getId().equals(itemId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("공동 주문에 없는 항목입니다."));
+                .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_ITEM_NOT_FOUND));
         item.markRefunded(now);
 
         long refundAmount = item.amount();
@@ -209,7 +211,7 @@ public class SharedGroupOrder {
         return participants.stream()
                 .filter(participant -> participant.is(memberId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("공동 주문 참여자가 아닙니다."));
+                .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_PARTICIPANT));
     }
 
 
@@ -229,13 +231,13 @@ public class SharedGroupOrder {
 
     private void validatePaying() {
         if (status != SharedGroupOrderStatus.PAYING) {
-            throw new IllegalArgumentException("결제 중인 공동 주문이 아닙니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_NOT_PAYING);
         }
     }
 
     private void validateCreator(Long memberId) {
         if (!isCreator(memberId)) {
-            throw new IllegalArgumentException("공동 주문 생성자만 할 수 있습니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_CREATOR_ONLY);
         }
     }
 

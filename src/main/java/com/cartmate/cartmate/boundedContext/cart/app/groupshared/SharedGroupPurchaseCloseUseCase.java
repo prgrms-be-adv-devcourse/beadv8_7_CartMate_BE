@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupP
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseMember;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.boundedContext.cart.out.groupshared.SharedGroupPurchaseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 class SharedGroupPurchaseCloseUseCase {
 
+    private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -53,11 +55,11 @@ class SharedGroupPurchaseCloseUseCase {
     }
 
     List<Long> findIdsToCloseByDeadline(LocalDateTime now) {
-        return sharedGroupPurchaseSupport.findIdsToCloseByDeadline(now);
+        return sharedGroupPurchaseRepository.findIdsToCloseByDeadline(now);
     }
 
     List<Long> findIdsToReleaseFrozen(LocalDateTime now) {
-        return sharedGroupPurchaseSupport.findIdsToReleaseFrozen(now);
+        return sharedGroupPurchaseRepository.findIdsToReleaseFrozen(now);
     }
 
     private void publishClosedEventIfClosed(SharedGroupPurchase purchase) {

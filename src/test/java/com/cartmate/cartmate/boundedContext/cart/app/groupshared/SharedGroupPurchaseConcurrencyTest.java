@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.app.groupshared;
 
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus;
@@ -76,8 +78,8 @@ class SharedGroupPurchaseConcurrencyTest {
             try {
                 facade.join(CREATOR + 100 + index, created.inviteCode());
                 success.incrementAndGet();
-            } catch (IllegalArgumentException e) {
-                if (e.getMessage().equals("참여 인원이 가득 찼습니다.")) {
+            } catch (ServiceException e) {
+                if (e.getResultCode().equals(CartErrorCode.CART_SHARED_FULL.resultCode())) {
                     full.incrementAndGet();
                 }
             }
@@ -101,7 +103,7 @@ class SharedGroupPurchaseConcurrencyTest {
             try {
                 facade.close(CREATOR, created.id());
                 success.incrementAndGet();
-            } catch (IllegalArgumentException ignored) {
+            } catch (ServiceException ignored) {
             }
         });
 

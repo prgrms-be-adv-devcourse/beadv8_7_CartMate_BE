@@ -1,59 +1,59 @@
 package com.cartmate.cartmate.boundedContext.cart.in.personal;
 
+import com.cartmate.cartmate.boundedContext.cart.app.personal.CartFacade;
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartItemAddRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartItemQuantityUpdateRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartResponse;
-import com.cartmate.cartmate.boundedContext.cart.app.personal.CartFacade;
+import com.cartmate.cartmate.global.rsData.RsData;
+import com.cartmate.cartmate.global.security.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/carts")
+@RequestMapping("/api/carts")
 @RequiredArgsConstructor
 public class CartController {
-
-    private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
     private final CartFacade cartFacade;
 
     @GetMapping
-    public ResponseEntity<CartResponse> getCart(@RequestHeader(MEMBER_ID_HEADER) Long memberId) {
-        return ResponseEntity.ok(cartFacade.getCart(memberId));
+    public RsData<CartResponse> getCart(@AuthenticationPrincipal SecurityUser user) {
+        return new RsData<>("200-1", "장바구니 조회 성공했습니다.", cartFacade.getCart(user.memberId()));
     }
 
     @PostMapping("/items")
-    public ResponseEntity<Void> addItem(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> addItem(
+            @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody CartItemAddRequest request
     ) {
-        cartFacade.addItem(memberId, request.inventoryId(), request.quantity());
-        return ResponseEntity.noContent().build();
+        cartFacade.addItem(user.memberId(), request.inventoryId(), request.quantity());
+        return new RsData<>("200-1", "장바구니에 담았습니다.");
     }
 
     @PatchMapping("/items/{cartItemId}")
-    public ResponseEntity<Void> changeQuantity(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> changeQuantity(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long cartItemId,
             @Valid @RequestBody CartItemQuantityUpdateRequest request
     ) {
-        cartFacade.changeQuantity(memberId, cartItemId, request.quantity());
-        return ResponseEntity.noContent().build();
+        cartFacade.changeQuantity(user.memberId(), cartItemId, request.quantity());
+        return new RsData<>("200-1", "수량을 변경했습니다.");
     }
 
     @DeleteMapping("/items/{cartItemId}")
-    public ResponseEntity<Void> removeItem(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> removeItem(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long cartItemId
     ) {
-        cartFacade.removeItem(memberId, cartItemId);
-        return ResponseEntity.noContent().build();
+        cartFacade.removeItem(user.memberId(), cartItemId);
+        return new RsData<>("200-1", "장바구니에서 삭제했습니다.");
     }
 
     @DeleteMapping("/items")
-    public ResponseEntity<Void> clear(@RequestHeader(MEMBER_ID_HEADER) Long memberId) {
-        cartFacade.clear(memberId);
-        return ResponseEntity.noContent().build();
+    public RsData<Void> clear(@AuthenticationPrincipal SecurityUser user) {
+        cartFacade.clear(user.memberId());
+        return new RsData<>("200-1", "장바구니를 비웠습니다.");
     }
 }

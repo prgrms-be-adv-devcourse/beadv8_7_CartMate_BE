@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.domain.groupshared;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -102,7 +104,7 @@ public class SharedGroupPurchase {
                                          LocalDateTime now) {
         validateCreator(requesterId);
         if (status != SharedGroupPurchaseStatus.CLOSED && status != SharedGroupPurchaseStatus.CANCELED) {
-            throw new IllegalArgumentException("마감되거나 취소된 공동구매만 다시 만들 수 있습니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_NOT_DUPLICABLE);
         }
         SharedGroupPurchase copy = new SharedGroupPurchase(title, creatorMemberId, maxParticipants, inviteCode, id, now);
         items.stream()
@@ -115,10 +117,10 @@ public class SharedGroupPurchase {
     public void join(Long memberId, LocalDateTime now) {
         validateEditable(now);
         if (isMember(memberId)) {
-            throw new IllegalArgumentException("이미 참여한 공동구매입니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_ALREADY_JOINED);
         }
         if (members.size() >= maxParticipants) {
-            throw new IllegalArgumentException("참여 인원이 가득 찼습니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_FULL);
         }
         members.add(SharedGroupPurchaseMember.create(this, memberId));
     }
@@ -126,7 +128,7 @@ public class SharedGroupPurchase {
     public void leave(Long memberId, LocalDateTime now) {
         validateEditable(now);
         if (isCreator(memberId)) {
-            throw new IllegalArgumentException("생성자는 공동구매를 나갈 수 없습니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_CREATOR_CANNOT_LEAVE);
         }
         removeMember(memberId);
     }
@@ -135,7 +137,7 @@ public class SharedGroupPurchase {
         validateEditable(now);
         validateCreator(requesterId);
         if (isCreator(targetMemberId)) {
-            throw new IllegalArgumentException("생성자는 내보낼 수 없습니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_CREATOR_CANNOT_BE_KICKED);
         }
         removeMember(targetMemberId);
     }
@@ -145,7 +147,7 @@ public class SharedGroupPurchase {
         validateCreator(requesterId);
         validateMaxParticipants(maxParticipants);
         if (maxParticipants <= this.maxParticipants) {
-            throw new IllegalArgumentException("최대 인원은 늘리는 것만 가능합니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_MAX_PARTICIPANTS_DECREASE);
         }
         this.maxParticipants = maxParticipants;
     }
@@ -202,20 +204,20 @@ public class SharedGroupPurchase {
         return items.stream()
                 .filter(item -> item.getId().equals(itemId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("공동구매에 없는 상품입니다."));
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_SHARED_ITEM_NOT_FOUND));
     }
 
 
     public void close(Long requesterId, Set<Long> unavailableInventoryIds, LocalDateTime now) {
         validateCreator(requesterId);
         if (!isEditable(now) && status != SharedGroupPurchaseStatus.FROZEN) {
-            throw new IllegalArgumentException("마감할 수 없는 상태입니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_NOT_CLOSABLE);
         }
         if (items.isEmpty()) {
-            throw new IllegalArgumentException("상품이 없는 공동구매는 마감할 수 없습니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_EMPTY_ITEMS);
         }
         if (hasUnavailableItem(unavailableInventoryIds)) {
-            throw new IllegalArgumentException("구매할 수 없는 상품이 있어 마감할 수 없습니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_HAS_UNAVAILABLE_ITEMS);
         }
         finish(SharedGroupPurchaseStatus.CLOSED, now);
     }
@@ -223,14 +225,14 @@ public class SharedGroupPurchase {
     public void cancel(Long requesterId, LocalDateTime now) {
         validateCreator(requesterId);
         if (status != SharedGroupPurchaseStatus.OPEN && status != SharedGroupPurchaseStatus.FROZEN) {
-            throw new IllegalArgumentException("취소할 수 없는 상태입니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_NOT_CANCELABLE);
         }
         finish(SharedGroupPurchaseStatus.CANCELED, now);
     }
 
     public void closeByDeadline(Set<Long> unavailableInventoryIds, LocalDateTime now) {
         if (status != SharedGroupPurchaseStatus.OPEN || now.isBefore(editDeadlineAt)) {
-            throw new IllegalStateException("자동 마감 대상이 아닙니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_NOT_AUTO_CLOSE_TARGET);
         }
         if (items.isEmpty()) {
             finish(SharedGroupPurchaseStatus.CANCELED, now);
@@ -244,7 +246,7 @@ public class SharedGroupPurchase {
 
     public void closeByFrozenTimeout(Set<Long> unavailableInventoryIds, LocalDateTime now) {
         if (status != SharedGroupPurchaseStatus.FROZEN || now.isBefore(frozenAt.plus(FROZEN_PERIOD))) {
-            throw new IllegalStateException("마감 보류 해제 대상이 아닙니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_NOT_FROZEN_RELEASE_TARGET);
         }
         items.removeIf(item -> unavailableInventoryIds.contains(item.getInventoryId()));
         finish(items.isEmpty() ? SharedGroupPurchaseStatus.CANCELED : SharedGroupPurchaseStatus.CLOSED, now);
@@ -258,7 +260,7 @@ public class SharedGroupPurchase {
         SharedGroupPurchaseMember member = members.stream()
                 .filter(m -> m.is(memberId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("참여하지 않은 회원입니다."));
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_SHARED_MEMBER_NOT_FOUND));
         members.remove(member);
     }
 
@@ -279,7 +281,7 @@ public class SharedGroupPurchase {
 
     private void validateEditable(LocalDateTime now) {
         if (!isEditable(now)) {
-            throw new IllegalArgumentException("수정이 마감된 공동구매입니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_EDIT_CLOSED);
         }
     }
 
@@ -293,26 +295,25 @@ public class SharedGroupPurchase {
 
     private void validateMember(Long memberId) {
         if (!isMember(memberId)) {
-            throw new IllegalArgumentException("공동구매 참여자가 아닙니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_NOT_PARTICIPANT);
         }
     }
 
     private void validateCreator(Long memberId) {
         if (!isCreator(memberId)) {
-            throw new IllegalArgumentException("공동구매 생성자만 할 수 있습니다.");
+            throw new ServiceException(CartErrorCode.CART_CREATOR_ONLY);
         }
     }
 
     private static void validateTitle(String title) {
         if (title == null || title.isBlank() || title.length() > MAX_TITLE_LENGTH) {
-            throw new IllegalArgumentException("제목은 1자 이상 " + MAX_TITLE_LENGTH + "자 이하여야 합니다.");
+            throw new ServiceException(CartErrorCode.CART_INVALID_TITLE);
         }
     }
 
     private static void validateMaxParticipants(int maxParticipants) {
         if (maxParticipants < MIN_PARTICIPANTS || maxParticipants > MAX_PARTICIPANTS) {
-            throw new IllegalArgumentException(
-                    "참여 인원은 " + MIN_PARTICIPANTS + "명 이상 " + MAX_PARTICIPANTS + "명 이하여야 합니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_INVALID_MAX_PARTICIPANTS);
         }
     }
 }

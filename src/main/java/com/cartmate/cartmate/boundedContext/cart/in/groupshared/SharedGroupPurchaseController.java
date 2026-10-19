@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.in.groupshared;
 
+import com.cartmate.cartmate.boundedContext.cart.app.groupshared.SharedGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseDetailResponse;
@@ -9,165 +10,151 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurc
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseJoinRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseMaxParticipantsUpdateRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseSummaryResponse;
-import com.cartmate.cartmate.boundedContext.cart.app.groupshared.SharedGroupPurchaseFacade;
+import com.cartmate.cartmate.global.rsData.RsData;
+import com.cartmate.cartmate.global.security.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/group-purchases/shared")
+@RequestMapping("/api/group-purchases/shared")
 @RequiredArgsConstructor
 public class SharedGroupPurchaseController {
-
-
-    private static final String MEMBER_ID_HEADER = "X-Member-Id";
-
-    private static final String BASE_PATH = "/group-purchases/shared/";
 
     private final SharedGroupPurchaseFacade sharedGroupPurchaseFacade;
 
     @PostMapping
-    public ResponseEntity<SharedGroupPurchaseCreateResponse> create(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    @ResponseStatus(HttpStatus.CREATED)
+    public RsData<SharedGroupPurchaseCreateResponse> create(
+            @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody SharedGroupPurchaseCreateRequest request
     ) {
-        SharedGroupPurchaseCreateResponse response = sharedGroupPurchaseFacade.create(memberId, request);
-        return ResponseEntity.created(URI.create(BASE_PATH + response.id())).body(response);
+        return new RsData<>("201-1", "공동구매를 만들었습니다.", sharedGroupPurchaseFacade.create(user.memberId(), request));
     }
-
 
     @GetMapping("/me")
-    public ResponseEntity<List<SharedGroupPurchaseSummaryResponse>> getMyList(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId
+    public RsData<List<SharedGroupPurchaseSummaryResponse>> getMyList(
+            @AuthenticationPrincipal SecurityUser user
     ) {
-        return ResponseEntity.ok(sharedGroupPurchaseFacade.getMyList(memberId));
+        return new RsData<>("200-1", "참여 중인 공동구매 목록 조회 성공했습니다.", sharedGroupPurchaseFacade.getMyList(user.memberId()));
     }
-
 
     @GetMapping("/{id}")
-    public ResponseEntity<SharedGroupPurchaseDetailResponse> getDetail(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<SharedGroupPurchaseDetailResponse> getDetail(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(sharedGroupPurchaseFacade.getDetail(memberId, id));
+        return new RsData<>("200-1", "공동구매 조회 성공했습니다.", sharedGroupPurchaseFacade.getDetail(user.memberId(), id));
     }
-
-
 
     @PostMapping("/join")
-    public ResponseEntity<SharedGroupPurchaseDetailResponse> join(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<SharedGroupPurchaseDetailResponse> join(
+            @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody SharedGroupPurchaseJoinRequest request
     ) {
-        Long id = sharedGroupPurchaseFacade.join(memberId, request.inviteCode());
-        return ResponseEntity.ok(sharedGroupPurchaseFacade.getDetail(memberId, id));
+        Long id = sharedGroupPurchaseFacade.join(user.memberId(), request.inviteCode());
+        return new RsData<>("200-1", "공동구매에 참여했습니다.", sharedGroupPurchaseFacade.getDetail(user.memberId(), id));
     }
-
 
     @DeleteMapping("/{id}/members/me")
-    public ResponseEntity<Void> leave(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> leave(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id
     ) {
-        sharedGroupPurchaseFacade.leave(memberId, id);
-        return ResponseEntity.noContent().build();
+        sharedGroupPurchaseFacade.leave(user.memberId(), id);
+        return new RsData<>("200-1", "공동구매에서 나갔습니다.");
     }
 
-
     @DeleteMapping("/{id}/members/{targetMemberId}")
-    public ResponseEntity<Void> kick(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> kick(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id,
             @PathVariable Long targetMemberId
     ) {
-        sharedGroupPurchaseFacade.kick(memberId, id, targetMemberId);
-        return ResponseEntity.noContent().build();
+        sharedGroupPurchaseFacade.kick(user.memberId(), id, targetMemberId);
+        return new RsData<>("200-1", "참여자를 내보냈습니다.");
     }
 
-
     @PatchMapping("/{id}/max-participants")
-    public ResponseEntity<Void> increaseMaxParticipants(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> increaseMaxParticipants(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id,
             @Valid @RequestBody SharedGroupPurchaseMaxParticipantsUpdateRequest request
     ) {
-        sharedGroupPurchaseFacade.increaseMaxParticipants(memberId, id, request.maxParticipants());
-        return ResponseEntity.noContent().build();
+        sharedGroupPurchaseFacade.increaseMaxParticipants(user.memberId(), id, request.maxParticipants());
+        return new RsData<>("200-1", "최대 인원을 변경했습니다.");
     }
 
-
     @PostMapping("/{id}/items")
-    public ResponseEntity<Void> addItem(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> addItem(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id,
             @Valid @RequestBody SharedGroupPurchaseItemAddRequest request
     ) {
-        sharedGroupPurchaseFacade.addItem(memberId, id, request.inventoryId(), request.quantity());
-        return ResponseEntity.noContent().build();
+        sharedGroupPurchaseFacade.addItem(user.memberId(), id, request.inventoryId(), request.quantity());
+        return new RsData<>("200-1", "상품을 담았습니다.");
     }
 
-
     @PatchMapping("/{id}/items/{itemId}/quantity")
-    public ResponseEntity<Void> changeItemQuantity(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> changeItemQuantity(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id,
             @PathVariable Long itemId,
             @Valid @RequestBody SharedGroupPurchaseItemQuantityUpdateRequest request
     ) {
-        sharedGroupPurchaseFacade.changeItemQuantity(memberId, id, itemId, request.quantity());
-        return ResponseEntity.noContent().build();
+        sharedGroupPurchaseFacade.changeItemQuantity(user.memberId(), id, itemId, request.quantity());
+        return new RsData<>("200-1", "수량을 변경했습니다.");
     }
 
     @PatchMapping("/{id}/items/{itemId}/option")
-    public ResponseEntity<Void> changeItemOption(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> changeItemOption(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id,
             @PathVariable Long itemId,
             @Valid @RequestBody SharedGroupPurchaseItemOptionUpdateRequest request
     ) {
-        sharedGroupPurchaseFacade.changeItemOption(memberId, id, itemId, request.inventoryId());
-        return ResponseEntity.noContent().build();
+        sharedGroupPurchaseFacade.changeItemOption(user.memberId(), id, itemId, request.inventoryId());
+        return new RsData<>("200-1", "옵션을 변경했습니다.");
     }
 
     @DeleteMapping("/{id}/items/{itemId}")
-    public ResponseEntity<Void> removeItem(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> removeItem(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id,
             @PathVariable Long itemId
     ) {
-        sharedGroupPurchaseFacade.removeItem(memberId, id, itemId);
-        return ResponseEntity.noContent().build();
+        sharedGroupPurchaseFacade.removeItem(user.memberId(), id, itemId);
+        return new RsData<>("200-1", "상품을 삭제했습니다.");
     }
 
-
     @PostMapping("/{id}/close")
-    public ResponseEntity<Void> close(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> close(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id
     ) {
-        sharedGroupPurchaseFacade.close(memberId, id);
-        return ResponseEntity.noContent().build();
+        sharedGroupPurchaseFacade.close(user.memberId(), id);
+        return new RsData<>("200-1", "공동구매를 마감했습니다.");
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<Void> cancel(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    public RsData<Void> cancel(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id
     ) {
-        sharedGroupPurchaseFacade.cancel(memberId, id);
-        return ResponseEntity.noContent().build();
+        sharedGroupPurchaseFacade.cancel(user.memberId(), id);
+        return new RsData<>("200-1", "공동구매를 취소했습니다.");
     }
 
     @PostMapping("/{id}/duplicate")
-    public ResponseEntity<SharedGroupPurchaseCreateResponse> duplicate(
-            @RequestHeader(MEMBER_ID_HEADER) Long memberId,
+    @ResponseStatus(HttpStatus.CREATED)
+    public RsData<SharedGroupPurchaseCreateResponse> duplicate(
+            @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id
     ) {
-        SharedGroupPurchaseCreateResponse response = sharedGroupPurchaseFacade.duplicate(memberId, id);
-        return ResponseEntity.created(URI.create(BASE_PATH + response.id())).body(response);
+        return new RsData<>("201-1", "공동구매를 다시 만들었습니다.", sharedGroupPurchaseFacade.duplicate(user.memberId(), id));
     }
 }

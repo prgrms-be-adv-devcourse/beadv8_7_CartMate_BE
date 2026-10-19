@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.domain.groupindividual;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +33,7 @@ class IndividualGroupPurchaseTest {
                 .containsExactly(UNIFORM, SOCKS);
 
         assertThatThrownBy(() -> purchase(List.of()))
-                .hasMessage("판매할 상품을 하나 이상 선택해야 합니다.");
+                .hasMessageContaining("판매할 상품을 하나 이상 선택해야 합니다.");
     }
 
     @Test
@@ -44,12 +45,12 @@ class IndividualGroupPurchaseTest {
 
         assertThatCode(() -> purchase.validateOrderable(UNIFORM, beforeDeadline)).doesNotThrowAnyException();
         assertThatThrownBy(() -> purchase.validateOrderable(BALL, beforeDeadline))
-                .hasMessage("이 공동구매에서 판매하지 않는 상품입니다.");
+                .hasMessageContaining("이 공동구매에서 판매하지 않는 상품입니다.");
 
         assertThat(purchase.getStatus()).isEqualTo(IndividualGroupPurchaseStatus.OPEN);
         assertThat(purchase.isOpen(atDeadline)).isFalse();
         assertThatThrownBy(() -> purchase.validateOrderable(UNIFORM, atDeadline))
-                .hasMessage("판매가 마감된 공동구매입니다.");
+                .hasMessageContaining("판매가 마감된 공동구매입니다.");
     }
 
     @Test
@@ -58,13 +59,13 @@ class IndividualGroupPurchaseTest {
         IndividualGroupPurchase purchase = purchase(List.of(UNIFORM));
         LocalDateTime now = createdAt.plusHours(1);
 
-        assertThatThrownBy(() -> purchase.close(OTHER, now)).hasMessage("공동구매 생성자만 할 수 있습니다.");
+        assertThatThrownBy(() -> purchase.close(OTHER, now)).hasMessageContaining("공동구매 생성자만 할 수 있습니다.");
         purchase.close(CREATOR, now);
 
         assertThat(purchase.getStatus()).isEqualTo(IndividualGroupPurchaseStatus.CLOSED);
         assertThat(purchase.getClosedAt()).isEqualTo(now);
         assertThat(purchase.isOpen(now)).isFalse();
-        assertThatThrownBy(() -> purchase.close(CREATOR, now)).hasMessage("이미 마감된 공동구매입니다.");
+        assertThatThrownBy(() -> purchase.close(CREATOR, now)).hasMessageContaining("이미 마감된 공동구매입니다.");
     }
 
     @Test
@@ -73,14 +74,14 @@ class IndividualGroupPurchaseTest {
         IndividualGroupPurchase purchase = purchase(List.of(UNIFORM));
         LocalDateTime now = createdAt.plusHours(1);
 
-        assertThatThrownBy(() -> purchase.addProduct(OTHER, SOCKS, now)).hasMessage("공동구매 생성자만 할 수 있습니다.");
-        assertThatThrownBy(() -> purchase.addProduct(CREATOR, UNIFORM, now)).hasMessage("이미 판매 중인 상품입니다.");
+        assertThatThrownBy(() -> purchase.addProduct(OTHER, SOCKS, now)).hasMessageContaining("공동구매 생성자만 할 수 있습니다.");
+        assertThatThrownBy(() -> purchase.addProduct(CREATOR, UNIFORM, now)).hasMessageContaining("이미 판매 중인 상품입니다.");
 
         purchase.addProduct(CREATOR, SOCKS, now);
         assertThat(purchase.hasProduct(SOCKS)).isTrue();
 
         assertThatThrownBy(() -> purchase.addProduct(CREATOR, BALL, createdAt.plusHours(48)))
-                .hasMessage("판매가 마감된 공동구매입니다.");
+                .hasMessageContaining("판매가 마감된 공동구매입니다.");
     }
 
     @Test
@@ -90,13 +91,13 @@ class IndividualGroupPurchaseTest {
         LocalDateTime now = createdAt.plusHours(1);
 
         assertThatThrownBy(() -> purchase.removeProduct(CREATOR, SOCKS, true, now))
-                .hasMessage("이미 구매한 사람이 있는 상품은 뺄 수 없습니다.");
+                .hasMessageContaining("이미 구매한 사람이 있는 상품은 뺄 수 없습니다.");
 
         purchase.removeProduct(CREATOR, SOCKS, false, now);
         assertThat(purchase.hasProduct(SOCKS)).isFalse();
 
         assertThatThrownBy(() -> purchase.removeProduct(CREATOR, UNIFORM, false, now))
-                .hasMessage("판매 상품은 하나 이상 있어야 합니다. 판매를 멈추려면 마감해 주세요.");
+                .hasMessageContaining("판매 상품은 하나 이상 있어야 합니다. 판매를 멈추려면 마감해 주세요.");
     }
 
     @Test
@@ -106,9 +107,9 @@ class IndividualGroupPurchaseTest {
         LocalDateTime now = createdAt.plusHours(10);
 
         assertThatThrownBy(() -> purchase.changeDeadline(CREATOR, now, now))
-                .hasMessage("판매 마감 시각은 지금 이후여야 합니다.");
+                .hasMessageContaining("판매 마감 시각은 지금 이후여야 합니다.");
         assertThatThrownBy(() -> purchase.changeDeadline(CREATOR, now.plusHours(48).plusMinutes(1), now))
-                .hasMessage("판매 마감 시각은 지금으로부터 48시간 이내여야 합니다.");
+                .hasMessageContaining("판매 마감 시각은 지금으로부터 48시간 이내여야 합니다.");
 
         purchase.changeDeadline(CREATOR, now.plusHours(48), now);
         assertThat(purchase.getDeadlineAt()).isEqualTo(now.plusHours(48));

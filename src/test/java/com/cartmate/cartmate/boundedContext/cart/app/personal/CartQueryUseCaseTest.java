@@ -50,7 +50,7 @@ class CartQueryUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        cartQueryUseCase = new CartQueryUseCase(new CartSupport(cartRepository), productClient);
+        cartQueryUseCase = new CartQueryUseCase(cartRepository, productClient);
     }
 
     @Nested

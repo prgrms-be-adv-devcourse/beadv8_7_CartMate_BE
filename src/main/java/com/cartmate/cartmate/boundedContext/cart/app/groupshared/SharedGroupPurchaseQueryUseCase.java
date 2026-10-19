@@ -1,10 +1,13 @@
 package com.cartmate.cartmate.boundedContext.cart.app.groupshared;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseSummaryResponse;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.cart.out.ProductClient;
+import com.cartmate.cartmate.boundedContext.cart.out.groupshared.SharedGroupPurchaseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,14 +21,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 class SharedGroupPurchaseQueryUseCase {
 
+    private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
     private final ProductClient productClient;
 
     SharedGroupPurchaseDetailResponse getDetail(Long memberId, Long sharedGroupPurchaseId) {
-        SharedGroupPurchase purchase = sharedGroupPurchaseSupport.findWithDetails(sharedGroupPurchaseId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매입니다."));
+        SharedGroupPurchase purchase = sharedGroupPurchaseRepository.findWithDetailsById(sharedGroupPurchaseId)
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_GROUP_PURCHASE_NOT_FOUND));
         if (!purchase.isMember(memberId)) {
-            throw new IllegalArgumentException("공동구매 참여자만 볼 수 있습니다.");
+            throw new ServiceException(CartErrorCode.CART_SHARED_PARTICIPANT_ONLY_VIEW);
         }
         Map<Long, CartProductInfo> products = productClient
                 .findAllByInventoryIds(sharedGroupPurchaseSupport.inventoryIdsOf(purchase)).stream()
@@ -35,7 +39,7 @@ class SharedGroupPurchaseQueryUseCase {
 
     List<SharedGroupPurchaseSummaryResponse> getMyList(Long memberId) {
         LocalDateTime now = LocalDateTime.now();
-        return sharedGroupPurchaseSupport.findAllByParticipant(memberId).stream()
+        return sharedGroupPurchaseRepository.findAllByParticipant(memberId).stream()
                 .map(purchase -> SharedGroupPurchaseSummaryResponse.of(purchase, memberId, now))
                 .toList();
     }

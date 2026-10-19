@@ -1,6 +1,9 @@
 package com.cartmate.cartmate.boundedContext.cart.app.groupshared;
 
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
+import com.cartmate.cartmate.boundedContext.cart.out.groupshared.SharedGroupPurchaseRepository;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -10,10 +13,11 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 class SharedGroupPurchaseMemberUseCase {
 
+    private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
 
     Long join(Long memberId, String inviteCode) {
-        SharedGroupPurchase purchase = sharedGroupPurchaseSupport.getPurchaseByInviteCodeForUpdate(inviteCode);
+        SharedGroupPurchase purchase = getPurchaseByInviteCodeForUpdate(inviteCode);
         if (purchase.isMember(memberId)) {
             return purchase.getId();
         }
@@ -34,5 +38,10 @@ class SharedGroupPurchaseMemberUseCase {
     void increaseMaxParticipants(Long memberId, Long sharedGroupPurchaseId, int maxParticipants) {
         sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
                 .increaseMaxParticipants(memberId, maxParticipants, LocalDateTime.now());
+    }
+
+    private SharedGroupPurchase getPurchaseByInviteCodeForUpdate(String inviteCode) {
+        return sharedGroupPurchaseRepository.findByInviteCodeForUpdate(inviteCode)
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_INVALID_INVITE_CODE));
     }
 }

@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.domain.groupindividual;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -64,7 +66,7 @@ public class IndividualGroupPurchase {
                                     List<Long> productIds, LocalDateTime now) {
         validateTitle(title);
         if (productIds == null || productIds.isEmpty()) {
-            throw new IllegalArgumentException("판매할 상품을 하나 이상 선택해야 합니다.");
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCTS_REQUIRED);
         }
         this.title = title;
         this.creatorMemberId = creatorMemberId;
@@ -87,7 +89,7 @@ public class IndividualGroupPurchase {
         validateCreator(requesterId);
         validateOpen(now);
         if (hasProduct(productId)) {
-            throw new IllegalArgumentException("이미 판매 중인 상품입니다.");
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCT_ALREADY_ON_SALE);
         }
         products.add(IndividualGroupPurchaseProduct.create(this, productId));
     }
@@ -97,15 +99,15 @@ public class IndividualGroupPurchase {
         validateCreator(requesterId);
         validateOpen(now);
         if (hasOrders) {
-            throw new IllegalArgumentException("이미 구매한 사람이 있는 상품은 뺄 수 없습니다.");
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCT_HAS_ORDERS);
         }
         if (products.size() == 1) {
-            throw new IllegalArgumentException("판매 상품은 하나 이상 있어야 합니다. 판매를 멈추려면 마감해 주세요.");
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_LAST_PRODUCT);
         }
         IndividualGroupPurchaseProduct product = products.stream()
                 .filter(p -> p.is(productId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("판매 중인 상품이 아닙니다."));
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCT_NOT_ON_SALE));
         products.remove(product);
     }
 
@@ -118,10 +120,10 @@ public class IndividualGroupPurchase {
         validateCreator(requesterId);
         validateOpen(now);
         if (!newDeadlineAt.isAfter(now)) {
-            throw new IllegalArgumentException("판매 마감 시각은 지금 이후여야 합니다.");
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_DEADLINE_IN_PAST);
         }
         if (newDeadlineAt.isAfter(now.plus(MAX_SALE_PERIOD))) {
-            throw new IllegalArgumentException("판매 마감 시각은 지금으로부터 " + MAX_SALE_PERIOD.toHours() + "시간 이내여야 합니다.");
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_DEADLINE_TOO_LATE);
         }
         this.deadlineAt = newDeadlineAt;
     }
@@ -129,7 +131,7 @@ public class IndividualGroupPurchase {
     public void close(Long requesterId, LocalDateTime now) {
         validateCreator(requesterId);
         if (status != IndividualGroupPurchaseStatus.OPEN) {
-            throw new IllegalArgumentException("이미 마감된 공동구매입니다.");
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_ALREADY_CLOSED);
         }
         this.status = IndividualGroupPurchaseStatus.CLOSED;
         this.closedAt = now;
@@ -143,7 +145,7 @@ public class IndividualGroupPurchase {
     public void validateOrderable(Long productId, LocalDateTime now) {
         validateOpen(now);
         if (!hasProduct(productId)) {
-            throw new IllegalArgumentException("이 공동구매에서 판매하지 않는 상품입니다.");
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCT_NOT_SOLD);
         }
     }
 
@@ -154,19 +156,19 @@ public class IndividualGroupPurchase {
 
     private void validateOpen(LocalDateTime now) {
         if (!isOpen(now)) {
-            throw new IllegalArgumentException("판매가 마감된 공동구매입니다.");
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_SALE_CLOSED);
         }
     }
 
     private void validateCreator(Long memberId) {
         if (!isCreator(memberId)) {
-            throw new IllegalArgumentException("공동구매 생성자만 할 수 있습니다.");
+            throw new ServiceException(CartErrorCode.CART_CREATOR_ONLY);
         }
     }
 
     private static void validateTitle(String title) {
         if (title == null || title.isBlank() || title.length() > MAX_TITLE_LENGTH) {
-            throw new IllegalArgumentException("제목은 1자 이상 " + MAX_TITLE_LENGTH + "자 이하여야 합니다.");
+            throw new ServiceException(CartErrorCode.CART_INVALID_TITLE);
         }
     }
 }
