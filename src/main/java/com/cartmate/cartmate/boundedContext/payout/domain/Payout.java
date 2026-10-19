@@ -11,7 +11,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 @Entity
 @Table(
@@ -66,9 +65,6 @@ public class Payout {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // 수수료율 3%, 구매확정 월의 다음 달 15일에 지급한다.
-    private static final long FEE_RATE_PERCENT = 3L;
-    private static final int PAYOUT_DAY_OF_MONTH = 15;
 
     public static Payout create(Long sellerId, Long orderId, Long orderItemId, Long salesAmount, LocalDateTime confirmedAt) {
         if (sellerId == null || orderId == null || orderItemId == null || confirmedAt == null) {
@@ -80,14 +76,6 @@ public class Payout {
         }
 
         return new Payout(sellerId, orderId, orderItemId, salesAmount, confirmedAt);
-    }
-
-    // 구매확정 시각이 속한 달의 다음 달 15일 00:00을 지급 예정 시각으로 계산한다.
-    private static LocalDateTime scheduledAtFor(LocalDateTime confirmedAt) {
-        return confirmedAt.toLocalDate()
-                .plusMonths(1)
-                .withDayOfMonth(PAYOUT_DAY_OF_MONTH)
-                .atTime(LocalTime.MIN);
     }
 
     // 대기 중인 정산을 지급 완료로 바꾸고 지급 시각을 기록한다.
@@ -105,10 +93,10 @@ public class Payout {
         this.orderId = orderId;
         this.orderItemId = orderItemId;
         this.salesAmount = salesAmount;
-        this.feeAmount = salesAmount * FEE_RATE_PERCENT / 100;
+        this.feeAmount = PayoutPolicy.feeOf(salesAmount);
         this.payoutAmount = salesAmount - this.feeAmount;
         this.confirmedAt = confirmedAt;
-        this.scheduledAt = scheduledAtFor(confirmedAt);
+        this.scheduledAt = PayoutPolicy.scheduledAtFor(confirmedAt);
         this.status = PayoutStatus.PENDING;
     }
 }
