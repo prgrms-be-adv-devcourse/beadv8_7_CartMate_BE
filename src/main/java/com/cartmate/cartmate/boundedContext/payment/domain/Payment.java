@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -32,10 +34,12 @@ public class Payment extends BaseIdAndTime {
     private Long amount;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "payment_type", nullable = false, length = 20)
     private PaymentType type;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private PaymentStatus status;
 
@@ -73,5 +77,9 @@ public class Payment extends BaseIdAndTime {
 
     public boolean isOwnedBy(Long memberId) {
         return this.memberId.equals(memberId);
+    }
+
+    public boolean isGroupShare() {
+        return type == PaymentType.GROUP_SHARE;
     }
 }

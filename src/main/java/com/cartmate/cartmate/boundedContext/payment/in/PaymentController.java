@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.payment.in;
 
 import com.cartmate.cartmate.boundedContext.payment.app.PaymentFacade;
 import com.cartmate.cartmate.boundedContext.payment.app.PaymentRetryService;
+import com.cartmate.cartmate.boundedContext.payment.dto.PaymentPreviewResponse;
 import com.cartmate.cartmate.boundedContext.payment.dto.PaymentResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
@@ -31,5 +32,10 @@ public class PaymentController {
     @PostMapping("/{paymentId}/cancel")
     public RsData<PaymentResponse> cancel(@AuthenticationPrincipal SecurityUser user, @PathVariable Long paymentId) {
         return new RsData<>("200-1", "결제가 취소되었습니다.", paymentRetryService.cancel(user.memberId(), paymentId));
+    }
+
+    @GetMapping("/orders/{orderId}/preview")
+    public RsData<PaymentPreviewResponse> preview(@AuthenticationPrincipal SecurityUser user, @PathVariable Long orderId) {
+        return new RsData<>("200-1", "결제 정보 조회 성공", paymentFacade.preview(user.memberId(), orderId));
     }
 }
