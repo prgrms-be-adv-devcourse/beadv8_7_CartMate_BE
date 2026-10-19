@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,12 @@ public class OrderFacade {
     @Transactional
     public OrderCreateResponse createPersonal(Long memberId, OrderCreateRequest request) {
         return orderCreateUseCase.createPersonal(memberId, request.cartItemIds(),
+                request.deliveryAddress().toDeliveryAddress(), LocalDateTime.now());
+    }
+
+    @Transactional
+    public OrderCreateResponse createIndividualGroup(Long memberId, IndividualGroupOrderCreateRequest request) {
+        return orderCreateUseCase.createIndividualGroup(memberId, request.individualGroupPurchaseId(), request.items(),
                 request.deliveryAddress().toDeliveryAddress(), LocalDateTime.now());
     }
 }

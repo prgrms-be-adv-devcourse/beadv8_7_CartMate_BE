@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.in.personal;
 
 import com.cartmate.cartmate.boundedContext.order.app.personal.OrderFacade;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
@@ -29,5 +30,14 @@ public class OrderController {
             @Valid @RequestBody OrderCreateRequest request
     ) {
         return new RsData<>("201-1", "주문을 만들었습니다.", orderFacade.createPersonal(user.memberId(), request));
+    }
+
+    @PostMapping("/individual-group")
+    @ResponseStatus(HttpStatus.CREATED)
+    public RsData<OrderCreateResponse> createIndividualGroup(
+            @AuthenticationPrincipal SecurityUser user,
+            @Valid @RequestBody IndividualGroupOrderCreateRequest request
+    ) {
+        return new RsData<>("201-1", "공동구매 상품을 주문했습니다.", orderFacade.createIndividualGroup(user.memberId(), request));
     }
 }

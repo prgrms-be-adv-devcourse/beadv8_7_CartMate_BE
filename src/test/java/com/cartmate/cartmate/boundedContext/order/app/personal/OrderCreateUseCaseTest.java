@@ -1,11 +1,14 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.cart.app.personal.CartFacade;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderItem;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderType;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
@@ -13,6 +16,7 @@ import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +41,7 @@ import static org.mockito.Mockito.never;
 class OrderCreateUseCaseTest {
 
     private static final Long MEMBER_ID = 1L;
+    private static final Long PURCHASE_ID = 10L;
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 19, 12, 0);
     private static final String ORDER_NUMBER = "20261019-ABCDEFGH";
     private static final DeliveryAddress ADDRESS =
@@ -53,6 +58,9 @@ class OrderCreateUseCaseTest {
 
     @Mock
     private CartFacade cartFacade;
+
+    @Mock
+    private IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
     @InjectMocks
     private OrderCreateUseCase createUseCase;
@@ -98,6 +106,44 @@ class OrderCreateUseCaseTest {
         assertThatThrownBy(() -> createUseCase.createPersonal(MEMBER_ID, List.of(15L), ADDRESS, NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_PRODUCT_NOT_PURCHASABLE.getMsg());
+        then(orderRepository).should(never()).save(any());
+    }
+
+    @Test
+    @DisplayName("공동구매 상품 주문의 결제 기한은 판매 마감이 더 이르면 판매 마감 시각이다")
+    void createIndividualGroup() {
+        LocalDateTime saleDeadlineAt = NOW.plusMinutes(10);
+        given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
+                new OrderProductInfo(4L, 2L, 8L, "축구공", "5호", 25000, null, true)));
+        given(individualGroupPurchaseFacade.getOrderable(PURCHASE_ID, List.of(2L), NOW))
+                .willReturn(new IndividualGroupPurchaseOrderable(PURCHASE_ID, saleDeadlineAt));
+        given(orderNumberGenerator.generateUnique(any(), any())).willReturn(ORDER_NUMBER);
+        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        OrderCreateResponse response = createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 3)), ADDRESS, NOW);
+
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+        then(orderRepository).should().save(captor.capture());
+        Order order = captor.getValue();
+        assertThat(order.getOrderType()).isEqualTo(OrderType.INDIVIDUAL_GROUP);
+        assertThat(order.getIndividualGroupPurchaseId()).isEqualTo(PURCHASE_ID);
+        assertThat(response.totalAmount()).isEqualTo(75000L);
+        assertThat(response.paymentDeadlineAt()).isEqualTo(saleDeadlineAt);
+    }
+
+    @Test
+    @DisplayName("판매가 마감된 공동구매에는 주문할 수 없다")
+    void rejectClosedPurchase() {
+        given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
+                new OrderProductInfo(4L, 2L, 8L, "축구공", "5호", 25000, null, true)));
+        given(individualGroupPurchaseFacade.getOrderable(PURCHASE_ID, List.of(2L), NOW))
+                .willThrow(new ServiceException(CartErrorCode.CART_INDIVIDUAL_SALE_CLOSED));
+
+        assertThatThrownBy(() -> createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)), ADDRESS, NOW))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(CartErrorCode.CART_INDIVIDUAL_SALE_CLOSED.getMsg());
         then(orderRepository).should(never()).save(any());
     }
 }

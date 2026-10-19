@@ -1,9 +1,11 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.cart.app.personal.CartFacade;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order.OrderLine;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
@@ -11,6 +13,7 @@ import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +31,7 @@ class OrderCreateUseCase {
     private final OrderProductClient orderProductClient;
     private final OrderNumberGenerator orderNumberGenerator;
     private final CartFacade cartFacade;
+    private final IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
     OrderCreateResponse createPersonal(Long memberId, List<Long> cartItemIds, DeliveryAddress deliveryAddress,
                                        LocalDateTime now) {
@@ -37,6 +41,22 @@ class OrderCreateUseCase {
                 .map(item -> toLine(products, item.inventoryId(), item.quantity()))
                 .toList();
         Order order = Order.createPersonal(generateOrderNumber(now), memberId, lines, deliveryAddress, now);
+        return OrderCreateResponse.from(orderRepository.save(order));
+    }
+
+    OrderCreateResponse createIndividualGroup(Long memberId, Long individualGroupPurchaseId,
+                                              List<IndividualGroupOrderCreateRequest.Item> items,
+                                              DeliveryAddress deliveryAddress, LocalDateTime now) {
+        Map<Long, OrderProductInfo> products = productsOf(
+                items.stream().map(IndividualGroupOrderCreateRequest.Item::inventoryId).toList());
+        List<OrderLine> lines = items.stream()
+                .map(item -> toLine(products, item.inventoryId(), item.quantity()))
+                .toList();
+        List<Long> productIds = lines.stream().map(OrderLine::productId).distinct().toList();
+        IndividualGroupPurchaseOrderable orderable =
+                individualGroupPurchaseFacade.getOrderable(individualGroupPurchaseId, productIds, now);
+        Order order = Order.createIndividualGroup(generateOrderNumber(now), memberId,
+                orderable.individualGroupPurchaseId(), orderable.saleDeadlineAt(), lines, deliveryAddress, now);
         return OrderCreateResponse.from(orderRepository.save(order));
     }
 
