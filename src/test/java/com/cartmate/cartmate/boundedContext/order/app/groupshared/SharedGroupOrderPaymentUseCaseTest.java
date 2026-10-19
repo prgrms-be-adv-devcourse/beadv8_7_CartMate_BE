@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class SharedGroupOrderPaymentUseCaseTest {
@@ -38,6 +39,8 @@ class SharedGroupOrderPaymentUseCaseTest {
     private static final Long CREATOR = 1L;
     private static final Long MEMBER = 2L;
     private static final Long OUTSIDER = 3L;
+    private static final Long CREATOR_PAYMENT_ID = 501L;
+    private static final Long MEMBER_PAYMENT_ID = 502L;
     private static final TeamDeliveryAddress ADDRESS =
             new TeamDeliveryAddress("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호");
 
@@ -74,7 +77,7 @@ class SharedGroupOrderPaymentUseCaseTest {
     void paymentInfoForPaidMember() {
         SharedGroupOrder order = order(LocalDateTime.now());
         order.markStockReserved();
-        order.pay(MEMBER, LocalDateTime.now(), null);
+        order.pay(MEMBER, MEMBER_PAYMENT_ID, LocalDateTime.now(), null);
         given(sharedGroupOrderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
 
         SharedGroupOrderPaymentInfo info = paymentUseCase.getPaymentInfo(ORDER_ID, MEMBER, LocalDateTime.now());
@@ -146,7 +149,7 @@ class SharedGroupOrderPaymentUseCaseTest {
         SharedGroupOrder order = reservedOrder(LocalDateTime.now());
         given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
 
-        paymentUseCase.applyPayment(ORDER_ID, MEMBER, LocalDateTime.now(), null);
+        paymentUseCase.applyPayment(ORDER_ID, MEMBER, MEMBER_PAYMENT_ID, LocalDateTime.now(), null);
 
         assertThat(order.getParticipant(MEMBER).isPaid()).isTrue();
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.PAYING);
@@ -160,8 +163,8 @@ class SharedGroupOrderPaymentUseCaseTest {
         given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
         LocalDateTime paidAt = LocalDateTime.now();
 
-        paymentUseCase.applyPayment(ORDER_ID, MEMBER, paidAt.minusMinutes(1), null);
-        paymentUseCase.applyPayment(ORDER_ID, CREATOR, paidAt, ADDRESS);
+        paymentUseCase.applyPayment(ORDER_ID, MEMBER, MEMBER_PAYMENT_ID, paidAt.minusMinutes(1), null);
+        paymentUseCase.applyPayment(ORDER_ID, CREATOR, CREATOR_PAYMENT_ID, paidAt, ADDRESS);
 
         ArgumentCaptor<SharedGroupOrderConfirmedEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderConfirmedEvent.class);
         then(eventPublisher).should().publishEvent(captor.capture());
@@ -178,12 +181,42 @@ class SharedGroupOrderPaymentUseCaseTest {
     }
 
     @Test
+    @DisplayName("같은 결제 ID로 결제 통보가 다시 와도 예외 없이 확정 이벤트는 한 번만 발행한다")
+    void applyPaymentSamePaymentIdTwice() {
+        SharedGroupOrder order = reservedOrder(LocalDateTime.now());
+        given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
+        LocalDateTime paidAt = LocalDateTime.now();
+
+        paymentUseCase.applyPayment(ORDER_ID, MEMBER, MEMBER_PAYMENT_ID, paidAt, null);
+        paymentUseCase.applyPayment(ORDER_ID, MEMBER, MEMBER_PAYMENT_ID, paidAt, null);
+        paymentUseCase.applyPayment(ORDER_ID, CREATOR, CREATOR_PAYMENT_ID, paidAt, ADDRESS);
+        paymentUseCase.applyPayment(ORDER_ID, CREATOR, CREATOR_PAYMENT_ID, paidAt, ADDRESS);
+
+        then(eventPublisher).should(times(1)).publishEvent(any(SharedGroupOrderConfirmedEvent.class));
+        assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CONFIRMED);
+        assertThat(order.getParticipant(MEMBER).getPaymentId()).isEqualTo(MEMBER_PAYMENT_ID);
+    }
+
+    @Test
+    @DisplayName("이미 다른 결제 ID로 결제한 참여자는 다시 결제할 수 없다")
+    void applyPaymentDifferentPaymentId() {
+        SharedGroupOrder order = reservedOrder(LocalDateTime.now());
+        given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
+        paymentUseCase.applyPayment(ORDER_ID, MEMBER, MEMBER_PAYMENT_ID, LocalDateTime.now(), null);
+
+        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, MEMBER, MEMBER_PAYMENT_ID + 100, LocalDateTime.now(), null))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_ALREADY_PAID.getMsg());
+        assertThat(order.getParticipant(MEMBER).getPaymentId()).isEqualTo(MEMBER_PAYMENT_ID);
+    }
+
+    @Test
     @DisplayName("결제 기한이 지난 결제는 반영하지 않고 이벤트도 발행하지 않는다")
     void applyPaymentLate() {
         SharedGroupOrder order = reservedOrder(expiredClosedAt());
         given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
 
-        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, MEMBER, LocalDateTime.now(), null))
+        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, MEMBER, MEMBER_PAYMENT_ID, LocalDateTime.now(), null))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NOT_PAYABLE.getMsg());
         assertThat(order.getParticipant(MEMBER).isPaid()).isFalse();
@@ -196,7 +229,7 @@ class SharedGroupOrderPaymentUseCaseTest {
         SharedGroupOrder order = reservedOrder(LocalDateTime.now());
         given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
 
-        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, CREATOR, LocalDateTime.now(), null))
+        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, CREATOR, CREATOR_PAYMENT_ID, LocalDateTime.now(), null))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_TEAM_ADDRESS_REQUIRED.getMsg());
         assertThat(order.getParticipant(CREATOR).isPaid()).isFalse();
@@ -208,7 +241,7 @@ class SharedGroupOrderPaymentUseCaseTest {
     void applyPaymentStockNotReserved() {
         given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order(LocalDateTime.now()));
 
-        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, MEMBER, LocalDateTime.now(), null))
+        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, MEMBER, MEMBER_PAYMENT_ID, LocalDateTime.now(), null))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_STOCK_NOT_RESERVED.getMsg());
     }

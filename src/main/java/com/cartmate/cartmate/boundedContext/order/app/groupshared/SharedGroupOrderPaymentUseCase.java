@@ -50,10 +50,11 @@ class SharedGroupOrderPaymentUseCase {
         order.markStockReserved();
     }
 
-    void applyPayment(Long sharedGroupOrderId, Long memberId, LocalDateTime paidAt, TeamDeliveryAddress teamDeliveryAddress) {
+    void applyPayment(Long sharedGroupOrderId, Long memberId, Long paymentId, LocalDateTime paidAt,
+                      TeamDeliveryAddress teamDeliveryAddress) {
         SharedGroupOrder order = sharedGroupOrderSupport.getOrderForUpdate(sharedGroupOrderId);
         DeliveryAddress deliveryAddress = order.isCreator(memberId) ? toDeliveryAddress(teamDeliveryAddress) : null;
-        if (order.pay(memberId, paidAt, deliveryAddress)) {
+        if (order.pay(memberId, paymentId, paidAt, deliveryAddress)) {
             eventPublisher.publishEvent(toConfirmedEvent(order));
         }
     }

@@ -93,7 +93,7 @@ class SharedGroupOrderConcurrencyTest {
             runConcurrently(List.of(
                     () -> {
                         try {
-                            facade.applyPayment(orderId, last, paidAt, null);
+                            facade.applyPayment(orderId, last, last, paidAt, null);
                             paymentResult.set("PAID");
                         } catch (ServiceException e) {
                             paymentResult.set(e.getResultCode());
@@ -147,11 +147,11 @@ class SharedGroupOrderConcurrencyTest {
             AtomicInteger success = new AtomicInteger();
             runConcurrently(List.of(
                     () -> {
-                        facade.applyPayment(orderId, first, LocalDateTime.now(), null);
+                        facade.applyPayment(orderId, first, first, LocalDateTime.now(), null);
                         success.incrementAndGet();
                     },
                     () -> {
-                        facade.applyPayment(orderId, second, LocalDateTime.now(), null);
+                        facade.applyPayment(orderId, second, second, LocalDateTime.now(), null);
                         success.incrementAndGet();
                     }
             ));
@@ -199,7 +199,7 @@ class SharedGroupOrderConcurrencyTest {
                     List.of(new OrderItemLine(2L, 4L, 1, 30000L)), closedAt);
             order.markStockReserved();
             LocalDateTime paidAt = closedAt.plusMinutes(1);
-            paidMembers.forEach(memberId -> order.pay(memberId, paidAt,
+            paidMembers.forEach(memberId -> order.pay(memberId, memberId, paidAt,
                     order.isCreator(memberId) ? DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호") : null));
             return repository.save(order).getId();
         });

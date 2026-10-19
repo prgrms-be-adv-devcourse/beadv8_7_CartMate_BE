@@ -34,11 +34,12 @@ class OrderPaymentUseCase {
         );
     }
 
-    void applyPayment(Long orderId, Long memberId, LocalDateTime paidAt) {
+    void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         orderSupport.validateBuyer(order, memberId);
-        order.markPaid(paidAt);
-        eventPublisher.publishEvent(toPaidEvent(order));
+        if (order.markPaid(paymentId, paidAt)) {
+            eventPublisher.publishEvent(toPaidEvent(order));
+        }
     }
 
     private OrderPaidEvent toPaidEvent(Order order) {

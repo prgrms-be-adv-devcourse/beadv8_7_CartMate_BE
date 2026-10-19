@@ -85,7 +85,7 @@ class OrderConcurrencyTest {
             runConcurrently(List.of(
                     () -> {
                         try {
-                            facade.applyPayment(orderId, buyer, paidAt);
+                            facade.applyPayment(orderId, buyer, orderId, paidAt);
                             paymentResult.set("PAID");
                         } catch (ServiceException e) {
                             paymentResult.set(e.getResultCode());

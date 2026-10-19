@@ -50,8 +50,8 @@ public class OrderFacade {
     }
 
     @Transactional
-    public void applyPayment(Long orderId, Long memberId, LocalDateTime paidAt) {
-        orderPaymentUseCase.applyPayment(orderId, memberId, paidAt);
+    public void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt) {
+        orderPaymentUseCase.applyPayment(orderId, memberId, paymentId, paidAt);
     }
 
     @Transactional

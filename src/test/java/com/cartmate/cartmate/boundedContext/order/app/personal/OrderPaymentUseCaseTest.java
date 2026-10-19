@@ -28,12 +28,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class OrderPaymentUseCaseTest {
 
     private static final Long ORDER_ID = 100L;
     private static final Long BUYER = 1L;
+    private static final Long PAYMENT_ID = 500L;
     private static final LocalDateTime CREATED_AT = LocalDateTime.of(2026, 10, 19, 12, 0);
 
     @Mock
@@ -56,7 +58,7 @@ class OrderPaymentUseCaseTest {
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
         LocalDateTime paidAt = CREATED_AT.plusMinutes(10);
 
-        paymentUseCase.applyPayment(ORDER_ID, BUYER, paidAt);
+        paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, paidAt);
 
         ArgumentCaptor<OrderPaidEvent> captor = ArgumentCaptor.forClass(OrderPaidEvent.class);
         then(eventPublisher).should().publishEvent(captor.capture());
@@ -77,12 +79,40 @@ class OrderPaymentUseCaseTest {
         Order order = order();
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
 
-        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER,
+        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID,
                 CREATED_AT.plus(Order.PAYMENT_PERIOD).plusSeconds(1)))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_PAYMENT_EXPIRED.getMsg());
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
         then(eventPublisher).should(never()).publishEvent(any(Object.class));
+    }
+
+    @Test
+    @DisplayName("같은 결제 ID로 결제 통보가 두 번 와도 예외 없이 결제 완료 이벤트는 한 번만 발행한다")
+    void applyPaymentSamePaymentIdTwice() {
+        Order order = order();
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        LocalDateTime paidAt = CREATED_AT.plusMinutes(10);
+
+        paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, paidAt);
+        paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, paidAt);
+
+        then(eventPublisher).should(times(1)).publishEvent(any(OrderPaidEvent.class));
+        assertThat(order.getPaymentId()).isEqualTo(PAYMENT_ID);
+    }
+
+    @Test
+    @DisplayName("이미 다른 결제 ID로 결제된 주문은 다시 결제할 수 없다")
+    void applyPaymentDifferentPaymentId() {
+        Order order = order();
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        LocalDateTime paidAt = CREATED_AT.plusMinutes(10);
+        paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, paidAt);
+
+        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID + 1, paidAt))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_NOT_PAYMENT_PENDING.getMsg());
+        then(eventPublisher).should(times(1)).publishEvent(any(OrderPaidEvent.class));
     }
 
     private Order order() {
