@@ -1,0 +1,28 @@
+package com.cartmate.cartmate.shared.product.dto;
+
+import com.cartmate.cartmate.boundedContext.product.domain.Product;
+import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+public class UpdateProductImage {
+    private Long id;
+    private Long productId;
+    private String s3Key;
+    private int imageSeq;
+    private ProductStatus status;
+
+    // 서버 도착 후 주입
+    @JsonIgnore
+    private MultipartFile file;
+
+    public void assignFile(MultipartFile file) {
+        this.file = file;
+    }
+}

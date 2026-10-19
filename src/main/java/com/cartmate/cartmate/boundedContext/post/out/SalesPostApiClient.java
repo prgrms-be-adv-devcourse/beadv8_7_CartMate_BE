@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.post.out;
 
+import com.cartmate.cartmate.boundedContext.post.dto.UpdateSalesPostRequest;
 import com.cartmate.cartmate.global.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
@@ -60,6 +61,32 @@ public class SalesPostApiClient {
                     })
                     .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
                         throw new ServiceException(ProductErrorCode.PRODUCT_DELETE_FAILED);
+                    })
+                    .toBodilessEntity();
+        } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
+            throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
+        }
+    }
+
+    public void updateProducts(UpdateSalesPostRequest request, List<MultipartFile> images) {
+        MultipartBodyBuilder body = new MultipartBodyBuilder();
+        body.part("request", request, MediaType.APPLICATION_JSON);   // file은 빠진 채로 JSON
+
+        if (images != null) {
+            images.forEach(file -> body.part("images", file.getResource()));
+        }
+
+        try {
+            restClient.patch()
+                    .uri("/update")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body.build())
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_INVALID);
+                    })
+                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+                        throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_FAILED);
                     })
                     .toBodilessEntity();
         } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패

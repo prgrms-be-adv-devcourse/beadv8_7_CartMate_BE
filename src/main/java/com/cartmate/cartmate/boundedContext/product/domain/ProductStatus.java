@@ -7,7 +7,8 @@ public enum ProductStatus {
     CLOSED("판매 종료"),
     DELETED("삭제"),
     ACTIVE("활성화"),
-    INACTIVE("비활성화"); // 사진
+    INACTIVE("비활성화"),
+    PENDING("등록 진행중"); // 등록 진행중
 
     private String name;
 

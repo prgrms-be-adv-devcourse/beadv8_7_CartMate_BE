@@ -39,12 +39,15 @@ public class Product extends BaseIdAndTime {
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
+    @Column(nullable = false)
+    private boolean syncStatus;
+
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<ProductImage> productImageList = new ArrayList<>();
 
 
     public Product(Long sellerId, Long salesPostId, Long categoryId, String name,
-                   String description, Long basePrice, ProductStatus status) {
+                   String description, Long basePrice, ProductStatus status, boolean syncStatus) {
         this.sellerId = sellerId;
         this.salesPostId = salesPostId;
         this.categoryId = categoryId;
@@ -52,6 +55,7 @@ public class Product extends BaseIdAndTime {
         this.description = description;
         this.basePrice = basePrice;
         this.status = status;
+        this.syncStatus = syncStatus;
     }
 
     public SyncProduct toSyncProduct() {
@@ -83,7 +87,8 @@ public class Product extends BaseIdAndTime {
                             this,
                             image.getS3Key(),
                             image.getImageSeq(),
-                            ProductStatus.ACTIVE
+                            ProductStatus.ON_SALE,
+                            false
                     )
             );
         }
@@ -93,5 +98,23 @@ public class Product extends BaseIdAndTime {
         this.status = ProductStatus.DELETED;
         this.productImageList.forEach(ProductImage::delete);
         return this;
+    }
+
+    public Product updateSyncStatus() {
+        this.syncStatus = true;
+        productImageList.forEach(ProductImage::updateSyncStatus);
+        return this;
+    }
+
+    public void update(Long categoryId, String name, String description, Long basePrice, ProductStatus status) {
+        this.categoryId = categoryId;
+        this.name = name;
+        this.description = description;
+        this.basePrice = basePrice;
+        this.status = status;
+    }
+
+    public void addImage(ProductImage newImage) {
+        this.getProductImageList().add(newImage);
     }
 }
