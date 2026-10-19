@@ -37,6 +37,8 @@ public final class DeliveryRequestHasher {
                         .comparing(DeliveryCreateCommand.Item::orderItemId)
                         .thenComparing(DeliveryCreateCommand.Item::productName,
                                 Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(DeliveryCreateCommand.Item::unitPrice,
+                                Comparator.nullsFirst(Comparator.naturalOrder()))
                         .thenComparing(DeliveryCreateCommand.Item::quantity))
                 .toList();
 
@@ -44,6 +46,7 @@ public final class DeliveryRequestHasher {
         for (DeliveryCreateCommand.Item item : items) {
             append(sb, item.orderItemId());
             append(sb, item.productName());
+            append(sb, item.unitPrice());
             append(sb, item.quantity());
 
             // 옵션은 입력 순서가 sortOrder로 저장되므로 순서를 유지한다. null과 빈 목록은 같게 취급한다.

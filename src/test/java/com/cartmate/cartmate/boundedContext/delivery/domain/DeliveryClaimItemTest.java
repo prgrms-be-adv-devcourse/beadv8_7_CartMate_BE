@@ -12,7 +12,7 @@ class DeliveryClaimItemTest {
     void create() {
         Delivery delivery = Delivery.create(1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
-        DeliveryItem deliveryItem = DeliveryItem.create(delivery, 1000L, "티셔츠", 2L);
+        DeliveryItem deliveryItem = DeliveryItem.create(delivery, 1000L, "티셔츠", 10_000L, 2L);
         DeliveryClaim claim = DeliveryClaim.create(
                 delivery, 1L, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다");
 
