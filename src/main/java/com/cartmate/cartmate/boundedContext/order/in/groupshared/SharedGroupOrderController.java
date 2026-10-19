@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,5 +33,14 @@ public class SharedGroupOrderController {
             @PathVariable Long id
     ) {
         return new RsData<>("200-1", "공동 주문 조회 성공했습니다.", sharedGroupOrderFacade.getDetail(user.memberId(), id));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public RsData<Void> cancel(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long id
+    ) {
+        sharedGroupOrderFacade.cancelByCreator(user.memberId(), id);
+        return new RsData<>("200-1", "공동 주문을 취소했습니다.");
     }
 }

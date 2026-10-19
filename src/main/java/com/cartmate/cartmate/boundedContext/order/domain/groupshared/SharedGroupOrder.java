@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.domain.groupshared;
 
+import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import jakarta.persistence.*;
@@ -149,53 +150,25 @@ public class SharedGroupOrder {
     }
 
 
-    public List<RefundShare> cancelByDeadline(LocalDateTime now) {
+    public boolean cancelByDeadline(LocalDateTime now) {
         if (status != SharedGroupOrderStatus.PAYING || now.isBefore(paymentDeadlineAt.plus(GRACE_PERIOD))) {
-            return List.of();
+            return false;
         }
-        return cancel(SharedGroupOrderCancelReason.DEADLINE_EXPIRED, now);
+        cancel(SharedGroupOrderCancelReason.DEADLINE_EXPIRED, now);
+        return true;
     }
 
-    public List<RefundShare> cancelByCreator(Long requesterId, LocalDateTime now) {
+    public boolean cancelByCreator(Long requesterId, LocalDateTime now) {
         validateCreator(requesterId);
         validatePaying();
-        return cancel(SharedGroupOrderCancelReason.CREATOR_CANCELED, now);
+        cancel(SharedGroupOrderCancelReason.CREATOR_CANCELED, now);
+        return true;
     }
 
-    public List<RefundShare> cancelByOutOfStock(LocalDateTime now) {
+    public boolean cancelByOutOfStock(LocalDateTime now) {
         validatePaying();
-        return cancel(SharedGroupOrderCancelReason.OUT_OF_STOCK, now);
-    }
-
-
-    public List<RefundShare> refundItem(Long requesterId, Long itemId, LocalDateTime now) {
-        validateCreator(requesterId);
-        if (status != SharedGroupOrderStatus.CONFIRMED) {
-            throw new ServiceException(OrderErrorCode.ORDER_NOT_REFUNDABLE);
-        }
-        SharedGroupOrderItem item = items.stream()
-                .filter(i -> i.getId().equals(itemId))
-                .findFirst()
-                .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_ITEM_NOT_FOUND));
-        item.markRefunded(now);
-
-        long refundAmount = item.amount();
-        List<RefundShare> shares = new ArrayList<>();
-        long distributed = 0L;
-        for (SharedGroupOrderParticipant participant : participants) {
-            long share = totalAmount == 0 ? 0L : refundAmount * participant.getShareAmount() / totalAmount;
-            shares.add(new RefundShare(participant.getMemberId(), share));
-            distributed += share;
-        }
-        long remainder = refundAmount - distributed;
-
-        List<RefundShare> result = shares.stream()
-                .map(share -> share.memberId().equals(creatorMemberId)
-                        ? new RefundShare(share.memberId(), share.amount() + remainder)
-                        : share)
-                .toList();
-        result.forEach(share -> getParticipant(share.memberId()).addRefund(share.amount()));
-        return result;
+        cancel(SharedGroupOrderCancelReason.OUT_OF_STOCK, now);
+        return true;
     }
 
 
@@ -215,18 +188,10 @@ public class SharedGroupOrder {
     }
 
 
-    private List<RefundShare> cancel(SharedGroupOrderCancelReason reason, LocalDateTime now) {
+    private void cancel(SharedGroupOrderCancelReason reason, LocalDateTime now) {
         this.status = SharedGroupOrderStatus.CANCELED;
         this.cancelReason = reason;
         this.canceledAt = now;
-        List<RefundShare> refunds = new ArrayList<>();
-        for (SharedGroupOrderParticipant participant : participants) {
-            long amount = participant.refundAll();
-            if (amount > 0) {
-                refunds.add(new RefundShare(participant.getMemberId(), amount));
-            }
-        }
-        return refunds;
     }
 
     private void validatePaying() {

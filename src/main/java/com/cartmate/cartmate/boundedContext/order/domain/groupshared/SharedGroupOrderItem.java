@@ -7,8 +7,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Entity
 @Table(name = "shared_group_order_item")
@@ -35,8 +33,6 @@ public class SharedGroupOrderItem {
     @Column(nullable = false)
     private long unitPrice;
 
-    private LocalDateTime refundedAt;
-
     private SharedGroupOrderItem(SharedGroupOrder sharedGroupOrder, Long productId, Long inventoryId,
                                  int quantity, long unitPrice) {
         if (quantity < 1) {
@@ -59,16 +55,5 @@ public class SharedGroupOrderItem {
 
     public long amount() {
         return unitPrice * quantity;
-    }
-
-    public boolean isRefunded() {
-        return refundedAt != null;
-    }
-
-    void markRefunded(LocalDateTime now) {
-        if (isRefunded()) {
-            throw new ServiceException(OrderErrorCode.ORDER_ITEM_ALREADY_REFUNDED);
-        }
-        this.refundedAt = now;
     }
 }

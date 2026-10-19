@@ -43,9 +43,6 @@ public class SharedGroupOrderParticipant {
 
     private LocalDateTime paidAt;
 
-    @Column(nullable = false)
-    private long refundedAmount;
-
 
     @Version
     private Long version;
@@ -58,7 +55,6 @@ public class SharedGroupOrderParticipant {
         this.memberId = memberId;
         this.shareAmount = shareAmount;
         this.status = SharedGroupOrderParticipantStatus.UNPAID;
-        this.refundedAmount = 0L;
     }
 
     static SharedGroupOrderParticipant create(SharedGroupOrder sharedGroupOrder, Long memberId, long shareAmount) {
@@ -79,22 +75,5 @@ public class SharedGroupOrderParticipant {
         }
         this.status = SharedGroupOrderParticipantStatus.PAID;
         this.paidAt = paidAt;
-    }
-
-    long refundAll() {
-        if (status != SharedGroupOrderParticipantStatus.PAID) {
-            return 0L;
-        }
-        long amount = shareAmount - refundedAmount;
-        this.refundedAmount = shareAmount;
-        this.status = SharedGroupOrderParticipantStatus.REFUNDED;
-        return amount;
-    }
-
-    void addRefund(long amount) {
-        if (refundedAmount + amount > shareAmount) {
-            throw new ServiceException(OrderErrorCode.ORDER_REFUND_EXCEEDS_PAID);
-        }
-        this.refundedAmount += amount;
     }
 }

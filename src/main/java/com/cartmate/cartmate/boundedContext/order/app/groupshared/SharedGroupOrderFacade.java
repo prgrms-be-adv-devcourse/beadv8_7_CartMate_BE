@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -17,11 +18,30 @@ public class SharedGroupOrderFacade {
     private final SharedGroupOrderQueryUseCase sharedGroupOrderQueryUseCase;
     private final SharedGroupOrderPaymentUseCase sharedGroupOrderPaymentUseCase;
     private final SharedGroupOrderCancelUseCase sharedGroupOrderCancelUseCase;
-    private final SharedGroupOrderRefundUseCase sharedGroupOrderRefundUseCase;
 
     @Transactional
     public void createFromClosedPurchase(SharedGroupPurchaseClosedEvent event) {
         sharedGroupOrderCreateUseCase.createFromClosedPurchase(event);
+    }
+
+    @Transactional
+    public void cancelByCreator(Long memberId, Long sharedGroupOrderId) {
+        sharedGroupOrderCancelUseCase.cancelByCreator(memberId, sharedGroupOrderId);
+    }
+
+    @Transactional
+    public void cancelByDeadline(Long sharedGroupOrderId) {
+        sharedGroupOrderCancelUseCase.cancelByDeadline(sharedGroupOrderId);
+    }
+
+    @Transactional
+    public void cancelByOutOfStock(Long sharedGroupOrderId) {
+        sharedGroupOrderCancelUseCase.cancelByOutOfStock(sharedGroupOrderId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findIdsToCancelByDeadline(LocalDateTime now) {
+        return sharedGroupOrderCancelUseCase.findIdsToCancelByDeadline(now);
     }
 
     @Transactional(readOnly = true)

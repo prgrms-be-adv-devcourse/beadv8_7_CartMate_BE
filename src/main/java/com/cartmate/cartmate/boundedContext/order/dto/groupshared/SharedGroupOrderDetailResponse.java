@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.dto.groupshared;
 
-import com.cartmate.cartmate.boundedContext.order.domain.groupshared.DeliveryAddress;
+import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderCancelReason;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderItem;
@@ -65,8 +65,7 @@ public record SharedGroupOrderDetailResponse(
             boolean creator,
             long shareAmount,
             SharedGroupOrderParticipantStatus status,
-            LocalDateTime paidAt,
-            long refundedAmount
+            LocalDateTime paidAt
     ) {
 
         static ParticipantResponse of(SharedGroupOrderParticipant participant, boolean creator) {
@@ -75,8 +74,7 @@ public record SharedGroupOrderDetailResponse(
                     creator,
                     participant.getShareAmount(),
                     participant.getStatus(),
-                    participant.getPaidAt(),
-                    participant.getRefundedAmount()
+                    participant.getPaidAt()
             );
         }
     }
@@ -90,8 +88,7 @@ public record SharedGroupOrderDetailResponse(
             String imageUrl,
             int quantity,
             long unitPrice,
-            long amount,
-            boolean refunded
+            long amount
     ) {
 
         static ItemResponse of(SharedGroupOrderItem item, OrderProductInfo product) {
@@ -104,8 +101,7 @@ public record SharedGroupOrderDetailResponse(
                     product == null ? null : product.imageUrl(),
                     item.getQuantity(),
                     item.getUnitPrice(),
-                    item.amount(),
-                    item.isRefunded()
+                    item.amount()
             );
         }
     }
