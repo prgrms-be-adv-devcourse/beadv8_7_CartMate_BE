@@ -2,12 +2,12 @@ package com.cartmate.cartmate.boundedContext.product.app;
 
 import com.cartmate.cartmate.boundedContext.product.domain.ImageType;
 import com.cartmate.cartmate.boundedContext.product.domain.ImageTypePolicy;
-import com.cartmate.cartmate.boundedContext.product.dto.upload.ImageUploadTask;
-import com.cartmate.cartmate.boundedContext.product.dto.upload.UploadedImage;
+import com.cartmate.cartmate.boundedContext.product.dto.ImageUploadTask;
+import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.boundedContext.product.out.ImageStorage;
-import com.cartmate.cartmate.global.code.ErrorCode;
-import com.cartmate.cartmate.global.exception.DomainException;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductRequest;
+import com.cartmate.cartmate.global.code.ProductErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -49,7 +49,7 @@ public class ProductImageFileUploadUseCase {
                     .join();
         } catch (CompletionException e) {
             uploadedKeys.forEach(imageStorage::delete);
-            throw new DomainException(ErrorCode.PRODUCT_IMAGE_UPLOAD_FAILED);
+            throw new ServiceException(ProductErrorCode.PRODUCT_IMAGE_UPLOAD_FAILED);
         }
 
         return futures.stream().map(CompletableFuture::join).toList();

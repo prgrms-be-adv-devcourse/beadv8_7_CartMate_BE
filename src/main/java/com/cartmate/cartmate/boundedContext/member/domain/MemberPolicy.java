@@ -57,4 +57,19 @@ public class MemberPolicy {
     public int getPhoneCodeTtlSeconds() { return PHONE_CODE_TTL_SECONDS; }
     public int getPhoneVerifiedTtlSeconds() { return PHONE_VERIFIED_TTL_SECONDS; }
     public int getPhoneMaxAttempts() { return PHONE_MAX_ATTEMPTS; }
+
+    // 엔터티처럼 빈을 주입받을 수 없는 곳에서 사용
+    public static int sellerMinAge() {
+        return SELLER_MIN_AGE;
+    }
+
+    public static boolean canRegisterAsSellerStatic(LocalDate birthDate) {
+        return Period.between(birthDate, LocalDate.now()).getYears() >= SELLER_MIN_AGE;
+    }
+
+    // 판매자 정보 형식
+    public static final String BUSINESS_NUMBER_REGEX = "^\\d{3}-\\d{2}-\\d{5}$";
+    public static final String BUSINESS_NUMBER_MESSAGE = "사업자등록번호는 000-00-00000 형식이어야 합니다.";
+    public static final String ACCOUNT_NUMBER_REGEX = "^\\d{10,16}$";
+    public static final String ACCOUNT_NUMBER_MESSAGE = "계좌번호는 숫자만 10~16자리로 입력해주세요.";
 }

@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.product.domain;
 
-import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
+import com.cartmate.cartmate.shared.product.dto.CreateProduct;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

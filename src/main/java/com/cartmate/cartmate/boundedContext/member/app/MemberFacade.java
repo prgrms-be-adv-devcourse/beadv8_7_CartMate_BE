@@ -25,6 +25,7 @@ public class MemberFacade {
     private final AdminMemberSearchUseCase adminMemberSearchUseCase;
     private final AdminMemberDetailUseCase adminMemberDetailUseCase;
     private final AdminMemberStatusUseCase adminMemberStatusUseCase;
+    private final MemberSellerUseCase memberSellerUseCase;
 
     @Transactional
     public MemberDto join(SignupRequest request) {
@@ -117,5 +118,20 @@ public class MemberFacade {
     @Transactional
     public int releaseExpiredSuspensions() {
         return adminMemberStatusUseCase.releaseExpired();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<SellerResponse> getMySeller(Long memberId) {
+        return memberSellerUseCase.getMySeller(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isBusinessNumberAvailable(String businessNumber) {
+        return memberSellerUseCase.isBusinessNumberAvailable(businessNumber);
+    }
+
+    @Transactional
+    public MemberSellerUseCase.RegisterResult registerSeller(Long memberId, SellerRegisterRequest request) {
+        return memberSellerUseCase.register(memberId, request);
     }
 }
