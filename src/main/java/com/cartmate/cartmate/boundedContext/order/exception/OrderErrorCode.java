@@ -29,15 +29,16 @@ public enum OrderErrorCode implements ErrorCode {
     ORDER_NOT_PAYABLE("ORDER_NOT_PAYABLE", "결제할 수 없는 공동 주문입니다.", HttpStatus.CONFLICT),
     ORDER_NOT_PAYING("ORDER_NOT_PAYING", "결제 중인 공동 주문이 아닙니다.", HttpStatus.CONFLICT),
     ORDER_STOCK_NOT_RESERVED("ORDER_STOCK_NOT_RESERVED", "재고를 선점하지 않은 공동 주문입니다.", HttpStatus.CONFLICT),
-    ORDER_ALREADY_PAID("ORDER_ALREADY_PAID", "이미 결제했거나 환불된 참여자입니다.", HttpStatus.CONFLICT),
+    ORDER_ALREADY_PAID("ORDER_ALREADY_PAID", "이미 결제한 참여자입니다.", HttpStatus.CONFLICT),
     ORDER_TEAM_ADDRESS_REQUIRED("ORDER_TEAM_ADDRESS_REQUIRED", "생성자는 팀 배송지를 입력해야 합니다.", HttpStatus.BAD_REQUEST),
     ORDER_INVALID_DELIVERY_ADDRESS("ORDER_INVALID_DELIVERY_ADDRESS", "받는 사람, 연락처, 우편번호, 주소는 모두 입력해야 합니다.", HttpStatus.BAD_REQUEST),
 
-    // 환불
-    ORDER_NOT_REFUNDABLE("ORDER_NOT_REFUNDABLE", "확정된 공동 주문만 부분 환불할 수 있습니다.", HttpStatus.CONFLICT),
-    ORDER_ITEM_NOT_FOUND("ORDER_ITEM_NOT_FOUND", "공동 주문에 없는 항목입니다.", HttpStatus.NOT_FOUND),
-    ORDER_ITEM_ALREADY_REFUNDED("ORDER_ITEM_ALREADY_REFUNDED", "이미 환불한 항목입니다.", HttpStatus.CONFLICT),
-    ORDER_REFUND_EXCEEDS_PAID("ORDER_REFUND_EXCEEDS_PAID", "낸 금액보다 많이 환불할 수 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+    // 개인 주문
+    ORDER_NOT_PAYMENT_PENDING("ORDER_NOT_PAYMENT_PENDING", "결제 대기 중인 주문이 아닙니다.", HttpStatus.CONFLICT),
+    ORDER_PAYMENT_EXPIRED("ORDER_PAYMENT_EXPIRED", "결제 기한이 지난 주문입니다.", HttpStatus.CONFLICT),
+    ORDER_BUYER_ONLY("ORDER_BUYER_ONLY", "주문한 회원만 할 수 있습니다.", HttpStatus.FORBIDDEN),
+    ORDER_ALREADY_CANCELED("ORDER_ALREADY_CANCELED", "이미 취소된 주문입니다.", HttpStatus.CONFLICT),
+    ORDER_NUMBER_GENERATION_FAILED("ORDER_NUMBER_GENERATION_FAILED", "주문 번호를 생성하지 못했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final String code;
     private final String msg;
