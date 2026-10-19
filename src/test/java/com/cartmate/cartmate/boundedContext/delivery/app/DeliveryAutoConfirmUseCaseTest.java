@@ -37,7 +37,7 @@ class DeliveryAutoConfirmUseCaseTest {
         delivery.prepare("CJ대한통운", "658219384910");
         delivery.ship();
         delivery.deliver();
-        when(deliveryRepository.findById(5L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(delivery));
     }
 
     @Test
@@ -77,7 +77,7 @@ class DeliveryAutoConfirmUseCaseTest {
     @Test
     @DisplayName("없는 배송은 404 오류다")
     void notFound() {
-        when(deliveryRepository.findById(99L)).thenReturn(Optional.empty());
+        when(deliveryRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.confirm(99L))
                 .isInstanceOf(ServiceException.class)
