@@ -8,7 +8,7 @@ import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutSellerRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.wallet.WalletSettlementPort;
-import com.cartmate.cartmate.shared.wallet.dto.PayoutSettlementRequest;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,7 @@ class PayoutPayUseCaseTest {
 
         useCase.pay(7L, NOW);
 
-        verify(walletSettlementPort).settleAndDeposit(new PayoutSettlementRequest(7L, 100L, 20L, 10_000L, 9_700L));
+        verify(walletSettlementPort).settleAndDeposit(new SettleAndDepositRequest(7L, 100L, 20L, 10_000L, 9_700L));
         assertThat(payout.getStatus()).isEqualTo(PayoutStatus.COMPLETED);
         assertThat(payout.getPaidAt()).isEqualTo(NOW);
     }

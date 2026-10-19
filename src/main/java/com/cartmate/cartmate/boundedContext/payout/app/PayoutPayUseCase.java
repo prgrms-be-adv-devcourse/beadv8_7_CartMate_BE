@@ -8,7 +8,7 @@ import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutSellerRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.wallet.WalletSettlementPort;
-import com.cartmate.cartmate.shared.wallet.dto.PayoutSettlementRequest;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -41,7 +41,7 @@ public class PayoutPayUseCase {
         PayoutSeller seller = payoutSellerRepository.findById(payout.getSellerId())
                 .orElseThrow(() -> new ServiceException(PayoutErrorCode.PAYOUT_SELLER_NOT_FOUND));
 
-        walletSettlementPort.settleAndDeposit(new PayoutSettlementRequest(
+        walletSettlementPort.settleAndDeposit(new SettleAndDepositRequest(
                 payout.getId(), payout.getOrderId(), seller.getMemberId(),
                 payout.getSalesAmount(), payout.getPayoutAmount()
         ));

@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.shared.wallet.dto;
 
-public record PayoutSettlementRequest(
+public record SettleAndDepositRequest(
         Long payoutId,
         Long orderId,
         Long sellerMemberId, // 입금받을 판매자의 회원 ID
