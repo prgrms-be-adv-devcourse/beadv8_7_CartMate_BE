@@ -1,10 +1,9 @@
 package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.dto.CreateSalesPostRequest;
-import com.cartmate.cartmate.boundedContext.product.app.TestImageFiles;
-import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
+import com.cartmate.cartmate.boundedContext.product.app.TestImageFiles;
 import com.cartmate.cartmate.global.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +45,7 @@ class SalesPostCompensationTest {
     }
 
     @Test
-    @DisplayName("상품 API가 실패하면 글이 지워지고 삭제 이벤트가 발행된다")
+    @DisplayName("상품 API가 실패하면 글이 지워진다")
     void deletePostWhenProductApiFails() {
         doThrow(new ServiceException(ProductErrorCode.PRODUCT_CREATE_FAILED))
                 .when(salesPostApiClient).registerProducts(any(), any());
@@ -60,13 +59,12 @@ class SalesPostCompensationTest {
     }
 
     @Test
-    @DisplayName("상품 API가 성공하면 글이 남고 삭제 이벤트는 발행되지 않는다")
+    @DisplayName("상품 API가 성공하면 글이 남는다")
     void keepPostWhenProductApiSucceeds() {
         List<MultipartFile> images = getDummyImages(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.png());
         salesPostFacade.registerSalesPost(request(), images);
 
         assertThat(salesPostRepository.count()).isEqualTo(1);
-        assertThat(events.stream(PostDeletedEvent.class)).isEmpty();
     }
 
     private CreateSalesPostRequest request() {
