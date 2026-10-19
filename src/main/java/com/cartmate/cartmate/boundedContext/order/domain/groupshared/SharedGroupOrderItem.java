@@ -1,11 +1,11 @@
-package com.cartmate.cartmate.boundedContext.order.domain;
+package com.cartmate.cartmate.boundedContext.order.domain.groupshared;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Entity
@@ -33,15 +33,13 @@ public class SharedGroupOrderItem {
     @Column(nullable = false)
     private long unitPrice;
 
-    private LocalDateTime refundedAt;
-
     private SharedGroupOrderItem(SharedGroupOrder sharedGroupOrder, Long productId, Long inventoryId,
                                  int quantity, long unitPrice) {
         if (quantity < 1) {
-            throw new IllegalArgumentException("수량은 1개 이상이어야 합니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_INVALID_QUANTITY);
         }
         if (unitPrice < 0) {
-            throw new IllegalArgumentException("가격은 0원 이상이어야 합니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_INVALID_PRICE);
         }
         this.sharedGroupOrder = sharedGroupOrder;
         this.productId = productId;
@@ -57,16 +55,5 @@ public class SharedGroupOrderItem {
 
     public long amount() {
         return unitPrice * quantity;
-    }
-
-    public boolean isRefunded() {
-        return refundedAt != null;
-    }
-
-    void markRefunded(LocalDateTime now) {
-        if (isRefunded()) {
-            throw new IllegalArgumentException("이미 환불한 항목입니다.");
-        }
-        this.refundedAt = now;
     }
 }

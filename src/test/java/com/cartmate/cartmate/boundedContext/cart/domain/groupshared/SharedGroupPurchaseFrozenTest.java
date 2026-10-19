@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.domain.groupshared;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -35,10 +36,10 @@ class SharedGroupPurchaseFrozenTest {
         LocalDateTime afterFrozen = deadline.plusHours(1);
 
         assertThatThrownBy(() -> purchase.removeItem(PARTICIPANT, pinItemId, afterFrozen))
-                .hasMessage("수정이 마감된 공동구매입니다.");
+                .hasMessageContaining("수정이 마감된 공동구매입니다.");
 
         assertThatThrownBy(() -> purchase.close(CREATOR, Set.of(PIN_SKU), afterFrozen))
-                .hasMessage("구매할 수 없는 상품이 있어 마감할 수 없습니다.");
+                .hasMessageContaining("구매할 수 없는 상품이 있어 마감할 수 없습니다.");
 
         purchase.removeItem(CREATOR, pinItemId, afterFrozen);
         purchase.close(CREATOR, Set.of(PIN_SKU), afterFrozen);
@@ -55,7 +56,7 @@ class SharedGroupPurchaseFrozenTest {
 
         LocalDateTime beforeTimeout = deadline.plus(SharedGroupPurchase.FROZEN_PERIOD).minusMinutes(1);
         assertThatThrownBy(() -> purchase.closeByFrozenTimeout(Set.of(PIN_SKU), beforeTimeout))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(ServiceException.class);
 
         purchase.closeByFrozenTimeout(Set.of(PIN_SKU), deadline.plus(SharedGroupPurchase.FROZEN_PERIOD));
 
