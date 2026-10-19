@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryResponse;
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryClaimRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,13 +30,14 @@ class DeliveryConfirmUseCaseTest {
     private static final long OTHER_MEMBER = 2L;
 
     private final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
+    private final DeliveryClaimRepository deliveryClaimRepository = mock(DeliveryClaimRepository.class);
     private final DeliveryConfirmedEventPublisher eventPublisher = mock(DeliveryConfirmedEventPublisher.class);
     private DeliveryConfirmUseCase useCase;
     private Delivery delivery;
 
     @BeforeEach
     void setUp() {
-        useCase = new DeliveryConfirmUseCase(deliveryRepository, eventPublisher);
+        useCase = new DeliveryConfirmUseCase(deliveryRepository, deliveryClaimRepository, eventPublisher);
 
         delivery = Delivery.create(BUYER, SELLER_ID, 100L, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
@@ -116,5 +118,29 @@ class DeliveryConfirmUseCaseTest {
         assertThatThrownBy(() -> useCase.confirm(5L, null))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining("400-DELIVERY_MEMBER_ID_REQUIRED");
+    }
+
+    @Test
+    @DisplayName("처리 중인 교환·환불 요청이 있으면 구매확정할 수 없어 409 오류이고 이벤트도 발행하지 않는다")
+    void cannotConfirmWithActiveClaim() {
+        when(deliveryClaimRepository.hasActiveClaim(5L)).thenReturn(true);
+
+        assertThatThrownBy(() -> useCase.confirm(5L, BUYER))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("409-DELIVERY_CLAIM_IN_PROGRESS");
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.DELIVERED);
+        assertThat(delivery.getConfirmedAt()).isNull();
+        verify(eventPublisher, never()).publish(any());
+    }
+
+    @Test
+    @DisplayName("이미 구매확정된 배송은 클레임 여부와 상관없이 다시 확정해도 성공한다")
+    void confirmedDeliveryIgnoresClaimCheck() {
+        useCase.confirm(5L, BUYER);
+        when(deliveryClaimRepository.hasActiveClaim(5L)).thenReturn(true);
+
+        DeliveryResponse response = useCase.confirm(5L, BUYER);
+
+        assertThat(response.status()).isEqualTo(DeliveryStatus.CONFIRMED);
     }
 }
