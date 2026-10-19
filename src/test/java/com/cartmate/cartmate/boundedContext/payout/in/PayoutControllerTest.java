@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.payout.in;
 
 import com.cartmate.cartmate.boundedContext.payout.app.PayoutFacade;
+import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
@@ -92,6 +93,34 @@ class PayoutControllerTest {
                 .thenThrow(new ServiceException(PayoutErrorCode.PAYOUT_SELLER_ONLY));
 
         mvc.perform(get("/api/settlements"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("내 정산 정보는 RsData로 감싸서 내려가고 로그인한 회원 ID로 조회한다")
+    void mySettlementInfo() throws Exception {
+        when(payoutFacade.getMySettlementInfo(20L)).thenReturn(new SettlementInfoResponse(
+                3, 15, LocalDate.of(2026, 11, 15), 3L, 101_850L, 97_000L));
+
+        mvc.perform(get("/api/settlements/info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.feeRatePercent").value(3))
+                .andExpect(jsonPath("$.data.payoutDayOfMonth").value(15))
+                .andExpect(jsonPath("$.data.nextPayoutDate").value("2026-11-15"))
+                .andExpect(jsonPath("$.data.pendingPayoutCount").value(3))
+                .andExpect(jsonPath("$.data.pendingPayoutAmount").value(101850))
+                .andExpect(jsonPath("$.data.completedPayoutAmount").value(97000));
+        verify(payoutFacade).getMySettlementInfo(20L);
+    }
+
+    @Test
+    @DisplayName("판매자가 아니면 정산 정보 조회도 403 오류로 변환된다")
+    void settlementInfoSellerOnly() throws Exception {
+        when(payoutFacade.getMySettlementInfo(20L))
+                .thenThrow(new ServiceException(PayoutErrorCode.PAYOUT_SELLER_ONLY));
+
+        mvc.perform(get("/api/settlements/info"))
                 .andExpect(status().isForbidden());
     }
 }

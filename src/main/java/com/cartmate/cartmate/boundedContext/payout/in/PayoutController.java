@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.payout.in;
 
 import com.cartmate.cartmate.boundedContext.payout.app.PayoutFacade;
+import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
@@ -31,5 +32,12 @@ public class PayoutController {
     ) {
         return new RsData<>("200-1", "정산 내역 조회 성공했습니다.",
                 payoutFacade.getMySettlements(user.memberId(), from, to));
+    }
+
+    // 판매자 본인의 정산 정책(수수료율, 지급일)과 정산 현황(다음 지급일, 지급 예정 금액, 지급 완료 금액).
+    @GetMapping("/info")
+    public RsData<SettlementInfoResponse> getMySettlementInfo(@AuthenticationPrincipal SecurityUser user) {
+        return new RsData<>("200-1", "정산 정보 조회 성공했습니다.",
+                payoutFacade.getMySettlementInfo(user.memberId()));
     }
 }
