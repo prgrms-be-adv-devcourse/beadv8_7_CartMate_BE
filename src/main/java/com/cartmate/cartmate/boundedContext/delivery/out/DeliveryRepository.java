@@ -4,7 +4,9 @@ import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,6 +15,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
+
+    // 배송 행을 잠그고 조회한다. 구매확정이 동시에 들어와도 한 건만 처리되도록 트랜잭션 안에서 호출한다.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select d from Delivery d where d.id = :id")
+    Optional<Delivery> findByIdForUpdate(@Param("id") Long id);
 
     Optional<Delivery> findByIdempotencyKey(String idempotencyKey);
 

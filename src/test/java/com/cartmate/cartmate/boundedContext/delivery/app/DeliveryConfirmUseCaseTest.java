@@ -15,7 +15,11 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DeliveryConfirmUseCaseTest {
@@ -25,12 +29,13 @@ class DeliveryConfirmUseCaseTest {
     private static final long OTHER_MEMBER = 2L;
 
     private final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
+    private final DeliveryConfirmedEventPublisher eventPublisher = mock(DeliveryConfirmedEventPublisher.class);
     private DeliveryConfirmUseCase useCase;
     private Delivery delivery;
 
     @BeforeEach
     void setUp() {
-        useCase = new DeliveryConfirmUseCase(deliveryRepository);
+        useCase = new DeliveryConfirmUseCase(deliveryRepository, eventPublisher);
 
         delivery = Delivery.create(BUYER, SELLER_ID, 100L, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
@@ -38,7 +43,7 @@ class DeliveryConfirmUseCaseTest {
         delivery.prepare("CJ대한통운", "658219384910");
         delivery.ship();
         delivery.deliver();
-        when(deliveryRepository.findById(5L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(delivery));
     }
 
     @Test
@@ -50,6 +55,7 @@ class DeliveryConfirmUseCaseTest {
         assertThat(delivery.getConfirmedAt()).isNotNull();
         assertThat(response.deliveryId()).isEqualTo(5L);
         assertThat(response.status()).isEqualTo(DeliveryStatus.CONFIRMED);
+        verify(eventPublisher).publish(delivery);
     }
 
     @Test
@@ -60,6 +66,7 @@ class DeliveryConfirmUseCaseTest {
         DeliveryResponse response = useCase.confirm(5L, BUYER);
 
         assertThat(response.status()).isEqualTo(DeliveryStatus.CONFIRMED);
+        verify(eventPublisher, times(1)).publish(delivery);
     }
 
     @Test
@@ -70,6 +77,7 @@ class DeliveryConfirmUseCaseTest {
                 .hasMessageContaining("403-DELIVERY_ACCESS_DENIED");
         assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.DELIVERED);
         assertThat(delivery.getConfirmedAt()).isNull();
+        verify(eventPublisher, never()).publish(any());
     }
 
     @Test
@@ -95,7 +103,7 @@ class DeliveryConfirmUseCaseTest {
     @Test
     @DisplayName("없는 배송은 404 오류다")
     void notFound() {
-        when(deliveryRepository.findById(99L)).thenReturn(Optional.empty());
+        when(deliveryRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.confirm(99L, BUYER))
                 .isInstanceOf(ServiceException.class)

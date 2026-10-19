@@ -174,9 +174,10 @@ public class Delivery {
     }
 
     // 배송완료를 구매확정으로 바꾸고 확정 시각을 기록한다. 이미 구매확정이면 아무것도 하지 않아 재요청해도 안전하다.
-    public void confirm() {
+    // 상태를 실제로 바꿨으면 true, 이미 구매확정이라 바꾸지 않았으면 false를 반환한다.
+    public boolean confirm() {
         if (this.status == DeliveryStatus.CONFIRMED) {
-            return;
+            return false;
         }
         if (this.status != DeliveryStatus.DELIVERED) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_STATUS);
@@ -184,5 +185,6 @@ public class Delivery {
 
         this.status = DeliveryStatus.CONFIRMED;
         this.confirmedAt = LocalDateTime.now();
+        return true;
     }
 }
