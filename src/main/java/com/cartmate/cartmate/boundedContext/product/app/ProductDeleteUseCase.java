@@ -1,22 +1,20 @@
 package com.cartmate.cartmate.boundedContext.product.app;
 
-import com.cartmate.cartmate.boundedContext.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.product.domain.Product;
-import com.cartmate.cartmate.boundedContext.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.product.out.ProductRepository;
 import com.cartmate.cartmate.global.code.ProductErrorCode;
-import com.cartmate.cartmate.global.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.global.GlobalConfig;
+import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
+import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -36,11 +34,11 @@ public class ProductDeleteUseCase {
 
         product.delete();
 
-//        GlobalConfig.getEventPublisher().publish(
-//                new ProductDeletedEvent(
-//                        new DeletePostRequest(product.getSellerId(), product.getId())
-//                )
-//        );
+        GlobalConfig.getEventPublisher().publish(
+                new ProductDeletedEvent(
+                        new DeleteProductRequest(product.getId())
+                )
+        );
     }
 
     @Transactional

@@ -6,5 +6,5 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class DeleteProductRequest {
-    private Long postId;
+    private Long productId;
 }

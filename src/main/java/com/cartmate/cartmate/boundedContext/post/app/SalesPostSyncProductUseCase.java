@@ -10,6 +10,7 @@ import com.cartmate.cartmate.boundedContext.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.global.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
 import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
@@ -72,5 +73,10 @@ public class SalesPostSyncProductUseCase {
 
         salesPostProductRepository.findByIdIn(productIds)
                 .forEach(SalesPostProduct::delete);
+    }
+
+    public void deleteProductByUser(DeleteProductRequest request) {
+        salesPostProductRepository.findById(request.getProductId())
+                .ifPresent(SalesPostProduct::delete);
     }
 }

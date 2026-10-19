@@ -40,7 +40,7 @@ public class SalesPostEventListener {
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(ProductDeletedEvent event) {
-//        salesPostFacade.deleteProductByServer(event.getRequest());
+        salesPostFacade.deleteProductByUser(event.getRequest());
 
     }
 

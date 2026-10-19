@@ -10,6 +10,7 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.dto.SellerDto;
+import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
@@ -84,5 +85,9 @@ public class SalesPostFacade {
 
     public void deleteProductByPost(DeleteProductListRequest request) {
         salesPostSyncProductUseCase.deleteProductByPost(request);
+    }
+
+    public void deleteProductByUser(DeleteProductRequest request) {
+        salesPostSyncProductUseCase.deleteProductByUser(request);
     }
 }

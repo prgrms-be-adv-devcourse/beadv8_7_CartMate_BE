@@ -34,7 +34,7 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(
             @PathVariable Long productId,
             @RequestParam Long sellerId) {
-//        productFacade.deleteProductByUser(productId, sellerId);
+        productFacade.deleteProductByUser(productId, sellerId);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
