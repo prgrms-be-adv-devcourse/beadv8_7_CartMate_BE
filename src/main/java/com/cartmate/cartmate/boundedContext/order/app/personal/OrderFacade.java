@@ -53,4 +53,24 @@ public class OrderFacade {
     public void applyPayment(Long orderId, Long memberId, LocalDateTime paidAt) {
         orderPaymentUseCase.applyPayment(orderId, memberId, paidAt);
     }
+
+    @Transactional
+    public void cancelByBuyer(Long memberId, Long orderId) {
+        orderCancelUseCase.cancelByBuyer(memberId, orderId);
+    }
+
+    @Transactional
+    public void cancelByDeadline(Long orderId) {
+        orderCancelUseCase.cancelByDeadline(orderId);
+    }
+
+    @Transactional
+    public void cancelByOutOfStock(Long orderId) {
+        orderCancelUseCase.cancelByOutOfStock(orderId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findIdsToCancelByDeadline(LocalDateTime now) {
+        return orderCancelUseCase.findIdsToCancelByDeadline(now);
+    }
 }

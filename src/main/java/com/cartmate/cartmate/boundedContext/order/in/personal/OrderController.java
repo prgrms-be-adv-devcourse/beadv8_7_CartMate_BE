@@ -59,4 +59,13 @@ public class OrderController {
     ) {
         return new RsData<>("200-1", "주문 조회 성공했습니다.", orderFacade.getDetail(user.memberId(), id));
     }
+
+    @PostMapping("/{id}/cancel")
+    public RsData<Void> cancel(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long id
+    ) {
+        orderFacade.cancelByBuyer(user.memberId(), id);
+        return new RsData<>("200-1", "주문을 취소했습니다.");
+    }
 }
