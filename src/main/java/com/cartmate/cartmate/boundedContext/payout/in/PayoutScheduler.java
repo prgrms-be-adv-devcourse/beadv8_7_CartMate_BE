@@ -1,39 +1,37 @@
 package com.cartmate.cartmate.boundedContext.payout.in;
 
-import com.cartmate.cartmate.boundedContext.payout.app.PayoutFacade;
-import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
-import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
+import com.cartmate.cartmate.boundedContext.payout.in.batch.PayoutJobConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.parameters.JobParameters;
+import org.springframework.batch.core.job.parameters.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.time.LocalDate;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class PayoutScheduler {
 
-    private final PayoutRepository payoutRepository;
-    private final PayoutFacade payoutFacade;
+    private final JobOperator jobOperator;
+    private final Job payoutJob;
 
-    // 매일 지급 예정 시각이 지난 대기 정산을 지급한다. 지급 예정일이 매월 15일이라 그날 처음 지급되고, 실패한 건은 다음 날 다시 시도한다.
+    // 매일 지급 예정 시각이 지난 대기 정산을 지급하는 배치 Job을 실행한다. 지급 예정일이 매월 15일이라 그날 처음 지급되고, 실패한 건은 다음 날 다시 시도한다.
+    // 실행 날짜를 Job 파라미터로 넘겨 같은 날 같은 Job이 중복 실행되지 않게 한다.
     @Scheduled(cron = "${custom.payout.cron:0 10 0 * * *}")
     public void payDue() {
-        List<Long> ids = payoutRepository.findIdsByStatusAndScheduledAtBefore(PayoutStatus.PENDING, LocalDateTime.now());
-        payEach(ids);
-    }
+        JobParameters parameters = new JobParametersBuilder()
+                .addLocalDate("runDate", LocalDate.now())
+                .toJobParameters();
 
-    // 건마다 별도 트랜잭션이라 한 건이 실패해도 나머지는 계속 처리한다.
-    private void payEach(List<Long> ids) {
-        for (Long id : ids) {
-            try {
-                payoutFacade.pay(id);
-            } catch (Exception e) {
-                log.error("정산 지급 실패: payoutId={}", id, e);
-            }
+        try {
+            jobOperator.start(payoutJob, parameters);
+        } catch (Exception e) {
+            log.error("정산 지급 배치 실행 실패: job={}", PayoutJobConfig.JOB_NAME, e);
         }
     }
 }

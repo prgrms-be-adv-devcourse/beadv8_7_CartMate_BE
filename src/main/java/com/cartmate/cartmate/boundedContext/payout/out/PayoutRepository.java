@@ -24,11 +24,6 @@ public interface PayoutRepository extends JpaRepository<Payout, Long> {
             @Param("status") PayoutStatus status, @Param("now") LocalDateTime now,
             @Param("lastId") Long lastId, Pageable pageable);
 
-    // 지급 예정 시각이 지난 대기 정산의 ID 목록. 지급 배치 대상 조회에 쓴다.
-    @Query("select p.id from Payout p where p.status = :status and p.scheduledAt <= :now order by p.id")
-    List<Long> findIdsByStatusAndScheduledAtBefore(
-            @Param("status") PayoutStatus status, @Param("now") LocalDateTime now);
-
     // 정산 행을 잠그고 조회한다. 지급이 동시에 들어와도 한 건만 처리되도록 트랜잭션 안에서 호출한다.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Payout p where p.id = :id")
