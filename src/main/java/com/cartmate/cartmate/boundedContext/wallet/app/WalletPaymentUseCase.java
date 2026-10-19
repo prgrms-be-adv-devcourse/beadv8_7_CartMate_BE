@@ -59,16 +59,19 @@ public class WalletPaymentUseCase {
                 paymentId, ReferenceType.PAYMENT, null, amount);
     }
 
-    // 결제 취소 금액을 지갑에 복구하고 환불 거래 내역을 저장한다.
-    public void refund(Long walletId, Long amount, Long paymentId, Long orderId) {
+    // 결제 취소 금액을 지갑에 복구하고 환불 거래 내역을 저장한다. 같은 결제에 대해 refundId 단위로 여러 번 부분 환불할 수 있다.
+    public void refund(Long walletId, Long amount, Long paymentId, Long orderId, Long refundId) {
         validatePaymentRequest(walletId, amount, paymentId, orderId);
+
+        if (refundId == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_REFUND_ID_REQUIRED);
+        }
 
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
 
-
         Optional<WalletTransaction> existing = walletTransactionRepository.findByTypeAndOrderIdAndReferenceIdAndReferenceType(
-                WalletTransactionType.REFUND, orderId, paymentId, ReferenceType.PAYMENT
+                WalletTransactionType.REFUND, orderId, refundId, ReferenceType.REFUND
         );
 
         if (existing.isPresent()) {
@@ -92,11 +95,7 @@ public class WalletPaymentUseCase {
             throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
         }
 
-        if (!holding.getAmount().equals(amount)) {
-            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_AMOUNT_MISMATCH);
-        }
-
-        holding.cancel();
+        holding.addRefund(amount);
 
         wallet.refund(amount);
 
@@ -104,7 +103,7 @@ public class WalletPaymentUseCase {
 
         ledgerRecorder.record(
                 wallet, WalletTransactionType.REFUND, orderId,
-                paymentId, ReferenceType.PAYMENT, null, amount);
+                refundId, ReferenceType.REFUND, null, amount);
     }
 
     private void validatePaymentRequest(
