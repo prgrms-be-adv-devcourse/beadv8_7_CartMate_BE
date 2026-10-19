@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.wallet.app;
 import com.cartmate.cartmate.boundedContext.wallet.domain.*;
 import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
+import com.cartmate.cartmate.boundedContext.wallet.out.HoldingSettlementRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -19,6 +20,7 @@ public class WalletPaymentUseCase {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final HoldingRepository holdingRepository;
+    private final HoldingSettlementRepository holdingSettlementRepository;
     private final LedgerRecorder ledgerRecorder;
 
     // 지갑 잔액을 차감하고 사용 거래 내역을 저장한다.
@@ -95,7 +97,7 @@ public class WalletPaymentUseCase {
             throw new ServiceException(WalletErrorCode.WALLET_ACCESS_DENIED);
         }
 
-        holding.addRefund(amount);
+        holding.addRefund(amount, holdingSettlementRepository.sumAmountByHoldingId(holding.getId()));
 
         wallet.refund(amount);
 
