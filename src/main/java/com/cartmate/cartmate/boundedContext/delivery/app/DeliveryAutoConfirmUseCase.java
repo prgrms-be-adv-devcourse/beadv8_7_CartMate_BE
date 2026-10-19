@@ -1,7 +1,6 @@
 package com.cartmate.cartmate.boundedContext.delivery.app;
 
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
-import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.boundedContext.delivery.exception.DeliveryErrorCode;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -21,9 +20,7 @@ public class DeliveryAutoConfirmUseCase {
         Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new ServiceException(DeliveryErrorCode.DELIVERY_NOT_FOUND));
 
-        boolean alreadyConfirmed = delivery.getStatus() == DeliveryStatus.CONFIRMED;
-        delivery.confirm();
-        if (!alreadyConfirmed) {
+        if (delivery.confirm()) {   // 상태가 변경되었을 때만 이벤트 발행
             eventPublisher.publish(delivery);
         }
     }

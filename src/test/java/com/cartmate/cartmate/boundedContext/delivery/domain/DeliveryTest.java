@@ -199,11 +199,13 @@ class DeliveryTest {
         delivery.prepare("CJ대한통운", "658219384910");
         delivery.ship();
         delivery.deliver();
-        delivery.confirm();
+        boolean first = delivery.confirm();
         LocalDateTime firstConfirmedAt = delivery.getConfirmedAt();
 
-        delivery.confirm();
+        boolean second = delivery.confirm();
 
+        assertThat(first).isTrue();
+        assertThat(second).isFalse();
         assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CONFIRMED);
         assertThat(delivery.getConfirmedAt()).isEqualTo(firstConfirmedAt);
     }
