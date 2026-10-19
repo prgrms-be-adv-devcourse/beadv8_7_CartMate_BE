@@ -10,7 +10,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,7 +18,6 @@ public class WalletFacade {
     private final WalletQueryUseCase walletQueryUseCase;
     private final WalletChargeUseCase walletChargeUseCase;
     private final WalletPaymentUseCase walletPaymentUseCase;
-    private final WalletSettlementUseCase walletSettlementUseCase;
     private final WalletPayoutUseCase walletPayoutUseCase;
     private final WalletWithdrawUseCase walletWithdrawUseCase;
 
@@ -84,12 +82,6 @@ public class WalletFacade {
     @Transactional
     public void fail(Long walletId, String orderNumber) {
         walletChargeUseCase.fail(walletId, orderNumber);
-    }
-
-    // 주문별 홀딩의 정산 ID 기록과 정산 완료 전환을 하나의 트랜잭션으로 처리한다. 같은 정산으로 완료된 홀딩은 건너뛴다.
-    @Transactional
-    public void settle(List<Long> orderIds, Long settlementId) {
-        walletSettlementUseCase.settle(orderIds, settlementId);
     }
 
     // 잔액 차감·출금 요청 완료·거래 내역 저장을 하나의 트랜잭션으로 처리한다. 완료된 요청은 재처리하지 않는다.

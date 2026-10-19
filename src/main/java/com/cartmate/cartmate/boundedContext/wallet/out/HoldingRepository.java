@@ -10,7 +10,5 @@ public interface HoldingRepository extends JpaRepository<Holding, Long> {
 
     Optional<Holding> findByOrderIdAndPaymentId(Long orderId, Long PaymentId);
 
-    List<Holding> findAllByOrderIdIn(List<Long> orderIds);
-
     Optional<Holding> findByOrderId(Long orderId);
 }
