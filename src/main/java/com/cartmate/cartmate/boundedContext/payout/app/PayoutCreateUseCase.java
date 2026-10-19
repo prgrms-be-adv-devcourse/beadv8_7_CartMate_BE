@@ -29,8 +29,8 @@ public class PayoutCreateUseCase {
         List<Payout> payouts = event.items().stream()
                 .filter(item -> !existing.contains(item.orderItemId()))
                 .map(item -> Payout.create(
-                        event.sellerId(), event.orderId(), item.orderItemId(),
-                        item.unitPrice() * item.quantity(), event.confirmedAt()))
+                        event.sellerId(), event.orderId(), item.orderItemId(), item.productName(), item.quantity(),
+                        item.unitPrice() * item.quantity(), event.orderedAt(), event.confirmedAt()))
                 .toList();
 
         payoutRepository.saveAll(payouts);

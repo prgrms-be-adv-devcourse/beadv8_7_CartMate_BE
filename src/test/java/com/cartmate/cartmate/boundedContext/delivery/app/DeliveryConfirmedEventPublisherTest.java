@@ -84,10 +84,11 @@ class DeliveryConfirmedEventPublisherTest {
         assertThat(event.deliveryId()).isEqualTo(5L);
         assertThat(event.sellerId()).isEqualTo(10L);
         assertThat(event.orderId()).isEqualTo(100L);
+        assertThat(event.orderedAt()).isEqualTo(delivery.getCreatedAt());
         assertThat(event.confirmedAt()).isEqualTo(delivery.getConfirmedAt());
         assertThat(event.items()).containsExactly(
-                new DeliveryConfirmedEvent.Item(1000L, 12_000L, 2L),
-                new DeliveryConfirmedEvent.Item(1001L, 0L, 1L));
+                new DeliveryConfirmedEvent.Item(1000L, "티셔츠", 12_000L, 2L),
+                new DeliveryConfirmedEvent.Item(1001L, "양말", 0L, 1L));
     }
 
     @Test
@@ -101,8 +102,8 @@ class DeliveryConfirmedEventPublisherTest {
         publisher.publish(delivery);
 
         assertThat(publishedEvent().items()).containsExactly(
-                new DeliveryConfirmedEvent.Item(1000L, 12_000L, 2L),
-                new DeliveryConfirmedEvent.Item(1001L, 5_000L, 2L));
+                new DeliveryConfirmedEvent.Item(1000L, "티셔츠", 12_000L, 2L),
+                new DeliveryConfirmedEvent.Item(1001L, "양말", 5_000L, 2L));
     }
 
     @Test
@@ -115,7 +116,7 @@ class DeliveryConfirmedEventPublisherTest {
 
         publisher.publish(delivery);
 
-        assertThat(publishedEvent().items()).containsExactly(new DeliveryConfirmedEvent.Item(1001L, 5_000L, 2L));
+        assertThat(publishedEvent().items()).containsExactly(new DeliveryConfirmedEvent.Item(1001L, "양말", 5_000L, 2L));
     }
 
     @Test

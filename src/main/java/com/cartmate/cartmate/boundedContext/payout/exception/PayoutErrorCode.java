@@ -13,7 +13,12 @@ public enum PayoutErrorCode implements ErrorCode {
     PAYOUT_INVALID_AMOUNT("PAYOUT_INVALID_AMOUNT", "판매 금액은 0 이상이어야 합니다.", HttpStatus.BAD_REQUEST),
     PAYOUT_NOT_FOUND("PAYOUT_NOT_FOUND", "정산을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     PAYOUT_NOT_PENDING("PAYOUT_NOT_PENDING", "대기 중인 정산만 처리할 수 있습니다.", HttpStatus.CONFLICT),
-    PAYOUT_SELLER_NOT_FOUND("PAYOUT_SELLER_NOT_FOUND", "정산 지급 대상 판매자 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
+    PAYOUT_SELLER_NOT_FOUND("PAYOUT_SELLER_NOT_FOUND", "정산 지급 대상 판매자 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    PAYOUT_MEMBER_ID_REQUIRED("PAYOUT_MEMBER_ID_REQUIRED", "회원 ID가 필요합니다.", HttpStatus.BAD_REQUEST),
+    PAYOUT_SELLER_ONLY("PAYOUT_SELLER_ONLY", "판매자만 정산 내역을 조회할 수 있습니다.", HttpStatus.FORBIDDEN),
+    PAYOUT_INVALID_DATE_RANGE("PAYOUT_INVALID_DATE_RANGE", "조회 시작일은 종료일보다 늦을 수 없습니다.", HttpStatus.BAD_REQUEST),
+    PAYOUT_INVALID_SETTLEMENT_ID("PAYOUT_INVALID_SETTLEMENT_ID", "정산 ID 형식이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
+    PAYOUT_SETTLEMENT_NOT_FOUND("PAYOUT_SETTLEMENT_NOT_FOUND", "정산 내역을 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
 
     private final String code;
     private final String msg;

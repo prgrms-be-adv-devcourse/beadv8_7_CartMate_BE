@@ -15,7 +15,7 @@ class PayoutTest {
     private static final LocalDateTime CONFIRMED_AT = LocalDateTime.of(2026, 10, 19, 13, 30);
 
     private Payout payout(long salesAmount, LocalDateTime confirmedAt) {
-        return Payout.create(1L, 100L, 1000L, salesAmount, confirmedAt);
+        return Payout.create(1L, 100L, 1000L, "티셔츠", 1L, salesAmount, confirmedAt.minusDays(3), confirmedAt);
     }
 
     @Test
@@ -94,10 +94,10 @@ class PayoutTest {
     @Test
     @DisplayName("필수 값이 없거나 금액이 음수이면 생성할 수 없다")
     void createValidation() {
-        assertThatThrownBy(() -> Payout.create(null, 100L, 1000L, 1_000L, CONFIRMED_AT))
+        assertThatThrownBy(() -> Payout.create(null, 100L, 1000L, "티셔츠", 1L, 1_000L, CONFIRMED_AT, CONFIRMED_AT))
                 .isInstanceOfSatisfying(ServiceException.class, e -> assertThat(e.getResultCode())
                         .isEqualTo(PayoutErrorCode.PAYOUT_REQUIRED_VALUE_MISSING.resultCode()));
-        assertThatThrownBy(() -> Payout.create(1L, 100L, 1000L, 1_000L, null))
+        assertThatThrownBy(() -> Payout.create(1L, 100L, 1000L, "티셔츠", 1L, 1_000L, CONFIRMED_AT, null))
                 .isInstanceOf(ServiceException.class);
         assertThatThrownBy(() -> payout(-1L, CONFIRMED_AT))
                 .isInstanceOfSatisfying(ServiceException.class, e -> assertThat(e.getResultCode())
