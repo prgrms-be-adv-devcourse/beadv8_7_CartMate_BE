@@ -14,18 +14,23 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DeliveryAutoConfirmUseCaseTest {
 
     private final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
+    private final DeliveryConfirmedEventPublisher eventPublisher = mock(DeliveryConfirmedEventPublisher.class);
     private DeliveryAutoConfirmUseCase useCase;
     private Delivery delivery;
 
     @BeforeEach
     void setUp() {
-        useCase = new DeliveryAutoConfirmUseCase(deliveryRepository);
+        useCase = new DeliveryAutoConfirmUseCase(deliveryRepository, eventPublisher);
 
         delivery = Delivery.create(1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
@@ -42,6 +47,7 @@ class DeliveryAutoConfirmUseCaseTest {
 
         assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CONFIRMED);
         assertThat(delivery.getConfirmedAt()).isNotNull();
+        verify(eventPublisher).publish(delivery);
     }
 
     @Test
@@ -54,6 +60,7 @@ class DeliveryAutoConfirmUseCaseTest {
 
         assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CONFIRMED);
         assertThat(delivery.getConfirmedAt()).isEqualTo(confirmedAt);
+        verify(eventPublisher, never()).publish(any());
     }
 
     @Test
