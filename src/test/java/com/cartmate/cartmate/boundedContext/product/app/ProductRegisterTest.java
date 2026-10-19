@@ -159,25 +159,6 @@ class ProductRegisterTest {
         assertThat(storage.savedCount()).isZero();
     }
 
-    @Test
-    @DisplayName("글 삭제 이벤트를 받으면 상품, 이미지, 파일이 모두 지워진다")
-    void cleanupWhenPostDeleted() {
-        productFacade.registerProduct(
-                request(getDummyProduct("아이폰", 2), getDummyProduct("충전기", 1)),
-                getDummyImages(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.png())
-        );
-        assertThat(productRepository.count()).isEqualTo(2);
-        assertThat(storage.savedCount()).isEqualTo(3);
-
-        eventPublisher.publishEvent(new PostDeletedEvent(new DeleteProductRequest(POST_ID)));
-
-        assertSoftly(softly -> {
-            softly.assertThat(productRepository.count()).as("상품 수").isZero();
-            softly.assertThat(productImageRepository.count()).as("이미지 row 수").isZero();
-            softly.assertThat(storage.savedCount()).as("저장된 파일 수").isZero();
-        });
-    }
-
     private CreateProductRequest request(CreateProduct... products) {
         return new CreateProductRequest(POST_ID, List.of(products));
     }

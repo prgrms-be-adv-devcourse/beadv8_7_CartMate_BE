@@ -65,7 +65,18 @@ public class SalesPost extends BaseIdAndTime {
     }
 
     public SalesPost delete() {
+        this.status = SalesPostSaleStatus.PENDING;
+        return this;
+    }
+
+    public SalesPost deleteComplete() {
         this.status = SalesPostSaleStatus.DELETED;
         return this;
     }
+
+    public SalesPost rollback() {
+        this.status = SalesPostSaleStatus.ON_SALE;
+        return this;
+    }
+
 }

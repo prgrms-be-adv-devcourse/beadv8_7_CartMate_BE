@@ -58,7 +58,13 @@ public class SalesPostFacade {
         SalesPost deletedPost = transactionTemplate.execute(status -> {
             return salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId);
         });
-        salesPostApiClient.deleteProducts(deletedPost.getId());
+        try {
+            salesPostApiClient.deleteProducts(deletedPost.getId());
+            deletedPost.deleteComplete();
+        } catch (ServiceException e) {
+            salesPostDeleteUseCase.rollbackSalesPostByProduct(postId);
+            throw e;
+        }
     }
 
     @Transactional
@@ -75,6 +81,7 @@ public class SalesPostFacade {
         );
     }
 
+    @Transactional(readOnly = true)
     public RsData<SelectSalesPostResponse> selectSalesPostDetail(Long postId) {
         return new RsData<>(
                 "200-2",
@@ -83,10 +90,12 @@ public class SalesPostFacade {
         );
     }
 
+    @Transactional
     public void deleteProductByPost(DeleteProductListRequest request) {
         salesPostSyncProductUseCase.deleteProductByPost(request);
     }
 
+    @Transactional
     public void deleteProductByUser(DeleteProductRequest request) {
         salesPostSyncProductUseCase.deleteProductByUser(request);
     }
