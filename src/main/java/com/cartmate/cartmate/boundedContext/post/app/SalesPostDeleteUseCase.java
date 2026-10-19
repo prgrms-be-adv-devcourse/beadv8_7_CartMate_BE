@@ -1,12 +1,10 @@
 package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
 import com.cartmate.cartmate.global.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.global.GlobalConfig;
-import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
-import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,18 +15,16 @@ public class SalesPostDeleteUseCase {
     private final SalesPostRepository salesPostRepository;
 
     @Transactional
-    public void deleteSalesPostByUser(Long postId) {
-        SalesPost post = salesPostRepository.findById(postId).orElseThrow(
-                () -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND)
-        );
+    public SalesPost deleteSalesPostByUser(Long postId, Long sellerId) {
+        SalesPost post = salesPostRepository.findById(postId)
+                .filter(p -> p.getStatus() != SalesPostSaleStatus.DELETED)
+                .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
 
-        post.delete();
+        if (!post.getSellerId().equals(sellerId)) {
+            throw new ServiceException(SalesPostErrorCode.POST_ACCESS_DENIED);
+        }
 
-        GlobalConfig.getEventPublisher().publish(
-                new PostDeletedEvent(
-                        new SalesPostRollbackRequest(postId)
-                )
-        );
+        return post.delete();
     }
 
     @Transactional
@@ -37,14 +33,8 @@ public class SalesPostDeleteUseCase {
                 .ifPresent(salesPostRepository::delete);
     }
 
-    public void deleteSalesPostByServer(Long postId) {
+    public void rollbackSalesPostByProduct(Long postId) {
         salesPostRepository.findById(postId)
-                .ifPresent(salesPostRepository::delete);
-
-        GlobalConfig.getEventPublisher().publish(
-                new PostDeletedEvent(
-                        new SalesPostRollbackRequest(postId)
-                )
-        );
+                .ifPresent(SalesPost::rollback);
     }
 }

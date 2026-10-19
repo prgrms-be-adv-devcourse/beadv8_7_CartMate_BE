@@ -34,7 +34,7 @@ public class SalesPostApiClient {
 
         try {
             restClient.post()
-                    .uri("/product")
+                    .uri("/register")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body.build())
                     .retrieve()
@@ -50,4 +50,20 @@ public class SalesPostApiClient {
         }
     }
 
+    public void deleteProducts(Long postId) {
+        try {
+            restClient.delete()
+                    .uri("/posts/{postId}", postId)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        throw new ServiceException(ProductErrorCode.PRODUCT_DELETE_INVALID);
+                    })
+                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+                        throw new ServiceException(ProductErrorCode.PRODUCT_DELETE_FAILED);
+                    })
+                    .toBodilessEntity();
+        } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
+            throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
+        }
+    }
 }

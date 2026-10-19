@@ -6,7 +6,7 @@ import com.cartmate.cartmate.boundedContext.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
+import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
 import com.cartmate.cartmate.shared.product.dto.CreateProduct;
 import com.cartmate.cartmate.shared.product.dto.CreateProductImage;
@@ -25,7 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -156,35 +157,6 @@ class ProductRegisterTest {
         assertThat(productRepository.count()).isZero();
         assertThat(productImageRepository.count()).isZero();
         assertThat(storage.savedCount()).isZero();
-    }
-
-    @Test
-    @DisplayName("글 삭제 이벤트를 받으면 상품, 이미지, 파일이 모두 지워진다")
-    void cleanupWhenPostDeleted() {
-        productFacade.registerProduct(
-                request(getDummyProduct("아이폰", 2), getDummyProduct("충전기", 1)),
-                getDummyImages(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.png())
-        );
-        assertThat(productRepository.count()).isEqualTo(2);
-        assertThat(storage.savedCount()).isEqualTo(3);
-
-        eventPublisher.publishEvent(new PostDeletedEvent(new SalesPostRollbackRequest(POST_ID)));
-
-        assertSoftly(softly -> {
-            softly.assertThat(productRepository.count()).as("상품 수").isZero();
-            softly.assertThat(productImageRepository.count()).as("이미지 row 수").isZero();
-            softly.assertThat(storage.savedCount()).as("저장된 파일 수").isZero();
-        });
-    }
-
-    @Test
-    @DisplayName("지울 상품이 없어도 에러 없이 끝난다")
-    void cleanupWhenNothingToDelete() {
-        assertThatCode(() ->
-                eventPublisher.publishEvent(new PostDeletedEvent(new SalesPostRollbackRequest(POST_ID))))
-                .doesNotThrowAnyException();
-
-        assertThat(productRepository.count()).isZero();
     }
 
     private CreateProductRequest request(CreateProduct... products) {

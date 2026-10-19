@@ -7,6 +7,7 @@ import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -36,9 +37,11 @@ public class SalesPostProduct extends BaseManualIdAndTime {
     private Long basePrice;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
     @OneToMany(mappedBy = "salesPostProduct", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    @SQLRestriction("status in ('ACTIVE')")
     private List<SalesPostProductImage> imageList = new ArrayList<>();
 
 
@@ -74,6 +77,7 @@ public class SalesPostProduct extends BaseManualIdAndTime {
 
     public SalesPostProduct delete() {
         this.status = ProductStatus.DELETED;
+        imageList.forEach(SalesPostProductImage::delete);
         return this;
     }
 
