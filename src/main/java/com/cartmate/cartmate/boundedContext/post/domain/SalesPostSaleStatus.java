@@ -6,7 +6,7 @@ public enum SalesPostSaleStatus {
     SUSPENDED("운영 중지"), // 관리자에 의한 판매자 정지
     CLOSED("판매 종료"),
     DELETED("삭제"),
-    PENDING("진행중");
+    PENDING("등록 진행중");
 
     private String name;
 

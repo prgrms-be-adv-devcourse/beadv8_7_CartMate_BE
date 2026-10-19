@@ -32,9 +32,4 @@ public class SalesPostDeleteUseCase {
         salesPostRepository.findById(postId)
                 .ifPresent(salesPostRepository::delete);
     }
-
-    public void rollbackSalesPostByProduct(Long postId) {
-        salesPostRepository.findById(postId)
-                .ifPresent(SalesPost::rollback);
-    }
 }

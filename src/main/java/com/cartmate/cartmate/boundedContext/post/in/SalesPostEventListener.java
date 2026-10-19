@@ -41,7 +41,6 @@ public class SalesPostEventListener {
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(ProductDeletedEvent event) {
         salesPostFacade.deleteProductByUser(event.getRequest());
-
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)

@@ -20,7 +20,7 @@ public class SalesPostCreateUseCase {
                         postDto.getSellerId(),
                         postDto.getTitle(),
                         postDto.getContent(),
-                        SalesPostSaleStatus.ON_SALE,
+                        SalesPostSaleStatus.PENDING,
                         0L
                 ));
     }

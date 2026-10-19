@@ -5,9 +5,7 @@ import com.cartmate.cartmate.boundedContext.product.domain.ProductCountPolicy;
 import com.cartmate.cartmate.boundedContext.product.dto.ImageUploadTask;
 import com.cartmate.cartmate.global.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.product.dto.CreateProduct;
-import com.cartmate.cartmate.shared.product.dto.CreateProductImage;
-import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.shared.product.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -58,5 +56,59 @@ public class ProductSupport {
         if (cursor != images.size()) {
             throw new ServiceException(ProductErrorCode.PRODUCT_CREATE_INVALID);
         }
+    }
+
+    public void includeFileDataUpdate(UpdateProductsRequest request, List<MultipartFile> images) {
+        List<MultipartFile> fileList = (images == null) ? List.of() : images;
+
+        int cursor = 0;
+        for (UpdateProduct product : request.getProductList()) {
+            for (UpdateProductImage image : product.getProductImageList()) {
+                if (image.getId() != null) {
+                    continue;
+                }
+                if (cursor >= fileList.size()) {
+                    throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_INVALID);
+                }
+                image.assignFile(fileList.get(cursor++));
+            }
+        }
+
+        if (cursor != fileList.size()) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_INVALID);
+        }
+    }
+
+    public void validateUpdateProductCount(List<UpdateProduct> productList) {
+        if (!productCountPolicy.isSafeUpdateProductCount(productList)) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_COUNT_INVALID);
+        }
+
+        if (!productCountPolicy.isSafeUpdateProductImageCount(productList)) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_IMAGE_COUNT_EXCEEDED);
+        }
+    }
+
+    public void validateUpdateProductFormat(List<UpdateProduct> productList) {
+        productList.forEach(product ->
+                product.getProductImageList().forEach(image -> {
+                    if (image.getFile() != null) {
+                        imageTypePolicy.detect(image.getFile());
+                    }
+                })
+        );
+    }
+
+    public List<ImageUploadTask> toUpdateTasks(List<UpdateProduct> productList) {
+        List<ImageUploadTask> tasks = new ArrayList<>();
+        for (int productIndex = 0; productIndex < productList.size(); productIndex++) {
+            for (UpdateProductImage image : productList.get(productIndex).getProductImageList()) {
+                if (image.getFile() == null) {
+                    continue;
+                }
+                tasks.add(new ImageUploadTask(productIndex, image.getImageSeq(), image.getFile()));
+            }
+        }
+        return tasks;
     }
 }

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class SelectSalesPostProductImage {
     private Long id;
     private String s3key;
-    private int image_seq;
+    private int imageSeq;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

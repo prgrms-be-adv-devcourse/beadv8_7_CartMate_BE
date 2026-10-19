@@ -13,7 +13,7 @@ public class CreateSalesPostProductImage {
     private Long id;
     private Long productId;
     private String s3Key;
-    private int image_seq;
+    private int imageSeq;
     private MultipartFile file;
 
     public CreateProductImage toCreateProductImage(Long sellerId) {
@@ -22,7 +22,7 @@ public class CreateSalesPostProductImage {
                 sellerId,
                 productId,
                 s3Key,
-                image_seq,
+                imageSeq,
                 file
         );
     }
