@@ -95,8 +95,7 @@ public class SharedGroupOrder {
         this.paymentDeadlineAt = closedAt.plus(PAYMENT_PERIOD);
         this.stockReserved = false;
 
-        itemLines.forEach(line -> items.add(SharedGroupOrderItem.create(
-                this, line.productId(), line.inventoryId(), line.quantity(), line.unitPrice())));
+        itemLines.forEach(line -> items.add(SharedGroupOrderItem.create(this, line)));
         this.totalAmount = items.stream().mapToLong(SharedGroupOrderItem::amount).sum();
 
 
@@ -216,6 +215,9 @@ public class SharedGroupOrder {
     public record OrderItemLine(
             Long productId,
             Long inventoryId,
+            Long sellerId,
+            String productName,
+            String optionName,
             int quantity,
             long unitPrice
     ) {

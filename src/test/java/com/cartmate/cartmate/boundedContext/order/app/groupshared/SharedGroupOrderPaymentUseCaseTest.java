@@ -176,8 +176,10 @@ class SharedGroupOrderPaymentUseCaseTest {
         assertThat(event.teamDeliveryAddress()).isEqualTo(ADDRESS);
         assertThat(event.items())
                 .extracting(SharedGroupOrderConfirmedEvent.Item::productId, SharedGroupOrderConfirmedEvent.Item::inventoryId,
+                        SharedGroupOrderConfirmedEvent.Item::sellerId, SharedGroupOrderConfirmedEvent.Item::productName,
+                        SharedGroupOrderConfirmedEvent.Item::optionName,
                         SharedGroupOrderConfirmedEvent.Item::quantity, SharedGroupOrderConfirmedEvent.Item::unitPrice)
-                .containsExactly(tuple(2L, 4L, 1, 10000L), tuple(3L, 5L, 2, 10000L));
+                .containsExactly(tuple(2L, 4L, 7L, "축구공", "5호", 1, 10000L), tuple(3L, 5L, 8L, "축구 유니폼", null, 2, 10000L));
     }
 
     @Test
@@ -261,6 +263,7 @@ class SharedGroupOrderPaymentUseCaseTest {
 
     private SharedGroupOrder order(LocalDateTime closedAt) {
         return SharedGroupOrder.create(PURCHASE_ID, CREATOR, List.of(CREATOR, MEMBER),
-                List.of(new OrderItemLine(2L, 4L, 1, 10000L), new OrderItemLine(3L, 5L, 2, 10000L)), closedAt);
+                List.of(new OrderItemLine(2L, 4L, 7L, "축구공", "5호", 1, 10000L),
+                        new OrderItemLine(3L, 5L, 8L, "축구 유니폼", null, 2, 10000L)), closedAt);
     }
 }

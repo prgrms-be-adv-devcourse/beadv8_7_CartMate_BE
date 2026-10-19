@@ -62,7 +62,7 @@ class SharedGroupOrderRepositoryTest {
         SharedGroupOrder first = sharedGroupOrderRepository.save(order(base + 10));
         SharedGroupOrder second = sharedGroupOrderRepository.save(order(base + 11));
         sharedGroupOrderRepository.save(SharedGroupOrder.create(
-                base + 12, base + 2, List.of(base + 2), List.of(new OrderItemLine(10L, 1L, 1, 1000)), CLOSED_AT));
+                base + 12, base + 2, List.of(base + 2), List.of(new OrderItemLine(10L, 1L, null, "상품", null, 1, 1000)), CLOSED_AT));
         flushAndClear();
 
         List<SharedGroupOrder> found = sharedGroupOrderRepository.findAllByParticipant(member);
@@ -99,7 +99,7 @@ class SharedGroupOrderRepositoryTest {
                 sharedGroupPurchaseId,
                 creator,
                 List.of(creator, member),
-                List.of(new OrderItemLine(10L, 1L, 2, 25000), new OrderItemLine(11L, 2L, 1, 15000)),
+                List.of(new OrderItemLine(10L, 1L, null, "상품", null, 2, 25000), new OrderItemLine(11L, 2L, null, "상품", null, 1, 15000)),
                 CLOSED_AT);
     }
 

@@ -146,6 +146,6 @@ class SharedGroupOrderCancelUseCaseTest {
 
     private SharedGroupOrder order(LocalDateTime closedAt) {
         return SharedGroupOrder.create(PURCHASE_ID, CREATOR, List.of(CREATOR, MEMBER),
-                List.of(new OrderItemLine(2L, 4L, 1, 10000L)), closedAt);
+                List.of(new OrderItemLine(2L, 4L, null, "상품", null, 1, 10000L)), closedAt);
     }
 }

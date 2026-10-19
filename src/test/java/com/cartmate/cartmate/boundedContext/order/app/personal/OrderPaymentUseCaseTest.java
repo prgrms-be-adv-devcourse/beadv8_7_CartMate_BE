@@ -7,6 +7,7 @@ import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -67,10 +68,14 @@ class OrderPaymentUseCaseTest {
         assertThat(event.memberId()).isEqualTo(BUYER);
         assertThat(event.orderType()).isEqualTo("PERSONAL");
         assertThat(event.paidAt()).isEqualTo(paidAt);
+        assertThat(event.orderNumber()).isEqualTo("20261019-ABCDEFGH");
+        assertThat(event.deliveryAddress())
+                .isEqualTo(new DeliveryAddressInfo("홍길동", "010-1234-5678", "12345", "서울시 강남구", null));
         assertThat(event.items())
                 .extracting(OrderPaidEvent.Item::productId, OrderPaidEvent.Item::inventoryId,
+                        OrderPaidEvent.Item::sellerId, OrderPaidEvent.Item::productName, OrderPaidEvent.Item::optionName,
                         OrderPaidEvent.Item::quantity, OrderPaidEvent.Item::unitPrice)
-                .containsExactly(tuple(2L, 4L, 2, 25000L));
+                .containsExactly(tuple(2L, 4L, 9L, "축구공", "5호", 2, 25000L));
     }
 
     @Test
@@ -117,7 +122,7 @@ class OrderPaymentUseCaseTest {
 
     private Order order() {
         return Order.createPersonal("20261019-ABCDEFGH", BUYER,
-                List.of(new OrderLine(2L, 4L, null, "축구공", "5호", 25000, 2)),
+                List.of(new OrderLine(2L, 4L, 9L, "축구공", "5호", 25000, 2)),
                 DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", null), CREATED_AT);
     }
 }

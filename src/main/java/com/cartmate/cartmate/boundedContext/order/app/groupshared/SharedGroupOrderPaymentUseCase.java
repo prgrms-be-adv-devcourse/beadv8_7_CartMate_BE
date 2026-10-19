@@ -91,6 +91,9 @@ class SharedGroupOrderPaymentUseCase {
                                 item.getId(),
                                 item.getProductId(),
                                 item.getInventoryId(),
+                                item.getSellerId(),
+                                item.getProductName(),
+                                item.getOptionName(),
                                 item.getQuantity(),
                                 item.getUnitPrice()))
                         .toList()

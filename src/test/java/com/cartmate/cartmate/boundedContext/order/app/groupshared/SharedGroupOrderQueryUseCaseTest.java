@@ -79,6 +79,6 @@ class SharedGroupOrderQueryUseCaseTest {
 
     private SharedGroupOrder order() {
         return SharedGroupOrder.create(10L, CREATOR, List.of(CREATOR, MEMBER),
-                List.of(new OrderItemLine(2L, 4L, 2, 25000)), LocalDateTime.of(2026, 10, 19, 12, 0));
+                List.of(new OrderItemLine(2L, 4L, null, "상품", null, 2, 25000)), LocalDateTime.of(2026, 10, 19, 12, 0));
     }
 }

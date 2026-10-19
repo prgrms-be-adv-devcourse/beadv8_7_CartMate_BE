@@ -23,6 +23,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.BDDMockito.given;
@@ -64,6 +65,9 @@ class SharedGroupOrderCreateUseCaseTest {
         assertThat(order.getTotalAmount()).isEqualTo(89000L);
         assertThat(order.getPaymentDeadlineAt()).isEqualTo(CLOSED_AT.plus(SharedGroupOrder.PAYMENT_PERIOD));
         assertThat(order.getItems()).extracting(SharedGroupOrderItem::getUnitPrice).containsExactly(25000L, 39000L);
+        assertThat(order.getItems())
+                .extracting(SharedGroupOrderItem::getSellerId, SharedGroupOrderItem::getProductName, SharedGroupOrderItem::getOptionName)
+                .containsExactly(tuple(1L, "축구공", "5호"), tuple(1L, "축구 유니폼", "M / 레드"));
         assertThat(order.getParticipant(CREATOR).getShareAmount()).isEqualTo(29668L);
         assertThat(order.getParticipant(2L).getShareAmount()).isEqualTo(29666L);
         assertThat(order.getParticipants()).extracting(SharedGroupOrderParticipant::getShareAmount)
