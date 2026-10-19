@@ -13,20 +13,23 @@ import org.springframework.stereotype.Service;
 public class DeliveryConfirmUseCase {
 
     private final DeliveryRepository deliveryRepository;
+    private final DeliveryConfirmedEventPublisher eventPublisher;
 
-    // 배송의 수령인(구매자) 본인이 배송완료 상태의 배송을 구매확정으로 바꾼다.
+    // 배송의 수령인(구매자) 본인이 배송완료 상태의 배송을 구매확정으로 바꾸고 구매확정 이벤트를 발행한다.
     public DeliveryResponse confirm(Long deliveryId, Long memberId) {
         if (memberId == null) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_MEMBER_ID_REQUIRED);
         }
-        Delivery delivery = deliveryRepository.findById(deliveryId)
+        Delivery delivery = deliveryRepository.findByIdForUpdate(deliveryId)
                 .orElseThrow(() -> new ServiceException(DeliveryErrorCode.DELIVERY_NOT_FOUND));
 
         if (!delivery.getMemberId().equals(memberId)) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_ACCESS_DENIED);
         }
 
-        delivery.confirm();
+        if (delivery.confirm()) {   // 상태가 변경되었을 때만 이벤트 발행
+            eventPublisher.publish(delivery);
+        }
 
         return DeliveryResponse.from(delivery);
     }

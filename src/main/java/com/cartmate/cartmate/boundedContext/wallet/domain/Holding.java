@@ -43,6 +43,9 @@ public class Holding {
     @Column(nullable = false)
     private Long amount;
 
+    @Column(name = "refunded_amount", nullable = false)
+    private long refundedAmount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private HoldingStatus status;
@@ -90,6 +93,31 @@ public class Holding {
         }
 
         this.status = HoldingStatus.CANCELED;
+    }
+
+    public long remainingAmount() {
+        return amount - refundedAmount;
+    }
+
+    // 환불 누적액을 더하고, 전액 환불되면 홀딩을 취소 상태로 전환한다.
+    public void addRefund(Long refundAmount) {
+        if (refundAmount == null || refundAmount <= 0) {
+            throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
+        }
+
+        if (status != HoldingStatus.RESERVED) {
+            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_NOT_CANCELABLE);
+        }
+
+        if (refundAmount > remainingAmount()) {
+            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_REFUND_EXCEEDED);
+        }
+
+        this.refundedAmount += refundAmount;
+
+        if (remainingAmount() == 0) {
+            this.status = HoldingStatus.CANCELED;
+        }
     }
 
     public void settle(Long settlementId) {

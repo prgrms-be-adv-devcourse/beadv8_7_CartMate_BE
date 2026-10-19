@@ -54,7 +54,7 @@ class DeliveryClaimApproveUseCaseTest {
         ReflectionTestUtils.setField(claim, "id", 7L);
         when(claimRepository.findById(7L)).thenReturn(Optional.of(claim));
 
-        DeliveryItem deliveryItem = DeliveryItem.create(delivery, 1000L, "티셔츠", 2L);
+        DeliveryItem deliveryItem = DeliveryItem.create(delivery, 1000L, "티셔츠", 10_000L, 2L);
         ReflectionTestUtils.setField(deliveryItem, "id", 50L);
         when(claimItemRepository.findAllWithDeliveryItemByClaimIds(List.of(7L)))
                 .thenReturn(List.of(DeliveryClaimItem.create(claim, deliveryItem, 1L)));

@@ -14,25 +14,30 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DeliveryAutoConfirmUseCaseTest {
 
     private final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
+    private final DeliveryConfirmedEventPublisher eventPublisher = mock(DeliveryConfirmedEventPublisher.class);
     private DeliveryAutoConfirmUseCase useCase;
     private Delivery delivery;
 
     @BeforeEach
     void setUp() {
-        useCase = new DeliveryAutoConfirmUseCase(deliveryRepository);
+        useCase = new DeliveryAutoConfirmUseCase(deliveryRepository, eventPublisher);
 
         delivery = Delivery.create(1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
         delivery.prepare("CJ대한통운", "658219384910");
         delivery.ship();
         delivery.deliver();
-        when(deliveryRepository.findById(5L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(delivery));
     }
 
     @Test
@@ -42,6 +47,7 @@ class DeliveryAutoConfirmUseCaseTest {
 
         assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CONFIRMED);
         assertThat(delivery.getConfirmedAt()).isNotNull();
+        verify(eventPublisher).publish(delivery);
     }
 
     @Test
@@ -54,6 +60,7 @@ class DeliveryAutoConfirmUseCaseTest {
 
         assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CONFIRMED);
         assertThat(delivery.getConfirmedAt()).isEqualTo(confirmedAt);
+        verify(eventPublisher, never()).publish(any());
     }
 
     @Test
@@ -70,7 +77,7 @@ class DeliveryAutoConfirmUseCaseTest {
     @Test
     @DisplayName("없는 배송은 404 오류다")
     void notFound() {
-        when(deliveryRepository.findById(99L)).thenReturn(Optional.empty());
+        when(deliveryRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.confirm(99L))
                 .isInstanceOf(ServiceException.class)
