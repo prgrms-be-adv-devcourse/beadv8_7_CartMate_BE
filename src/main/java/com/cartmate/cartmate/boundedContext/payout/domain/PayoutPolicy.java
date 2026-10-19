@@ -29,6 +29,16 @@ public final class PayoutPolicy {
                 .atTime(LocalTime.MIN);
     }
 
+    // 지급일에 지급되는 정산의 구매확정 기간 시작일. 구매확정한 달(지급일의 전달)의 1일이다.
+    public static LocalDate confirmPeriodStart(LocalDate payoutDate) {
+        return payoutDate.minusMonths(1).withDayOfMonth(1);
+    }
+
+    // 지급일에 지급되는 정산의 구매확정 기간 종료일. 구매확정한 달의 말일이다.
+    public static LocalDate confirmPeriodEnd(LocalDate payoutDate) {
+        return payoutDate.withDayOfMonth(1).minusDays(1);
+    }
+
     // 기준일 이후(기준일이 지급일이면 그날 포함)로 처음 돌아오는 지급일.
     public static LocalDate nextPayoutDate(LocalDate today) {
         LocalDate thisMonth = today.withDayOfMonth(PAYOUT_DAY_OF_MONTH);

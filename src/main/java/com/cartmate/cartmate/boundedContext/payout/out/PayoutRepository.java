@@ -28,6 +28,10 @@ public interface PayoutRepository extends JpaRepository<Payout, Long> {
             @Param("sellerId") Long sellerId, @Param("statuses") Collection<PayoutStatus> statuses,
             @Param("fromAt") LocalDateTime fromAt, @Param("toAt") LocalDateTime toAt);
 
+    // 판매자의 정산 중 지급 예정 시각과 상태가 같은 것을 구매확정이 최근인 순으로 조회한다. 정산 상세의 판매 건 목록이다.
+    List<Payout> findAllBySellerIdAndStatusAndScheduledAtOrderByConfirmedAtDescIdDesc(
+            Long sellerId, PayoutStatus status, LocalDateTime scheduledAt);
+
     // 지급 예정 시각과 상태가 같은 정산을 묶은 합계.
     interface SettlementSummary {
 

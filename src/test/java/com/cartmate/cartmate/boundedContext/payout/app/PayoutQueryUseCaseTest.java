@@ -1,7 +1,9 @@
 package com.cartmate.cartmate.boundedContext.payout.app;
 
+import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
+import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
@@ -11,6 +13,7 @@ import com.cartmate.cartmate.shared.member.SellerQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -73,8 +76,10 @@ class PayoutQueryUseCaseTest {
                 MEMBER_ID, LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30));
 
         assertThat(result).containsExactly(
-                new SettlementResponse(LocalDate.of(2026, 11, 15), PayoutStatus.COMPLETED, 18, 180_000L, 5_400L, 174_600L),
-                new SettlementResponse(LocalDate.of(2026, 11, 15), PayoutStatus.PENDING, 2, 20_000L, 600L, 19_400L));
+                new SettlementResponse("20261115-COMPLETED", LocalDate.of(2026, 11, 15), PayoutStatus.COMPLETED,
+                        LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), 18, 180_000L, 5_400L, 174_600L),
+                new SettlementResponse("20261115-PENDING", LocalDate.of(2026, 11, 15), PayoutStatus.PENDING,
+                        LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), 2, 20_000L, 600L, 19_400L));
     }
 
     @Test
@@ -169,5 +174,81 @@ class PayoutQueryUseCaseTest {
 
         assertError(() -> useCase.getMySettlementInfo(99L, LocalDate.of(2026, 10, 1)), PayoutErrorCode.PAYOUT_SELLER_ONLY);
         assertError(() -> useCase.getMySettlementInfo(null, LocalDate.of(2026, 10, 1)), PayoutErrorCode.PAYOUT_MEMBER_ID_REQUIRED);
+    }
+
+    private Payout payout(long id, String productName, Long quantity, long sales, LocalDateTime confirmedAt) {
+        Payout payout = Payout.create(SELLER_ID, 100L, 1000L + id, productName, quantity, sales,
+                confirmedAt.minusDays(2), confirmedAt);
+        ReflectionTestUtils.setField(payout, "id", id);
+        return payout;
+    }
+
+    @Test
+    @DisplayName("정산 ID에 묶인 판매 건과 합계, 정산 대상 기간을 반환한다")
+    void getMySettlementDetail() {
+        Payout shirt = payout(1L, "티셔츠", 2L, 24_000L, LocalDateTime.of(2026, 10, 25, 10, 0));
+        Payout socks = payout(2L, "양말", 3L, 5_000L, LocalDateTime.of(2026, 10, 20, 10, 0));
+        when(payoutRepository.findAllBySellerIdAndStatusAndScheduledAtOrderByConfirmedAtDescIdDesc(
+                SELLER_ID, PayoutStatus.COMPLETED, LocalDateTime.of(2026, 11, 15, 0, 0)))
+                .thenReturn(List.of(shirt, socks));
+
+        SettlementDetailResponse detail = useCase.getMySettlementDetail(MEMBER_ID, "20261115-COMPLETED");
+
+        assertThat(detail.settlementId()).isEqualTo("20261115-COMPLETED");
+        assertThat(detail.settlementDate()).isEqualTo(LocalDate.of(2026, 11, 15));
+        assertThat(detail.status()).isEqualTo(PayoutStatus.COMPLETED);
+        assertThat(detail.periodStart()).isEqualTo(LocalDate.of(2026, 10, 1));
+        assertThat(detail.periodEnd()).isEqualTo(LocalDate.of(2026, 10, 31));
+        assertThat(detail.payoutCount()).isEqualTo(2);
+        assertThat(detail.totalQuantity()).isEqualTo(5);
+        assertThat(detail.salesAmount()).isEqualTo(29_000L);
+        assertThat(detail.feeAmount()).isEqualTo(720L + 150L);
+        assertThat(detail.payoutAmount()).isEqualTo(23_280L + 4_850L);
+        assertThat(detail.items()).extracting(SettlementDetailResponse.Item::productName).containsExactly("티셔츠", "양말");
+        assertThat(detail.items().get(0).payoutId()).isEqualTo(1L);
+        assertThat(detail.items().get(0).orderedAt()).isEqualTo(LocalDateTime.of(2026, 10, 23, 10, 0));
+        assertThat(detail.items().get(0).payoutAmount()).isEqualTo(23_280L);
+    }
+
+    @Test
+    @DisplayName("상품명과 수량이 기록되지 않은 옛 정산도 조회되고 수량 합계에서는 빠진다")
+    void getMySettlementDetailWithLegacyPayout() {
+        Payout legacy = payout(1L, null, null, 10_000L, LocalDateTime.of(2026, 10, 25, 10, 0));
+        Payout recent = payout(2L, "양말", 3L, 5_000L, LocalDateTime.of(2026, 10, 20, 10, 0));
+        when(payoutRepository.findAllBySellerIdAndStatusAndScheduledAtOrderByConfirmedAtDescIdDesc(any(), any(), any()))
+                .thenReturn(List.of(legacy, recent));
+
+        SettlementDetailResponse detail = useCase.getMySettlementDetail(MEMBER_ID, "20261115-PENDING");
+
+        assertThat(detail.totalQuantity()).isEqualTo(3);
+        assertThat(detail.items().get(0).productName()).isNull();
+        assertThat(detail.items().get(0).quantity()).isNull();
+    }
+
+    @Test
+    @DisplayName("내 정산에 해당하는 것이 없으면 PAYOUT_SETTLEMENT_NOT_FOUND 예외가 발생한다")
+    void getMySettlementDetailNotFound() {
+        when(payoutRepository.findAllBySellerIdAndStatusAndScheduledAtOrderByConfirmedAtDescIdDesc(any(), any(), any()))
+                .thenReturn(List.of());
+
+        assertError(() -> useCase.getMySettlementDetail(MEMBER_ID, "20261115-PENDING"),
+                PayoutErrorCode.PAYOUT_SETTLEMENT_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("정산 ID 형식이 틀리면 PAYOUT_INVALID_SETTLEMENT_ID 예외가 발생하고 조회하지 않는다")
+    void getMySettlementDetailInvalidId() {
+        assertError(() -> useCase.getMySettlementDetail(MEMBER_ID, "abc"), PayoutErrorCode.PAYOUT_INVALID_SETTLEMENT_ID);
+        verify(payoutRepository, never())
+                .findAllBySellerIdAndStatusAndScheduledAtOrderByConfirmedAtDescIdDesc(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("정산 상세도 판매자만 조회할 수 있다")
+    void getMySettlementDetailSellerOnly() {
+        when(sellerQuery.findSellerIdByMemberId(99L)).thenReturn(Optional.empty());
+
+        assertError(() -> useCase.getMySettlementDetail(99L, "20261115-PENDING"), PayoutErrorCode.PAYOUT_SELLER_ONLY);
+        assertError(() -> useCase.getMySettlementDetail(null, "20261115-PENDING"), PayoutErrorCode.PAYOUT_MEMBER_ID_REQUIRED);
     }
 }

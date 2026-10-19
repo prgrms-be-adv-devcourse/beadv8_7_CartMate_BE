@@ -1,9 +1,12 @@
 package com.cartmate.cartmate.boundedContext.payout.app;
 
+import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
+import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutPolicy;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
+import com.cartmate.cartmate.boundedContext.payout.domain.SettlementKey;
 import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository.SettlementSummary;
@@ -66,6 +69,23 @@ public class PayoutQueryUseCase {
                 sumOf(summaries, PayoutStatus.PENDING, SettlementSummary::getPayoutCount),
                 sumOf(summaries, PayoutStatus.PENDING, SettlementSummary::getPayoutAmount),
                 sumOf(summaries, PayoutStatus.COMPLETED, SettlementSummary::getPayoutAmount));
+    }
+
+    // 로그인한 판매자의 정산 한 줄(정산 ID = 지급 예정일 + 상태)의 합계와 묶인 판매 건을 반환한다.
+    // 회원 ID가 없으면 PAYOUT_MEMBER_ID_REQUIRED, 판매자가 아니면 PAYOUT_SELLER_ONLY,
+    // 정산 ID 형식이 틀리면 PAYOUT_INVALID_SETTLEMENT_ID, 내 정산에 해당하는 것이 없으면 PAYOUT_SETTLEMENT_NOT_FOUND 예외가 발생한다.
+    public SettlementDetailResponse getMySettlementDetail(Long memberId, String settlementId) {
+        Long sellerId = sellerIdOf(memberId);
+        SettlementKey key = SettlementKey.parse(settlementId);
+
+        List<Payout> payouts = payoutRepository.findAllBySellerIdAndStatusAndScheduledAtOrderByConfirmedAtDescIdDesc(
+                sellerId, key.status(), key.settlementDate().atStartOfDay());
+
+        if (payouts.isEmpty()) {
+            throw new ServiceException(PayoutErrorCode.PAYOUT_SETTLEMENT_NOT_FOUND);
+        }
+
+        return SettlementDetailResponse.of(key, payouts);
     }
 
     // 상태가 같은 묶음의 값을 모두 더한다.
