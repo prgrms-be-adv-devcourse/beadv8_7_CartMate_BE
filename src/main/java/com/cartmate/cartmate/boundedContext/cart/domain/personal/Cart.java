@@ -11,6 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,6 +67,10 @@ public class Cart {
 
     public void removeItem(Long cartItemId) {
         items.remove(getItem(cartItemId));
+    }
+
+    public void removeItemsByInventoryIds(Collection<Long> inventoryIds) {
+        items.removeIf(item -> inventoryIds.contains(item.getInventoryId()));
     }
 
     public void clear() {

@@ -2,8 +2,10 @@ package com.cartmate.cartmate.boundedContext.cart.app.personal;
 
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartResponse;
 import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -44,5 +46,10 @@ public class CartFacade {
     @Transactional
     public void clear(Long memberId) {
         cartItemUseCase.clear(memberId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void removeOrderedItems(OrderPaidEvent event) {
+        cartItemUseCase.removeOrderedItems(event);
     }
 }

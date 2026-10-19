@@ -6,12 +6,18 @@ import com.cartmate.cartmate.boundedContext.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.cart.out.ProductClient;
 import com.cartmate.cartmate.boundedContext.cart.out.personal.CartRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 class CartItemUseCase {
+
+    private static final String PERSONAL_ORDER_TYPE = "PERSONAL";
 
     private final CartRepository cartRepository;
     private final ProductClient productClient;
@@ -37,6 +43,17 @@ class CartItemUseCase {
     void clear(Long memberId) {
         cartRepository.findWithItemsByMemberId(memberId)
                 .ifPresent(Cart::clear);
+    }
+
+    void removeOrderedItems(OrderPaidEvent event) {
+        if (!PERSONAL_ORDER_TYPE.equals(event.orderType())) {
+            return;
+        }
+        Set<Long> inventoryIds = event.items().stream()
+                .map(OrderPaidEvent.Item::inventoryId)
+                .collect(Collectors.toSet());
+        cartRepository.findWithItemsByMemberId(event.memberId())
+                .ifPresent(cart -> cart.removeItemsByInventoryIds(inventoryIds));
     }
 
     private Cart getCartWithItems(Long memberId) {
