@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualG
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDashboardResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseSummaryResponse;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,5 +64,11 @@ public class IndividualGroupPurchaseFacade {
     @Transactional(readOnly = true)
     public List<IndividualGroupPurchaseSummaryResponse> getMyList(Long memberId) {
         return individualGroupPurchaseQueryUseCase.getMyList(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public IndividualGroupPurchaseOrderable getOrderable(Long individualGroupPurchaseId, List<Long> productIds,
+                                                         LocalDateTime now) {
+        return individualGroupPurchaseQueryUseCase.getOrderable(individualGroupPurchaseId, productIds, now);
     }
 }

@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartResponse;
 import com.cartmate.cartmate.boundedContext.cart.domain.personal.Cart;
 import com.cartmate.cartmate.boundedContext.cart.domain.personal.CartItem;
 import com.cartmate.cartmate.boundedContext.cart.out.personal.CartRepository;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,6 +19,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -204,6 +207,40 @@ class CartItemUseCaseTest {
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
 
             assertThatCode(() -> cartItemUseCase.clear(MEMBER_ID)).doesNotThrowAnyException();
+        }
+    }
+
+    @Nested
+    @DisplayName("removeOrderedItems")
+    class RemoveOrderedItems {
+
+        @Test
+        @DisplayName("개인 주문이 결제되면 주문한 상품 옵션만 장바구니에서 지운다")
+        void removePersonalOrderedItems() {
+            Cart cart = Cart.create(MEMBER_ID);
+            cart.addItem(100L, 1L, 2);
+            cart.addItem(100L, 2L, 1);
+            cart.addItem(200L, 4L, 1);
+            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+
+            cartItemUseCase.removeOrderedItems(paidEvent("PERSONAL", 1L, 4L));
+
+            assertThat(cart.getItems()).extracting(CartItem::getInventoryId).containsExactly(2L);
+        }
+
+        @Test
+        @DisplayName("공동구매 상품 주문이 결제되면 장바구니를 건드리지 않는다")
+        void ignoreIndividualGroupOrder() {
+            cartItemUseCase.removeOrderedItems(paidEvent("INDIVIDUAL_GROUP", 1L));
+
+            verifyNoInteractions(cartRepository);
+        }
+
+        private OrderPaidEvent paidEvent(String orderType, Long... inventoryIds) {
+            List<OrderPaidEvent.Item> items = Arrays.stream(inventoryIds)
+                    .map(inventoryId -> new OrderPaidEvent.Item(100L, inventoryId, 1, 10000L))
+                    .toList();
+            return new OrderPaidEvent(1L, MEMBER_ID, orderType, null, LocalDateTime.now(), items);
         }
     }
 

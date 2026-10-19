@@ -10,7 +10,7 @@ import org.springframework.http.HttpStatus;
 public enum OrderErrorCode implements ErrorCode {
 
     // 조회
-    ORDER_NOT_FOUND("ORDER_NOT_FOUND", "존재하지 않는 공동 주문입니다.", HttpStatus.NOT_FOUND),
+    ORDER_NOT_FOUND("ORDER_NOT_FOUND", "존재하지 않는 주문입니다.", HttpStatus.NOT_FOUND),
 
     // 공동 주문 생성
     ORDER_PRODUCT_NOT_FOUND("ORDER_PRODUCT_NOT_FOUND", "주문할 상품 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
@@ -26,7 +26,7 @@ public enum OrderErrorCode implements ErrorCode {
     ORDER_CREATOR_ONLY("ORDER_CREATOR_ONLY", "공동 주문 생성자만 할 수 있습니다.", HttpStatus.FORBIDDEN),
 
     // 결제
-    ORDER_NOT_PAYABLE("ORDER_NOT_PAYABLE", "결제할 수 없는 공동 주문입니다.", HttpStatus.CONFLICT),
+    ORDER_NOT_PAYABLE("ORDER_NOT_PAYABLE", "결제할 수 없는 주문입니다.", HttpStatus.CONFLICT),
     ORDER_NOT_PAYING("ORDER_NOT_PAYING", "결제 중인 공동 주문이 아닙니다.", HttpStatus.CONFLICT),
     ORDER_STOCK_NOT_RESERVED("ORDER_STOCK_NOT_RESERVED", "재고를 선점하지 않은 공동 주문입니다.", HttpStatus.CONFLICT),
     ORDER_ALREADY_PAID("ORDER_ALREADY_PAID", "이미 결제한 참여자입니다.", HttpStatus.CONFLICT),
@@ -34,6 +34,7 @@ public enum OrderErrorCode implements ErrorCode {
     ORDER_INVALID_DELIVERY_ADDRESS("ORDER_INVALID_DELIVERY_ADDRESS", "받는 사람, 연락처, 우편번호, 주소는 모두 입력해야 합니다.", HttpStatus.BAD_REQUEST),
 
     // 개인 주문
+    ORDER_PRODUCT_NOT_PURCHASABLE("ORDER_PRODUCT_NOT_PURCHASABLE", "구매할 수 없는 상품입니다.", HttpStatus.CONFLICT),
     ORDER_NOT_PAYMENT_PENDING("ORDER_NOT_PAYMENT_PENDING", "결제 대기 중인 주문이 아닙니다.", HttpStatus.CONFLICT),
     ORDER_PAYMENT_EXPIRED("ORDER_PAYMENT_EXPIRED", "결제 기한이 지난 주문입니다.", HttpStatus.CONFLICT),
     ORDER_BUYER_ONLY("ORDER_BUYER_ONLY", "주문한 회원만 할 수 있습니다.", HttpStatus.FORBIDDEN),
