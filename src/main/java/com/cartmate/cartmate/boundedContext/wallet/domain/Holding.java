@@ -37,9 +37,6 @@ public class Holding {
     @Column(name = "payment_id", nullable = false)
     private Long paymentId;
 
-    @Column(name = "settlement_id")
-    private Long settlementId;
-
     @Column(nullable = false)
     private Long amount;
 
@@ -95,12 +92,16 @@ public class Holding {
         this.status = HoldingStatus.CANCELED;
     }
 
-    public long remainingAmount() {
-        return amount - refundedAmount;
+    // 홀딩에 남아 있는 금액(홀딩 금액 - 환불 누적액 - 정산으로 꺼낸 금액)을 계산한다.
+    // 정산으로 꺼낸 합계는 HoldingSettlement 테이블에 있어 엔티티가 알 수 없으므로 호출하는 쪽에서 넘긴다.
+    public long remainingAmount(long settledAmount) {
+        return amount - refundedAmount - settledAmount;
     }
 
-    // 환불 누적액을 더하고, 전액 환불되면 홀딩을 취소 상태로 전환한다.
-    public void addRefund(Long refundAmount) {
+    // 환불 금액을 누적하고, 남은 금액이 없어지면 홀딩을 닫는다. 정산으로 꺼낸 금액이 있으면 정산 완료, 없으면 취소 상태가 된다.
+    // 환불 금액이 0 이하이면 WALLET_INVALID_AMOUNT, 홀딩이 이미 닫혔으면 WALLET_HOLDING_NOT_CANCELABLE,
+    // 남은 금액을 넘으면 WALLET_HOLDING_REFUND_EXCEEDED 예외가 발생한다.
+    public void addRefund(Long refundAmount, long settledAmount) {
         if (refundAmount == null || refundAmount <= 0) {
             throw new ServiceException(WalletErrorCode.WALLET_INVALID_AMOUNT);
         }
@@ -109,33 +110,34 @@ public class Holding {
             throw new ServiceException(WalletErrorCode.WALLET_HOLDING_NOT_CANCELABLE);
         }
 
-        if (refundAmount > remainingAmount()) {
+        if (refundAmount > remainingAmount(settledAmount)) {
             throw new ServiceException(WalletErrorCode.WALLET_HOLDING_REFUND_EXCEEDED);
         }
 
         this.refundedAmount += refundAmount;
 
-        if (remainingAmount() == 0) {
-            this.status = HoldingStatus.CANCELED;
+        if (remainingAmount(settledAmount) == 0) {
+            close(settledAmount);
         }
     }
 
-    public void settle(Long settlementId) {
-        if (settlementId == null) {
-            throw new ServiceException(WalletErrorCode.WALLET_SETTLEMENT_ID_REQUIRED);
+    // 정산으로 금액을 꺼낸 뒤 호출한다. 남은 금액이 없으면 홀딩을 정산 완료 상태로 바꾸고, 남아 있으면 그대로 둔다.
+    // settledAmount는 방금 꺼낸 금액까지 포함한 정산 누적 합계다.
+    public void closeIfExhausted(long settledAmount) {
+        if (status == HoldingStatus.RESERVED && remainingAmount(settledAmount) == 0) {
+            close(settledAmount);
+        }
+    }
+
+    // 홀딩을 닫는다. 정산으로 꺼낸 금액이 있으면 정산 완료(SETTLED)와 완료 시각을 기록하고, 없으면 취소(CANCELED)로 바꾼다.
+    private void close(long settledAmount) {
+        if (settledAmount > 0) {
+            this.status = HoldingStatus.SETTLED;
+            this.settledAt = LocalDateTime.now();
+            return;
         }
 
-        if (status == HoldingStatus.SETTLED) {
-            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_ALREADY_SETTLED);
-        }
-
-        if (status != HoldingStatus.RESERVED) {
-            throw new ServiceException(WalletErrorCode.WALLET_HOLDING_NOT_SETTLEABLE);
-        }
-
-        this.status = HoldingStatus.SETTLED;
-        this.settlementId = settlementId;
-        this.settledAt = LocalDateTime.now();
+        this.status = HoldingStatus.CANCELED;
     }
 
     private Holding(Wallet wallet, Long orderId, Long amount, Long paymentId) {

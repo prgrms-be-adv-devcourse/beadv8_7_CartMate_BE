@@ -11,6 +11,7 @@ import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualG
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderLine;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -48,6 +49,15 @@ class IndividualGroupPurchaseQueryUseCase {
         return individualGroupPurchaseRepository.findAllByCreatorMemberIdOrderByIdDesc(memberId).stream()
                 .map(purchase -> IndividualGroupPurchaseSummaryResponse.of(purchase, now))
                 .toList();
+    }
+
+    IndividualGroupPurchaseOrderable getOrderable(Long individualGroupPurchaseId, List<Long> productIds, LocalDateTime now) {
+        IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findWithProductsById(individualGroupPurchaseId)
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_GROUP_PURCHASE_NOT_FOUND));
+        productIds.stream()
+                .distinct()
+                .forEach(productId -> purchase.validateOrderable(productId, now));
+        return new IndividualGroupPurchaseOrderable(purchase.getId(), purchase.getDeadlineAt());
     }
 
     private IndividualGroupPurchase getWithProductsForCreator(Long memberId, Long individualGroupPurchaseId) {

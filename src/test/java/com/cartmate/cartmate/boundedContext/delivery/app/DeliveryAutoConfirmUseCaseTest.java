@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.delivery.app;
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryClaimRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,13 +25,14 @@ import static org.mockito.Mockito.when;
 class DeliveryAutoConfirmUseCaseTest {
 
     private final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
+    private final DeliveryClaimRepository deliveryClaimRepository = mock(DeliveryClaimRepository.class);
     private final DeliveryConfirmedEventPublisher eventPublisher = mock(DeliveryConfirmedEventPublisher.class);
     private DeliveryAutoConfirmUseCase useCase;
     private Delivery delivery;
 
     @BeforeEach
     void setUp() {
-        useCase = new DeliveryAutoConfirmUseCase(deliveryRepository, eventPublisher);
+        useCase = new DeliveryAutoConfirmUseCase(deliveryRepository, deliveryClaimRepository, eventPublisher);
 
         delivery = Delivery.create(1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
@@ -82,5 +84,17 @@ class DeliveryAutoConfirmUseCaseTest {
         assertThatThrownBy(() -> useCase.confirm(99L))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining("404-DELIVERY_NOT_FOUND");
+    }
+
+    @Test
+    @DisplayName("처리 중인 교환·환불 요청이 있으면 확정하지 않고 건너뛰며 이벤트도 발행하지 않는다")
+    void skipWhenActiveClaim() {
+        when(deliveryClaimRepository.hasActiveClaim(any())).thenReturn(true);
+
+        useCase.confirm(5L);
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.DELIVERED);
+        assertThat(delivery.getConfirmedAt()).isNull();
+        verify(eventPublisher, never()).publish(any());
     }
 }

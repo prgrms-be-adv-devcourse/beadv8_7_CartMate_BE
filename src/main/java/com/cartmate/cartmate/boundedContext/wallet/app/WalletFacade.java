@@ -4,13 +4,13 @@ import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletWithdrawOrder;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +20,6 @@ public class WalletFacade {
     private final WalletChargeUseCase walletChargeUseCase;
     private final WalletPaymentUseCase walletPaymentUseCase;
     private final WalletSettlementUseCase walletSettlementUseCase;
-    private final WalletPayoutUseCase walletPayoutUseCase;
     private final WalletWithdrawUseCase walletWithdrawUseCase;
 
     // 회원 지갑 생성을 요청한다.
@@ -62,12 +61,6 @@ public class WalletFacade {
         walletPaymentUseCase.refund(walletId, amount, paymentId, orderId, refundId);
     }
 
-    // 정산 ID 기준으로 중복 입금을 확인하고 잔액 입금·정산 거래 내역 저장을 하나의 트랜잭션으로 처리한다.
-    @Transactional
-    public void depositPayout(Long walletId, Long amount, Long payoutId, Long orderId) {
-        walletPayoutUseCase.deposit(walletId, amount, payoutId, orderId);
-    }
-
     // 충전 주문을 생성하거나 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.
     @Transactional
     public WalletChargeOrder chargeOrder(Long walletId, Long amount, String idempotencyKey) {
@@ -86,10 +79,10 @@ public class WalletFacade {
         walletChargeUseCase.fail(walletId, orderNumber);
     }
 
-    // 주문별 홀딩의 정산 ID 기록과 정산 완료 전환을 하나의 트랜잭션으로 처리한다. 같은 정산으로 완료된 홀딩은 건너뛴다.
+    // 정산 ID 기준으로 중복 정산을 확인하고 홀딩에서 꺼내기·판매자 정산금 입금·플랫폼 수수료 입금을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void settle(List<Long> orderIds, Long settlementId) {
-        walletSettlementUseCase.settle(orderIds, settlementId);
+    public void settleAndDeposit(SettleAndDepositRequest request) {
+        walletSettlementUseCase.settleAndDeposit(request);
     }
 
     // 잔액 차감·출금 요청 완료·거래 내역 저장을 하나의 트랜잭션으로 처리한다. 완료된 요청은 재처리하지 않는다.

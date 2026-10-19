@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,8 +23,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ActiveProfiles("test")
 class SharedGroupOrderRepositoryTest {
 
-    private static final Long CREATOR = 1L;
-    private static final Long MEMBER = 2L;
     private static final LocalDateTime CLOSED_AT = LocalDateTime.of(2026, 10, 19, 12, 0);
 
     @Autowired
@@ -32,10 +31,16 @@ class SharedGroupOrderRepositoryTest {
     @Autowired
     private EntityManager em;
 
+    private final long base = 8_500_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
+
+    private final Long creator = base;
+
+    private final Long member = base + 1;
+
     @Test
     @DisplayName("상세 조회는 참여자와 항목을 함께 불러온다")
     void findWithDetailsById() {
-        SharedGroupOrder saved = sharedGroupOrderRepository.save(order(100L));
+        SharedGroupOrder saved = sharedGroupOrderRepository.save(order(base + 10));
         flushAndClear();
 
         SharedGroupOrder found = sharedGroupOrderRepository.findWithDetailsById(saved.getId()).orElseThrow();
@@ -54,13 +59,13 @@ class SharedGroupOrderRepositoryTest {
     @Test
     @DisplayName("참여 중인 공동 주문만 최신순으로 조회한다")
     void findAllByParticipant() {
-        SharedGroupOrder first = sharedGroupOrderRepository.save(order(100L));
-        SharedGroupOrder second = sharedGroupOrderRepository.save(order(101L));
+        SharedGroupOrder first = sharedGroupOrderRepository.save(order(base + 10));
+        SharedGroupOrder second = sharedGroupOrderRepository.save(order(base + 11));
         sharedGroupOrderRepository.save(SharedGroupOrder.create(
-                102L, 9L, List.of(9L), List.of(new OrderItemLine(10L, 1L, 1, 1000)), CLOSED_AT));
+                base + 12, base + 2, List.of(base + 2), List.of(new OrderItemLine(10L, 1L, 1, 1000)), CLOSED_AT));
         flushAndClear();
 
-        List<SharedGroupOrder> found = sharedGroupOrderRepository.findAllByParticipant(MEMBER);
+        List<SharedGroupOrder> found = sharedGroupOrderRepository.findAllByParticipant(member);
 
         assertThat(found).extracting(SharedGroupOrder::getId).containsExactly(second.getId(), first.getId());
     }
@@ -68,7 +73,7 @@ class SharedGroupOrderRepositoryTest {
     @Test
     @DisplayName("결제 기한 + 유예 시간이 지난 결제 중 주문만 취소 대상이다")
     void findIdsToCancelByDeadline() {
-        SharedGroupOrder saved = sharedGroupOrderRepository.save(order(100L));
+        SharedGroupOrder saved = sharedGroupOrderRepository.save(order(base + 10));
         flushAndClear();
         LocalDateTime cancelAt = saved.getPaymentDeadlineAt().plus(SharedGroupOrder.GRACE_PERIOD);
 
@@ -79,12 +84,12 @@ class SharedGroupOrderRepositoryTest {
     @Test
     @DisplayName("같은 공동구매로 공동 주문을 두 번 만들 수 없다")
     void uniqueSharedGroupPurchase() {
-        sharedGroupOrderRepository.save(order(100L));
+        sharedGroupOrderRepository.save(order(base + 10));
         flushAndClear();
 
-        assertThat(sharedGroupOrderRepository.existsBySharedGroupPurchaseId(100L)).isTrue();
+        assertThat(sharedGroupOrderRepository.existsBySharedGroupPurchaseId(base + 10)).isTrue();
         assertThatThrownBy(() -> {
-            sharedGroupOrderRepository.save(order(100L));
+            sharedGroupOrderRepository.save(order(base + 10));
             em.flush();
         }).isInstanceOf(DataIntegrityViolationException.class);
     }
@@ -92,8 +97,8 @@ class SharedGroupOrderRepositoryTest {
     private SharedGroupOrder order(Long sharedGroupPurchaseId) {
         return SharedGroupOrder.create(
                 sharedGroupPurchaseId,
-                CREATOR,
-                List.of(CREATOR, MEMBER),
+                creator,
+                List.of(creator, member),
                 List.of(new OrderItemLine(10L, 1L, 2, 25000), new OrderItemLine(11L, 2L, 1, 15000)),
                 CLOSED_AT);
     }

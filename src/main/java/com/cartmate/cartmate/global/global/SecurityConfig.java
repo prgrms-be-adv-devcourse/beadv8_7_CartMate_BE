@@ -33,16 +33,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/members/me").authenticated()
                         .requestMatchers("/api/members/me", "/api/members/me/**").authenticated()
                         .requestMatchers("/api/wallets/me/**").authenticated()
                         .requestMatchers("/api/deliveries/**").authenticated()
+                        .requestMatchers("/api/settlements", "/api/settlements/**").authenticated()
                         .requestMatchers("/api/claims/**").authenticated()
-<<<<<<< HEAD
                         .requestMatchers("/api/payments/**").authenticated()
-=======
-                        .requestMatchers("/api/carts/**", "/api/group-purchases/**", "/api/group-orders/**").authenticated()
->>>>>>> a0b1486db27577272914cf32f642312704e37287
+                        .requestMatchers("/api/carts/**", "/api/group-purchases/**", "/api/group-orders/**", "/api/orders/**").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll() // 다른 모듈 개발 중이라 임시 허용
                 )

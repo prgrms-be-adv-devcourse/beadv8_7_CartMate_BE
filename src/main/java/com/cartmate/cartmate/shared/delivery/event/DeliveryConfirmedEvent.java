@@ -8,11 +8,13 @@ public record DeliveryConfirmedEvent(
         Long deliveryId,
         Long sellerId,
         Long orderId,
+        LocalDateTime orderedAt, // 주문 시각. 배송이 만들어진 시각을 쓴다.
         LocalDateTime confirmedAt,
         List<Item> items
 ) {
     public record Item(
             Long orderItemId,
+            String productName, // 주문 시점의 상품명 스냅샷
             Long unitPrice, // 옵션 가격이 반영된 최종 단가
             Long quantity
     ) {
