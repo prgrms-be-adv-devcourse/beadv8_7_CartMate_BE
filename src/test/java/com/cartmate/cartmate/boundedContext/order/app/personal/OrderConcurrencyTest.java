@@ -23,6 +23,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -71,7 +72,7 @@ class OrderConcurrencyTest {
     @Test
     @DisplayName("기한 안에 한 결제와 기한 만료 취소가 동시에 와도 결제 완료 또는 취소 중 하나로만 끝난다")
     void paymentVersusDeadlineCancel() throws InterruptedException {
-        LocalDateTime createdAt = LocalDateTime.now().minus(Order.PAYMENT_PERIOD).minusMinutes(5);
+        LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).minus(Order.PAYMENT_PERIOD).minusMinutes(5);
         LocalDateTime paidAt = createdAt.plus(Order.PAYMENT_PERIOD).minusMinutes(1);
         int paidRounds = 0;
         int canceledRounds = 0;
