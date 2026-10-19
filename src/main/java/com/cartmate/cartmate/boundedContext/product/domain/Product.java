@@ -2,10 +2,9 @@ package com.cartmate.cartmate.boundedContext.product.domain;
 
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import com.cartmate.cartmate.shared.product.dto.RollbackProductRequest;
+import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
 import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
-import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,6 +35,7 @@ public class Product extends BaseIdAndTime {
     private Long basePrice;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
@@ -51,10 +51,6 @@ public class Product extends BaseIdAndTime {
         this.description = description;
         this.basePrice = basePrice;
         this.status = status;
-    }
-
-    public RollbackProductRequest toRollbackDto() {
-        return new RollbackProductRequest(this.getId());
     }
 
     public SyncProduct toSyncProduct() {
@@ -85,7 +81,8 @@ public class Product extends BaseIdAndTime {
                             this.getSellerId(),
                             this,
                             image.getS3Key(),
-                            image.getImageSeq()
+                            image.getImageSeq(),
+                            ProductStatus.ACTIVE
                     )
             );
         }
@@ -93,6 +90,7 @@ public class Product extends BaseIdAndTime {
 
     public Product delete() {
         this.status = ProductStatus.DELETED;
+        this.productImageList.forEach(ProductImage::delete);
         return this;
     }
 }

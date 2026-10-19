@@ -4,7 +4,6 @@ package com.cartmate.cartmate.boundedContext.post.domain;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProduct;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,10 +42,6 @@ public class SalesPost extends BaseIdAndTime {
         this.content = content;
         this.status = status;
         this.viewCount = viewCount;
-    }
-
-    public SalesPostRollbackRequest toRollbackDto() {
-        return new SalesPostRollbackRequest(this.getId());
     }
 
     public SelectSalesPostResponse toSelectResultDto() {

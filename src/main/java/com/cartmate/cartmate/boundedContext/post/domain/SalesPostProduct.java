@@ -36,6 +36,7 @@ public class SalesPostProduct extends BaseManualIdAndTime {
     private Long basePrice;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
     @OneToMany(mappedBy = "salesPostProduct", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
@@ -74,6 +75,7 @@ public class SalesPostProduct extends BaseManualIdAndTime {
 
     public SalesPostProduct delete() {
         this.status = ProductStatus.DELETED;
+        imageList.forEach(SalesPostProductImage::delete);
         return this;
     }
 

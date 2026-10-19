@@ -5,6 +5,6 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class SalesPostRollbackRequest {
-    private Long id;
+public class DeleteProductRequest {
+    private Long postId;
 }

@@ -11,10 +11,9 @@ import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.dto.SellerDto;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
-import com.cartmate.cartmate.shared.product.dto.RollbackProductRequest;
+import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,15 +53,11 @@ public class SalesPostFacade {
         }
     }
 
-    @Transactional
-    public void deleteSalesPostByUser(Long postId) {
-        salesPostDeleteUseCase.deleteSalesPostByUser(postId);
-    }
-
-    // 스케줄러에 의한 삭제
-    @Transactional
-    public void deleteProductByServer(RollbackProductRequest request) {
-        salesPostDeleteUseCase.deleteSalesPostByServer(request.getPostId());
+    public void deleteSalesPostByUser(Long postId, Long sellerId) {
+        SalesPost deletedPost = transactionTemplate.execute(status -> {
+            return salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId);
+        });
+        salesPostApiClient.deleteProducts(deletedPost.getId());
     }
 
     @Transactional
@@ -85,5 +80,9 @@ public class SalesPostFacade {
                 "판매글 상세조회에 성공했습니다.",
                 salesPostSelectUseCase.selectSalesPostDetail(postId)
         );
+    }
+
+    public void deleteProductByPost(DeleteProductListRequest request) {
+        salesPostSyncProductUseCase.deleteProductByPost(request);
     }
 }

@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.product.app;
 
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.global.GlobalConfig;
-import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
+import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
 import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
@@ -49,13 +49,15 @@ public class ProductFacade {
         }
     }
 
+    // 사용자 직접 삭제
     @Transactional
-    public void deleteSalesPostByUser(Long id) {
-        productDeleteUseCase.deleteProductByUser(id);
+    public void deleteProductByUser(Long productId, Long sellerId) {
+        productDeleteUseCase.deleteProductByUser(productId, sellerId);
     }
 
-    public void deleteProductByServer(SalesPostRollbackRequest SalesPostRollbackRequest) {
-        productImageFileDeleteUseCase.deleteImageByServer(SalesPostRollbackRequest.getId());
-        productDeleteUseCase.deleteProductByServer(SalesPostRollbackRequest.getId());
+    // Post에 의한 삭제
+    @Transactional
+    public void deleteProductByPost(Long postId) {
+        productDeleteUseCase.deleteProductByPost(postId);
     }
 }

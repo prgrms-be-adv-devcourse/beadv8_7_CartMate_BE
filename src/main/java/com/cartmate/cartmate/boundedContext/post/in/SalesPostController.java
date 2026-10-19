@@ -45,4 +45,12 @@ public class SalesPostController {
         return ResponseEntity.ok(result);
     }
 
+    @DeleteMapping("/delete")
+    public ResponseEntity<Void> deleteSalesPost(
+            @RequestParam Long postId,
+            @RequestParam Long sellerId) {
+        salesPostFacade.deleteSalesPostByUser(postId, sellerId);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
 }
