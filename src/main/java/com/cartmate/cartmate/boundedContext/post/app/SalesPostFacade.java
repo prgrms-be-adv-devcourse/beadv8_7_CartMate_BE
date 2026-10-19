@@ -10,7 +10,7 @@ import com.cartmate.cartmate.boundedContext.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.shared.member.dto.SellerDto;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
@@ -37,7 +37,7 @@ public class SalesPostFacade {
     private final SalesPostApiClient salesPostApiClient;
 
     @Transactional
-    public SalesPostSeller syncSeller(SellerDto seller) {
+    public SalesPostSeller syncSeller(SellerRegisteredEvent seller) {
         return salesPostSyncSellerUseCase.syncSeller(seller);
     }
 
