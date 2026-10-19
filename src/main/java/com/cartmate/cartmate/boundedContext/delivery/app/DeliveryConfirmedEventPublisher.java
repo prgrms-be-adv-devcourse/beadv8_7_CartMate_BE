@@ -39,7 +39,7 @@ public class DeliveryConfirmedEventPublisher {
         }
 
         eventPublisher.publish(new DeliveryConfirmedEvent(
-                delivery.getId(), delivery.getSellerId(), delivery.getOrderId(), delivery.getConfirmedAt(), items
+                delivery.getId(), delivery.getSellerId(), delivery.getOrderId(), delivery.getCreatedAt(), delivery.getConfirmedAt(), items
         ));
     }
 
@@ -55,6 +55,6 @@ public class DeliveryConfirmedEventPublisher {
     // 배송 수량에서 환불된 수량을 뺀 값으로 이벤트 상품을 만든다.
     private DeliveryConfirmedEvent.Item toItem(DeliveryItem item, long refundedQuantity) {
         return new DeliveryConfirmedEvent.Item(
-                item.getOrderItemId(), item.getUnitPrice(), item.getQuantity() - refundedQuantity);
+                item.getOrderItemId(), item.getProductName(), item.getUnitPrice(), item.getQuantity() - refundedQuantity);
     }
 }

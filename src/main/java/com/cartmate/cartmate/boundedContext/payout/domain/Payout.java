@@ -35,6 +35,18 @@ public class Payout {
     @Column(name = "order_item_id", nullable = false)
     private Long orderItemId;
 
+    // 주문 시점의 상품명 스냅샷. 이 컬럼이 생기기 전에 만든 정산은 null이다.
+    @Column(name = "product_name")
+    private String productName;
+
+    // 정산 대상 수량. 구매확정 전에 환불된 수량은 뺀 값이다. 이 컬럼이 생기기 전에 만든 정산은 null이다.
+    @Column(name = "quantity")
+    private Long quantity;
+
+    // 주문 시각. 이 컬럼이 생기기 전에 만든 정산은 null이다.
+    @Column(name = "ordered_at")
+    private LocalDateTime orderedAt;
+
     @Column(name = "sales_amount", nullable = false)
     private Long salesAmount;
 
@@ -66,7 +78,8 @@ public class Payout {
     private LocalDateTime updatedAt;
 
 
-    public static Payout create(Long sellerId, Long orderId, Long orderItemId, Long salesAmount, LocalDateTime confirmedAt) {
+    public static Payout create(Long sellerId, Long orderId, Long orderItemId, String productName, Long quantity,
+                                Long salesAmount, LocalDateTime orderedAt, LocalDateTime confirmedAt) {
         if (sellerId == null || orderId == null || orderItemId == null || confirmedAt == null) {
             throw new ServiceException(PayoutErrorCode.PAYOUT_REQUIRED_VALUE_MISSING);
         }
@@ -75,7 +88,7 @@ public class Payout {
             throw new ServiceException(PayoutErrorCode.PAYOUT_INVALID_AMOUNT);
         }
 
-        return new Payout(sellerId, orderId, orderItemId, salesAmount, confirmedAt);
+        return new Payout(sellerId, orderId, orderItemId, productName, quantity, salesAmount, orderedAt, confirmedAt);
     }
 
     // 대기 중인 정산을 지급 완료로 바꾸고 지급 시각을 기록한다.
@@ -88,10 +101,14 @@ public class Payout {
         this.paidAt = now;
     }
 
-    private Payout(Long sellerId, Long orderId, Long orderItemId, Long salesAmount, LocalDateTime confirmedAt) {
+    private Payout(Long sellerId, Long orderId, Long orderItemId, String productName, Long quantity,
+                   Long salesAmount, LocalDateTime orderedAt, LocalDateTime confirmedAt) {
         this.sellerId = sellerId;
         this.orderId = orderId;
         this.orderItemId = orderItemId;
+        this.productName = productName;
+        this.quantity = quantity;
+        this.orderedAt = orderedAt;
         this.salesAmount = salesAmount;
         this.feeAmount = PayoutPolicy.feeOf(salesAmount);
         this.payoutAmount = salesAmount - this.feeAmount;
