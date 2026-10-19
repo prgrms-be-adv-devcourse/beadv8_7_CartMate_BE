@@ -1,15 +1,14 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
+
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProduct;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
-import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import com.cartmate.cartmate.shared.post.dto.SalesPostRollbackRequest;
-import com.cartmate.cartmate.shared.post.event.PostDeletedEvent;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
@@ -36,6 +35,7 @@ public class SalesPost extends BaseIdAndTime {
     private Long viewCount;
 
     @OneToMany(mappedBy = "salesPost", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    @SQLRestriction("status in ('ON_SALE')")
     private List<SalesPostProduct> productList = new ArrayList<>();
 
     public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount) {
@@ -44,10 +44,6 @@ public class SalesPost extends BaseIdAndTime {
         this.content = content;
         this.status = status;
         this.viewCount = viewCount;
-    }
-
-    public SalesPostRollbackRequest toRollbackDto() {
-        return new SalesPostRollbackRequest(this.getId());
     }
 
     public SelectSalesPostResponse toSelectResultDto() {
@@ -68,13 +64,19 @@ public class SalesPost extends BaseIdAndTime {
         );
     }
 
-
-    public boolean isVisible() {
-        return status.isVisible();
+    public SalesPost delete() {
+        this.status = SalesPostSaleStatus.PENDING;
+        return this;
     }
 
-    public SalesPost delete() {
+    public SalesPost deleteComplete() {
         this.status = SalesPostSaleStatus.DELETED;
         return this;
     }
+
+    public SalesPost rollback() {
+        this.status = SalesPostSaleStatus.ON_SALE;
+        return this;
+    }
+
 }

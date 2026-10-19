@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransaction;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransactionType;
 import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
+import com.cartmate.cartmate.boundedContext.wallet.out.HoldingSettlementRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -36,6 +37,7 @@ class WalletPaymentUseCaseRefundTest {
     private final WalletRepository walletRepository = mock(WalletRepository.class);
     private final WalletTransactionRepository walletTransactionRepository = mock(WalletTransactionRepository.class);
     private final HoldingRepository holdingRepository = mock(HoldingRepository.class);
+    private final HoldingSettlementRepository holdingSettlementRepository = mock(HoldingSettlementRepository.class);
     private final LedgerRecorder ledgerRecorder = mock(LedgerRecorder.class);
     private WalletPaymentUseCase useCase;
     private Wallet wallet;
@@ -43,7 +45,8 @@ class WalletPaymentUseCaseRefundTest {
 
     @BeforeEach
     void setUp() {
-        useCase = new WalletPaymentUseCase(walletRepository, walletTransactionRepository, holdingRepository, ledgerRecorder);
+        useCase = new WalletPaymentUseCase(walletRepository, walletTransactionRepository, holdingRepository,
+                holdingSettlementRepository, ledgerRecorder);
 
         wallet = Wallet.createWallet(10L);
         ReflectionTestUtils.setField(wallet, "id", WALLET_ID);
@@ -125,5 +128,27 @@ class WalletPaymentUseCaseRefundTest {
         assertThatThrownBy(() -> useCase.refund(WALLET_ID, 3_000L, PAYMENT_ID, ORDER_ID, null))
                 .isInstanceOfSatisfying(ServiceException.class,
                         e -> assertThat(e.getResultCode()).isEqualTo(WalletErrorCode.WALLET_REFUND_ID_REQUIRED.resultCode()));
+    }
+
+    @Test
+    @DisplayName("정산으로 꺼낸 금액을 제외한 남은 금액까지만 환불할 수 있다")
+    void refundLimitedBySettledAmount() {
+        when(holdingSettlementRepository.sumAmountByHoldingId(any())).thenReturn(4_000L);
+
+        assertThatThrownBy(() -> useCase.refund(WALLET_ID, 7_000L, PAYMENT_ID, ORDER_ID, 1L))
+                .isInstanceOfSatisfying(ServiceException.class,
+                        e -> assertThat(e.getResultCode()).isEqualTo(WalletErrorCode.WALLET_HOLDING_REFUND_EXCEEDED.resultCode()));
+        assertThat(wallet.getBalance()).isZero();
+    }
+
+    @Test
+    @DisplayName("정산된 금액이 있는 홀딩의 남은 금액을 모두 환불하면 홀딩은 정산 완료가 된다")
+    void refundRemainingAfterSettlement() {
+        when(holdingSettlementRepository.sumAmountByHoldingId(any())).thenReturn(4_000L);
+
+        useCase.refund(WALLET_ID, 6_000L, PAYMENT_ID, ORDER_ID, 1L);
+
+        assertThat(wallet.getBalance()).isEqualTo(6_000L);
+        assertThat(holding.getStatus()).isEqualTo(HoldingStatus.SETTLED);
     }
 }

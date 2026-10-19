@@ -11,6 +11,8 @@ spring:
     jdbc:
       initialize-schema: always # MySQL에도 배치 메타데이터 테이블을 만든다
 custom:
+  wallet:
+    platform-member-id: ${PLATFORM_MEMBER_ID:1} # 판매 수수료를 받는 관리자 회원 ID. 환경마다 PLATFORM_MEMBER_ID로 바꾼다
   member:
     seller:
       minAge: 19
