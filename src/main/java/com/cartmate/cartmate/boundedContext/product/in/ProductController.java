@@ -30,10 +30,10 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    @DeleteMapping("/{productId}")
+    @DeleteMapping("/sellers/{sellerId}/products/{productId}")
     public ResponseEntity<Void> deleteProduct(
-            @PathVariable Long productId,
-            @RequestParam Long sellerId) {
+            @PathVariable Long sellerId,
+            @PathVariable Long productId) {
         productFacade.deleteProductByUser(productId, sellerId);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
