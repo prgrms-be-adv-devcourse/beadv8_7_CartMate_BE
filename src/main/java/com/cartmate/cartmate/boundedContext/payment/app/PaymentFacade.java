@@ -5,14 +5,16 @@ import com.cartmate.cartmate.boundedContext.payment.dto.PaymentPreviewResponse;
 import com.cartmate.cartmate.boundedContext.payment.dto.PaymentResponse;
 import com.cartmate.cartmate.boundedContext.payment.exception.PaymentErrorCode;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentOrderClient;
-import com.cartmate.cartmate.boundedContext.payment.out.PaymentOrderInfo;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentRepository;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentWalletClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 // payment 모듈의 정문
 @Service
@@ -32,11 +34,8 @@ public class PaymentFacade {
 
     @Transactional(readOnly = true)
     public PaymentPreviewResponse preview(Long memberId, Long orderId) {
-        PaymentOrderInfo order = paymentOrderClient.findOrder(orderId)
-                .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_ORDER_NOT_FOUND));
-        if (!order.memberId().equals(memberId)) {
-            throw new ServiceException(PaymentErrorCode.PAYMENT_ORDER_ACCESS_DENIED);
-        }
+        // 주문이 없거나 구매자가 아니면 order가 예외
+        OrderPaymentInfo order = paymentOrderClient.getPaymentInfo(orderId, memberId, LocalDateTime.now());
 
         PaymentResponse existing = paymentRepository
                 .findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL, orderId, memberId)
