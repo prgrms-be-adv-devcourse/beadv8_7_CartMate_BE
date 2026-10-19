@@ -3,6 +3,8 @@ package com.cartmate.cartmate.boundedContext.order.app.groupshared;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.order.dto.SharedGroupOrderPaymentInfo;
+import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,22 @@ public class SharedGroupOrderFacade {
     @Transactional
     public void createFromClosedPurchase(SharedGroupPurchaseClosedEvent event) {
         sharedGroupOrderCreateUseCase.createFromClosedPurchase(event);
+    }
+
+    @Transactional(readOnly = true)
+    public SharedGroupOrderPaymentInfo getPaymentInfo(Long sharedGroupOrderId, Long memberId, LocalDateTime now) {
+        return sharedGroupOrderPaymentUseCase.getPaymentInfo(sharedGroupOrderId, memberId, now);
+    }
+
+    @Transactional
+    public void markStockReserved(Long sharedGroupOrderId) {
+        sharedGroupOrderPaymentUseCase.markStockReserved(sharedGroupOrderId);
+    }
+
+    @Transactional
+    public void applyPayment(Long sharedGroupOrderId, Long memberId, LocalDateTime paidAt,
+                             TeamDeliveryAddress teamDeliveryAddress) {
+        sharedGroupOrderPaymentUseCase.applyPayment(sharedGroupOrderId, memberId, paidAt, teamDeliveryAddress);
     }
 
     @Transactional
