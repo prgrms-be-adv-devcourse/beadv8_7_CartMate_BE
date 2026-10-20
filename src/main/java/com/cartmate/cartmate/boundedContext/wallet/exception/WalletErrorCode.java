@@ -35,6 +35,11 @@ public enum WalletErrorCode implements ErrorCode {
     WALLET_CHARGE_NOT_CANCELABLE("WALLET_CHARGE_NOT_CANCELABLE", "현재 상태에서는 충전 주문을 취소할 수 없습니다.", HttpStatus.CONFLICT),
     WALLET_CHARGE_NOT_FAILABLE("WALLET_CHARGE_NOT_FAILABLE", "현재 상태에서는 충전 주문을 실패 처리할 수 없습니다.", HttpStatus.CONFLICT),
 
+    // 충전 결제 승인
+    WALLET_CHARGE_PAYMENT_REJECTED("WALLET_CHARGE_PAYMENT_REJECTED", "결제가 승인되지 않았습니다.", HttpStatus.BAD_REQUEST),
+    WALLET_CHARGE_PAYMENT_PROCESSING("WALLET_CHARGE_PAYMENT_PROCESSING", "결제 승인 결과를 확인하고 있습니다. 잠시 후 다시 시도해 주세요.", HttpStatus.CONFLICT),
+    WALLET_CHARGE_PAYMENT_MISMATCH("WALLET_CHARGE_PAYMENT_MISMATCH", "승인된 결제 정보가 충전 주문과 일치하지 않습니다.", HttpStatus.CONFLICT),
+
     // 출금 요청 조회·상태
     WALLET_WITHDRAW_ORDER_ID_REQUIRED("WALLET_WITHDRAW_ORDER_ID_REQUIRED", "출금 요청 ID는 필수입니다.", HttpStatus.BAD_REQUEST),
     WALLET_WITHDRAW_ORDER_NOT_FOUND("WALLET_WITHDRAW_ORDER_NOT_FOUND", "출금 요청을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
