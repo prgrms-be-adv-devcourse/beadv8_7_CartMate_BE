@@ -26,6 +26,7 @@ public class MemberFacade {
     private final AdminMemberStatusUseCase adminMemberStatusUseCase;
     private final MemberSellerUseCase memberSellerUseCase;
     private final MyPageDashboardUseCase myPageDashboardUseCase;
+    private final MemberTokenUseCase memberTokenUseCase;
 
     @Transactional
     public MemberDto join(SignupRequest request) {
@@ -62,9 +63,24 @@ public class MemberFacade {
 
     private final MemberLoginUseCase memberLoginUseCase;
 
-    @Transactional(readOnly = true)
-    public LoginResult login(String email, String password) {
-        return memberLoginUseCase.login(email, password);
+    @Transactional
+    public LoginResult login(String email, String password, boolean remember) {
+        return memberLoginUseCase.login(email, password, remember);
+    }
+
+    @Transactional
+    public TokenPair refresh(String refreshToken) {
+        return memberTokenUseCase.refresh(refreshToken);
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        memberTokenUseCase.revoke(refreshToken);
+    }
+
+    @Transactional
+    public int deleteExpiredRefreshTokens() {
+        return memberTokenUseCase.deleteExpired();
     }
 
 

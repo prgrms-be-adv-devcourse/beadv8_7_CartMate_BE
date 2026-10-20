@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.member.in;
 
 import com.cartmate.cartmate.boundedContext.member.app.MemberFacade;
 import com.cartmate.cartmate.boundedContext.member.dto.*;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.AuthCookieManager;
 import com.cartmate.cartmate.shared.member.dto.MemberDto;
@@ -59,14 +60,40 @@ public class AuthController {
 
     @PostMapping("/login")
     public RsData<MemberDto> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-        LoginResult result = memberFacade.login(request.email(), request.password());
-        response.addHeader(HttpHeaders.SET_COOKIE, authCookieManager.accessTokenCookie(result.accessToken()).toString());
+        LoginResult result = memberFacade.login(request.email(), request.password(), request.remember());
+        addTokenCookies(response, result.tokens());
         return new RsData<>("200-1", "로그인되었습니다.", result.member());
     }
 
+    // 액세스 토큰이 만료되면 프론트가 자동으로 호출
+    @PostMapping("/refresh")
+    public RsData<Void> refresh(@CookieValue(name = AuthCookieManager.REFRESH_TOKEN, required = false) String refreshToken,
+                                HttpServletResponse response) {
+        try {
+            addTokenCookies(response, memberFacade.refresh(refreshToken));
+            return new RsData<>("200-1", "토큰이 재발급되었습니다.");
+        } catch (ServiceException e) {
+            clearTokenCookies(response); // 재발급 실패면 쿠키도 정리 → 프론트는 로그인 화면으로
+            throw e;
+        }
+    }
+
     @PostMapping("/logout")
-    public RsData<Void> logout(HttpServletResponse response) {
-        response.addHeader(HttpHeaders.SET_COOKIE, authCookieManager.expiredAccessTokenCookie().toString());
+    public RsData<Void> logout(@CookieValue(name = AuthCookieManager.REFRESH_TOKEN, required = false) String refreshToken,
+                               HttpServletResponse response) {
+        memberFacade.logout(refreshToken);
+        clearTokenCookies(response);
         return new RsData<>("200-1", "로그아웃되었습니다.");
+    }
+
+    private void addTokenCookies(HttpServletResponse response, TokenPair tokens) {
+        response.addHeader(HttpHeaders.SET_COOKIE, authCookieManager.accessTokenCookie(tokens.accessToken()).toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, authCookieManager
+                .refreshTokenCookie(tokens.refreshToken(), tokens.remember(), tokens.refreshTokenMaxAge()).toString());
+    }
+
+    private void clearTokenCookies(HttpServletResponse response) {
+        response.addHeader(HttpHeaders.SET_COOKIE, authCookieManager.expiredAccessTokenCookie().toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, authCookieManager.expiredRefreshTokenCookie().toString());
     }
 }
