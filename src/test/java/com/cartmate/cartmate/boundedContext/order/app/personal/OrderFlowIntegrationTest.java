@@ -14,12 +14,14 @@ import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOr
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
+import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
@@ -55,6 +57,9 @@ class OrderFlowIntegrationTest {
     @Autowired
     private IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private final List<Long> orderIds = new ArrayList<>();
     private final List<Long> memberIds = new ArrayList<>();
     private final List<Long> purchaseIds = new ArrayList<>();
@@ -65,6 +70,7 @@ class OrderFlowIntegrationTest {
 
     @AfterEach
     void cleanUp() {
+        new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(memberIds);
         orderIds.forEach(orderRepository::deleteById);
         memberIds.forEach(memberId -> cartRepository.findByMemberId(memberId).ifPresent(cartRepository::delete));
         purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);

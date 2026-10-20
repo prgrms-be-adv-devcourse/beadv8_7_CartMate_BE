@@ -7,6 +7,7 @@ import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderCancelRea
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
+import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -53,7 +55,11 @@ class OrderConcurrencyTest {
     @Autowired
     private OrderEventRecorder eventRecorder;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private final List<Long> createdIds = new ArrayList<>();
+    private final List<Long> buyerIds = new ArrayList<>();
 
     private final long base = 9_500_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
@@ -66,6 +72,7 @@ class OrderConcurrencyTest {
 
     @AfterEach
     void tearDown() {
+        new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(buyerIds);
         createdIds.forEach(repository::deleteById);
     }
 
@@ -133,6 +140,7 @@ class OrderConcurrencyTest {
                 DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"), createdAt);
         Long orderId = repository.save(order).getId();
         createdIds.add(orderId);
+        buyerIds.add(buyer);
         return orderId;
     }
 
