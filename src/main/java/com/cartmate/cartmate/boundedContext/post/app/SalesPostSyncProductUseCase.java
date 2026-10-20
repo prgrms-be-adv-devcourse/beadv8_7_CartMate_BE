@@ -3,7 +3,9 @@ package com.cartmate.cartmate.boundedContext.post.app;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostProductImage;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostProductOption;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostProductImageRepository;
+import com.cartmate.cartmate.boundedContext.post.out.SalesPostProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostProductRepository;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
@@ -16,6 +18,7 @@ import com.cartmate.cartmate.shared.post.dto.productSyncCompletedEvent;
 import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
 import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
+import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
 import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +37,7 @@ public class SalesPostSyncProductUseCase {
     private final SalesPostRepository salesPostRepository;
     private final SalesPostProductRepository salesPostProductRepository;
     private final SalesPostProductImageRepository salesPostProductImageRepository;
+    private final SalesPostProductOptionRepository salesPostProductOptionRepository;
 
     @Transactional
     public void syncProduct(SyncProductRequest request) {
@@ -74,6 +78,18 @@ public class SalesPostSyncProductUseCase {
                 );
                 salesPostProductImageRepository.save(newImage);
             });
+
+            List<SyncProductOption> optionList = product.getProductOptionList();
+            if (optionList != null) {
+                optionList.forEach(option -> salesPostProductOptionRepository.save(new SalesPostProductOption(
+                        option.getId(),
+                        newProduct,
+                        option.getProductTypeId(),
+                        option.getProductOptionId(),
+                        option.getCreateDate(),
+                        option.getModifyDate()
+                )));
+            }
             successList.add(product.getId());
         });
         GlobalConfig.getEventPublisher().publish(

@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostSellerRepository;
-import com.cartmate.cartmate.shared.member.dto.SellerDto;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,20 +13,21 @@ public class SalesPostSyncSellerUseCase {
     private final SalesPostSellerRepository salesPostSellerRepository;
 
     @Transactional
-    public SalesPostSeller syncSeller(SellerDto sellerDto) {
+    public SalesPostSeller syncSeller(SellerRegisteredEvent seller) {
+
         SalesPostSeller newSeller = new SalesPostSeller(
-                sellerDto.getId(),
-                sellerDto.getMemberId(),
-                sellerDto.getSellerType(),
-                sellerDto.getBusinessName(),
-                sellerDto.getBusinessNumber(),
-                sellerDto.getPhoneNumber(),
-                sellerDto.getBankName(),
-                sellerDto.getAccountHolder(),
-                sellerDto.getAccountNumber(),
-                sellerDto.getStatus(),
-                sellerDto.getCreateDate(),
-                sellerDto.getModifyDate()
+                seller.sellerId(),
+                seller.memberId(),
+                seller.sellerType(),
+                seller.displayName(),
+                seller.businessNumber(),
+                seller.phoneNumber(),
+                seller.bankName(),
+                seller.accountHolder(),
+                seller.accountNumber(),
+                seller.status(),
+                seller.createDate(),
+                seller.modifyDate()
         );
 
         return salesPostSellerRepository.save(newSeller);

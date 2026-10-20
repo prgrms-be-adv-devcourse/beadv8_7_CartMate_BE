@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.post.domain;
 
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProduct;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProductImage;
+import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProductOption;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.*;
@@ -44,6 +45,9 @@ public class SalesPostProduct extends BaseManualIdAndTime {
     @SQLRestriction("status in ('ACTIVE')")
     private List<SalesPostProductImage> imageList = new ArrayList<>();
 
+    @OneToMany(mappedBy = "salesPostProduct", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    private List<SalesPostProductOption> optionList = new ArrayList<>();
+
 
     public SalesPostProduct(Long id, Long sellerId, SalesPost salesPost, Long categoryId, String name, String description,
                             Long basePrice, ProductStatus status, LocalDateTime createDate, LocalDateTime modifyDate) {
@@ -62,6 +66,10 @@ public class SalesPostProduct extends BaseManualIdAndTime {
                 .stream()
                 .map(SalesPostProductImage::toSelectProductImageDto)
                 .toList();
+        List<SelectSalesPostProductOption> optionResultList = optionList
+                .stream()
+                .map(SalesPostProductOption::toSelectProductOptionDto)
+                .toList();
         return new SelectSalesPostProduct(
                 getId(),
                 categoryId,
@@ -70,6 +78,7 @@ public class SalesPostProduct extends BaseManualIdAndTime {
                 basePrice,
                 status,
                 resultList,
+                optionResultList,
                 getCreateDate(),
                 getModifyDate()
         );

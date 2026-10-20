@@ -7,6 +7,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -19,7 +21,20 @@ class PayoutSellerRegisterUseCaseTest {
     private final PayoutSellerRepository payoutSellerRepository = mock(PayoutSellerRepository.class);
     private final PayoutSellerRegisterUseCase useCase = new PayoutSellerRegisterUseCase(payoutSellerRepository);
 
-    private final SellerRegisteredEvent event = new SellerRegisteredEvent(10L, 20L, "BUSINESS", "팀바이");
+    private final SellerRegisteredEvent event = new SellerRegisteredEvent(
+        10L,                             // id
+                20L,                             // memberId
+                "BUSINESS",                      // sellerType
+                "팀바이",                         // businessName
+                "123-45-67890",                  // businessNumber
+                "010-1234-5678",                 // phoneNumber
+                "국민은행",                        // bankName
+                "홍길동",                          // accountHolder
+                "123456-78-901234",              // accountNumber
+                "ACTIVE",                        // status
+        LocalDateTime.now(),             // createDate
+        LocalDateTime.now()              // modifyDate
+                );
 
     @Test
     @DisplayName("판매자 등록 이벤트를 받으면 판매자 ID와 회원 ID를 복제한다")

@@ -2,9 +2,11 @@ package com.cartmate.cartmate.boundedContext.product.domain;
 
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
+import com.cartmate.cartmate.shared.product.dto.CreateProductOption;
 import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
 import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
+import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -45,6 +47,9 @@ public class Product extends BaseIdAndTime {
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<ProductImage> productImageList = new ArrayList<>();
 
+    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    private List<ProductOption> productOptionList = new ArrayList<>();
+
 
     public Product(Long sellerId, Long salesPostId, Long categoryId, String name,
                    String description, Long basePrice, ProductStatus status, boolean syncStatus) {
@@ -63,6 +68,10 @@ public class Product extends BaseIdAndTime {
                 .stream()
                 .map(ProductImage::toSyncProductImage)
                 .toList();
+        List<SyncProductOption> optionList = this.getProductOptionList()
+                .stream()
+                .map(ProductOption::toSyncProductOption)
+                .toList();
 
         return new SyncProduct(
                 this.getId(),
@@ -74,10 +83,21 @@ public class Product extends BaseIdAndTime {
                 this.getBasePrice(),
                 this.getCreateDate(),
                 this.getModifyDate(),
-                imageList
+                imageList,
+                optionList
         );
     }
 
+
+    public void addProductOption(List<CreateProductOption> optionList) {
+        for (CreateProductOption option : optionList) {
+            productOptionList.add(new ProductOption(
+                    this,
+                    option.getProductTypeId(),
+                    option.getProductOptionId()
+            ));
+        }
+    }
 
     public void addProductImage(List<UploadedImage> uploadedImageList) {
         for (UploadedImage image : uploadedImageList) {
@@ -87,7 +107,7 @@ public class Product extends BaseIdAndTime {
                             this,
                             image.getS3Key(),
                             image.getImageSeq(),
-                            ProductStatus.ON_SALE,
+                            ProductStatus.ACTIVE,
                             false
                     )
             );

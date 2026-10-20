@@ -4,8 +4,10 @@ import com.cartmate.cartmate.boundedContext.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.boundedContext.product.out.ProductImageRepository;
+import com.cartmate.cartmate.boundedContext.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.product.out.ProductRepository;
 import com.cartmate.cartmate.shared.product.dto.CreateProduct;
+import com.cartmate.cartmate.shared.product.dto.CreateProductOption;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 public class ProductCreateUseCase {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
+    private final ProductOptionRepository productOptionRepository;
 
     @Transactional
     public List<SyncProduct> saveProduct(CreateProductRequest request, List<UploadedImage> uploadedImageList) {
@@ -46,6 +49,12 @@ public class ProductCreateUseCase {
             );
             product.addProductImage(imagesByProduct.getOrDefault(i, List.of()));
             productImageRepository.saveAll(product.getProductImageList());
+
+            List<CreateProductOption> optionList = createProduct.getProductOptionList();
+            if (optionList != null) {
+                product.addProductOption(optionList);
+                productOptionRepository.saveAll(product.getProductOptionList());
+            }
             resultList.add(product.toSyncProduct());
         }
 
