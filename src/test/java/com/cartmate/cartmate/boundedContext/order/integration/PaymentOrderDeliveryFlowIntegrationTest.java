@@ -208,7 +208,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         Order order = orderRepository.findById(created.orderId()).orElseThrow();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
         assertThat(order.getPaymentId()).isNull();
-        assertThat(paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL, created.orderId(), buyer))
+        assertThat(paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, created.orderId(), buyer))
                 .isEmpty();
         assertThat(walletFacade.getWallet(buyer).balance()).isEqualTo(10_000L);
         assertThat(deliveriesOf(buyer)).isEmpty();
@@ -233,8 +233,8 @@ class PaymentOrderDeliveryFlowIntegrationTest {
                 .findFirst()
                 .orElseThrow();
         sharedGroupOrderIds.add(orderId);
-        paymentKeys.add(new PaymentKey(PaymentType.GROUP_SHARE, orderId, creator));
-        paymentKeys.add(new PaymentKey(PaymentType.GROUP_SHARE, orderId, member));
+        paymentKeys.add(new PaymentKey(PaymentType.SHARED_GROUP, orderId, creator));
+        paymentKeys.add(new PaymentKey(PaymentType.SHARED_GROUP, orderId, member));
 
         paymentFacade.paySharedGroupOrder(member, orderId, null);
 
@@ -263,7 +263,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
                 .toList();
         OrderCreateResponse created = orderFacade.createPersonal(buyer, new OrderCreateRequest(orderedCartItemIds, ADDRESS));
         orderIds.add(created.orderId());
-        paymentKeys.add(new PaymentKey(PaymentType.INDIVIDUAL, created.orderId(), buyer));
+        paymentKeys.add(new PaymentKey(PaymentType.INDIVIDUAL_GROUP, created.orderId(), buyer));
         return created;
     }
 
