@@ -36,7 +36,11 @@ class OrderCreateUseCase {
     OrderCreateResponse createPersonal(Long memberId, List<Long> cartItemIds, DeliveryAddress deliveryAddress,
                                        LocalDateTime now) {
         List<CartOrderItem> cartItems = cartFacade.getCartItemsForOrder(memberId, cartItemIds);
-        Map<Long, OrderProductInfo> products = productsOf(cartItems.stream().map(CartOrderItem::inventoryId).toList());
+        List<Long> inventoryIds = cartItems.stream().map(CartOrderItem::inventoryId).toList();
+        if (orderRepository.findPendingPersonalOrderIdContaining(memberId, inventoryIds).isPresent()) {
+            throw new ServiceException(OrderErrorCode.ORDER_ALREADY_PENDING);
+        }
+        Map<Long, OrderProductInfo> products = productsOf(inventoryIds);
         List<OrderLine> lines = cartItems.stream()
                 .map(item -> toLine(products, item.inventoryId(), item.quantity()))
                 .toList();
@@ -55,6 +59,9 @@ class OrderCreateUseCase {
         List<Long> productIds = lines.stream().map(OrderLine::productId).distinct().toList();
         IndividualGroupPurchaseOrderable orderable =
                 individualGroupPurchaseFacade.getOrderable(individualGroupPurchaseId, productIds, now);
+        if (orderRepository.findPendingIndividualGroupOrderId(memberId, orderable.individualGroupPurchaseId()).isPresent()) {
+            throw new ServiceException(OrderErrorCode.ORDER_ALREADY_PENDING);
+        }
         Order order = Order.createIndividualGroup(generateOrderNumber(now), memberId,
                 orderable.individualGroupPurchaseId(), orderable.saleDeadlineAt(), lines, deliveryAddress, now);
         return OrderCreateResponse.from(orderRepository.save(order));

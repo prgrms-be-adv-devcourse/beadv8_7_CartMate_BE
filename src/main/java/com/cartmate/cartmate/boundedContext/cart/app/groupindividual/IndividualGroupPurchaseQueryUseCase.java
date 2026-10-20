@@ -59,7 +59,7 @@ class IndividualGroupPurchaseQueryUseCase {
     }
 
     IndividualGroupPurchaseOrderable getOrderable(Long individualGroupPurchaseId, List<Long> productIds, LocalDateTime now) {
-        IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findWithProductsById(individualGroupPurchaseId)
+        IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findByIdForUpdate(individualGroupPurchaseId)
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_GROUP_PURCHASE_NOT_FOUND));
         productIds.stream()
                 .distinct()

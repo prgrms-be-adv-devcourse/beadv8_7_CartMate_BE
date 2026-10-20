@@ -1,10 +1,16 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseFacade;
+import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
+import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderCancelReason;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.DeliveryAddressRequest;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
@@ -58,8 +64,15 @@ class OrderConcurrencyTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
+
+    @Autowired
+    private IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
+
     private final List<Long> createdIds = new ArrayList<>();
     private final List<Long> buyerIds = new ArrayList<>();
+    private final List<Long> purchaseIds = new ArrayList<>();
 
     private final long base = 9_500_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
@@ -74,6 +87,7 @@ class OrderConcurrencyTest {
     void tearDown() {
         new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(buyerIds);
         createdIds.forEach(repository::deleteById);
+        purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);
     }
 
     @Test
@@ -128,6 +142,44 @@ class OrderConcurrencyTest {
             }
         }
         assertThat(paidRounds + canceledRounds).isEqualTo(ROUNDS);
+    }
+
+    @Test
+    @DisplayName("같은 회원이 같은 공동구매에 동시에 두 번 주문해도 결제 대기 주문은 하나만 생기고, 취소하면 다시 주문할 수 있다")
+    void duplicateIndividualGroupOrder() throws InterruptedException {
+        for (int round = 0; round < 5; round++) {
+            long creator = nextId();
+            long buyer = nextId();
+            buyerIds.add(buyer);
+            Long purchaseId = individualGroupPurchaseFacade.create(creator,
+                    new IndividualGroupPurchaseCreateRequest("중복 주문 동시성", List.of(1L, 2L))).id();
+            purchaseIds.add(purchaseId);
+            IndividualGroupOrderCreateRequest request = new IndividualGroupOrderCreateRequest(purchaseId,
+                    List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)),
+                    new DeliveryAddressRequest(
+                            "홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+
+            Queue<Long> created = new ConcurrentLinkedQueue<>();
+            Queue<String> rejected = new ConcurrentLinkedQueue<>();
+            Runnable create = () -> {
+                try {
+                    created.add(facade.createIndividualGroup(buyer, request).orderId());
+                } catch (ServiceException e) {
+                    rejected.add(e.getResultCode());
+                }
+            };
+            runConcurrently(List.of(create, create));
+            createdIds.addAll(created);
+
+            assertThat(created).hasSize(1);
+            assertThat(rejected).containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
+            assertThat(repository.findPendingIndividualGroupOrderId(buyer, purchaseId)).contains(created.peek());
+
+            facade.cancelByBuyer(buyer, created.peek());
+            OrderCreateResponse again = facade.createIndividualGroup(buyer, request);
+            createdIds.add(again.orderId());
+            assertThat(again.orderId()).isNotEqualTo(created.peek());
+        }
     }
 
     private long nextId() {

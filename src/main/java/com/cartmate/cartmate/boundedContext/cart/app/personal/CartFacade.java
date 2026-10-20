@@ -28,7 +28,7 @@ public class CartFacade {
         return cartQueryUseCase.getCart(memberId);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<CartOrderItem> getCartItemsForOrder(Long memberId, List<Long> cartItemIds) {
         return cartQueryUseCase.getItemsForOrder(memberId, cartItemIds);
     }
