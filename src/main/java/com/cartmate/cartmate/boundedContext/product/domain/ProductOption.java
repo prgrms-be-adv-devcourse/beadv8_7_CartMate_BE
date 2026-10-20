@@ -43,4 +43,9 @@ public class ProductOption extends BaseIdAndTime {
                 getModifyDate()
         );
     }
+
+    public void update(Long productTypeId, Long productOptionId) {
+        this.productTypeId = productTypeId;
+        this.productOptionId = productOptionId;
+    }
 }

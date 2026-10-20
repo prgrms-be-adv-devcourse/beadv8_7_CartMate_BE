@@ -17,7 +17,6 @@ import com.cartmate.cartmate.shared.post.dto.ProductSyncUpdateRequest;
 import com.cartmate.cartmate.shared.post.dto.productSyncCompletedEvent;
 import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
-import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
 import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
 import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
