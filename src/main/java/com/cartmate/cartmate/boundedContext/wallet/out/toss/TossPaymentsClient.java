@@ -7,22 +7,14 @@ import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayException.Fa
 import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayPayment;
 import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayPayment.Status;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeGateway;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
-import java.net.http.HttpClient;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Base64;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -41,28 +33,14 @@ public class TossPaymentsClient implements WalletChargeGateway {
     private record TossErrorResponse(String code, String message) {
     }
 
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
-    private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
     private static final String ALREADY_PROCESSED_CODE = "ALREADY_PROCESSED_PAYMENT";
     // 사용자의 결제가 거절된 것이 아니라 결제사 쪽 장애라서 결과를 알 수 없는 오류 코드
     private static final Set<String> UNKNOWN_CODES = Set.of("FAILED_INTERNAL_SYSTEM_PROCESSING", "PROVIDER_ERROR");
 
     private final RestClient restClient;
 
-    @Autowired
-    public TossPaymentsClient(
-            @Value("${custom.wallet.toss.base-url}") String baseUrl,
-            @Value("${custom.wallet.toss.secret-key}") String secretKey
-    ) {
-        this(RestClient.builder().requestFactory(requestFactory()), baseUrl, secretKey);
-    }
-
-    // 테스트가 MockRestServiceServer에 연결한 빌더를 넘길 수 있도록 요청 팩토리는 건드리지 않는다.
-    TossPaymentsClient(RestClient.Builder builder, String baseUrl, String secretKey) {
-        this.restClient = builder
-                .baseUrl(baseUrl)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuth(secretKey))
-                .build();
+    public TossPaymentsClient(@Qualifier("tossRestClient") RestClient restClient) {
+        this.restClient = restClient;
     }
 
     @Override
@@ -147,18 +125,5 @@ public class TossPaymentsClient implements WalletChargeGateway {
             case "ABORTED", "EXPIRED" -> Status.FAILED;
             default -> Status.UNKNOWN;
         };
-    }
-
-    private static String basicAuth(String secretKey) {
-        // 토스는 시크릿 키 뒤에 콜론을 붙여 Base64로 인코딩한 값을 Basic 인증으로 받는다.
-        String credentials = secretKey + ":";
-        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static ClientHttpRequestFactory requestFactory() {
-        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
-        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
-        factory.setReadTimeout(READ_TIMEOUT);
-        return factory;
     }
 }

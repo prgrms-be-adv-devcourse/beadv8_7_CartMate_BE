@@ -42,7 +42,7 @@ class TossPaymentsClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new TossPaymentsClient(builder, BASE_URL, SECRET_KEY);
+        client = new TossPaymentsClient(TossConfig.restClient(builder, new TossProperties(BASE_URL, SECRET_KEY)));
     }
 
     private static String payment(String status) {
