@@ -7,6 +7,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualG
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseSummaryResponse;
 import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductOptions;
+import com.cartmate.cartmate.boundedContext.cart.out.MemberClient;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderClient;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderLine;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ class IndividualGroupPurchaseQueryUseCase {
     private final IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
     private final IndividualGroupPurchaseSupport individualGroupPurchaseSupport;
     private final IndividualGroupPurchaseOrderClient orderClient;
+    private final MemberClient memberClient;
 
     IndividualGroupPurchaseDetailResponse getByInviteCode(Long memberId, String inviteCode) {
         IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findWithProductsByInviteCode(inviteCode)
@@ -41,7 +44,11 @@ class IndividualGroupPurchaseQueryUseCase {
     IndividualGroupPurchaseDashboardResponse getDashboard(Long memberId, Long individualGroupPurchaseId) {
         IndividualGroupPurchase purchase = getWithProductsForCreator(memberId, individualGroupPurchaseId);
         List<IndividualGroupPurchaseOrderLine> lines = orderClient.findOrderLines(individualGroupPurchaseId);
-        return IndividualGroupPurchaseDashboardResponse.of(purchase, productOptionsOf(purchase), lines, LocalDateTime.now());
+        Map<Long, String> nicknames = memberClient.findNicknames(lines.stream()
+                .map(IndividualGroupPurchaseOrderLine::buyerMemberId)
+                .collect(Collectors.toSet()));
+        return IndividualGroupPurchaseDashboardResponse.of(purchase, productOptionsOf(purchase), lines, nicknames,
+                LocalDateTime.now());
     }
 
     List<IndividualGroupPurchaseSummaryResponse> getMyList(Long memberId) {
@@ -52,7 +59,7 @@ class IndividualGroupPurchaseQueryUseCase {
     }
 
     IndividualGroupPurchaseOrderable getOrderable(Long individualGroupPurchaseId, List<Long> productIds, LocalDateTime now) {
-        IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findWithProductsById(individualGroupPurchaseId)
+        IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findByIdForUpdate(individualGroupPurchaseId)
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_GROUP_PURCHASE_NOT_FOUND));
         productIds.stream()
                 .distinct()

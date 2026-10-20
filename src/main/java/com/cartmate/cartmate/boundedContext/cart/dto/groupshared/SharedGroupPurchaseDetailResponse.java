@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.dto.groupshared;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseItem;
@@ -30,20 +31,24 @@ public record SharedGroupPurchaseDetailResponse(
         long totalPrice,
         long perPersonAmount,
         long creatorAmount,
-        boolean hasUnavailableItem
+        boolean hasUnavailableItem,
+        String creatorNickname
 ) {
 
 
     public static SharedGroupPurchaseDetailResponse of(SharedGroupPurchase purchase,
                                                        Map<Long, CartProductInfo> products,
+                                                       Map<Long, String> nicknames,
                                                        Long viewerId,
                                                        LocalDateTime now) {
         List<MemberResponse> members = purchase.getMembers().stream()
-                .map(member -> MemberResponse.of(member, purchase.isCreator(member.getMemberId())))
+                .map(member -> MemberResponse.of(member, purchase.isCreator(member.getMemberId()),
+                        nicknames.get(member.getMemberId())))
                 .toList();
 
         List<ItemResponse> items = purchase.getItems().stream()
-                .map(item -> ItemResponse.of(item, products.get(item.getInventoryId())))
+                .map(item -> ItemResponse.of(item, products.get(item.getInventoryId()),
+                        nicknames.get(item.getUpdatedMemberId())))
                 .toList();
 
         long totalPrice = items.stream()
@@ -74,7 +79,8 @@ public record SharedGroupPurchaseDetailResponse(
                 totalPrice,
                 perPersonAmount,
                 perPersonAmount + remainder,
-                items.stream().anyMatch(item -> !item.purchasable())
+                items.stream().anyMatch(item -> !item.purchasable()),
+                nicknames.get(purchase.getCreatorMemberId())
         );
     }
 
@@ -82,14 +88,16 @@ public record SharedGroupPurchaseDetailResponse(
     public record MemberResponse(
             Long memberId,
             boolean creator,
-            LocalDateTime joinedAt
+            LocalDateTime joinedAt,
+            String nickname
     ) {
-        static MemberResponse of(SharedGroupPurchaseMember member, boolean creator) {
-            return new MemberResponse(member.getMemberId(), creator, member.getCreatedAt());
+        static MemberResponse of(SharedGroupPurchaseMember member, boolean creator, String nickname) {
+            return new MemberResponse(member.getMemberId(), creator, member.getCreatedAt(), nickname);
         }
     }
 
 
+    @Schema(name = "SharedGroupPurchaseDetailItemResponse")
     public record ItemResponse(
             Long itemId,
             Long productId,
@@ -102,14 +110,15 @@ public record SharedGroupPurchaseDetailResponse(
             long totalPrice,
             boolean purchasable,
             Long updatedMemberId,
-            LocalDateTime updatedAt
+            LocalDateTime updatedAt,
+            String updatedMemberNickname
     ) {
 
-        static ItemResponse of(SharedGroupPurchaseItem item, CartProductInfo product) {
+        static ItemResponse of(SharedGroupPurchaseItem item, CartProductInfo product, String updatedMemberNickname) {
             if (product == null) {
                 return new ItemResponse(item.getId(), item.getProductId(), item.getInventoryId(),
                         null, null, null, 0, item.getQuantity(), 0L, false,
-                        item.getUpdatedMemberId(), item.getUpdatedAt());
+                        item.getUpdatedMemberId(), item.getUpdatedAt(), updatedMemberNickname);
             }
             return new ItemResponse(
                     item.getId(),
@@ -123,7 +132,8 @@ public record SharedGroupPurchaseDetailResponse(
                     (long) product.price() * item.getQuantity(),
                     product.purchasable(),
                     item.getUpdatedMemberId(),
-                    item.getUpdatedAt()
+                    item.getUpdatedAt(),
+                    updatedMemberNickname
             );
         }
     }

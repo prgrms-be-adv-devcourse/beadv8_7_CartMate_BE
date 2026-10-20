@@ -18,6 +18,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimApprovedEvent;
+import org.mockito.ArgumentCaptor;
+
+import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,12 +45,13 @@ class DeliveryClaimApproveUseCaseTest {
     private final DeliveryClaimItemRepository claimItemRepository = mock(DeliveryClaimItemRepository.class);
     // isSellerOwner는 default 메서드라 실제 로직을 호출하도록 한다.
     private final SellerQuery sellerQuery = mock(SellerQuery.class, CALLS_REAL_METHODS);
+    private final EventPublisher eventPublisher = mock(EventPublisher.class);
     private DeliveryClaimApproveUseCase useCase;
     private DeliveryClaim claim;
 
     @BeforeEach
     void setUp() {
-        useCase = new DeliveryClaimApproveUseCase(claimRepository, claimItemRepository, sellerQuery);
+        useCase = new DeliveryClaimApproveUseCase(claimRepository, claimItemRepository, sellerQuery, eventPublisher);
 
         Delivery delivery = Delivery.create(BUYER, SELLER_ID, 100L, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");

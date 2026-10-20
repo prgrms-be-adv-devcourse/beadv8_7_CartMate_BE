@@ -7,4 +7,6 @@ import java.util.Optional;
 public interface CartRepositoryCustom {
 
     Optional<Cart> findWithItemsByMemberId(Long memberId);
+
+    Optional<Cart> findByMemberIdForUpdate(Long memberId);
 }

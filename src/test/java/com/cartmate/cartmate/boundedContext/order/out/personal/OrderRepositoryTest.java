@@ -15,6 +15,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -108,8 +109,62 @@ class OrderRepositoryTest {
         }).isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    @Test
+    @DisplayName("같은 공동구매의 결제 대기 주문만 찾고 결제 완료·취소 주문은 찾지 않는다")
+    void findPendingIndividualGroupOrderId() {
+        Long buyer = uniqueMemberId();
+        Long purchaseId = uniqueMemberId();
+        Order paid = individualGroup(buyer, purchaseId);
+        paid.markPaid(1L, NOW);
+        orderRepository.save(paid);
+        Order canceled = individualGroup(buyer, purchaseId);
+        canceled.cancelByBuyer(buyer, NOW);
+        orderRepository.save(canceled);
+        orderRepository.save(individualGroup(buyer, purchaseId + 1));
+        flushAndClear();
+
+        assertThat(orderRepository.findPendingIndividualGroupOrderId(buyer, purchaseId)).isEmpty();
+
+        Order pending = orderRepository.save(individualGroup(buyer, purchaseId));
+        flushAndClear();
+
+        assertThat(orderRepository.findPendingIndividualGroupOrderId(buyer, purchaseId)).contains(pending.getId());
+        assertThat(orderRepository.findPendingIndividualGroupOrderId(buyer + 1, purchaseId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("겹치는 상품이 있는 개인 결제 대기 주문만 찾고 결제 완료·취소 주문은 찾지 않는다")
+    void findPendingPersonalOrderIdContaining() {
+        Long buyer = uniqueMemberId();
+        Order paid = personal(newOrderNumber(), buyer);
+        paid.markPaid(1L, NOW);
+        orderRepository.save(paid);
+        Order canceled = personal(newOrderNumber(), buyer);
+        canceled.cancelByBuyer(buyer, NOW);
+        orderRepository.save(canceled);
+        flushAndClear();
+
+        assertThat(orderRepository.findPendingPersonalOrderIdContaining(buyer, List.of(1L, 2L))).isEmpty();
+
+        Order pending = orderRepository.save(personal(newOrderNumber(), buyer));
+        flushAndClear();
+
+        assertThat(orderRepository.findPendingPersonalOrderIdContaining(buyer, List.of(2L, 99L))).contains(pending.getId());
+        assertThat(orderRepository.findPendingPersonalOrderIdContaining(buyer, List.of(99L))).isEmpty();
+        assertThat(orderRepository.findPendingPersonalOrderIdContaining(buyer + 1, List.of(1L))).isEmpty();
+    }
+
     private Order personal(String orderNumber, Long buyerMemberId) {
         return Order.createPersonal(orderNumber, buyerMemberId, lines(), address(), NOW);
+    }
+
+    private Order individualGroup(Long buyerMemberId, Long purchaseId) {
+        return Order.createIndividualGroup(newOrderNumber(), buyerMemberId, purchaseId, NOW.plusDays(1), lines(),
+                address(), NOW);
+    }
+
+    private Long uniqueMemberId() {
+        return 9_700_000_000L + ThreadLocalRandom.current().nextLong(100_000_000L) * 10;
     }
 
     private List<OrderLine> lines() {

@@ -6,7 +6,6 @@ import com.cartmate.cartmate.boundedContext.member.dto.AdminMemberDetailResponse
 import com.cartmate.cartmate.boundedContext.member.dto.MyPageDashboardResponse;
 import com.cartmate.cartmate.boundedContext.member.out.MemberRepository;
 import com.cartmate.cartmate.boundedContext.member.out.MemberSuspensionRepository;
-import com.cartmate.cartmate.boundedContext.member.out.MyPageDashboardQuery;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
 public class AdminMemberDetailUseCase {
     private final MemberRepository memberRepository;
     private final MemberSuspensionRepository memberSuspensionRepository;
-    private final MyPageDashboardQuery myPageDashboardQuery; // [임시] 다른 모듈 API 나오면 교체
+    private final MyPageDashboardUseCase myPageDashboardUseCase;
 
     public AdminMemberDetailResponse get(Long memberId) {
         Member member = memberRepository.findById(memberId)
@@ -45,7 +44,7 @@ public class AdminMemberDetailUseCase {
                 .map(s -> toDto(s, adminNicknames))
                 .orElse(null);
 
-        MyPageDashboardResponse activity = myPageDashboardQuery.findByMemberId(memberId);
+        MyPageDashboardResponse activity = myPageDashboardUseCase.getDashboard(memberId);
 
         return new AdminMemberDetailResponse(
                 member.getId(),

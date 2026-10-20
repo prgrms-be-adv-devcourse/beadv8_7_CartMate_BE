@@ -9,6 +9,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -103,5 +104,38 @@ public class OrderRepositoryImpl implements OrderRepositoryCustom {
                 )
                 .orderBy(order.id.asc(), orderItem.id.asc())
                 .fetch();
+    }
+
+    @Override
+    public Optional<Long> findPendingIndividualGroupOrderId(Long memberId, Long individualGroupPurchaseId) {
+        Long result = queryFactory
+                .select(order.id)
+                .from(order)
+                .where(
+                        order.buyerMemberId.eq(memberId),
+                        order.orderType.eq(OrderType.INDIVIDUAL_GROUP),
+                        order.individualGroupPurchaseId.eq(individualGroupPurchaseId),
+                        order.status.eq(OrderStatus.PAYMENT_PENDING)
+                )
+                .orderBy(order.id.desc())
+                .fetchFirst();
+        return Optional.ofNullable(result);
+    }
+
+    @Override
+    public Optional<Long> findPendingPersonalOrderIdContaining(Long memberId, Collection<Long> inventoryIds) {
+        Long result = queryFactory
+                .select(order.id)
+                .from(orderItem)
+                .join(orderItem.order, order)
+                .where(
+                        order.buyerMemberId.eq(memberId),
+                        order.orderType.eq(OrderType.PERSONAL),
+                        order.status.eq(OrderStatus.PAYMENT_PENDING),
+                        orderItem.inventoryId.in(inventoryIds)
+                )
+                .orderBy(order.id.desc())
+                .fetchFirst();
+        return Optional.ofNullable(result);
     }
 }

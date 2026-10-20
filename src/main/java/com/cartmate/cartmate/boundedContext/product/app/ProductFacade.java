@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +27,7 @@ public class ProductFacade {
     private final ProductImageFileDeleteUseCase productImageFileDeleteUseCase;
     private final ProductDeleteUseCase productDeleteUseCase;
     private final ProductUpdateSyncStatusUseCase productUpdateSyncStatusUseCase;
+    private final ProductQueryUseCase productQueryUseCase;
     private final ProductSupport productSupport;
     private final TransactionTemplate transactionTemplate;
 
@@ -95,5 +97,10 @@ public class ProductFacade {
         }
 
         productImageFileDeleteUseCase.deleteByKeys(result.deletedKeys());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductForPurchase> findProductsForPurchase(Collection<Long> productIds) {
+        return productQueryUseCase.findProductsForPurchase(productIds);
     }
 }

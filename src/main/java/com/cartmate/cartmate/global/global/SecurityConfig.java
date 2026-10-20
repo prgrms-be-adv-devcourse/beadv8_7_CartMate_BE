@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.global.global;
 
+import com.cartmate.cartmate.global.security.BlockedMemberRegistry;
 import com.cartmate.cartmate.global.security.JwtAuthenticationFilter;
 import com.cartmate.cartmate.global.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtProvider jwtProvider;
+    private final BlockedMemberRegistry blockedMemberRegistry;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -58,7 +60,8 @@ public class SecurityConfig {
                                     "{\"resultCode\":\"403-AUTH_FORBIDDEN\",\"msg\":\"접근 권한이 없습니다.\",\"data\":null}");
                         })
                 )
-                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, blockedMemberRegistry),
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
