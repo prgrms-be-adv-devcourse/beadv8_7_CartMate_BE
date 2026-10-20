@@ -30,6 +30,7 @@ public record IndividualGroupPurchaseDashboardResponse(
     public static IndividualGroupPurchaseDashboardResponse of(IndividualGroupPurchase purchase,
                                                               Map<Long, CartProductOptions> productOptions,
                                                               List<IndividualGroupPurchaseOrderLine> lines,
+                                                              Map<Long, String> nicknames,
                                                               LocalDateTime now) {
         List<ProductSummary> products = purchase.getProducts().stream()
                 .map(IndividualGroupPurchaseProduct::getProductId)
@@ -53,7 +54,7 @@ public record IndividualGroupPurchaseDashboardResponse(
                 lines.stream().mapToInt(IndividualGroupPurchaseOrderLine::quantity).sum(),
                 lines.stream().mapToLong(IndividualGroupPurchaseOrderLine::amount).sum(),
                 products,
-                BuyerSummary.groupByBuyer(lines, productNames, optionNames)
+                BuyerSummary.groupByBuyer(lines, productNames, optionNames, nicknames)
         );
     }
 
@@ -117,12 +118,14 @@ public record IndividualGroupPurchaseDashboardResponse(
             Long memberId,
             int quantity,
             long amount,
-            List<BuyerLine> lines
+            List<BuyerLine> lines,
+            String nickname
     ) {
 
         static List<BuyerSummary> groupByBuyer(List<IndividualGroupPurchaseOrderLine> lines,
                                                Map<Long, String> productNames,
-                                               Map<Long, String> optionNames) {
+                                               Map<Long, String> optionNames,
+                                               Map<Long, String> nicknames) {
             Map<Long, List<IndividualGroupPurchaseOrderLine>> byBuyer = lines.stream()
                     .collect(Collectors.groupingBy(IndividualGroupPurchaseOrderLine::buyerMemberId,
                             LinkedHashMap::new, Collectors.toList()));
@@ -134,7 +137,8 @@ public record IndividualGroupPurchaseDashboardResponse(
                             entry.getValue().stream().mapToLong(IndividualGroupPurchaseOrderLine::amount).sum(),
                             entry.getValue().stream()
                                     .map(line -> BuyerLine.of(line, productNames, optionNames))
-                                    .toList()))
+                                    .toList(),
+                            nicknames.get(entry.getKey())))
                     .toList();
         }
     }

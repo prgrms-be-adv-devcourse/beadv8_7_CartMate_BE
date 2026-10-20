@@ -49,7 +49,8 @@ class IndividualGroupPurchaseDashboardResponseTest {
                 line(13L, 102L, UNIFORM, UNIFORM_M, 1, 39000));
 
         IndividualGroupPurchaseDashboardResponse response =
-                IndividualGroupPurchaseDashboardResponse.of(purchase, productOptions, lines, now);
+                IndividualGroupPurchaseDashboardResponse.of(purchase, productOptions, lines,
+                        Map.of(101L, "철수", 102L, "영희"), now);
 
         assertThat(response.orderCount()).isEqualTo(4);
         assertThat(response.buyerCount()).isEqualTo(3);
@@ -78,6 +79,9 @@ class IndividualGroupPurchaseDashboardResponseTest {
         assertThat(response.buyers())
                 .extracting(IndividualGroupPurchaseDashboardResponse.BuyerSummary::memberId)
                 .containsExactly(101L, 102L, 103L);
+        assertThat(response.buyers())
+                .extracting(IndividualGroupPurchaseDashboardResponse.BuyerSummary::nickname)
+                .containsExactly("철수", "영희", null);
         var buyer102 = response.buyers().get(1);
         assertThat(buyer102.quantity()).isEqualTo(2);
         assertThat(buyer102.amount()).isEqualTo(78_000L);
@@ -98,7 +102,7 @@ class IndividualGroupPurchaseDashboardResponseTest {
                         new CartProductOptions.Option(SOCKS_FREE, "FREE", 5000, true))));
 
         IndividualGroupPurchaseDashboardResponse response =
-                IndividualGroupPurchaseDashboardResponse.of(purchase, productOptions, List.of(), now);
+                IndividualGroupPurchaseDashboardResponse.of(purchase, productOptions, List.of(), Map.of(), now);
 
         assertThat(response.orderCount()).isZero();
         assertThat(response.totalAmount()).isZero();

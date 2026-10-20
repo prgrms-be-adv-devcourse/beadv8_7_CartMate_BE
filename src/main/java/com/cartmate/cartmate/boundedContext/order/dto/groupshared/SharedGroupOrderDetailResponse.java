@@ -33,11 +33,13 @@ public record SharedGroupOrderDetailResponse(
 ) {
 
     public static SharedGroupOrderDetailResponse of(
-            SharedGroupOrder order, Map<Long, OrderProductInfo> products, Long viewerId, LocalDateTime now
+            SharedGroupOrder order, Map<Long, OrderProductInfo> products, Map<Long, String> nicknames,
+            Long viewerId, LocalDateTime now
     ) {
         SharedGroupOrderParticipant me = order.getParticipant(viewerId);
         List<ParticipantResponse> participants = order.getParticipants().stream()
-                .map(participant -> ParticipantResponse.of(participant, order.isCreator(participant.getMemberId())))
+                .map(participant -> ParticipantResponse.of(participant, order.isCreator(participant.getMemberId()),
+                        nicknames.get(participant.getMemberId())))
                 .toList();
         List<ItemResponse> items = order.getItems().stream()
                 .map(item -> ItemResponse.of(item, products.get(item.getInventoryId())))
@@ -66,16 +68,18 @@ public record SharedGroupOrderDetailResponse(
             boolean creator,
             long shareAmount,
             SharedGroupOrderParticipantStatus status,
-            LocalDateTime paidAt
+            LocalDateTime paidAt,
+            String nickname
     ) {
 
-        static ParticipantResponse of(SharedGroupOrderParticipant participant, boolean creator) {
+        static ParticipantResponse of(SharedGroupOrderParticipant participant, boolean creator, String nickname) {
             return new ParticipantResponse(
                     participant.getMemberId(),
                     creator,
                     participant.getShareAmount(),
                     participant.getStatus(),
-                    participant.getPaidAt()
+                    participant.getPaidAt(),
+                    nickname
             );
         }
     }
