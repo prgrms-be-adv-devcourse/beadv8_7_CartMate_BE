@@ -115,6 +115,7 @@ public class Product extends BaseIdAndTime {
     public Product delete() {
         this.status = ProductStatus.DELETED;
         this.productImageList.forEach(ProductImage::delete);
+        productOptionList.clear();
         return this;
     }
 

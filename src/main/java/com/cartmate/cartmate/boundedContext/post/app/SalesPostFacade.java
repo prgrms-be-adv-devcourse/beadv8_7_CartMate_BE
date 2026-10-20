@@ -75,7 +75,7 @@ public class SalesPostFacade {
 
     @Transactional
     public void syncProduct(SyncProductRequest request) {
-        salesPostSyncProductUseCase.syncProduct(request);
+        salesPostSyncProductUseCase.syncProduct(request.getProductList());
     }
 
     @Transactional(readOnly = true)
@@ -114,4 +114,5 @@ public class SalesPostFacade {
                 salesPostUpdateUseCase.updateSalesPostByUser(request)
         );
     }
+
 }

@@ -13,7 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "PRODUCT_OPTION")
+@Table(name = "PRODUCT_PRODUCT_OPTION")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProductOption extends BaseIdAndTime {

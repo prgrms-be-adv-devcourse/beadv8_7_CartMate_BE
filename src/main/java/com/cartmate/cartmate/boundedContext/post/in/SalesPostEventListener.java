@@ -5,6 +5,7 @@ import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.shared.product.event.ProductCreatedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,12 @@ public class SalesPostEventListener {
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
+    public void handle(ProductUpdatedEvent event) {
+        salesPostFacade.syncProduct(event.syncProductRequest());
+    }
+
+    @TransactionalEventListener(phase = AFTER_COMMIT)
+    @Transactional(propagation = REQUIRES_NEW)
     public void handle(ProductDeletedEvent event) {
         salesPostFacade.deleteProductByUser(event.getRequest());
     }
@@ -41,4 +48,5 @@ public class SalesPostEventListener {
     public void handle(ProductListDeletedEvent event) {
         salesPostFacade.deleteProductByPost(event.getRequest());
     }
+
 }
