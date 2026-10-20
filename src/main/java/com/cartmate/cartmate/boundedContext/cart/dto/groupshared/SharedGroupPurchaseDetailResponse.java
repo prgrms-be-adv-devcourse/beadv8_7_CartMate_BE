@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.dto.groupshared;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseItem;
@@ -90,6 +91,7 @@ public record SharedGroupPurchaseDetailResponse(
     }
 
 
+    @Schema(name = "SharedGroupPurchaseDetailItemResponse")
     public record ItemResponse(
             Long itemId,
             Long productId,

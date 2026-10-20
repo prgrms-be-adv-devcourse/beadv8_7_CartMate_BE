@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.dto.groupshared;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderCancelReason;
@@ -79,6 +80,7 @@ public record SharedGroupOrderDetailResponse(
         }
     }
 
+    @Schema(name = "SharedGroupOrderDetailItemResponse")
     public record ItemResponse(
             Long itemId,
             Long productId,
@@ -106,6 +108,7 @@ public record SharedGroupOrderDetailResponse(
         }
     }
 
+    @Schema(name = "SharedGroupOrderDetailAddressResponse")
     public record AddressResponse(
             String receiverName,
             String receiverPhone,
