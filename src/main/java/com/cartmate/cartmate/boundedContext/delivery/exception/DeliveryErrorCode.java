@@ -55,6 +55,7 @@ public enum DeliveryErrorCode implements ErrorCode {
 
     // 클레임 접수
     DELIVERY_CLAIM_ALREADY_EXISTS("DELIVERY_CLAIM_ALREADY_EXISTS", "이미 처리 중인 교환·환불 요청이 있습니다.", HttpStatus.CONFLICT),
+    DELIVERY_CLAIM_IN_PROGRESS("DELIVERY_CLAIM_IN_PROGRESS", "처리 중인 교환·환불 요청이 있어 구매확정할 수 없습니다.", HttpStatus.CONFLICT),
 
     // 기존 요청과의 충돌
     DELIVERY_IDEMPOTENCY_CONFLICT("DELIVERY_IDEMPOTENCY_CONFLICT", "동일한 멱등키에 다른 배송 요청이 전달되었습니다.", HttpStatus.CONFLICT);

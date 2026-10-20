@@ -93,7 +93,7 @@ class OrderTest {
         Order order = personalOrder();
         LocalDateTime paidAt = order.getPaymentDeadlineAt();
 
-        order.markPaid(paidAt);
+        order.markPaid(1L, paidAt);
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
         assertThat(order.getPaidAt()).isEqualTo(paidAt);
@@ -106,7 +106,7 @@ class OrderTest {
         LocalDateTime paidAt = order.getPaymentDeadlineAt().plusSeconds(1);
 
         assertThat(order.canAcceptPayment(paidAt)).isFalse();
-        assertThatThrownBy(() -> order.markPaid(paidAt))
+        assertThatThrownBy(() -> order.markPaid(1L, paidAt))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_PAYMENT_EXPIRED.getMsg());
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
@@ -116,11 +116,23 @@ class OrderTest {
     @DisplayName("이미 결제한 주문은 다시 결제할 수 없다")
     void markPaidTwice() {
         Order order = personalOrder();
-        order.markPaid(NOW);
+        order.markPaid(1L, NOW);
 
-        assertThatThrownBy(() -> order.markPaid(NOW))
+        assertThatThrownBy(() -> order.markPaid(2L, NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NOT_PAYMENT_PENDING.getMsg());
+    }
+
+    @Test
+    @DisplayName("같은 결제 ID로 다시 결제 통보가 오면 상태를 바꾸지 않고 새로 반영하지 않았다고 알린다")
+    void markPaidSamePaymentIdTwice() {
+        Order order = personalOrder();
+
+        assertThat(order.markPaid(1L, NOW)).isTrue();
+        assertThat(order.markPaid(1L, NOW.plusMinutes(1))).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.getPaymentId()).isEqualTo(1L);
+        assertThat(order.getPaidAt()).isEqualTo(NOW);
     }
 
     @Test
@@ -140,7 +152,7 @@ class OrderTest {
     @DisplayName("구매자는 결제 완료된 주문을 취소할 수 있다")
     void cancelByBuyerFromPaid() {
         Order order = personalOrder();
-        order.markPaid(NOW);
+        order.markPaid(1L, NOW);
 
         boolean canceled = order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
 
@@ -200,7 +212,7 @@ class OrderTest {
     @DisplayName("결제 완료된 주문은 기한 만료로 취소되지 않는다")
     void cancelByDeadlineWhenPaid() {
         Order order = personalOrder();
-        order.markPaid(NOW);
+        order.markPaid(1L, NOW);
 
         assertThat(order.cancelByDeadline(order.getPaymentDeadlineAt().plusHours(1))).isFalse();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
@@ -222,7 +234,7 @@ class OrderTest {
     @DisplayName("결제 대기 중이 아니면 재고 부족으로 취소할 수 없다")
     void cancelByOutOfStockWhenNotPending() {
         Order order = personalOrder();
-        order.markPaid(NOW);
+        order.markPaid(1L, NOW);
 
         assertThatThrownBy(() -> order.cancelByOutOfStock(NOW))
                 .isInstanceOf(ServiceException.class)

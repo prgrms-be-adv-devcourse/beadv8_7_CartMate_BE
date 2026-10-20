@@ -41,6 +41,8 @@ public class SharedGroupOrderParticipant {
     @Column(nullable = false, columnDefinition = "varchar(20)")
     private SharedGroupOrderParticipantStatus status;
 
+    private Long paymentId;
+
     private LocalDateTime paidAt;
 
 
@@ -69,11 +71,16 @@ public class SharedGroupOrderParticipant {
         return status == SharedGroupOrderParticipantStatus.PAID;
     }
 
-    void markPaid(LocalDateTime paidAt) {
+    public boolean isPaidWith(Long paymentId) {
+        return isPaid() && paymentId != null && paymentId.equals(this.paymentId);
+    }
+
+    void markPaid(Long paymentId, LocalDateTime paidAt) {
         if (status != SharedGroupOrderParticipantStatus.UNPAID) {
             throw new ServiceException(OrderErrorCode.ORDER_ALREADY_PAID);
         }
         this.status = SharedGroupOrderParticipantStatus.PAID;
+        this.paymentId = paymentId;
         this.paidAt = paidAt;
     }
 }

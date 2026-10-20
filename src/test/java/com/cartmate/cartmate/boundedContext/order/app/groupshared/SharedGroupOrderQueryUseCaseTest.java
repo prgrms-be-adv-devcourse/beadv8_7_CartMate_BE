@@ -45,7 +45,7 @@ class SharedGroupOrderQueryUseCaseTest {
     void getDetail() {
         given(sharedGroupOrderRepository.findWithDetailsById(1L)).willReturn(Optional.of(order()));
         given(orderProductClient.findAllByInventoryIds(anyCollection()))
-                .willReturn(List.of(new OrderProductInfo(4L, 2L, "축구공", "5호", 25000, "ball.png")));
+                .willReturn(List.of(new OrderProductInfo(4L, 2L, 1L, "축구공", "5호", 25000, "ball.png", true)));
 
         SharedGroupOrderDetailResponse response = queryUseCase.getDetail(MEMBER, 1L);
 
@@ -79,6 +79,6 @@ class SharedGroupOrderQueryUseCaseTest {
 
     private SharedGroupOrder order() {
         return SharedGroupOrder.create(10L, CREATOR, List.of(CREATOR, MEMBER),
-                List.of(new OrderItemLine(2L, 4L, 2, 25000)), LocalDateTime.of(2026, 10, 19, 12, 0));
+                List.of(new OrderItemLine(2L, 4L, null, "상품", null, 2, 25000)), LocalDateTime.of(2026, 10, 19, 12, 0));
     }
 }

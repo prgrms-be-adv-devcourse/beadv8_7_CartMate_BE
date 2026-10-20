@@ -5,7 +5,14 @@ spring:
     name: cartmate
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  batch:
+    job:
+      enabled: false # Job은 스케줄러가 실행하므로 애플리케이션 시작 시 자동 실행하지 않는다
+    jdbc:
+      initialize-schema: always # MySQL에도 배치 메타데이터 테이블을 만든다
 custom:
+  wallet:
+    platform-member-id: ${PLATFORM_MEMBER_ID:1} # 판매 수수료를 받는 관리자 회원 ID. 환경마다 PLATFORM_MEMBER_ID로 바꾼다
   member:
     seller:
       minAge: 19
@@ -16,5 +23,5 @@ custom:
   jwt:
     secret: ${JWT_SECRET:cartmate-local-dev-secret-key-must-be-at-least-32-bytes}
     accessTokenExpireSeconds: 1800
-    cookie:
-      secure: false
+  cookie:
+    secure: false

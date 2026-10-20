@@ -112,6 +112,6 @@ class SharedGroupOrderCancelTest {
 
     private SharedGroupOrder order() {
         return SharedGroupOrder.create(10L, CREATOR, List.of(CREATOR, MEMBER),
-                List.of(new OrderItemLine(2L, 4L, 2, 25000L)), CLOSED_AT);
+                List.of(new OrderItemLine(2L, 4L, null, "상품", null, 2, 25000L)), CLOSED_AT);
     }
 }

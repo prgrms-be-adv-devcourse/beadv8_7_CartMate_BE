@@ -37,9 +37,9 @@ public class SharedGroupOrderFacade {
     }
 
     @Transactional
-    public void applyPayment(Long sharedGroupOrderId, Long memberId, LocalDateTime paidAt,
+    public void applyPayment(Long sharedGroupOrderId, Long memberId, Long paymentId, LocalDateTime paidAt,
                              TeamDeliveryAddress teamDeliveryAddress) {
-        sharedGroupOrderPaymentUseCase.applyPayment(sharedGroupOrderId, memberId, paidAt, teamDeliveryAddress);
+        sharedGroupOrderPaymentUseCase.applyPayment(sharedGroupOrderId, memberId, paymentId, paidAt, teamDeliveryAddress);
     }
 
     @Transactional
