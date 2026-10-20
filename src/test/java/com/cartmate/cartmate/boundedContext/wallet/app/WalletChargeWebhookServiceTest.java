@@ -102,6 +102,18 @@ class WalletChargeWebhookServiceTest {
     }
 
     @Test
+    @DisplayName("취소된 결제라도 금액이 주문과 다르면 주문을 실패 처리하지 않는다")
+    void canceledAmountMismatch() {
+        when(chargeGateway.fetch(PAYMENT_KEY))
+                .thenReturn(new ChargeGatewayPayment(PAYMENT_KEY, ORDER_NUMBER, AMOUNT + 1, Status.CANCELED));
+
+        service.sync(PAYMENT_KEY);
+
+        verifyNotFailed();
+        verifyNotCharged();
+    }
+
+    @Test
     @DisplayName("아직 진행 중이면 아무것도 바꾸지 않는다")
     void inProgress() {
         fetched(Status.IN_PROGRESS);

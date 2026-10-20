@@ -271,6 +271,19 @@ class WalletChargeConfirmServiceTest {
 
     @ParameterizedTest
     @EnumSource(value = Status.class, names = {"CANCELED", "FAILED"})
+    @DisplayName("조회한 취소·실패 결제가 다른 주문의 결제이면 이 주문을 실패 처리하지 않는다")
+    void unknownThenCanceledOfOtherOrder(Status status) {
+        confirmFails(FailureType.UNKNOWN);
+        when(chargeGateway.fetch(PAYMENT_KEY))
+                .thenReturn(new ChargeGatewayPayment(PAYMENT_KEY, "Charge_other", AMOUNT, status));
+
+        assertError(this::confirm, WalletErrorCode.WALLET_CHARGE_PAYMENT_MISMATCH);
+        verifyNotFailed();
+        verifyNotCharged();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = Status.class, names = {"CANCELED", "FAILED"})
     @DisplayName("승인 응답이 취소·실패 상태이면 주문을 실패 처리하고 충전하지 않는다")
     void approvedResponseCanceledOrFailed(Status status) {
         confirmApproved(payment(status));

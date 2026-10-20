@@ -41,15 +41,15 @@ public class WalletChargeWebhookService {
             return;
         }
 
+        // 상태에 따라 주문을 바꾸기 전에 이 결제가 이 주문의 결제인지부터 확인한다.
+        try {
+            settlement.verifyMatches(order, paymentKey, payment);
+        } catch (ServiceException e) {
+            return; // 불일치는 verifyMatches가 오류 로그를 남겼다. 다시 받아도 결과가 같으므로 재전송을 받지 않는다.
+        }
+
         switch (payment.status()) {
-            case DONE -> {
-                try {
-                    settlement.verifyApproved(order, paymentKey, payment);
-                } catch (ServiceException e) {
-                    return; // 불일치는 verifyApproved가 오류 로그를 남겼다. 다시 받아도 결과가 같으므로 재전송을 받지 않는다.
-                }
-                settlement.complete(order, paymentKey);
-            }
+            case DONE -> settlement.complete(order, paymentKey);
             case CANCELED, FAILED -> settlement.failOrderOrThrow(order);
             default -> log.info("충전 결제 진행 중 웹훅: orderNumber={}, status={}", order.orderNumber(), payment.status());
         }

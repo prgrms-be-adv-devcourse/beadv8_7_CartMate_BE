@@ -19,8 +19,24 @@ public class WalletChargeSettlement {
     private final WalletFacade walletFacade;
     private final WalletRetryService walletRetryService;
 
+    // 결제사가 알려준 결제가 우리 충전 주문의 결제인지 확인한다. 승인·취소 같은 상태와 무관하게 먼저 확인해야
+    // 다른 주문의 결제 상태로 이 주문을 확정하지 않는다. 값이 다르면 승인된 결제가 남을 수 있으므로 오류 로그를 남긴다.
+    public void verifyMatches(WalletChargeOrderInfo order, String paymentKey, ChargeGatewayPayment payment) {
+        if (!order.orderNumber().equals(payment.orderNumber())
+                || !order.amount().equals(payment.amount())
+                || !paymentKey.equals(payment.paymentKey())) {
+            log.error("결제사 결제와 충전 주문 불일치: orderNumber={}, orderAmount={}, paymentKey={}, "
+                            + "paymentOrderNumber={}, paymentAmount={}, paymentPaymentKey={}, paymentStatus={}",
+                    order.orderNumber(), order.amount(), paymentKey,
+                    payment.orderNumber(), payment.amount(), payment.paymentKey(), payment.status());
+            throw new ServiceException(WalletErrorCode.WALLET_CHARGE_PAYMENT_MISMATCH);
+        }
+    }
+
     // 결제사가 승인한 결과가 우리 충전 주문과 같은지 확인한다.
     public void verifyApproved(WalletChargeOrderInfo order, String paymentKey, ChargeGatewayPayment payment) {
+        verifyMatches(order, paymentKey, payment);
+
         // 승인 완료(DONE)만 통과시킨다. 나중에 상태가 추가되어도 모르는 상태로는 충전하지 않는다.
         if (payment.status() != Status.DONE) {
             if (payment.status() == Status.CANCELED || payment.status() == Status.FAILED) {
@@ -28,17 +44,6 @@ public class WalletChargeSettlement {
                 throw new ServiceException(WalletErrorCode.WALLET_CHARGE_PAYMENT_REJECTED);
             }
             throw new ServiceException(WalletErrorCode.WALLET_CHARGE_PAYMENT_PROCESSING);
-        }
-
-        // 결제는 승인됐는데 값이 다르면 충전하지 않는다. 승인된 결제가 남으므로 확인할 수 있게 오류 로그를 남긴다.
-        if (!order.orderNumber().equals(payment.orderNumber())
-                || !order.amount().equals(payment.amount())
-                || !paymentKey.equals(payment.paymentKey())) {
-            log.error("승인된 결제와 충전 주문 불일치: orderNumber={}, orderAmount={}, paymentKey={}, "
-                            + "approvedOrderNumber={}, approvedAmount={}, approvedPaymentKey={}",
-                    order.orderNumber(), order.amount(), paymentKey,
-                    payment.orderNumber(), payment.amount(), payment.paymentKey());
-            throw new ServiceException(WalletErrorCode.WALLET_CHARGE_PAYMENT_MISMATCH);
         }
     }
 
