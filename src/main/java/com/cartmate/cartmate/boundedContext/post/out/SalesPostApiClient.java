@@ -35,7 +35,7 @@ public class SalesPostApiClient {
 
         try {
             restClient.post()
-                    .uri("/register")
+                    .uri("")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body.build())
                     .retrieve()
@@ -54,7 +54,7 @@ public class SalesPostApiClient {
     public void deleteProducts(Long postId) {
         try {
             restClient.delete()
-                    .uri("/posts/{postId}", postId)
+                    .uri("/{postId}", postId)
                     .retrieve()
                     .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
                         throw new ServiceException(ProductErrorCode.PRODUCT_DELETE_INVALID);
@@ -78,7 +78,7 @@ public class SalesPostApiClient {
 
         try {
             restClient.patch()
-                    .uri("/update")
+                    .uri("")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body.build())
                     .retrieve()
