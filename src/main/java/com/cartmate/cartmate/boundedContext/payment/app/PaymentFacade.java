@@ -25,6 +25,7 @@ public class PaymentFacade {
     private final PaymentRepository paymentRepository;
     private final PaymentOrderClient paymentOrderClient;
     private final PaymentWalletClient paymentWalletClient;
+    private final PaymentRefundUseCase paymentRefundUseCase;
 
     // ===== 개인 주문 =====
     @Transactional
@@ -38,7 +39,7 @@ public class PaymentFacade {
         OrderPaymentInfo order = paymentOrderClient.getPaymentInfo(orderId, memberId, LocalDateTime.now());
 
         PaymentResponse existing = paymentRepository
-                .findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL, orderId, memberId)
+                .findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
                 .map(PaymentResponse::from)
                 .orElse(null);
 
@@ -49,7 +50,7 @@ public class PaymentFacade {
 
     @Transactional(readOnly = true)
     public PaymentResponse getByOrder(Long memberId, Long orderId) {
-        return paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL, orderId, memberId)
+        return paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
                 .map(PaymentResponse::from)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
     }
@@ -62,8 +63,26 @@ public class PaymentFacade {
 
     @Transactional(readOnly = true)
     public PaymentResponse getBySharedGroupOrder(Long memberId, Long sharedGroupOrderId) {
-        return paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.GROUP_SHARE, sharedGroupOrderId, memberId)
+        return paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.SHARED_GROUP, sharedGroupOrderId, memberId)
                 .map(PaymentResponse::from)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+    }
+
+    // ===== 환불 =====
+// 주문 취소 트랜잭션에 참여한다 (이벤트 리스너에서 호출)
+    // 판매자 승인 트랜잭션에 참여한다 (배송 이벤트 리스너에서 호출)
+    @Transactional
+    public void refundByClaim(Long claimId, Long orderId, Long memberId, Long amount) {
+        paymentRefundUseCase.refundByClaim(claimId, orderId, memberId, amount);
+    }
+
+    @Transactional
+    public int refundCanceledSharedGroupOrder(Long sharedGroupOrderId, String cancelReason) {
+        return paymentRefundUseCase.refundCanceledSharedGroupOrder(sharedGroupOrderId, cancelReason);
+    }
+
+    @Transactional
+    public PaymentResponse refundByAdmin(Long adminId, Long paymentId, Long amount, String memo) {
+        return paymentRefundUseCase.refundByAdmin(adminId, paymentId, amount, memo);
     }
 }
