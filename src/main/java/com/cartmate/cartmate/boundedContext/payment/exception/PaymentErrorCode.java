@@ -16,7 +16,9 @@ public enum PaymentErrorCode implements ErrorCode {
     PAYMENT_ALREADY_CANCELED("PAYMENT_ALREADY_CANCELED", "이미 취소된 결제입니다.", HttpStatus.CONFLICT),
     PAYMENT_REFUND_INVALID_AMOUNT("PAYMENT_REFUND_INVALID_AMOUNT", "환불 금액이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
     PAYMENT_REFUND_EXCEEDS_REMAINING("PAYMENT_REFUND_EXCEEDS_REMAINING", "환불 가능한 금액을 초과했습니다.", HttpStatus.CONFLICT),
+    PAYMENT_REFUND_NOT_ALLOWED("PAYMENT_REFUND_NOT_ALLOWED", "공동물품 구매는 확정 후 환불할 수 없습니다.", HttpStatus.CONFLICT),
     PAYMENT_REFUND_IN_PROGRESS("PAYMENT_REFUND_IN_PROGRESS", "이미 처리 중인 환불입니다.", HttpStatus.CONFLICT);
+
 
     private final String code;
     private final String msg;

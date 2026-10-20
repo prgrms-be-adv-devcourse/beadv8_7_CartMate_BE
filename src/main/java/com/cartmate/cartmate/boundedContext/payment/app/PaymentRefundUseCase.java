@@ -29,7 +29,7 @@ public class PaymentRefundUseCase {
 
     // 판매자가 승인한 취소·반품 요청 → 승인된 금액만 환불
     public void refundByClaim(Long claimId, Long orderId, Long memberId, Long amount) {
-        Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL, orderId, memberId)
+        Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
         refund(payment, amount, "CLAIM-" + claimId,
@@ -39,7 +39,7 @@ public class PaymentRefundUseCase {
     // 공동물품 무산 → 이미 낸 분담금 전원 환불
     public int refundCanceledSharedGroupOrder(Long sharedGroupOrderId, String cancelReason) {
         List<Payment> payments = paymentRepository.findAllByTypeAndOrderIdAndStatusIn(
-                PaymentType.GROUP_SHARE, sharedGroupOrderId,
+                PaymentType.SHARED_GROUP, sharedGroupOrderId,
                 List.of(PaymentStatus.PAID, PaymentStatus.PARTIALLY_REFUNDED));
 
         for (Payment payment : payments) {

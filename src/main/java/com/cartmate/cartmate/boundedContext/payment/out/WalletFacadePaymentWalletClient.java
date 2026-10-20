@@ -24,7 +24,7 @@ public class WalletFacadePaymentWalletClient implements PaymentWalletClient {
 
     @Override
     public void use(Long walletId, Long amount, Long paymentId, Long orderId, PaymentType type) {
-        walletFacade.use(walletId, amount, paymentId, orderId, toPurchaseType(type));
+        walletFacade.use(walletId, amount, paymentId, orderId, HoldingPurchaseType.valueOf(type.name()));
     }
 
     @Override
@@ -32,11 +32,4 @@ public class WalletFacadePaymentWalletClient implements PaymentWalletClient {
         walletFacade.refund(walletId, amount, paymentId, orderId, refundId);
     }
 
-    // payment의 결제 유형을 wallet의 구매 유형으로 바꾼다.
-    private HoldingPurchaseType toPurchaseType(PaymentType type) {
-        return switch (type) {
-            case INDIVIDUAL -> HoldingPurchaseType.INDIVIDUAL_GROUP;
-            case GROUP_SHARE -> HoldingPurchaseType.SHARED_GROUP;
-        };
-    }
 }

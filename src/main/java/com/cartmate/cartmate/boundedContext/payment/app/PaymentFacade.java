@@ -39,7 +39,7 @@ public class PaymentFacade {
         OrderPaymentInfo order = paymentOrderClient.getPaymentInfo(orderId, memberId, LocalDateTime.now());
 
         PaymentResponse existing = paymentRepository
-                .findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL, orderId, memberId)
+                .findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
                 .map(PaymentResponse::from)
                 .orElse(null);
 
@@ -50,7 +50,7 @@ public class PaymentFacade {
 
     @Transactional(readOnly = true)
     public PaymentResponse getByOrder(Long memberId, Long orderId) {
-        return paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL, orderId, memberId)
+        return paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
                 .map(PaymentResponse::from)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
     }
@@ -63,7 +63,7 @@ public class PaymentFacade {
 
     @Transactional(readOnly = true)
     public PaymentResponse getBySharedGroupOrder(Long memberId, Long sharedGroupOrderId) {
-        return paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.GROUP_SHARE, sharedGroupOrderId, memberId)
+        return paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.SHARED_GROUP, sharedGroupOrderId, memberId)
                 .map(PaymentResponse::from)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
     }

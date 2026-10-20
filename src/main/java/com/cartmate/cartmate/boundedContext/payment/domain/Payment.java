@@ -104,6 +104,6 @@ public class Payment extends BaseIdAndTime {
     }
 
     public boolean isGroupShare() {
-        return type == PaymentType.GROUP_SHARE;
+        return type == PaymentType.SHARED_GROUP;
     }
 }
