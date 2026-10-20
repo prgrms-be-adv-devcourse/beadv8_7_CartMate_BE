@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 // member 모듈의 정문. Controller와 다른 모듈은 여기만 호출한다.
@@ -27,6 +28,7 @@ public class MemberFacade {
     private final MemberSellerUseCase memberSellerUseCase;
     private final MyPageDashboardUseCase myPageDashboardUseCase;
     private final MemberTokenUseCase memberTokenUseCase;
+    private final MemberAddressUseCase memberAddressUseCase;
 
     @Transactional
     public MemberDto join(SignupRequest request) {
@@ -147,5 +149,30 @@ public class MemberFacade {
     @Transactional
     public MemberSellerUseCase.RegisterResult registerSeller(Long memberId, SellerRegisterRequest request) {
         return memberSellerUseCase.register(memberId, request);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MemberAddressResponse> getAddresses(Long memberId) {
+        return memberAddressUseCase.list(memberId);
+    }
+
+    @Transactional
+    public MemberAddressResponse createAddress(Long memberId, MemberAddressRequest request) {
+        return memberAddressUseCase.create(memberId, request);
+    }
+
+    @Transactional
+    public MemberAddressResponse updateAddress(Long memberId, Long addressId, MemberAddressRequest request) {
+        return memberAddressUseCase.update(memberId, addressId, request);
+    }
+
+    @Transactional
+    public MemberAddressResponse makeDefaultAddress(Long memberId, Long addressId) {
+        return memberAddressUseCase.makeDefault(memberId, addressId);
+    }
+
+    @Transactional
+    public void deleteAddress(Long memberId, Long addressId) {
+        memberAddressUseCase.delete(memberId, addressId);
     }
 }
