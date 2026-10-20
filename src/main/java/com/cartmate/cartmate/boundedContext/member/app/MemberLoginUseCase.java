@@ -3,7 +3,6 @@ package com.cartmate.cartmate.boundedContext.member.app;
 import com.cartmate.cartmate.boundedContext.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.member.dto.LoginResult;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,9 +12,9 @@ import org.springframework.stereotype.Service;
 public class MemberLoginUseCase {
     private final MemberSupport memberSupport;
     private final PasswordEncoder passwordEncoder;
-    private final JwtProvider jwtProvider;
+    private final MemberTokenUseCase memberTokenUseCase;
 
-    public LoginResult login(String email, String password) {
+    public LoginResult login(String email, String password, boolean remember) {
         Member member = memberSupport.findByEmail(email.trim())
                 .orElseThrow(this::loginFailed);
 
@@ -25,10 +24,7 @@ public class MemberLoginUseCase {
 
         member.validateCanLogin();
 
-        String accessToken = jwtProvider.createAccessToken(
-                member.getId(), member.getEmail(), member.getRole().name());
-
-        return new LoginResult(member.toDto(), accessToken);
+        return new LoginResult(member.toDto(), memberTokenUseCase.issue(member, remember));
     }
 
     private ServiceException loginFailed() {
