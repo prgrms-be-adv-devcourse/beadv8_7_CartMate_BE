@@ -34,7 +34,7 @@ public class DeliveryOrderEventListener {
                 event.deliveryAddress().receiverPhone(),
                 event.deliveryAddress().zipCode(),
                 event.deliveryAddress().address(),
-                event.deliveryAddress().addressDetail(),
+                nullToEmpty(event.deliveryAddress().addressDetail()),
                 "ORDER-PAID-" + event.orderId() + "-" + sellerId,
                 items.stream()
                         .map(item -> toItem(item.orderItemId(), item.productName(),
@@ -57,7 +57,7 @@ public class DeliveryOrderEventListener {
                 event.teamDeliveryAddress().receiverPhone(),
                 event.teamDeliveryAddress().zipCode(),
                 event.teamDeliveryAddress().address(),
-                event.teamDeliveryAddress().addressDetail(),
+                nullToEmpty(event.teamDeliveryAddress().addressDetail()),
                 "SHARED-GROUP-ORDER-" + event.sharedGroupOrderId() + "-" + sellerId,
                 items.stream()
                         .map(item -> toItem(item.orderItemId(), item.productName(),
@@ -77,5 +77,10 @@ public class DeliveryOrderEventListener {
                 ? List.of()
                 : List.of(new DeliveryCreateCommand.Option("옵션", optionName));
         return new DeliveryCreateCommand.Item(orderItemId, productName, unitPrice, (long) quantity, options);
+    }
+
+    // 상세주소는 주문에서 선택 입력이지만 배송은 null을 허용하지 않아 빈 문자열로 바꾼다.
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 }
