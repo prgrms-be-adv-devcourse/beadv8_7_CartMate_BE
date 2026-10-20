@@ -15,7 +15,7 @@ class HoldingSettlementTest {
 
     @BeforeEach
     void setUp() {
-        holding = Holding.create(Wallet.createWallet(10L), 100L, 10_000L, 200L);
+        holding = Holding.create(Wallet.createWallet(10L), 100L, HoldingPurchaseType.INDIVIDUAL_GROUP, 10_000L, 200L);
     }
 
     private void assertError(Runnable action, WalletErrorCode code) {
