@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.domain.Holding;
-import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.wallet.domain.ReferenceType;
 import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
@@ -54,7 +54,7 @@ class WalletPaymentUseCaseRefundTest {
         wallet.charge(10_000L);
         wallet.use(10_000L);
 
-        holding = Holding.create(wallet, ORDER_ID, HoldingPurchaseType.INDIVIDUAL_GROUP, 10_000L, PAYMENT_ID);
+        holding = Holding.create(wallet, ORDER_ID, WalletPurchaseType.INDIVIDUAL_GROUP, 10_000L, PAYMENT_ID);
 
         when(walletRepository.findById(WALLET_ID)).thenReturn(Optional.of(wallet));
         when(holdingRepository.findByOrderIdAndPaymentId(ORDER_ID, PAYMENT_ID)).thenReturn(Optional.of(holding));

@@ -15,7 +15,7 @@ import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.in.batch.PayoutDueReader;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
-import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.shared.member.event.MemberSignedUpEvent;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
@@ -120,8 +120,8 @@ class CommerceLifecycleIntegrationTest {
 
         long orderId = 810001L;
         long paymentId = 820001L;
-        wallet.use(buyerWallet, 10_000L, paymentId, orderId, HoldingPurchaseType.SHARED_GROUP);
-        wallet.use(buyerWallet, 10_000L, paymentId, orderId, HoldingPurchaseType.SHARED_GROUP);
+        wallet.use(buyerWallet, 10_000L, paymentId, orderId, WalletPurchaseType.SHARED_GROUP);
+        wallet.use(buyerWallet, 10_000L, paymentId, orderId, WalletPurchaseType.SHARED_GROUP);
         assertThat(balance(buyerWallet)).isEqualTo(10_000L);
         assertThat(jdbc.queryForObject("select count(*) from holding where order_id=? and status='RESERVED'", Long.class, orderId)).isEqualTo(1L);
 
