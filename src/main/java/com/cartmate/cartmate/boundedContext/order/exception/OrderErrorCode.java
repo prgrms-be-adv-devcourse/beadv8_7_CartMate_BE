@@ -40,6 +40,7 @@ public enum OrderErrorCode implements ErrorCode {
     ORDER_PAYMENT_EXPIRED("ORDER_PAYMENT_EXPIRED", "결제 기한이 지난 주문입니다.", HttpStatus.CONFLICT),
     ORDER_BUYER_ONLY("ORDER_BUYER_ONLY", "주문한 회원만 할 수 있습니다.", HttpStatus.FORBIDDEN),
     ORDER_ALREADY_CANCELED("ORDER_ALREADY_CANCELED", "이미 취소된 주문입니다.", HttpStatus.CONFLICT),
+    ORDER_ALREADY_PENDING("ORDER_ALREADY_PENDING", "결제 대기 중인 주문이 이미 있습니다.", HttpStatus.CONFLICT),
     ORDER_NUMBER_GENERATION_FAILED("ORDER_NUMBER_GENERATION_FAILED", "주문 번호를 생성하지 못했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final String code;

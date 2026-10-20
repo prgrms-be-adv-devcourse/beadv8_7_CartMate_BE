@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderSummaryRespo
 import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -28,7 +29,7 @@ public class OrderFacade {
                 request.deliveryAddress().toDeliveryAddress(), LocalDateTime.now());
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public OrderCreateResponse createIndividualGroup(Long memberId, IndividualGroupOrderCreateRequest request) {
         return orderCreateUseCase.createIndividualGroup(memberId, request.individualGroupPurchaseId(), request.items(),
                 request.deliveryAddress().toDeliveryAddress(), LocalDateTime.now());

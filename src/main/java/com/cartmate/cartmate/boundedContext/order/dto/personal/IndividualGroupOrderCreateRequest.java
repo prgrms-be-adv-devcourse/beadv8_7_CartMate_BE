@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.dto.personal;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -20,6 +21,7 @@ public record IndividualGroupOrderCreateRequest(
         DeliveryAddressRequest deliveryAddress
 ) {
 
+    @Schema(name = "IndividualGroupOrderCreateItem")
     public record Item(
             @NotNull
             Long inventoryId,

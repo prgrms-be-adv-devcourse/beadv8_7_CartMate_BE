@@ -20,6 +20,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ActiveProfiles("test")
 class CartRepositoryTest {
 
+    private static final Long MEMBER_ID = 9_000_000_001L;
+    private static final Long NO_CART_MEMBER_ID = 9_000_000_999L;
+
     @Autowired
     private CartRepository cartRepository;
 
@@ -29,10 +32,10 @@ class CartRepositoryTest {
     @Test
     @DisplayName("회원 ID로 장바구니를 조회한다")
     void findByMemberId() {
-        Cart saved = cartRepository.save(Cart.create(1L));
+        Cart saved = cartRepository.save(Cart.create(MEMBER_ID));
         flushAndClear();
 
-        Optional<Cart> found = cartRepository.findByMemberId(1L);
+        Optional<Cart> found = cartRepository.findByMemberId(MEMBER_ID);
 
         assertThat(found).isPresent();
         assertThat(found.get().getId()).isEqualTo(saved.getId());
@@ -41,7 +44,7 @@ class CartRepositoryTest {
     @Test
     @DisplayName("장바구니가 없는 회원이면 빈 Optional을 반환한다")
     void findWithItemsByMemberId_noCart() {
-        Optional<Cart> found = cartRepository.findWithItemsByMemberId(999L);
+        Optional<Cart> found = cartRepository.findWithItemsByMemberId(NO_CART_MEMBER_ID);
 
         assertThat(found).isEmpty();
     }
@@ -49,10 +52,10 @@ class CartRepositoryTest {
     @Test
     @DisplayName("항목이 없는 장바구니도 조회된다 (left join)")
     void findWithItemsByMemberId_emptyCart() {
-        cartRepository.save(Cart.create(1L));
+        cartRepository.save(Cart.create(MEMBER_ID));
         flushAndClear();
 
-        Optional<Cart> found = cartRepository.findWithItemsByMemberId(1L);
+        Optional<Cart> found = cartRepository.findWithItemsByMemberId(MEMBER_ID);
 
         assertThat(found).isPresent();
         assertThat(found.get().getItems()).isEmpty();
@@ -61,12 +64,12 @@ class CartRepositoryTest {
     @Test
     @DisplayName("항목이 여러 개여도 장바구니는 하나로 묶이고, 항목까지 함께 로딩된다 (fetch join)")
     void findWithItemsByMemberId_withItems() {
-        Cart cart = cartRepository.save(Cart.create(1L));
+        Cart cart = cartRepository.save(Cart.create(MEMBER_ID));
         cart.addItem(1L, 1L, 2);
         cart.addItem(1L, 2L, 1);
         flushAndClear();
 
-        Optional<Cart> found = cartRepository.findWithItemsByMemberId(1L);
+        Optional<Cart> found = cartRepository.findWithItemsByMemberId(MEMBER_ID);
 
         assertThat(found).isPresent();
         Cart foundCart = found.get();
@@ -80,10 +83,10 @@ class CartRepositoryTest {
     @Test
     @DisplayName("같은 회원의 장바구니를 두 번 저장하면 유니크 제약에 걸린다")
     void save_duplicateMember() {
-        cartRepository.save(Cart.create(1L));
+        cartRepository.save(Cart.create(MEMBER_ID));
         flushAndClear();
 
-        assertThatThrownBy(() -> cartRepository.saveAndFlush(Cart.create(1L)))
+        assertThatThrownBy(() -> cartRepository.saveAndFlush(Cart.create(MEMBER_ID)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 

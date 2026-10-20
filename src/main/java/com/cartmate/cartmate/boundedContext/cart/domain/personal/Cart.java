@@ -11,8 +11,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Getter
@@ -69,8 +69,15 @@ public class Cart {
         items.remove(getItem(cartItemId));
     }
 
-    public void removeItemsByInventoryIds(Collection<Long> inventoryIds) {
-        items.removeIf(item -> inventoryIds.contains(item.getInventoryId()));
+    public void removeOrderedQuantities(Map<Long, Integer> orderedQuantities) {
+        orderedQuantities.forEach((inventoryId, orderedQuantity) ->
+                findItemByInventoryId(inventoryId).ifPresent(item -> {
+                    if (item.getQuantity() <= orderedQuantity) {
+                        items.remove(item);
+                        return;
+                    }
+                    item.decreaseQuantity(orderedQuantity);
+                }));
     }
 
     public void clear() {
