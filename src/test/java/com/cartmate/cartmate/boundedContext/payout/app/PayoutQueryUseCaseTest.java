@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailRespo
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
 import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
+import com.cartmate.cartmate.boundedContext.payout.domain.PayoutPurchaseType;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
@@ -178,7 +179,7 @@ class PayoutQueryUseCaseTest {
     }
 
     private Payout payout(long id, String productName, Long quantity, long sales, LocalDateTime confirmedAt) {
-        Payout payout = Payout.create(SELLER_ID, 100L, 1000L + id, productName, quantity, sales,
+        Payout payout = Payout.create(SELLER_ID, 100L, PayoutPurchaseType.INDIVIDUAL_GROUP, 1000L + id, productName, quantity, sales,
                 confirmedAt.minusDays(2), confirmedAt);
         ReflectionTestUtils.setField(payout, "id", id);
         return payout;
