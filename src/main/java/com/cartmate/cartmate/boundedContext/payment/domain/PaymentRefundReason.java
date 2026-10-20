@@ -1,0 +1,7 @@
+package com.cartmate.cartmate.boundedContext.payment.domain;
+
+public enum PaymentRefundReason {
+    CLAIM_REFUND,        // 판매자가 승인한 취소·반품 요청
+    SHARED_GROUP_CANCEL, // 공동물품 구매 무산 (시스템 자동)
+    ADMIN                // 관리자 수동 환불
+}

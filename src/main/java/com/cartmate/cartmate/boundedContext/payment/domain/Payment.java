@@ -35,6 +35,9 @@ public class Payment extends BaseIdAndTime {
     @Column(nullable = false)
     private Long amount;
 
+    @Column(name = "refunded_amount", nullable = false)
+    private Long refundedAmount;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "payment_type", nullable = false, length = 20)
@@ -63,10 +66,37 @@ public class Payment extends BaseIdAndTime {
         payment.memberId = memberId;
         payment.walletId = walletId;
         payment.amount = amount;
+        payment.refundedAmount = 0L;
         payment.type = type;
         payment.status = PaymentStatus.PAID;
         payment.paidAt = LocalDateTime.now();
         return payment;
+    }
+
+    public long refundableAmount() {
+        return amount - refundedAmount;
+    }
+
+    // 남은 금액 안에서 환불. 전부 환불되면 CANCELED
+    public void refund(Long refundAmount) {
+        if (status == PaymentStatus.CANCELED) {
+            throw new ServiceException(PaymentErrorCode.PAYMENT_ALREADY_CANCELED);
+        }
+        if (refundAmount == null || refundAmount <= 0) {
+            throw new ServiceException(PaymentErrorCode.PAYMENT_REFUND_INVALID_AMOUNT);
+        }
+        if (refundAmount > refundableAmount()) {
+            throw new ServiceException(PaymentErrorCode.PAYMENT_REFUND_EXCEEDS_REMAINING);
+        }
+
+        this.refundedAmount += refundAmount;
+
+        if (refundableAmount() == 0) {
+            this.status = PaymentStatus.CANCELED;
+            this.canceledAt = LocalDateTime.now();
+        } else {
+            this.status = PaymentStatus.PARTIALLY_REFUNDED;
+        }
     }
 
     public boolean isOwnedBy(Long memberId) {

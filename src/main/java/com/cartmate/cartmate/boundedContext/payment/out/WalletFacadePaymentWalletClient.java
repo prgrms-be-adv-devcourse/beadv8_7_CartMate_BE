@@ -24,4 +24,9 @@ public class WalletFacadePaymentWalletClient implements PaymentWalletClient {
     public void use(Long walletId, Long amount, Long paymentId, Long orderId) {
         walletFacade.use(walletId, amount, paymentId, orderId);
     }
+
+    @Override
+    public void refund(Long walletId, Long amount, Long paymentId, Long orderId, Long refundId) {
+        walletFacade.refund(walletId, amount, paymentId, orderId, refundId);
+    }
 }
