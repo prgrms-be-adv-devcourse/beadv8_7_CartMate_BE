@@ -196,7 +196,7 @@ class SharedGroupOrderConcurrencyTest {
     private Long saveOrder(LocalDateTime closedAt, Long creator, List<Long> participants, List<Long> paidMembers) {
         Long orderId = transactionTemplate.execute(status -> {
             SharedGroupOrder order = SharedGroupOrder.create(nextId(), creator, participants,
-                    List.of(new OrderItemLine(2L, 4L, null, "상품", null, 1, 30000L)), closedAt);
+                    List.of(new OrderItemLine(2L, 4L, 1L, "상품", null, 1, 30000L)), closedAt);
             order.markStockReserved();
             LocalDateTime paidAt = closedAt.plusMinutes(1);
             paidMembers.forEach(memberId -> order.pay(memberId, memberId, paidAt,
