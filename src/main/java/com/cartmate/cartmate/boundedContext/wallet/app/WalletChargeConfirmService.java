@@ -6,7 +6,6 @@ import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayException;
 import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayException.FailureType;
 import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayPayment;
-import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayPayment.Status;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeGateway;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +20,7 @@ import org.springframework.stereotype.Service;
 public class WalletChargeConfirmService {
 
     private final WalletFacade walletFacade;
-    private final WalletRetryService walletRetryService;
+    private final WalletChargeSettlement settlement;
     private final WalletChargeGateway chargeGateway;
 
     // 1) 요청을 충전 주문과 대조한다. 2) 결제사에 승인을 요청한다. 3) 승인 결과가 충전 주문과 같은지 확인한다. 4) 충전을 완료한다.
@@ -37,9 +36,9 @@ public class WalletChargeConfirmService {
 
         ChargeGatewayPayment payment = approve(order, paymentKey);
 
-        verifyApproved(order, paymentKey, payment);
+        settlement.verifyApproved(order, paymentKey, payment);
 
-        complete(order, paymentKey);
+        settlement.complete(order, paymentKey);
     }
 
     // 결제사를 호출하기 전에 끝낼 수 있는 검증이다. 클라이언트가 보낸 금액은 주문 금액과 같아야 한다.
@@ -75,7 +74,7 @@ public class WalletChargeConfirmService {
         } catch (ChargeGatewayException e) {
             if (e.getFailureType() == FailureType.REJECTED) {
                 log.info("충전 결제 승인 거절: orderNumber={}, code={}", order.orderNumber(), e.getCode());
-                failOrder(order);
+                settlement.failOrder(order);
                 throw new ServiceException(WalletErrorCode.WALLET_CHARGE_PAYMENT_REJECTED);
             }
 
@@ -94,49 +93,6 @@ public class WalletChargeConfirmService {
             log.warn("충전 결제 조회 실패: orderNumber={}, type={}, code={}",
                     order.orderNumber(), e.getFailureType(), e.getCode());
             throw new ServiceException(WalletErrorCode.WALLET_CHARGE_PAYMENT_PROCESSING);
-        }
-    }
-
-    // 결제사가 승인한 결과가 우리 충전 주문과 같은지 확인한다.
-    private void verifyApproved(WalletChargeOrderInfo order, String paymentKey, ChargeGatewayPayment payment) {
-        // 승인 완료(DONE)만 통과시킨다. 나중에 상태가 추가되어도 모르는 상태로는 충전하지 않는다.
-        if (payment.status() != Status.DONE) {
-            if (payment.status() == Status.CANCELED || payment.status() == Status.FAILED) {
-                failOrder(order);
-                throw new ServiceException(WalletErrorCode.WALLET_CHARGE_PAYMENT_REJECTED);
-            }
-            throw new ServiceException(WalletErrorCode.WALLET_CHARGE_PAYMENT_PROCESSING);
-        }
-
-        // 결제는 승인됐는데 값이 다르면 충전하지 않는다. 승인된 결제가 남으므로 확인할 수 있게 오류 로그를 남긴다.
-        if (!order.orderNumber().equals(payment.orderNumber())
-                || !order.amount().equals(payment.amount())
-                || !paymentKey.equals(payment.paymentKey())) {
-            log.error("승인된 결제와 충전 주문 불일치: orderNumber={}, orderAmount={}, paymentKey={}, "
-                            + "approvedOrderNumber={}, approvedAmount={}, approvedPaymentKey={}",
-                    order.orderNumber(), order.amount(), paymentKey,
-                    payment.orderNumber(), payment.amount(), payment.paymentKey());
-            throw new ServiceException(WalletErrorCode.WALLET_CHARGE_PAYMENT_MISMATCH);
-        }
-    }
-
-    private void complete(WalletChargeOrderInfo order, String paymentKey) {
-        try {
-            walletRetryService.charge(order.walletId(), order.orderNumber(), paymentKey, order.amount());
-        } catch (RuntimeException e) {
-            // 결제사는 승인했는데 충전 반영에 실패한 경우다. 결제 키를 남겨 두어야 나중에 확인할 수 있다.
-            log.error("결제 승인 후 충전 반영 실패: orderNumber={}, paymentKey={}", order.orderNumber(), paymentKey, e);
-            throw e;
-        }
-    }
-
-    // 확정 실패한 충전 주문을 실패 처리한다. 동시에 다른 요청이 먼저 처리했거나 락이 충돌해도
-    // 호출하는 쪽에는 결제 거절 오류를 그대로 주기 위해 실패 처리 오류는 삼킨다.
-    private void failOrder(WalletChargeOrderInfo order) {
-        try {
-            walletFacade.fail(order.walletId(), order.orderNumber());
-        } catch (RuntimeException e) {
-            log.warn("충전 주문 실패 처리 생략: orderNumber={}, reason={}", order.orderNumber(), e.getMessage());
         }
     }
 }

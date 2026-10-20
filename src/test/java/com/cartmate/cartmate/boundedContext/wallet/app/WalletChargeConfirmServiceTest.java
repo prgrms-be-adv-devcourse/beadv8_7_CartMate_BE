@@ -43,7 +43,8 @@ class WalletChargeConfirmServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new WalletChargeConfirmService(walletFacade, walletRetryService, chargeGateway);
+        service = new WalletChargeConfirmService(
+                walletFacade, new WalletChargeSettlement(walletFacade, walletRetryService), chargeGateway);
         order(ChargeStatus.PENDING, null);
     }
 
