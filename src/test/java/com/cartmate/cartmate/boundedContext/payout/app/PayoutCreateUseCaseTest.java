@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.payout.app;
 
+import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
@@ -34,7 +35,7 @@ class PayoutCreateUseCaseTest {
     }
 
     private DeliveryConfirmedEvent event(Item... items) {
-        return new DeliveryConfirmedEvent(5L, 10L, 100L, "INDIVIDUAL_GROUP", ORDERED_AT, CONFIRMED_AT, List.of(items));
+        return new DeliveryConfirmedEvent(5L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP, ORDERED_AT, CONFIRMED_AT, List.of(items));
     }
 
     @SuppressWarnings("unchecked")
