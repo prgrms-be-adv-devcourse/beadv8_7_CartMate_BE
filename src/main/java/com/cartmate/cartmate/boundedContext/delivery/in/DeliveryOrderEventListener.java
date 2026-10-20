@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryCreateCommand;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,29 @@ public class DeliveryOrderEventListener {
                 event.deliveryAddress().address(),
                 event.deliveryAddress().addressDetail(),
                 "ORDER-PAID-" + event.orderId() + "-" + sellerId,
+                items.stream()
+                        .map(item -> toItem(item.orderItemId(), item.productName(),
+                                item.optionName(), item.unitPrice(), item.quantity()))
+                        .toList()
+        )));
+    }
+
+    // 공동물품 확정 이벤트를 받아 판매자별 배송을 생성한다. 생성 실패 시 마지막 결제도 함께 롤백된다.
+    @EventListener
+    public void handle(SharedGroupOrderConfirmedEvent event) {
+        Map<Long, List<SharedGroupOrderConfirmedEvent.Item>> bySeller =
+                groupBySeller(event.items(), SharedGroupOrderConfirmedEvent.Item::sellerId);
+        bySeller.forEach((sellerId, items) -> deliveryFacade.createDelivery(new DeliveryCreateCommand(
+                event.creatorMemberId(),
+                sellerId,
+                event.sharedGroupOrderId(),
+                PurchaseType.SHARED_GROUP,
+                event.teamDeliveryAddress().receiverName(),
+                event.teamDeliveryAddress().receiverPhone(),
+                event.teamDeliveryAddress().zipCode(),
+                event.teamDeliveryAddress().address(),
+                event.teamDeliveryAddress().addressDetail(),
+                "SHARED-GROUP-ORDER-" + event.sharedGroupOrderId() + "-" + sellerId,
                 items.stream()
                         .map(item -> toItem(item.orderItemId(), item.productName(),
                                 item.optionName(), item.unitPrice(), item.quantity()))
