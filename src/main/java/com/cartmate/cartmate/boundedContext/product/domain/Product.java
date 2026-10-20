@@ -3,14 +3,12 @@ package com.cartmate.cartmate.boundedContext.product.domain;
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.product.dto.CreateProductOption;
-import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
 import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
 import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,6 +115,7 @@ public class Product extends BaseIdAndTime {
     public Product delete() {
         this.status = ProductStatus.DELETED;
         this.productImageList.forEach(ProductImage::delete);
+        productOptionList.clear();
         return this;
     }
 
@@ -126,15 +125,18 @@ public class Product extends BaseIdAndTime {
         return this;
     }
 
-    public void update(Long categoryId, String name, String description, Long basePrice, ProductStatus status) {
+    public void update(Long categoryId, String name, String description, Long basePrice) {
         this.categoryId = categoryId;
         this.name = name;
         this.description = description;
         this.basePrice = basePrice;
-        this.status = status;
     }
 
     public void addImage(ProductImage newImage) {
         this.getProductImageList().add(newImage);
+    }
+
+    public void addOption(ProductOption newOption) {
+        this.getProductOptionList().add(newOption);
     }
 }

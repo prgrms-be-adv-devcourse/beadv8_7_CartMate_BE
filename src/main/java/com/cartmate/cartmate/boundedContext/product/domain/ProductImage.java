@@ -69,6 +69,6 @@ public class ProductImage extends BaseIdAndTime {
 
     public void changeSeq(int imageSeq) {
         this.imageSeq = imageSeq;
-        this.syncStatus = false;
+        this.syncStatus = false; // 동기화상태 초기화
     }
 }
