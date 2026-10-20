@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.wallet.in;
 
+import com.cartmate.cartmate.boundedContext.wallet.app.WalletChargeConfirmService;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletRetryService;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
@@ -25,6 +26,7 @@ public class WalletController {
 
     private final WalletFacade walletFacade;
     private final WalletRetryService walletRetryService;
+    private final WalletChargeConfirmService walletChargeConfirmService;
 
     @GetMapping("/me")
     public RsData<WalletBalanceResponse> getMyWallet(
@@ -81,13 +83,12 @@ public class WalletController {
 
         WalletBalanceResponse wallet = walletFacade.getWallet(memberId);
 
-        // TODO: 토스 결제 승인 API 연동 후 승인 결과의 주문번호·금액을 검증하고 지갑에 충전 반영
-        walletRetryService.charge(
+        // 토스 결제 승인을 요청하고, 승인된 결제가 충전 주문과 같을 때만 지갑에 충전한다.
+        walletChargeConfirmService.confirm(
                 wallet.walletId(),
                 chargeConfirmRequest.orderNumber(),
                 chargeConfirmRequest.paymentKey(),
                 chargeConfirmRequest.amount()
-
         );
 
         return new RsData<>("200-1", "지갑 충전이 완료되었습니다.", walletFacade.getWallet(memberId));
