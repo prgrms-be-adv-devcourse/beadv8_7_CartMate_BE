@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.wallet.domain;
 
 import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,7 +37,7 @@ public class Holding {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "purchase_type", nullable = false)
-    private HoldingPurchaseType purchaseType;
+    private WalletPurchaseType purchaseType;
 
     @Column(name = "payment_id", nullable = false)
     private Long paymentId;
@@ -65,7 +66,7 @@ public class Holding {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static Holding create(Wallet wallet, Long orderId, HoldingPurchaseType purchaseType, Long amount,
+    public static Holding create(Wallet wallet, Long orderId, WalletPurchaseType purchaseType, Long amount,
                                  Long paymentId) {
         if (wallet == null) {
             throw new ServiceException(WalletErrorCode.WALLET_INTERNAL_WALLET_MISSING);
@@ -149,7 +150,7 @@ public class Holding {
         this.status = HoldingStatus.CANCELED;
     }
 
-    private Holding(Wallet wallet, Long orderId, HoldingPurchaseType purchaseType, Long amount, Long paymentId) {
+    private Holding(Wallet wallet, Long orderId, WalletPurchaseType purchaseType, Long amount, Long paymentId) {
         this.wallet = wallet;
         this.orderId = orderId;
         this.purchaseType = purchaseType;

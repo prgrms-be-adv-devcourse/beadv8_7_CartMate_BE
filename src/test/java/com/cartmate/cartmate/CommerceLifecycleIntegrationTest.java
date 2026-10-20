@@ -15,11 +15,12 @@ import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.in.batch.PayoutDueReader;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
-import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingPurchaseType;
 import com.cartmate.cartmate.shared.member.event.MemberSignedUpEvent;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -114,14 +115,15 @@ class CommerceLifecycleIntegrationTest {
 
         long buyerWallet = wallet.getWallet(buyer.getId()).walletId();
         long sellerWallet = wallet.getWallet(sellerMember.getId()).walletId();
+        long platformBefore = platformBalance(); // 플랫폼 지갑은 테스트끼리 공유하므로 증가분으로 검증한다.
         assertThat(balance(buyerWallet)).isZero();
         var charge = wallet.chargeOrder(buyerWallet, 20_000L, UUID.randomUUID().toString());
         wallet.charge(buyerWallet, charge.getOrderNumber(), "test-payment-" + charge.getId(), 20_000L);
 
         long orderId = 810001L;
         long paymentId = 820001L;
-        wallet.use(buyerWallet, 10_000L, paymentId, orderId, HoldingPurchaseType.SHARED_GROUP);
-        wallet.use(buyerWallet, 10_000L, paymentId, orderId, HoldingPurchaseType.SHARED_GROUP);
+        wallet.use(buyerWallet, 10_000L, paymentId, orderId, WalletPurchaseType.SHARED_GROUP);
+        wallet.use(buyerWallet, 10_000L, paymentId, orderId, WalletPurchaseType.SHARED_GROUP);
         assertThat(balance(buyerWallet)).isEqualTo(10_000L);
         assertThat(jdbc.queryForObject("select count(*) from holding where order_id=? and status='RESERVED'", Long.class, orderId)).isEqualTo(1L);
 
@@ -166,8 +168,8 @@ class CommerceLifecycleIntegrationTest {
             assertThat(step.getWriteCount()).isEqualTo(2L);
         });
         assertThat(balance(sellerWallet)).isEqualTo(9_700L);
-        long platformBalance = jdbc.queryForObject("select balance from wallet where member_id=900000001", Long.class);
-        assertThat(platformBalance).isEqualTo(300L);
+        long platformGain = platformBalance() - platformBefore;
+        assertThat(platformGain).isEqualTo(300L);
         assertThat(jdbc.queryForObject("select count(*) from holding where order_id=? and status='SETTLED'", Long.class, orderId)).isEqualTo(1L);
         assertThat(payouts.findAllByOrderItemIdIn(List.of(830001L, 830002L)))
                 .allSatisfy(p -> {
@@ -177,7 +179,7 @@ class CommerceLifecycleIntegrationTest {
         for (Payout p : created) payoutFacade.pay(p.getId());
         assertThat(balance(sellerWallet)).isEqualTo(9_700L);
         assertThat(jdbc.queryForObject("select count(*) from wallet_transaction where wallet_id=? and type='SETTLEMENT'", Long.class, sellerWallet)).isEqualTo(2L);
-        assertThat(balance(buyerWallet) + balance(sellerWallet) + platformBalance).isEqualTo(20_000L);
+        assertThat(balance(buyerWallet) + balance(sellerWallet) + platformGain).isEqualTo(20_000L);
     }
 
     @Test
@@ -189,6 +191,49 @@ class CommerceLifecycleIntegrationTest {
                 List.of(new SharedGroupOrderConfirmedEvent.Item(890004L, 890005L, 890006L, 890007L, "상품", null, 1, 10_000L))));
         assertThat(jdbc.queryForObject("select count(*) from delivery where order_id=?", Long.class, orderId))
                 .as("주문완료 이벤트를 DeliveryCreateCommand로 연결하는 리스너가 필요합니다.").isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("개인 주문과 공동물품 주문의 ID가 같아도 정산은 같은 구매 유형의 홀딩에서만 꺼낸다")
+    void settleOnlyHoldingsOfSamePurchaseType() {
+        Member individualBuyer = newMember("individual");
+        Member sharedBuyer = newMember("shared");
+        Member sellerMember = newMember("seller");
+        long individualWallet = wallet.getWallet(individualBuyer.getId()).walletId();
+        long sharedWallet = wallet.getWallet(sharedBuyer.getId()).walletId();
+        long sellerWallet = wallet.getWallet(sellerMember.getId()).walletId();
+        var individualCharge = wallet.chargeOrder(individualWallet, 10_000L, UUID.randomUUID().toString());
+        wallet.charge(individualWallet, individualCharge.getOrderNumber(), "test-payment-" + individualCharge.getId(), 10_000L);
+        var sharedCharge = wallet.chargeOrder(sharedWallet, 30_000L, UUID.randomUUID().toString());
+        wallet.charge(sharedWallet, sharedCharge.getOrderNumber(), "test-payment-" + sharedCharge.getId(), 30_000L);
+
+        // 두 주문이 같은 주문 ID를 가진다.
+        long orderId = 810101L;
+        wallet.use(individualWallet, 10_000L, 820101L, orderId, WalletPurchaseType.INDIVIDUAL_GROUP);
+        wallet.use(sharedWallet, 30_000L, 820102L, orderId, WalletPurchaseType.SHARED_GROUP);
+
+        wallet.settleAndDeposit(new SettleAndDepositRequest(
+                840101L, orderId, WalletPurchaseType.SHARED_GROUP, sellerMember.getId(), 30_000L, 29_100L));
+
+        assertThat(holdingStatus(orderId, WalletPurchaseType.SHARED_GROUP)).isEqualTo("SETTLED");
+        assertThat(holdingStatus(orderId, WalletPurchaseType.INDIVIDUAL_GROUP)).isEqualTo("RESERVED");
+        assertThat(balance(sellerWallet)).isEqualTo(29_100L);
+
+        wallet.settleAndDeposit(new SettleAndDepositRequest(
+                840102L, orderId, WalletPurchaseType.INDIVIDUAL_GROUP, sellerMember.getId(), 10_000L, 9_700L));
+
+        assertThat(holdingStatus(orderId, WalletPurchaseType.INDIVIDUAL_GROUP)).isEqualTo("SETTLED");
+        assertThat(balance(sellerWallet)).isEqualTo(38_800L);
+    }
+
+    private long platformBalance() {
+        return jdbc.queryForList("select balance from wallet where member_id=900000001", Long.class)
+                .stream().findFirst().orElse(0L);
+    }
+
+    private String holdingStatus(long orderId, WalletPurchaseType purchaseType) {
+        return jdbc.queryForObject("select status from holding where order_id=? and purchase_type=?",
+                String.class, orderId, purchaseType.name());
     }
 
     private Member newMember(String label) {

@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.payment.out;
 
 import com.cartmate.cartmate.boundedContext.payment.domain.PaymentType;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
-import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -28,10 +28,10 @@ public class WalletFacadePaymentWalletClient implements PaymentWalletClient {
     }
 
     // payment의 결제 유형을 wallet의 구매 유형으로 바꾼다.
-    private HoldingPurchaseType toPurchaseType(PaymentType type) {
+    private WalletPurchaseType toPurchaseType(PaymentType type) {
         return switch (type) {
-            case INDIVIDUAL -> HoldingPurchaseType.INDIVIDUAL_GROUP;
-            case GROUP_SHARE -> HoldingPurchaseType.SHARED_GROUP;
+            case INDIVIDUAL -> WalletPurchaseType.INDIVIDUAL_GROUP;
+            case GROUP_SHARE -> WalletPurchaseType.SHARED_GROUP;
         };
     }
 }
