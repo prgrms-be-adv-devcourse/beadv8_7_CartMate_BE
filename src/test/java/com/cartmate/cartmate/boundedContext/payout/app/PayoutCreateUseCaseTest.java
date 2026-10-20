@@ -34,7 +34,7 @@ class PayoutCreateUseCaseTest {
     }
 
     private DeliveryConfirmedEvent event(Item... items) {
-        return new DeliveryConfirmedEvent(5L, 10L, 100L, ORDERED_AT, CONFIRMED_AT, List.of(items));
+        return new DeliveryConfirmedEvent(5L, 10L, 100L, "INDIVIDUAL_GROUP", ORDERED_AT, CONFIRMED_AT, List.of(items));
     }
 
     @SuppressWarnings("unchecked")

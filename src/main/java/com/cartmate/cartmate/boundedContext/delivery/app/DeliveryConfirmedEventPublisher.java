@@ -39,7 +39,8 @@ public class DeliveryConfirmedEventPublisher {
         }
 
         eventPublisher.publish(new DeliveryConfirmedEvent(
-                delivery.getId(), delivery.getSellerId(), delivery.getOrderId(), delivery.getCreatedAt(), delivery.getConfirmedAt(), items
+                delivery.getId(), delivery.getSellerId(), delivery.getOrderId(), delivery.getPurchaseType().name(),
+                delivery.getCreatedAt(), delivery.getConfirmedAt(), items
         ));
     }
 

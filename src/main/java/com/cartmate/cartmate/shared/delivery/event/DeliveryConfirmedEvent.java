@@ -8,6 +8,7 @@ public record DeliveryConfirmedEvent(
         Long deliveryId,
         Long sellerId,
         Long orderId,
+        String purchaseType, // INDIVIDUAL_GROUP, SHARED_GROUP. 개인 주문과 공동물품 주문은 주문상품 ID가 겹칠 수 있어 구분한다.
         LocalDateTime orderedAt, // 주문 시각. 배송이 만들어진 시각을 쓴다.
         LocalDateTime confirmedAt,
         List<Item> items
