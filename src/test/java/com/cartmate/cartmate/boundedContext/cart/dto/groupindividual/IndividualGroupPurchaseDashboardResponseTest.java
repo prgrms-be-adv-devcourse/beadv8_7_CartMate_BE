@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.cart.dto.groupindividual;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductOptions;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderLine;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchase;
+import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchaseStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -108,6 +109,55 @@ class IndividualGroupPurchaseDashboardResponseTest {
         assertThat(response.totalAmount()).isZero();
         assertThat(response.products().get(0).options().get(0).quantity()).isZero();
         assertThat(response.buyers()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("옵션명이 없는 단일 옵션 상품이어도 현황판을 만들고 옵션명은 null로 보인다")
+    void nullOptionName() {
+        IndividualGroupPurchase purchase = IndividualGroupPurchase.create(
+                "OO FC 2026 유니폼", 1L, "abcdefghijkl", List.of(UNIFORM, SOCKS), now);
+        Map<Long, CartProductOptions> productOptions = Map.of(
+                UNIFORM, new CartProductOptions(UNIFORM, "축구 유니폼", null, true, List.of(
+                        new CartProductOptions.Option(UNIFORM, null, 39000, true))),
+                SOCKS, new CartProductOptions(SOCKS, "양말", null, true, List.of(
+                        new CartProductOptions.Option(SOCKS, null, 5000, true))));
+        List<IndividualGroupPurchaseOrderLine> lines = List.of(
+                line(10L, 101L, UNIFORM, UNIFORM, 2, 39000),
+                line(11L, 102L, SOCKS, SOCKS, 1, 5000));
+
+        IndividualGroupPurchaseDashboardResponse response =
+                IndividualGroupPurchaseDashboardResponse.of(purchase, productOptions, lines, Map.of(101L, "철수"), now);
+
+        assertThat(response.totalAmount()).isEqualTo(83_000L);
+        assertThat(response.products().get(0).options())
+                .extracting(IndividualGroupPurchaseDashboardResponse.OptionSummary::optionName)
+                .containsExactly((String) null);
+        assertThat(response.buyers())
+                .flatExtracting(IndividualGroupPurchaseDashboardResponse.BuyerSummary::lines)
+                .extracting(IndividualGroupPurchaseDashboardResponse.BuyerLine::productName,
+                        IndividualGroupPurchaseDashboardResponse.BuyerLine::optionName)
+                .containsExactly(tuple("축구 유니폼", null), tuple("양말", null));
+        assertThat(response.status()).isEqualTo(IndividualGroupPurchaseStatus.OPEN);
+        assertThat(response.closedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("마감된 공동구매는 상태와 마감 시각을 함께 보여 준다")
+    void closedStatus() {
+        IndividualGroupPurchase purchase = IndividualGroupPurchase.create(
+                "OO FC 2026 유니폼", 1L, "abcdefghijkl", List.of(SOCKS), now);
+        LocalDateTime closedAt = now.plusHours(1);
+        purchase.close(1L, closedAt);
+        Map<Long, CartProductOptions> productOptions = Map.of(
+                SOCKS, new CartProductOptions(SOCKS, "양말", null, true, List.of(
+                        new CartProductOptions.Option(SOCKS, null, 5000, true))));
+
+        IndividualGroupPurchaseDashboardResponse response =
+                IndividualGroupPurchaseDashboardResponse.of(purchase, productOptions, List.of(), Map.of(), closedAt);
+
+        assertThat(response.status()).isEqualTo(IndividualGroupPurchaseStatus.CLOSED);
+        assertThat(response.closedAt()).isEqualTo(closedAt);
+        assertThat(response.open()).isFalse();
     }
 
     private IndividualGroupPurchaseOrderLine line(Long orderId, Long buyer, Long productId, Long inventoryId,
