@@ -52,7 +52,7 @@ public class PaymentPayUseCase {
             throw new ServiceException(PaymentErrorCode.PAYMENT_IN_PROGRESS);
         }
 
-        paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), orderId);
+        paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), orderId, PaymentType.INDIVIDUAL);
 
         // order가 주문을 결제 완료로 바꾸고 OrderPaidEvent를 발행 (장바구니 비우기 등은 그쪽에서)
         paymentOrderClient.applyPayment(orderId, memberId, payment.getId(), payment.getPaidAt());

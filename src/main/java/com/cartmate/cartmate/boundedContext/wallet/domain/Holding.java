@@ -34,6 +34,10 @@ public class Holding {
     @Column(name = "order_id", nullable = false)
     private Long orderId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "purchase_type", nullable = false)
+    private HoldingPurchaseType purchaseType;
+
     @Column(name = "payment_id", nullable = false)
     private Long paymentId;
 
@@ -61,13 +65,18 @@ public class Holding {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static Holding create(Wallet wallet, Long orderId, Long amount, Long paymentId) {
+    public static Holding create(Wallet wallet, Long orderId, HoldingPurchaseType purchaseType, Long amount,
+                                 Long paymentId) {
         if (wallet == null) {
             throw new ServiceException(WalletErrorCode.WALLET_INTERNAL_WALLET_MISSING);
         }
 
         if (orderId == null) {
             throw new ServiceException(WalletErrorCode.WALLET_ORDER_ID_REQUIRED);
+        }
+
+        if (purchaseType == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_PURCHASE_TYPE_REQUIRED);
         }
 
         if (amount == null || amount <= 0) {
@@ -78,7 +87,7 @@ public class Holding {
             throw new ServiceException(WalletErrorCode.WALLET_PAYMENT_ID_REQUIRED);
         }
 
-        return new Holding(wallet, orderId, amount, paymentId);
+        return new Holding(wallet, orderId, purchaseType, amount, paymentId);
     }
     public void cancel() {
         if (status == HoldingStatus.CANCELED) {
@@ -140,9 +149,10 @@ public class Holding {
         this.status = HoldingStatus.CANCELED;
     }
 
-    private Holding(Wallet wallet, Long orderId, Long amount, Long paymentId) {
+    private Holding(Wallet wallet, Long orderId, HoldingPurchaseType purchaseType, Long amount, Long paymentId) {
         this.wallet = wallet;
         this.orderId = orderId;
+        this.purchaseType = purchaseType;
         this.paymentId = paymentId;
         this.amount = amount;
         this.status = HoldingStatus.RESERVED;

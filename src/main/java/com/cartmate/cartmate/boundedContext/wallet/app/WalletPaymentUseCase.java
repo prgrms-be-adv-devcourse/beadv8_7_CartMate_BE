@@ -24,7 +24,7 @@ public class WalletPaymentUseCase {
     private final LedgerRecorder ledgerRecorder;
 
     // 지갑 잔액을 차감하고 사용 거래 내역을 저장한다.
-    public void use(Long walletId, Long amount, Long paymentId, Long orderId) {
+    public void use(Long walletId, Long amount, Long paymentId, Long orderId, HoldingPurchaseType purchaseType) {
         validatePaymentRequest(walletId, amount, paymentId, orderId);
 
         Wallet wallet = walletRepository.findById(walletId)
@@ -51,7 +51,7 @@ public class WalletPaymentUseCase {
         wallet.use(amount);
 
         Holding holding = Holding.create(
-                wallet, orderId, amount, paymentId
+                wallet, orderId, purchaseType, amount, paymentId
         );
 
         holdingRepository.save(holding);
