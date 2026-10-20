@@ -21,4 +21,5 @@ public class SyncProduct {
     private LocalDateTime createDate;
     private LocalDateTime modifyDate;
     private List<SyncProductImage> productImageList;
+    private List<SyncProductOption> productOptionList;
 }

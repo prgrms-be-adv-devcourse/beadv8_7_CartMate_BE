@@ -18,6 +18,7 @@ public class CreateProduct {
     private String description;
     private Long basePrice;
     private List<CreateProductImage> productImageList;
+    private List<CreateProductOption> productOptionList;
 
     public void assignProductId(Long id) {
         this.id = id;

@@ -26,7 +26,7 @@ public class SalesPostController {
     private final SalesPostFacade salesPostFacade;
 
 
-    @PostMapping("/post")
+    @PostMapping
     public ResponseEntity<Void> registerSalesPost(
             @RequestPart("request") CreateSalesPostRequest request,
             @RequestPart("images") List<MultipartFile> images) {

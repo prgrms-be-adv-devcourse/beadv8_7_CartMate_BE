@@ -19,6 +19,7 @@ public class SelectSalesPostProduct {
     private Long basePrice;
     private ProductStatus status;
     private List<SelectSalesPostProductImage> productImageList;
+    private List<SelectSalesPostProductOption> productOptionList;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
