@@ -4,9 +4,11 @@ import com.cartmate.cartmate.boundedContext.cart.out.CartProductOptions;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderLine;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchaseProduct;
+import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchaseStatus;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,25 +25,30 @@ public record IndividualGroupPurchaseDashboardResponse(
         int totalQuantity,
         long totalAmount,
         List<ProductSummary> products,
-        List<BuyerSummary> buyers
+        List<BuyerSummary> buyers,
+        IndividualGroupPurchaseStatus status,
+        LocalDateTime closedAt
 ) {
 
 
     public static IndividualGroupPurchaseDashboardResponse of(IndividualGroupPurchase purchase,
                                                               Map<Long, CartProductOptions> productOptions,
                                                               List<IndividualGroupPurchaseOrderLine> lines,
+                                                              Map<Long, String> nicknames,
                                                               LocalDateTime now) {
         List<ProductSummary> products = purchase.getProducts().stream()
                 .map(IndividualGroupPurchaseProduct::getProductId)
                 .map(productId -> ProductSummary.of(productId, productOptions.get(productId), lines))
                 .toList();
 
-        Map<Long, String> optionNames = productOptions.values().stream()
+        Map<Long, String> optionNames = new HashMap<>();
+        productOptions.values().stream()
                 .flatMap(info -> info.options().stream())
-                .collect(Collectors.toMap(CartProductOptions.Option::inventoryId, CartProductOptions.Option::optionName,
-                        (first, second) -> first));
-        Map<Long, String> productNames = productOptions.values().stream()
-                .collect(Collectors.toMap(CartProductOptions::productId, CartProductOptions::productName));
+                .filter(option -> !optionNames.containsKey(option.inventoryId()))
+                .forEach(option -> optionNames.put(option.inventoryId(), option.optionName()));
+        Map<Long, String> productNames = new HashMap<>();
+        productOptions.values()
+                .forEach(info -> productNames.put(info.productId(), info.productName()));
 
         return new IndividualGroupPurchaseDashboardResponse(
                 purchase.getId(),
@@ -53,7 +60,9 @@ public record IndividualGroupPurchaseDashboardResponse(
                 lines.stream().mapToInt(IndividualGroupPurchaseOrderLine::quantity).sum(),
                 lines.stream().mapToLong(IndividualGroupPurchaseOrderLine::amount).sum(),
                 products,
-                BuyerSummary.groupByBuyer(lines, productNames, optionNames)
+                BuyerSummary.groupByBuyer(lines, productNames, optionNames, nicknames),
+                purchase.getStatus(),
+                purchase.getClosedAt()
         );
     }
 
@@ -117,12 +126,14 @@ public record IndividualGroupPurchaseDashboardResponse(
             Long memberId,
             int quantity,
             long amount,
-            List<BuyerLine> lines
+            List<BuyerLine> lines,
+            String nickname
     ) {
 
         static List<BuyerSummary> groupByBuyer(List<IndividualGroupPurchaseOrderLine> lines,
                                                Map<Long, String> productNames,
-                                               Map<Long, String> optionNames) {
+                                               Map<Long, String> optionNames,
+                                               Map<Long, String> nicknames) {
             Map<Long, List<IndividualGroupPurchaseOrderLine>> byBuyer = lines.stream()
                     .collect(Collectors.groupingBy(IndividualGroupPurchaseOrderLine::buyerMemberId,
                             LinkedHashMap::new, Collectors.toList()));
@@ -134,7 +145,8 @@ public record IndividualGroupPurchaseDashboardResponse(
                             entry.getValue().stream().mapToLong(IndividualGroupPurchaseOrderLine::amount).sum(),
                             entry.getValue().stream()
                                     .map(line -> BuyerLine.of(line, productNames, optionNames))
-                                    .toList()))
+                                    .toList(),
+                            nicknames.get(entry.getKey())))
                     .toList();
         }
     }

@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroup
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
+import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -59,7 +61,11 @@ class SharedGroupOrderConcurrencyTest {
     @Autowired
     private OrderEventRecorder eventRecorder;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private final List<Long> createdIds = new ArrayList<>();
+    private final List<Long> memberIds = new ArrayList<>();
 
     private final long base = 8_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
@@ -72,6 +78,7 @@ class SharedGroupOrderConcurrencyTest {
 
     @AfterEach
     void tearDown() {
+        new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(memberIds);
         transactionTemplate.executeWithoutResult(status -> createdIds.forEach(repository::deleteById));
     }
 
@@ -204,6 +211,7 @@ class SharedGroupOrderConcurrencyTest {
             return repository.save(order).getId();
         });
         createdIds.add(orderId);
+        memberIds.addAll(participants);
         return orderId;
     }
 

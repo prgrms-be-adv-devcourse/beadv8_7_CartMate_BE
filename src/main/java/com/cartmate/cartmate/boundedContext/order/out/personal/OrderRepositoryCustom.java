@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.order.out.personal;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,4 +20,8 @@ public interface OrderRepositoryCustom {
     boolean existsActiveOrderByIndividualGroupPurchaseAndProduct(Long individualGroupPurchaseId, Long productId);
 
     List<IndividualGroupPurchaseOrderLineView> findPaidOrderLines(Long individualGroupPurchaseId);
+
+    Optional<Long> findPendingIndividualGroupOrderId(Long memberId, Long individualGroupPurchaseId);
+
+    Optional<Long> findPendingPersonalOrderIdContaining(Long memberId, Collection<Long> inventoryIds);
 }

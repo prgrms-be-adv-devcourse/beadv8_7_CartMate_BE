@@ -35,7 +35,7 @@ class CartQueryUseCase {
         if (cartItemIds == null || cartItemIds.isEmpty()) {
             throw new ServiceException(CartErrorCode.CART_ORDER_ITEMS_REQUIRED);
         }
-        Cart cart = cartRepository.findWithItemsByMemberId(memberId)
+        Cart cart = cartRepository.findByMemberIdForUpdate(memberId)
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_NOT_FOUND));
         return cartItemIds.stream()
                 .distinct()

@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.dto.personal;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderCancelReason;
@@ -44,6 +45,7 @@ public record OrderDetailResponse(
         );
     }
 
+    @Schema(name = "OrderDetailItemResponse")
     public record ItemResponse(
             Long itemId,
             Long productId,
@@ -69,6 +71,7 @@ public record OrderDetailResponse(
         }
     }
 
+    @Schema(name = "OrderDetailAddressResponse")
     public record AddressResponse(
             String receiverName,
             String receiverPhone,

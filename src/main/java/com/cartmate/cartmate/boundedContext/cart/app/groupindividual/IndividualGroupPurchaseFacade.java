@@ -66,7 +66,7 @@ public class IndividualGroupPurchaseFacade {
         return individualGroupPurchaseQueryUseCase.getMyList(memberId);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public IndividualGroupPurchaseOrderable getOrderable(Long individualGroupPurchaseId, List<Long> productIds,
                                                          LocalDateTime now) {
         return individualGroupPurchaseQueryUseCase.getOrderable(individualGroupPurchaseId, productIds, now);

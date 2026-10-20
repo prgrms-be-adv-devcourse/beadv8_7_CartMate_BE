@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.out;
 
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -10,7 +12,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Component
-public class MockProductClient implements ProductClient {
+@Primary
+@Profile("test")
+public class FakeProductClient implements ProductClient {
 
     private static final Map<Long, CartProductInfo> PRODUCTS = Map.of(
             1L, new CartProductInfo(1L, 1L, "축구 유니폼", "M / 레드", 39000, "https://example.com/uniform.png", true),

@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroup
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
+import com.cartmate.cartmate.boundedContext.order.out.OrderMemberClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
@@ -17,7 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,6 +40,9 @@ class SharedGroupOrderQueryUseCaseTest {
     @Mock
     private OrderProductClient orderProductClient;
 
+    @Mock
+    private OrderMemberClient orderMemberClient;
+
     @InjectMocks
     private SharedGroupOrderQueryUseCase queryUseCase;
 
@@ -46,12 +52,15 @@ class SharedGroupOrderQueryUseCaseTest {
         given(sharedGroupOrderRepository.findWithDetailsById(1L)).willReturn(Optional.of(order()));
         given(orderProductClient.findAllByInventoryIds(anyCollection()))
                 .willReturn(List.of(new OrderProductInfo(4L, 2L, 1L, "축구공", "5호", 25000, "ball.png", true)));
+        given(orderMemberClient.findNicknames(Set.of(CREATOR, MEMBER))).willReturn(Map.of(CREATOR, "방장", MEMBER, "철수"));
 
         SharedGroupOrderDetailResponse response = queryUseCase.getDetail(MEMBER, 1L);
 
         assertThat(response.creator()).isFalse();
         assertThat(response.myShareAmount()).isEqualTo(25000L);
-        assertThat(response.participants()).hasSize(2);
+        assertThat(response.participants())
+                .extracting(SharedGroupOrderDetailResponse.ParticipantResponse::nickname)
+                .containsExactlyInAnyOrder("방장", "철수");
         assertThat(response.items()).singleElement()
                 .satisfies(item -> assertThat(item.productName()).isEqualTo("축구공"));
         assertThat(response.teamDeliveryAddress()).isNull();

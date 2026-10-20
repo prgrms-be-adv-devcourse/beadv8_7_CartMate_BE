@@ -10,7 +10,7 @@ import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,11 +49,14 @@ class CartItemUseCase {
         if (!PERSONAL_ORDER_TYPE.equals(event.orderType())) {
             return;
         }
-        Set<Long> inventoryIds = event.items().stream()
-                .map(OrderPaidEvent.Item::inventoryId)
-                .collect(Collectors.toSet());
+        Map<Long, Integer> orderedQuantities = event.items().stream()
+                .collect(Collectors.toMap(
+                        OrderPaidEvent.Item::inventoryId,
+                        OrderPaidEvent.Item::quantity,
+                        Integer::sum
+                ));
         cartRepository.findWithItemsByMemberId(event.memberId())
-                .ifPresent(cart -> cart.removeItemsByInventoryIds(inventoryIds));
+                .ifPresent(cart -> cart.removeOrderedQuantities(orderedQuantities));
     }
 
     private Cart getCartWithItems(Long memberId) {
