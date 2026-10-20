@@ -54,7 +54,8 @@ public class WalletSettlementUseCase {
         Wallet sellerWallet = walletRepository.findByMemberId(request.sellerMemberId())
                 .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
 
-        List<Holding> holdings = holdingRepository.findAllByOrderIdForUpdate(request.orderId()).stream()
+        List<Holding> holdings = holdingRepository
+                .findAllByOrderIdAndPurchaseTypeForUpdate(request.orderId(), request.purchaseType()).stream()
                 .filter(holding -> holding.getStatus() == HoldingStatus.RESERVED)
                 .toList();
 
@@ -117,6 +118,10 @@ public class WalletSettlementUseCase {
 
         if (request.orderId() == null) {
             throw new ServiceException(WalletErrorCode.WALLET_ORDER_ID_REQUIRED);
+        }
+
+        if (request.purchaseType() == null) {
+            throw new ServiceException(WalletErrorCode.WALLET_PURCHASE_TYPE_REQUIRED);
         }
 
         if (request.salesAmount() == null || request.salesAmount() <= 0

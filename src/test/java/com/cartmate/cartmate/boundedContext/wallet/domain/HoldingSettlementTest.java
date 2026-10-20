@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.wallet.domain;
 
 import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,7 @@ class HoldingSettlementTest {
 
     @BeforeEach
     void setUp() {
-        holding = Holding.create(Wallet.createWallet(10L), 100L, HoldingPurchaseType.INDIVIDUAL_GROUP, 10_000L, 200L);
+        holding = Holding.create(Wallet.createWallet(10L), 100L, WalletPurchaseType.INDIVIDUAL_GROUP, 10_000L, 200L);
     }
 
     private void assertError(Runnable action, WalletErrorCode code) {
