@@ -51,8 +51,11 @@ class OrderCreateUseCase {
     OrderCreateResponse createIndividualGroup(Long memberId, Long individualGroupPurchaseId,
                                               List<IndividualGroupOrderCreateRequest.Item> items,
                                               DeliveryAddress deliveryAddress, LocalDateTime now) {
-        Map<Long, OrderProductInfo> products = productsOf(
-                items.stream().map(IndividualGroupOrderCreateRequest.Item::inventoryId).toList());
+        List<Long> inventoryIds = items.stream().map(IndividualGroupOrderCreateRequest.Item::inventoryId).toList();
+        if (inventoryIds.stream().distinct().count() != inventoryIds.size()) {
+            throw new ServiceException(OrderErrorCode.ORDER_DUPLICATE_ITEM);
+        }
+        Map<Long, OrderProductInfo> products = productsOf(inventoryIds);
         List<OrderLine> lines = items.stream()
                 .map(item -> toLine(products, item.inventoryId(), item.quantity()))
                 .toList();

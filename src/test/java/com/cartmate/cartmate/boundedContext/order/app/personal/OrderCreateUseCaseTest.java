@@ -209,4 +209,41 @@ class OrderCreateUseCaseTest {
 
         assertThat(response.totalAmount()).isEqualTo(25000L);
     }
+
+    @Test
+    @DisplayName("같은 재고 상품이 두 번 담기면 상품 조회 없이 주문을 거절한다")
+    void rejectDuplicateIndividualGroupItem() {
+        assertThatThrownBy(() -> createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1),
+                        new IndividualGroupOrderCreateRequest.Item(4L, 2)), ADDRESS, NOW))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_DUPLICATE_ITEM.getMsg());
+        then(orderProductClient).should(never()).findAllByInventoryIds(anyCollection());
+        then(individualGroupPurchaseFacade).should(never()).getOrderable(any(), any(), any());
+        then(orderRepository).should(never()).save(any());
+    }
+
+    @Test
+    @DisplayName("서로 다른 재고 상품은 각각 주문 줄로 만든다")
+    void createIndividualGroupWithDistinctItems() {
+        given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
+                new OrderProductInfo(4L, 2L, 8L, "축구공", "5호", 25000, null, true),
+                new OrderProductInfo(5L, 2L, 8L, "축구공", "4호", 23000, null, true)));
+        given(individualGroupPurchaseFacade.getOrderable(PURCHASE_ID, List.of(2L), NOW))
+                .willReturn(new IndividualGroupPurchaseOrderable(PURCHASE_ID, NOW.plusDays(1)));
+        given(orderRepository.findPendingIndividualGroupOrderId(MEMBER_ID, PURCHASE_ID)).willReturn(Optional.empty());
+        given(orderNumberGenerator.generateUnique(any(), any())).willReturn(ORDER_NUMBER);
+        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        OrderCreateResponse response = createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1),
+                        new IndividualGroupOrderCreateRequest.Item(5L, 2)), ADDRESS, NOW);
+
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+        then(orderRepository).should().save(captor.capture());
+        assertThat(captor.getValue().getItems())
+                .extracting(OrderItem::getInventoryId, OrderItem::getQuantity)
+                .containsExactly(tuple(4L, 1), tuple(5L, 2));
+        assertThat(response.totalAmount()).isEqualTo(71000L);
+    }
 }
