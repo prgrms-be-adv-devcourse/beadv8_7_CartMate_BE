@@ -14,7 +14,12 @@ import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.in.batch.PayoutDueReader;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
+import com.cartmate.cartmate.boundedContext.wallet.app.WalletChargeConfirmService;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
+import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayException;
+import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayPayment;
+import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeGateway;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.member.event.MemberSignedUpEvent;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
@@ -40,6 +45,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -48,6 +54,12 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /** 실제 로컬 MySQL의 전용 테스트 스키마만 사용한다. 운영/개발 DB URL은 거부한다. */
 @SpringBootTest(properties = {
@@ -67,6 +79,8 @@ class CommerceLifecycleIntegrationTest {
     private static LocalDateTime batchCutoff;
 
     @Autowired WalletFacade wallet;
+    @Autowired WalletChargeConfirmService chargeConfirm;
+    @MockitoBean WalletChargeGateway chargeGateway;
     @Autowired DeliveryFacade delivery;
     @Autowired DeliveryScheduler deliveryScheduler;
     @Autowired PayoutFacade payoutFacade;
@@ -224,6 +238,71 @@ class CommerceLifecycleIntegrationTest {
 
         assertThat(holdingStatus(orderId, WalletPurchaseType.INDIVIDUAL_GROUP)).isEqualTo("SETTLED");
         assertThat(balance(sellerWallet)).isEqualTo(38_800L);
+    }
+
+    @Test
+    @DisplayName("충전 승인은 결제사 승인 후 지갑에 충전하고, 같은 요청을 다시 보내도 승인은 한 번만 한다")
+    void confirmChargeApprovesOnce() {
+        Member member = newMember("charger");
+        long walletId = wallet.getWallet(member.getId()).walletId();
+        var order = wallet.chargeOrder(walletId, 10_000L, UUID.randomUUID().toString());
+        when(chargeGateway.confirm("pk_it_1", order.getOrderNumber(), 10_000L, order.getIdempotencyKey()))
+                .thenReturn(new ChargeGatewayPayment("pk_it_1", order.getOrderNumber(), 10_000L,
+                        ChargeGatewayPayment.Status.DONE));
+
+        chargeConfirm.confirm(walletId, order.getOrderNumber(), "pk_it_1", 10_000L);
+        chargeConfirm.confirm(walletId, order.getOrderNumber(), "pk_it_1", 10_000L);
+
+        assertThat(balance(walletId)).isEqualTo(10_000L);
+        assertThat(chargeStatus(order.getOrderNumber())).isEqualTo("COMPLETED");
+        verify(chargeGateway, times(1)).confirm(anyString(), anyString(), anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("결제사가 승인을 거절하면 충전 주문은 실패가 되고 지갑은 그대로다")
+    void confirmChargeRejected() {
+        Member member = newMember("rejected");
+        long walletId = wallet.getWallet(member.getId()).walletId();
+        var order = wallet.chargeOrder(walletId, 10_000L, UUID.randomUUID().toString());
+        when(chargeGateway.confirm(anyString(), anyString(), anyLong(), anyString()))
+                .thenThrow(new ChargeGatewayException(ChargeGatewayException.FailureType.REJECTED,
+                        "REJECT_CARD_PAYMENT", "거절"));
+
+        assertThatThrownBy(() -> chargeConfirm.confirm(walletId, order.getOrderNumber(), "pk_it_2", 10_000L))
+                .isInstanceOf(ServiceException.class);
+
+        assertThat(chargeStatus(order.getOrderNumber())).isEqualTo("FAILED");
+        assertThat(balance(walletId)).isZero();
+    }
+
+    @Test
+    @DisplayName("승인 결과를 알 수 없으면 충전 주문은 대기로 남고, 다시 요청해 승인되면 충전된다")
+    void confirmChargeUnknownThenRetry() {
+        Member member = newMember("unknown");
+        long walletId = wallet.getWallet(member.getId()).walletId();
+        var order = wallet.chargeOrder(walletId, 10_000L, UUID.randomUUID().toString());
+        ChargeGatewayPayment done = new ChargeGatewayPayment("pk_it_3", order.getOrderNumber(), 10_000L,
+                ChargeGatewayPayment.Status.DONE);
+        when(chargeGateway.confirm(anyString(), anyString(), anyLong(), anyString()))
+                .thenThrow(new ChargeGatewayException(ChargeGatewayException.FailureType.UNKNOWN, null, "시간 초과"))
+                .thenReturn(done);
+        when(chargeGateway.fetch("pk_it_3")).thenReturn(new ChargeGatewayPayment("pk_it_3", order.getOrderNumber(),
+                10_000L, ChargeGatewayPayment.Status.IN_PROGRESS));
+
+        assertThatThrownBy(() -> chargeConfirm.confirm(walletId, order.getOrderNumber(), "pk_it_3", 10_000L))
+                .isInstanceOf(ServiceException.class);
+        assertThat(chargeStatus(order.getOrderNumber())).isEqualTo("PENDING");
+        assertThat(balance(walletId)).isZero();
+
+        chargeConfirm.confirm(walletId, order.getOrderNumber(), "pk_it_3", 10_000L);
+
+        assertThat(chargeStatus(order.getOrderNumber())).isEqualTo("COMPLETED");
+        assertThat(balance(walletId)).isEqualTo(10_000L);
+    }
+
+    private String chargeStatus(String orderNumber) {
+        return jdbc.queryForObject("select status from wallet_charge_orders where order_number=?",
+                String.class, orderNumber);
     }
 
     private long platformBalance() {
