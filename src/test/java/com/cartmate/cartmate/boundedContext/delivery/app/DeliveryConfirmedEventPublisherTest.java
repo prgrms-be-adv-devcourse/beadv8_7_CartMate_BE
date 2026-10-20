@@ -84,6 +84,7 @@ class DeliveryConfirmedEventPublisherTest {
         assertThat(event.deliveryId()).isEqualTo(5L);
         assertThat(event.sellerId()).isEqualTo(10L);
         assertThat(event.orderId()).isEqualTo(100L);
+        assertThat(event.purchaseType()).isEqualTo(PurchaseType.INDIVIDUAL_GROUP);
         assertThat(event.orderedAt()).isEqualTo(delivery.getCreatedAt());
         assertThat(event.confirmedAt()).isEqualTo(delivery.getConfirmedAt());
         assertThat(event.items()).containsExactly(
