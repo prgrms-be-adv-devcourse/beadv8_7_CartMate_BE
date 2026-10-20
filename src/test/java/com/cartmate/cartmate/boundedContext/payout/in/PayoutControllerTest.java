@@ -6,6 +6,7 @@ import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailRespo
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
 import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
+import com.cartmate.cartmate.boundedContext.payout.domain.PayoutPurchaseType;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.domain.SettlementKey;
 import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
@@ -128,7 +129,7 @@ class PayoutControllerTest {
     @Test
     @DisplayName("정산 상세는 정산 ID로 조회하고 RsData로 감싸서 내려간다")
     void settlementDetail() throws Exception {
-        Payout payout = Payout.create(10L, 100L, 1000L, "티셔츠", 2L, 24_000L,
+        Payout payout = Payout.create(10L, 100L, PayoutPurchaseType.INDIVIDUAL_GROUP, 1000L, "티셔츠", 2L, 24_000L,
                 LocalDateTime.of(2026, 10, 23, 9, 0), LocalDateTime.of(2026, 10, 25, 10, 0));
         when(payoutFacade.getMySettlementDetail(20L, "20261115-PENDING")).thenReturn(
                 SettlementDetailResponse.of(new SettlementKey(LocalDate.of(2026, 11, 15), PayoutStatus.PENDING), List.of(payout)));

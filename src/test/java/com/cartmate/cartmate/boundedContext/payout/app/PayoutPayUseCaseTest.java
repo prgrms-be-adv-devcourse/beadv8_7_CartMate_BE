@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.payout.app;
 
 import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
+import com.cartmate.cartmate.boundedContext.payout.domain.PayoutPurchaseType;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutSeller;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
@@ -43,7 +44,7 @@ class PayoutPayUseCaseTest {
     }
 
     private Payout payout(long salesAmount) {
-        Payout payout = Payout.create(10L, 100L, 1000L, "티셔츠", 1L, salesAmount, CONFIRMED_AT.minusDays(3), CONFIRMED_AT);
+        Payout payout = Payout.create(10L, 100L, PayoutPurchaseType.INDIVIDUAL_GROUP, 1000L, "티셔츠", 1L, salesAmount, CONFIRMED_AT.minusDays(3), CONFIRMED_AT);
         ReflectionTestUtils.setField(payout, "id", 7L);
         when(payoutRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(payout));
         return payout;
