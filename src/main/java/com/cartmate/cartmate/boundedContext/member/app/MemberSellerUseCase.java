@@ -74,8 +74,21 @@ public class MemberSellerUseCase {
             throw new ServiceException("409-SELLER_ALREADY_REGISTERED", "이미 등록된 판매자 정보입니다.");
         }
 
-        eventPublisher.publish(new SellerRegisteredEvent(
-                seller.getId(), member.getId(), seller.getSellerType().name(), seller.getDisplayName()));
+        eventPublisher.publish(
+                new SellerRegisteredEvent(
+                        seller.getId(),
+                        member.getId(),
+                        seller.getSellerType().name(),
+                        seller.getDisplayName(),
+                        seller.getBusinessNumber(),
+                        seller.getPhoneNumber(),
+                        seller.getBankName(),
+                        seller.getAccountHolder(),
+                        seller.getAccountNumber(),
+                        seller.getStatus().name(),
+                        seller.getCreateDate(),
+                        seller.getModifyDate()
+        ));
 
         // 역할이 SELLER로 바뀌었으니 새 토큰 발급 (다시 로그인하지 않아도 판매자로 인식)
         String accessToken = jwtProvider.createAccessToken(member.getId(), member.getEmail(), member.getRole().name());

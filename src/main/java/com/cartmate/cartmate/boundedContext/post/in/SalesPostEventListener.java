@@ -1,8 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.in;
 
 import com.cartmate.cartmate.boundedContext.post.app.SalesPostFacade;
-import com.cartmate.cartmate.shared.member.event.SellerCreatedEvent;
-import com.cartmate.cartmate.shared.member.event.SellerUpdatedEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.shared.product.event.ProductCreatedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
@@ -21,14 +20,8 @@ public class SalesPostEventListener {
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
-    public void handle(SellerCreatedEvent event) {
-        salesPostFacade.syncSeller(event.getSeller());
-    }
-
-    @TransactionalEventListener(phase = AFTER_COMMIT)
-    @Transactional(propagation = REQUIRES_NEW)
-    public void handle(SellerUpdatedEvent event) {
-        salesPostFacade.syncSeller(event.getSeller());
+    public void handle(SellerRegisteredEvent event) {
+        salesPostFacade.syncSeller(event);
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)

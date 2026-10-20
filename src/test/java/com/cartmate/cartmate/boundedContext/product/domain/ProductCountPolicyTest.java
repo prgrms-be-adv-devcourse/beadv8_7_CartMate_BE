@@ -106,6 +106,6 @@ class ProductCountPolicyTest {
         for (int i = 0; i < imageCount; i++) {
             images.add(new CreateProductImage(0L, 0L, 0L, null, i, null));
         }
-        return new CreateProduct(0L, 0L, 0L, 1L, "상품", "설명", 10000L, images);
+        return new CreateProduct(0L, 0L, 0L, 1L, "상품", "설명", 10000L, images, null);
     }
 }

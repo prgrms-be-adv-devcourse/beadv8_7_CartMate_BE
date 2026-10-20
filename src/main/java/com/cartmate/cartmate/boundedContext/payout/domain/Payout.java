@@ -15,7 +15,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "payout",
-        uniqueConstraints = @UniqueConstraint(name = "uk_payout_order_item", columnNames = {"order_item_id"})
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_payout_purchase_type_order_item", columnNames = {"purchase_type", "order_item_id"})
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -31,6 +32,11 @@ public class Payout {
 
     @Column(name = "order_id", nullable = false)
     private Long orderId;
+
+    // 주문상품이 개인 주문인지 공동물품 주문인지. 이 컬럼이 생기기 전에 만든 정산은 null이다.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "purchase_type")
+    private PayoutPurchaseType purchaseType;
 
     @Column(name = "order_item_id", nullable = false)
     private Long orderItemId;
@@ -78,9 +84,11 @@ public class Payout {
     private LocalDateTime updatedAt;
 
 
-    public static Payout create(Long sellerId, Long orderId, Long orderItemId, String productName, Long quantity,
-                                Long salesAmount, LocalDateTime orderedAt, LocalDateTime confirmedAt) {
-        if (sellerId == null || orderId == null || orderItemId == null || confirmedAt == null) {
+    public static Payout create(Long sellerId, Long orderId, PayoutPurchaseType purchaseType, Long orderItemId,
+                                String productName, Long quantity, Long salesAmount, LocalDateTime orderedAt,
+                                LocalDateTime confirmedAt) {
+        if (sellerId == null || orderId == null || purchaseType == null || orderItemId == null
+                || confirmedAt == null) {
             throw new ServiceException(PayoutErrorCode.PAYOUT_REQUIRED_VALUE_MISSING);
         }
 
@@ -88,7 +96,8 @@ public class Payout {
             throw new ServiceException(PayoutErrorCode.PAYOUT_INVALID_AMOUNT);
         }
 
-        return new Payout(sellerId, orderId, orderItemId, productName, quantity, salesAmount, orderedAt, confirmedAt);
+        return new Payout(sellerId, orderId, purchaseType, orderItemId, productName, quantity, salesAmount, orderedAt,
+                confirmedAt);
     }
 
     // 대기 중인 정산을 지급 완료로 바꾸고 지급 시각을 기록한다.
@@ -101,10 +110,11 @@ public class Payout {
         this.paidAt = now;
     }
 
-    private Payout(Long sellerId, Long orderId, Long orderItemId, String productName, Long quantity,
-                   Long salesAmount, LocalDateTime orderedAt, LocalDateTime confirmedAt) {
+    private Payout(Long sellerId, Long orderId, PayoutPurchaseType purchaseType, Long orderItemId, String productName,
+                   Long quantity, Long salesAmount, LocalDateTime orderedAt, LocalDateTime confirmedAt) {
         this.sellerId = sellerId;
         this.orderId = orderId;
+        this.purchaseType = purchaseType;
         this.orderItemId = orderItemId;
         this.productName = productName;
         this.quantity = quantity;

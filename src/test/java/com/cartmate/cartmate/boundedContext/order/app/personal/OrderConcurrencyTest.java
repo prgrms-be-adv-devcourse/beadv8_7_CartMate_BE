@@ -129,7 +129,7 @@ class OrderConcurrencyTest {
 
     private Long saveOrder(Long buyer, LocalDateTime createdAt) {
         Order order = Order.createPersonal("IT-" + nextId(), buyer,
-                List.of(new OrderLine(2L, 4L, null, "축구공", "5호", 25000, 1)),
+                List.of(new OrderLine(2L, 4L, 1L, "축구공", "5호", 25000, 1)),
                 DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"), createdAt);
         Long orderId = repository.save(order).getId();
         createdIds.add(orderId);

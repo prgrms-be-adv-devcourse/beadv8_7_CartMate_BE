@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.payout.out;
 
 import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
+import com.cartmate.cartmate.boundedContext.payout.domain.PayoutPurchaseType;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,9 @@ import java.util.Optional;
 public interface PayoutRepository extends JpaRepository<Payout, Long> {
 
     List<Payout> findAllByOrderItemIdIn(Collection<Long> orderItemIds);
+
+    // 개인 주문과 공동물품 주문은 주문상품 ID가 겹칠 수 있어 구매 유형까지 같이 조회한다.
+    List<Payout> findAllByPurchaseTypeAndOrderItemIdIn(PayoutPurchaseType purchaseType, Collection<Long> orderItemIds);
 
     // 판매자의 정산을 지급 예정 시각과 상태별로 묶어 건수와 금액 합계를 구한다. 지급 예정 시각이 fromAt 이상 toAt 미만인 정산만 대상이며 최신 지급일부터 정렬한다.
     @Query("select p.scheduledAt as scheduledAt, p.status as status, count(p) as payoutCount, "

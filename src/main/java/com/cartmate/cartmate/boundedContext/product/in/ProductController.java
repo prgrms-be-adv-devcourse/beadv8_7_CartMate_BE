@@ -18,14 +18,14 @@ import java.util.List;
 public class ProductController {
     private final ProductFacade productFacade;
 
-    @PostMapping("/register")
+    @PostMapping
     public ResponseEntity<Void> registerProducts(@RequestPart("request") CreateProductRequest request,
                                                 @RequestPart(value = "images") List<MultipartFile> images) {
         productFacade.registerProduct(request, images);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @DeleteMapping("/posts/{postId}")
+    @DeleteMapping("/{postId}")
     public ResponseEntity<Void> deleteProductByPost(@PathVariable Long postId) {
         productFacade.deleteProductByPost(postId);
         return ResponseEntity.status(HttpStatus.OK).build();
@@ -39,7 +39,7 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    @PatchMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> updateProducts(
             @RequestPart("request") UpdateProductsRequest request,
             @RequestPart(value = "images", required = false) List<MultipartFile> images

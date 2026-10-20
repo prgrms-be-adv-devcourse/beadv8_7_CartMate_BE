@@ -168,7 +168,7 @@ class ProductRegisterTest {
         for (int seq = 0; seq < imageCount; seq++) {
             images.add(new CreateProductImage(null, SELLER_ID, null, null, seq, null));
         }
-        return new CreateProduct(null, SELLER_ID, POST_ID, 1L, name, "설명", 10000L, images);
+        return new CreateProduct(null, SELLER_ID, POST_ID, 1L, name, "설명", 10000L, images, null);
     }
 
     private List<MultipartFile> getDummyImages(MultipartFile... files) {

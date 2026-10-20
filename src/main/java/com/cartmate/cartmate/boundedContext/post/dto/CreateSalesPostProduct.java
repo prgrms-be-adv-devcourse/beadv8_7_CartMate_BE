@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.post.dto;
 
 import com.cartmate.cartmate.shared.product.dto.CreateProduct;
 import com.cartmate.cartmate.shared.product.dto.CreateProductImage;
+import com.cartmate.cartmate.shared.product.dto.CreateProductOption;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,7 @@ public class CreateSalesPostProduct {
     private String description;
     private Long basePrice;
     private List<CreateSalesPostProductImage> productImageList;
+    private List<CreateProductOption> productOptionList;
 
     public CreateProduct toCreateProduct(Long sellerId) {
         List<CreateProductImage> productImages = productImageList.stream()
@@ -33,7 +35,8 @@ public class CreateSalesPostProduct {
                 name,
                 description,
                 basePrice,
-                productImages
+                productImages,
+                productOptionList
         );
     }
 }
