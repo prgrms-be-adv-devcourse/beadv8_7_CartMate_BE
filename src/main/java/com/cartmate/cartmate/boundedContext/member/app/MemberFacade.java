@@ -3,7 +3,6 @@ package com.cartmate.cartmate.boundedContext.member.app;
 import com.cartmate.cartmate.boundedContext.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.member.domain.SuspensionReleaseType;
 import com.cartmate.cartmate.boundedContext.member.dto.*;
-import com.cartmate.cartmate.boundedContext.member.out.MyPageDashboardQuery;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +25,7 @@ public class MemberFacade {
     private final AdminMemberDetailUseCase adminMemberDetailUseCase;
     private final AdminMemberStatusUseCase adminMemberStatusUseCase;
     private final MemberSellerUseCase memberSellerUseCase;
+    private final MyPageDashboardUseCase myPageDashboardUseCase;
 
     @Transactional
     public MemberDto join(SignupRequest request) {
@@ -69,11 +69,9 @@ public class MemberFacade {
 
 
     //임시 조회용
-    private final MyPageDashboardQuery myPageDashboardQuery;
-
     @Transactional(readOnly = true)
     public MyPageDashboardResponse getMyPageDashboard(Long memberId) {
-        return myPageDashboardQuery.findByMemberId(memberId);
+        return myPageDashboardUseCase.getDashboard(memberId);
     }
 
     @Transactional(readOnly = true)
