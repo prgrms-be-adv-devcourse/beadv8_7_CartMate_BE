@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
+import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingPurchaseType;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletWithdrawOrder;
@@ -51,8 +52,8 @@ public class WalletFacade {
 
     // 결제 ID 기준으로 중복 사용을 확인하고 잔액차감·홀딩생성·거래내역저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void use(Long walletId, Long amount, Long paymentId, Long orderId) {
-        walletPaymentUseCase.use(walletId, amount, paymentId, orderId);
+    public void use(Long walletId, Long amount, Long paymentId, Long orderId, HoldingPurchaseType purchaseType) {
+        walletPaymentUseCase.use(walletId, amount, paymentId, orderId, purchaseType);
     }
 
     // 환불 ID 기준으로 중복 환불을 확인하고 홀딩 환불누적·잔액복구·환불거래저장을 하나의 트랜잭션으로 처리한다.

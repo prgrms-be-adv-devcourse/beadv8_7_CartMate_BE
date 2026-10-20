@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.domain.Holding;
+import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingPurchaseType;
 import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingSettlement;
 import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.wallet.domain.ReferenceType;
@@ -59,7 +60,7 @@ class WalletSettlementUseCaseTest {
     }
 
     private Holding holding(long id, long paymentId, long amount, long alreadySettled) {
-        Holding holding = Holding.create(Wallet.createWallet(id + 1_000), ORDER_ID, amount, paymentId);
+        Holding holding = Holding.create(Wallet.createWallet(id + 1_000), ORDER_ID, HoldingPurchaseType.INDIVIDUAL_GROUP, amount, paymentId);
         ReflectionTestUtils.setField(holding, "id", id);
         when(holdingSettlementRepository.sumAmountByHoldingId(id)).thenReturn(alreadySettled);
         return holding;

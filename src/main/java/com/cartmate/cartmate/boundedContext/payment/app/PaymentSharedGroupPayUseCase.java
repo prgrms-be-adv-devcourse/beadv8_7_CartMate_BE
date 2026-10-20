@@ -62,7 +62,8 @@ public class PaymentSharedGroupPayUseCase {
             throw new ServiceException(PaymentErrorCode.PAYMENT_IN_PROGRESS);
         }
 
-        paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), sharedGroupOrderId);
+        paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), sharedGroupOrderId,
+                PaymentType.GROUP_SHARE);
 
         // 개설자가 팀 배송지를 안 보냈으면 order가 예외 → 차감도 롤백
         // 마지막 참여자의 결제면 order가 주문을 확정하고 확정 이벤트를 발행
