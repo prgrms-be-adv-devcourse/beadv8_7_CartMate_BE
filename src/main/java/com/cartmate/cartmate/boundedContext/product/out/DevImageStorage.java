@@ -17,10 +17,10 @@ import java.nio.file.StandardCopyOption;
 @Profile("dev")
 public class DevImageStorage implements ImageStorage {
 
-    @Value("${image.local.dir}")
+    @Value("${image.local.dir:./uploads}")
     private String baseDir;
 
-    @Value("${image.local.url}")
+    @Value("${image.local.url:/images}")
     private String baseUrl;
 
     @Override
