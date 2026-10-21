@@ -61,29 +61,6 @@ public class SalesPostProduct extends BaseManualIdAndTime {
         this.status = status;
     }
 
-    public SelectSalesPostProduct toSelectProductDto() {
-        List<SelectSalesPostProductImage> resultList = imageList
-                .stream()
-                .map(SalesPostProductImage::toSelectProductImageDto)
-                .toList();
-        List<SelectSalesPostProductOption> optionResultList = optionList
-                .stream()
-                .map(SalesPostProductOption::toSelectProductOptionDto)
-                .toList();
-        return new SelectSalesPostProduct(
-                getId(),
-                categoryId,
-                name,
-                description,
-                basePrice,
-                status,
-                resultList,
-                optionResultList,
-                getCreateDate(),
-                getModifyDate()
-        );
-    }
-
     public SalesPostProduct delete() {
         this.status = ProductStatus.DELETED;
         imageList.forEach(SalesPostProductImage::delete);

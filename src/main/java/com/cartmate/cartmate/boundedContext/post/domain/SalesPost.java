@@ -46,24 +46,6 @@ public class SalesPost extends BaseIdAndTime {
         this.viewCount = viewCount;
     }
 
-    public SelectSalesPostResponse toSelectResultDto() {
-        List<SelectSalesPostProduct> resultList = productList
-                .stream()
-                .map(SalesPostProduct::toSelectProductDto)
-                .toList();
-        return new SelectSalesPostResponse(
-                getId(),
-                sellerId,
-                title,
-                content,
-                viewCount,
-                status,
-                resultList,
-                getCreateDate(),
-                getModifyDate()
-        );
-    }
-
     public SalesPost delete() {
         this.status = SalesPostSaleStatus.PENDING;
         return this;

@@ -1,10 +1,10 @@
 package com.cartmate.cartmate.boundedContext.post.app;
 
-import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
-import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
-import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostRequest;
-import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
+import com.cartmate.cartmate.boundedContext.post.domain.*;
+import com.cartmate.cartmate.boundedContext.post.dto.*;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
+import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.product.out.ImageStorage;
 import com.cartmate.cartmate.global.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.page.PageResponse;
@@ -20,11 +20,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SalesPostSelectUseCase {
     private final SalesPostRepository salesPostRepository;
+    private final ImageStorage imageStorage;
 
     @Transactional(readOnly = true)
     public PageResponse<SelectSalesPostResponse> selectSalesPostAll(SelectSalesPostRequest request, Pageable pageable) {
         Page<SelectSalesPostResponse> page = salesPostRepository.selectSalesPostAll(request, pageable)
-                .map(SalesPost::toSelectResultDto);
+                .map(this::toSelectResultDto);
         return PageResponse.of(page);
     }
 
@@ -34,6 +35,68 @@ public class SalesPostSelectUseCase {
                 .filter(p -> p.getStatus() != SalesPostSaleStatus.DELETED)
                 .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
 
-        return post.toSelectResultDto();
+        return this.toSelectResultDto(post);
+    }
+
+    private SelectSalesPostResponse toSelectResultDto(SalesPost post) {
+        List<SelectSalesPostProduct> resultList = post.getProductList()
+                .stream()
+                .map(this::toSelectProductDto)
+                .toList();
+        return new SelectSalesPostResponse(
+                post.getId(),
+                post.getSellerId(),
+                post.getTitle(),
+                post.getContent(),
+                post.getViewCount(),
+                post.getStatus(),
+                resultList,
+                post.getCreateDate(),
+                post.getModifyDate()
+        );
+    }
+
+    private SelectSalesPostProduct toSelectProductDto(SalesPostProduct product) {
+        List<SelectSalesPostProductImage> imageResultList = product.getImageList()
+                .stream()
+                .map(this::toSelectProductImageDto)
+                .toList();
+        List<SelectSalesPostProductOption> optionResultList = product.getOptionList()
+                .stream()
+                .map(this::toSelectProductOptionDto)
+                .toList();
+        return new SelectSalesPostProduct(
+                product.getId(),
+                product.getCategoryId(),
+                product.getName(),
+                product.getDescription(),
+                product.getBasePrice(),
+                product.getStatus(),
+                imageResultList,
+                optionResultList,
+                product.getCreateDate(),
+                product.getModifyDate()
+        );
+    }
+
+
+    private SelectSalesPostProductImage toSelectProductImageDto(SalesPostProductImage image) {
+        return new SelectSalesPostProductImage(
+                image.getId(),
+                this.imageStorage.toUrl(image.getS3Key()),
+                image.getImageSeq(),
+                image.getCreateDate(),
+                image.getModifyDate()
+        );
+    }
+
+    private SelectSalesPostProductOption toSelectProductOptionDto(SalesPostProductOption option) {
+        return new SelectSalesPostProductOption(
+                option.getId(),
+                option.getProductTypeId(),
+                option.getProductOptionId(),
+                option.getCreateDate(),
+                option.getModifyDate()
+        );
     }
 }
