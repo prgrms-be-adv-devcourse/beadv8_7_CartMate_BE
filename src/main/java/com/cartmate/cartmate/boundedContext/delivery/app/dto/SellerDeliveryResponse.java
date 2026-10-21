@@ -14,6 +14,7 @@ import java.util.Map;
 public record SellerDeliveryResponse(
         Long deliveryId,
         Long orderId,
+        String orderNumber,
         PurchaseType purchaseType,
         DeliveryStatus status,
         LocalDateTime createdAt,
@@ -34,6 +35,7 @@ public record SellerDeliveryResponse(
         return new SellerDeliveryResponse(
                 delivery.getId(),
                 delivery.getOrderId(),
+                delivery.getOrderNumber(),
                 delivery.getPurchaseType(),
                 delivery.getStatus(),
                 delivery.getCreatedAt(),
