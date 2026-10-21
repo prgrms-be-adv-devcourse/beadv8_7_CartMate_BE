@@ -100,6 +100,11 @@ public class ProductFacade {
         productImageFileDeleteUseCase.deleteByKeys(result.deletedKeys());
     }
 
+    @Transactional(readOnly = true)
+    public List<ProductForPurchase> findProductsForPurchase(Collection<Long> productIds) {
+        return productQueryUseCase.findProductsForPurchase(productIds);
+    }
+
     // api에 의한 보상트랜잭션 처리
     @Transactional
     public void rollbackByApiFail(RollbackProductRequest rollbackProductRequest) {
