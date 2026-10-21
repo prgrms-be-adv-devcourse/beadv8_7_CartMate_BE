@@ -198,6 +198,38 @@ class DeliveryQueryUseCaseTest {
     }
 
     @Test
+    @DisplayName("주문별 배송 목록은 구매자 본인의 해당 주문·구매 유형 배송만 응답으로 변환한다")
+    void getMyDeliveriesByOrder() {
+        when(deliveryRepository.findByMemberIdAndOrderIdAndPurchaseTypeOrderByCreatedAtDescIdDesc(
+                BUYER, 100L, PurchaseType.INDIVIDUAL_GROUP)).thenReturn(List.of(delivery));
+
+        List<DeliveryResponse> result = useCase.getMyDeliveriesByOrder(BUYER, 100L, PurchaseType.INDIVIDUAL_GROUP);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).deliveryId()).isEqualTo(5L);
+        assertThat(result.get(0).orderId()).isEqualTo(100L);
+        assertThat(result.get(0).purchaseType()).isEqualTo(PurchaseType.INDIVIDUAL_GROUP);
+    }
+
+    @Test
+    @DisplayName("주문별 배송이 없으면 빈 목록이다")
+    void getMyDeliveriesByOrderEmpty() {
+        when(deliveryRepository.findByMemberIdAndOrderIdAndPurchaseTypeOrderByCreatedAtDescIdDesc(
+                STRANGER, 100L, PurchaseType.INDIVIDUAL_GROUP)).thenReturn(List.of());
+
+        assertThat(useCase.getMyDeliveriesByOrder(STRANGER, 100L, PurchaseType.INDIVIDUAL_GROUP)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("주문별 배송 조회에서 회원 ID가 없으면 400 오류다")
+    void getMyDeliveriesByOrderMemberIdRequired() {
+        assertThatThrownBy(() -> useCase.getMyDeliveriesByOrder(null, 100L, PurchaseType.INDIVIDUAL_GROUP))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("400-DELIVERY_MEMBER_ID_REQUIRED");
+        verifyNoInteractions(deliveryRepository);
+    }
+
+    @Test
     @DisplayName("회원 ID가 없으면 400 오류다")
     void detailMemberIdRequired() {
         assertThatThrownBy(() -> useCase.getDeliveryDetails(5L, null))

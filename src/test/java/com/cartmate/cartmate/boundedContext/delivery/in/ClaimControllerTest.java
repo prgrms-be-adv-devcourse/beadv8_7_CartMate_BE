@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -279,15 +280,28 @@ class ClaimControllerTest {
     }
 
     @Test
-    @DisplayName("items가 없는 요청도 컨트롤러에서 막지 않고 유스케이스 검증에 맡긴다")
-    void nullItemsPassedThrough() throws Exception {
-        when(deliveryFacade.createClaim(any()))
-                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_ITEMS_REQUIRED));
+    @DisplayName("필수 값이 빠지거나 잘못된 요청은 서비스를 호출하지 않고 400으로 응답한다")
+    void invalidRequestRejected() throws Exception {
+        String[] invalidBodies = {
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\"}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[null]}",
+                "{\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[{\"deliveryItemId\":50,\"quantity\":1}]}",
+                "{\"deliveryId\":5,\"reason\":\"OTHER\",\"items\":[{\"deliveryItemId\":50,\"quantity\":1}]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"items\":[{\"deliveryItemId\":50,\"quantity\":1}]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[{\"quantity\":1}]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[{\"deliveryItemId\":50,\"quantity\":0}]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"detail\":\"" + "가".repeat(1001)
+                        + "\",\"items\":[{\"deliveryItemId\":50,\"quantity\":1}]}"
+        };
 
-        mvc.perform(post("/api/claims").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.resultCode").value("400-DELIVERY_CLAIM_ITEMS_REQUIRED"));
+        for (String body : invalidBodies) {
+            mvc.perform(post("/api/claims").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-COMMON_INVALID_INPUT"));
+        }
+
+        verifyNoInteractions(deliveryFacade);
     }
 
     @Test

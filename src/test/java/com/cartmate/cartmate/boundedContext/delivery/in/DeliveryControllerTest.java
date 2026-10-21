@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -72,6 +73,40 @@ class DeliveryControllerTest {
                 .andExpect(jsonPath("$.data.content[0].deliveryId").value(5))
                 .andExpect(jsonPath("$.data.content[0].receiverName").value("홍길동"));
         verify(deliveryFacade).getMyDeliveries(eq(1L), any());
+    }
+
+    @Test
+    @DisplayName("주문별 배송 목록은 로그인한 회원과 주문 ID, 구매 유형으로 조회하고 배열로 응답한다")
+    void deliveriesByOrder() throws Exception {
+        DeliveryResponse first = new DeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+                "홍길동", DeliveryStatus.SHIPPING, "CJ대한통운", "658219384910", null);
+        DeliveryResponse second = new DeliveryResponse(6L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+                "홍길동", DeliveryStatus.REQUESTED, null, null, null);
+        when(deliveryFacade.getMyDeliveriesByOrder(1L, 100L, PurchaseType.INDIVIDUAL_GROUP))
+                .thenReturn(List.of(first, second));
+
+        mvc.perform(get("/api/deliveries/by-order")
+                        .param("orderId", "100")
+                        .param("purchaseType", "INDIVIDUAL_GROUP"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].deliveryId").value(5))
+                .andExpect(jsonPath("$.data[0].trackingNumber").value("658219384910"))
+                .andExpect(jsonPath("$.data[1].status").value("REQUESTED"));
+    }
+
+    @Test
+    @DisplayName("주문별 배송 목록은 orderId나 purchaseType이 없거나 잘못되면 서비스를 호출하지 않고 400이다")
+    void deliveriesByOrderBadParams() throws Exception {
+        mvc.perform(get("/api/deliveries/by-order").param("purchaseType", "INDIVIDUAL_GROUP"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/deliveries/by-order").param("orderId", "100"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/deliveries/by-order").param("orderId", "100").param("purchaseType", "UNKNOWN"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(deliveryFacade);
     }
 
     @Test
@@ -138,6 +173,23 @@ class DeliveryControllerTest {
                         .content("{\"carrier\":\"CJ대한통운\",\"trackingNumber\":\"1\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.resultCode").value("409-DELIVERY_INVALID_STATUS"));
+    }
+
+    @Test
+    @DisplayName("PATCH ready에서 택배사나 송장번호가 비어 있으면 서비스를 호출하지 않고 400으로 응답한다")
+    void readyDeliveryRejectsBlankFields() throws Exception {
+        mvc.perform(patch("/api/deliveries/5/ready")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"carrier\":\" \",\"trackingNumber\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-COMMON_INVALID_INPUT"));
+        mvc.perform(patch("/api/deliveries/5/ready")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-COMMON_INVALID_INPUT"));
+
+        verifyNoInteractions(deliveryFacade);
     }
 
     @Test
