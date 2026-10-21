@@ -55,6 +55,15 @@ public class WalletController {
         return new RsData<>("200-1", "거래 내역 조회 성공했습니다.", walletFacade.getTransactions(walletId, pageable));
     }
 
+    @GetMapping("/me/transactions/summary")
+    public RsData<WalletTransactionSummaryResponse> getMyWalletTransactionSummary(
+            @AuthenticationPrincipal SecurityUser user
+    ) {
+        Long walletId = walletFacade.getWallet(user.memberId()).walletId();
+
+        return new RsData<>("200-1", "거래 내역 요약 조회 성공했습니다.", walletFacade.getTransactionSummary(walletId));
+    }
+
     @PostMapping("/me/charges")
     @ResponseStatus(HttpStatus.CREATED)
     public RsData<WalletChargeOrderResponse> walletChargeOrder(

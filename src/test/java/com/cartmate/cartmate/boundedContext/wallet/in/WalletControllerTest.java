@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.wallet.app.WalletChargeConfirmServic
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletRetryService;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionSummaryResponse;
 import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.global.exception.GlobalExceptionHandler;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -60,6 +62,18 @@ class WalletControllerTest {
     @AfterEach
     void clear() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("거래 내역 요약 조회는 내 지갑의 충전·결제 합계를 반환한다")
+    void getMyWalletTransactionSummary() throws Exception {
+        when(walletFacade.getTransactionSummary(WALLET_ID)).thenReturn(new WalletTransactionSummaryResponse(200_000L, 93_000L));
+
+        mvc.perform(get("/api/wallets/me/transactions/summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.totalCharged").value(200000))
+                .andExpect(jsonPath("$.data.totalPaid").value(93000));
     }
 
     private static String body(String orderNumber, String paymentKey, Object amount) {

@@ -4,6 +4,8 @@ import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionSummaryResponse;
+import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransactionType;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingSettlementRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
@@ -13,6 +15,10 @@ import org.springframework.data.domain.Pageable;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 
@@ -43,5 +49,18 @@ public class WalletQueryUseCase {
     public Page<WalletTransactionResponse> getTransactions(Long walletId, Pageable pageable) {
         return walletTransactionRepository.findByWalletIdOrderByCreatedAtDescIdDesc(walletId, pageable)
                 .map(WalletTransactionResponse::from);
+    }
+
+    // 전체 기간의 충전 합계와 결제 합계를 반환한다. 결제 합계는 환불로 돌려받은 금액을 뺀 순 결제액이다.
+    public WalletTransactionSummaryResponse getTransactionSummary(Long walletId) {
+        Map<WalletTransactionType, Long> totals = walletTransactionRepository
+                .sumAmountByWalletIdAndTypes(walletId, List.of(WalletTransactionType.CHARGE, WalletTransactionType.USE, WalletTransactionType.REFUND))
+                .stream()
+                .collect(Collectors.toMap(WalletTransactionRepository.TypeTotal::getType, WalletTransactionRepository.TypeTotal::getTotal));
+
+        long charged = totals.getOrDefault(WalletTransactionType.CHARGE, 0L);
+        long used = totals.getOrDefault(WalletTransactionType.USE, 0L);
+        long refunded = totals.getOrDefault(WalletTransactionType.REFUND, 0L);
+        return new WalletTransactionSummaryResponse(charged, used - refunded);
     }
 }

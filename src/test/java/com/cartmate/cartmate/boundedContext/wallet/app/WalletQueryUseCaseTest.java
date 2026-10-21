@@ -1,8 +1,10 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionSummaryResponse;
 import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
+import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransactionType;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingSettlementRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
@@ -13,10 +15,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +46,20 @@ class WalletQueryUseCaseTest {
         when(walletRepository.findByMemberId(MEMBER_ID)).thenReturn(Optional.of(wallet));
     }
 
+    private static WalletTransactionRepository.TypeTotal typeTotal(WalletTransactionType type, long total) {
+        return new WalletTransactionRepository.TypeTotal() {
+            @Override
+            public WalletTransactionType getType() {
+                return type;
+            }
+
+            @Override
+            public Long getTotal() {
+                return total;
+            }
+        };
+    }
+
     @Test
     @DisplayName("동결 금액은 홀딩 중인 홀딩의 금액에서 환불 누적액과 정산으로 꺼낸 금액을 뺀 값이다")
     void heldBalanceIsRemainingOfReservedHoldings() {
@@ -62,6 +81,42 @@ class WalletQueryUseCaseTest {
         when(holdingSettlementRepository.sumAmountByWalletIdAndHoldingStatus(WALLET_ID, HoldingStatus.RESERVED)).thenReturn(0L);
 
         assertThat(useCase.getWallet(MEMBER_ID).heldBalance()).isZero();
+    }
+
+    @Test
+    @DisplayName("거래 요약의 충전 합계는 충전 거래 합계이고 결제 합계는 결제에서 환불을 뺀 값이다")
+    void transactionSummaryNetsRefundFromUse() {
+        when(transactionRepository.sumAmountByWalletIdAndTypes(eq(WALLET_ID), anyCollection())).thenReturn(List.of(
+                typeTotal(WalletTransactionType.CHARGE, 200_000L),
+                typeTotal(WalletTransactionType.USE, 98_000L),
+                typeTotal(WalletTransactionType.REFUND, 5_000L)));
+
+        WalletTransactionSummaryResponse response = useCase.getTransactionSummary(WALLET_ID);
+
+        assertThat(response.totalCharged()).isEqualTo(200_000L);
+        assertThat(response.totalPaid()).isEqualTo(93_000L);
+    }
+
+    @Test
+    @DisplayName("환불 거래가 없는 유형은 0으로 계산한다")
+    void transactionSummaryTreatsMissingTypeAsZero() {
+        when(transactionRepository.sumAmountByWalletIdAndTypes(eq(WALLET_ID), anyCollection())).thenReturn(List.of(
+                typeTotal(WalletTransactionType.CHARGE, 200_000L),
+                typeTotal(WalletTransactionType.USE, 98_000L)));
+
+        WalletTransactionSummaryResponse response = useCase.getTransactionSummary(WALLET_ID);
+
+        assertThat(response.totalCharged()).isEqualTo(200_000L);
+        assertThat(response.totalPaid()).isEqualTo(98_000L);
+    }
+
+    @Test
+    @DisplayName("거래가 없으면 거래 요약은 모두 0이다")
+    void transactionSummaryIsZeroWithoutTransactions() {
+        WalletTransactionSummaryResponse response = useCase.getTransactionSummary(WALLET_ID);
+
+        assertThat(response.totalCharged()).isZero();
+        assertThat(response.totalPaid()).isZero();
     }
 
     @Test

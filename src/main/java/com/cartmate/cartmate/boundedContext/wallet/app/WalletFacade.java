@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletChargeOrderInfo
 import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionSummaryResponse;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletWithdrawOrder;
 import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,12 @@ public class WalletFacade {
             Pageable pageable
     ) {
         return walletQueryUseCase.getTransactions(walletId, pageable);
+    }
+
+    // 지갑 거래 내역의 충전·결제 합계를 조회한다.
+    @Transactional(readOnly = true)
+    public WalletTransactionSummaryResponse getTransactionSummary(Long walletId) {
+        return walletQueryUseCase.getTransactionSummary(walletId);
     }
 
     // 주문 금액 충전·거래 내역 저장·주문 완료를 하나의 트랜잭션으로 처리한다. 완료 주문은 재충전하지 않는다.
