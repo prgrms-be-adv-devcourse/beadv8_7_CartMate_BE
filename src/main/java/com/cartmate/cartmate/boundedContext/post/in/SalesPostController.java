@@ -42,8 +42,8 @@ public class SalesPostController {
         return ResponseEntity.ok(result);
     }
 
-    @GetMapping("/detail")
-    public ResponseEntity<RsData<SelectSalesPostResponse>> selectSalesPostDetail(Long postId) {
+    @GetMapping("/detail/{postId}")
+    public ResponseEntity<RsData<SelectSalesPostResponse>> selectSalesPostDetail(@PathVariable Long postId) {
         RsData<SelectSalesPostResponse> result = salesPostFacade.selectSalesPostDetail(postId);
         return ResponseEntity.ok(result);
     }

@@ -52,4 +52,9 @@ public class ProductDeleteUseCase {
                 new ProductListDeletedEvent(new DeleteProductListRequest(deletedList))
         );
     }
+
+    @Transactional
+    public void hardDeleteByEvent(Long postId) {
+        productRepository.deleteBySalesPostId(postId);
+    }
 }

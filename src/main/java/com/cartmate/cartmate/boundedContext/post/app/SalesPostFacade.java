@@ -8,10 +8,13 @@ import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
 import com.cartmate.cartmate.boundedContext.post.dto.UpdateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
+import com.cartmate.cartmate.shared.post.dto.RollbackProductRequest;
+import com.cartmate.cartmate.shared.post.event.PostApiCallFailedEvent;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
@@ -53,8 +56,13 @@ public class SalesPostFacade {
             transactionTemplate.execute(status -> {
                 return post.saveComplete();
             });
-        } catch(ServiceException e) {
+        } catch(Exception e) {
             salesPostDeleteUseCase.deleteSalesPostByEvent(post.getId());
+            GlobalConfig.getEventPublisher().publish(
+                    new PostApiCallFailedEvent(
+                            new RollbackProductRequest(post.getId())
+                    )
+            );
             throw e;
         }
     }
