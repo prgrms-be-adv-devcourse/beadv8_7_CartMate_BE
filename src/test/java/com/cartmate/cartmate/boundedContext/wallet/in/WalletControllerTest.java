@@ -54,7 +54,7 @@ class WalletControllerTest {
                 .build();
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                 new SecurityUser(MEMBER_ID, "buyer@a.com", "BUYER"), null, List.of()));
-        when(walletFacade.getWallet(MEMBER_ID)).thenReturn(new WalletBalanceResponse(WALLET_ID, 10_000L));
+        when(walletFacade.getWallet(MEMBER_ID)).thenReturn(new WalletBalanceResponse(WALLET_ID, 10_000L, 3_000L));
     }
 
     @AfterEach
@@ -77,7 +77,8 @@ class WalletControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.data.walletId").value(7))
-                .andExpect(jsonPath("$.data.balance").value(10000));
+                .andExpect(jsonPath("$.data.balance").value(10000))
+                .andExpect(jsonPath("$.data.heldBalance").value(3000));
 
         verify(walletChargeConfirmService).confirm(WALLET_ID, "Charge_1", "pk_1", 10_000L);
     }
