@@ -4,6 +4,8 @@ import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionSummaryResponse;
+import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransactionType;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingSettlementRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
@@ -43,5 +45,13 @@ public class WalletQueryUseCase {
     public Page<WalletTransactionResponse> getTransactions(Long walletId, Pageable pageable) {
         return walletTransactionRepository.findByWalletIdOrderByCreatedAtDescIdDesc(walletId, pageable)
                 .map(WalletTransactionResponse::from);
+    }
+
+    // 전체 기간의 충전 합계와 결제 합계를 반환한다. 결제 합계는 환불로 돌려받은 금액을 뺀 순 결제액이다.
+    public WalletTransactionSummaryResponse getTransactionSummary(Long walletId) {
+        long charged = walletTransactionRepository.sumAmountByWalletIdAndType(walletId, WalletTransactionType.CHARGE);
+        long used = walletTransactionRepository.sumAmountByWalletIdAndType(walletId, WalletTransactionType.USE);
+        long refunded = walletTransactionRepository.sumAmountByWalletIdAndType(walletId, WalletTransactionType.REFUND);
+        return new WalletTransactionSummaryResponse(charged, used - refunded);
     }
 }

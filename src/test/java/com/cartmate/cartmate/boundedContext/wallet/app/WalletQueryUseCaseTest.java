@@ -1,8 +1,10 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionSummaryResponse;
 import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
+import com.cartmate.cartmate.boundedContext.wallet.domain.WalletTransactionType;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingSettlementRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
@@ -62,6 +64,28 @@ class WalletQueryUseCaseTest {
         when(holdingSettlementRepository.sumAmountByWalletIdAndHoldingStatus(WALLET_ID, HoldingStatus.RESERVED)).thenReturn(0L);
 
         assertThat(useCase.getWallet(MEMBER_ID).heldBalance()).isZero();
+    }
+
+    @Test
+    @DisplayName("거래 요약의 충전 합계는 충전 거래 합계이고 결제 합계는 결제에서 환불을 뺀 값이다")
+    void transactionSummaryNetsRefundFromUse() {
+        when(transactionRepository.sumAmountByWalletIdAndType(WALLET_ID, WalletTransactionType.CHARGE)).thenReturn(200_000L);
+        when(transactionRepository.sumAmountByWalletIdAndType(WALLET_ID, WalletTransactionType.USE)).thenReturn(98_000L);
+        when(transactionRepository.sumAmountByWalletIdAndType(WALLET_ID, WalletTransactionType.REFUND)).thenReturn(5_000L);
+
+        WalletTransactionSummaryResponse response = useCase.getTransactionSummary(WALLET_ID);
+
+        assertThat(response.totalCharged()).isEqualTo(200_000L);
+        assertThat(response.totalPaid()).isEqualTo(93_000L);
+    }
+
+    @Test
+    @DisplayName("거래가 없으면 거래 요약은 모두 0이다")
+    void transactionSummaryIsZeroWithoutTransactions() {
+        WalletTransactionSummaryResponse response = useCase.getTransactionSummary(WALLET_ID);
+
+        assertThat(response.totalCharged()).isZero();
+        assertThat(response.totalPaid()).isZero();
     }
 
     @Test
