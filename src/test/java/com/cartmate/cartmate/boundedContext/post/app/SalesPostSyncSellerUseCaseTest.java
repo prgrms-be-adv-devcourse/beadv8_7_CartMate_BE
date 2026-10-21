@@ -2,7 +2,9 @@ package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostSellerRepository;
+import com.cartmate.cartmate.global.global.QuerydslConfig;
 import com.cartmate.cartmate.shared.member.dto.SellerDto;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 @DataJpaTest
-@Import(SalesPostSyncSellerUseCase.class)
+@Import({SalesPostSyncSellerUseCase.class, QuerydslConfig.class})
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class SalesPostSyncSellerUseCaseTest {
@@ -33,7 +35,7 @@ public class SalesPostSyncSellerUseCaseTest {
     @Test
     @DisplayName("판매자 생성 이벤트 수신 시 저장된다.")
     void sellerInsert() {
-        salesPostSyncSellerUseCase.syncSeller(sellerDto("첫번째 상점"));
+        salesPostSyncSellerUseCase.syncSeller(getSeller("첫번째 상점"));
         em.flush();
         em.clear();
 
@@ -44,11 +46,11 @@ public class SalesPostSyncSellerUseCaseTest {
     @Test
     @DisplayName("이미 있는 판매자는 새로 저장되지 않고 정보가 수정된다.")
     void sellerUpdate() {
-        salesPostSyncSellerUseCase.syncSeller(sellerDto("첫번째 상점"));
+        salesPostSyncSellerUseCase.syncSeller(getSeller("첫번째 상점"));
         em.flush();
         em.clear();
 
-        salesPostSyncSellerUseCase.syncSeller(sellerDto("두번째 상점"));
+        salesPostSyncSellerUseCase.syncSeller(getSeller("두번째 상점"));
         em.flush();
         em.clear();
 
@@ -57,8 +59,8 @@ public class SalesPostSyncSellerUseCaseTest {
         assertThat(updated.getBusinessName()).isEqualTo("두번째 상점");
     }
 
-    private SellerDto sellerDto(String businessName) {
-        return new SellerDto(
+    private SellerRegisteredEvent getSeller(String businessName) {
+        return new SellerRegisteredEvent(
                 1L,
                 1L,
                 "INDIVIDUAL",

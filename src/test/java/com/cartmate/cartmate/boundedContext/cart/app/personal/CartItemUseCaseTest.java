@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.app.personal;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.cart.out.ProductClient;
 import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartItemResponse;
@@ -7,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.personal.CartResponse;
 import com.cartmate.cartmate.boundedContext.cart.domain.personal.Cart;
 import com.cartmate.cartmate.boundedContext.cart.domain.personal.CartItem;
 import com.cartmate.cartmate.boundedContext.cart.out.personal.CartRepository;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,12 +19,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.BDDMockito.given;
@@ -50,7 +54,7 @@ class CartItemUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        cartItemUseCase = new CartItemUseCase(new CartSupport(cartRepository), productClient);
+        cartItemUseCase = new CartItemUseCase(cartRepository, productClient);
     }
 
     @Nested
@@ -110,8 +114,8 @@ class CartItemUseCaseTest {
             given(productClient.findByInventoryId(999L)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> cartItemUseCase.addItem(MEMBER_ID, 999L, 1))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("존재하지 않는 상품 옵션입니다.");
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("존재하지 않는 상품 옵션입니다.");
             verifyNoInteractions(cartRepository);
         }
 
@@ -121,8 +125,8 @@ class CartItemUseCaseTest {
             given(productClient.findByInventoryId(5L)).willReturn(Optional.of(SHIN_GUARD));
 
             assertThatThrownBy(() -> cartItemUseCase.addItem(MEMBER_ID, 5L, 1))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("구매할 수 없는 상품입니다.");
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("구매할 수 없는 상품입니다.");
             verifyNoInteractions(cartRepository);
         }
     }
@@ -149,8 +153,8 @@ class CartItemUseCaseTest {
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 99L, 7))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("장바구니에 없는 상품입니다.");
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("장바구니에 없는 상품입니다.");
         }
 
         @Test
@@ -159,8 +163,8 @@ class CartItemUseCaseTest {
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("장바구니가 존재하지 않습니다.");
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("장바구니가 존재하지 않습니다.");
         }
     }
 
@@ -203,6 +207,57 @@ class CartItemUseCaseTest {
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
 
             assertThatCode(() -> cartItemUseCase.clear(MEMBER_ID)).doesNotThrowAnyException();
+        }
+    }
+
+    @Nested
+    @DisplayName("removeOrderedItems")
+    class RemoveOrderedItems {
+
+        @Test
+        @DisplayName("개인 주문이 결제되면 주문한 수량만큼 장바구니에서 차감한다")
+        void removePersonalOrderedQuantities() {
+            Cart cart = Cart.create(MEMBER_ID);
+            cart.addItem(100L, 1L, 2);
+            cart.addItem(100L, 2L, 1);
+            cart.addItem(200L, 4L, 3);
+            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+
+            cartItemUseCase.removeOrderedItems(paidEvent("PERSONAL", item(1L, 2), item(4L, 1)));
+
+            assertThat(cart.getItems())
+                    .extracting(CartItem::getInventoryId, CartItem::getQuantity)
+                    .containsExactly(tuple(2L, 1), tuple(4L, 2));
+        }
+
+        @Test
+        @DisplayName("같은 상품 옵션이 여러 주문 항목에 나뉘어 있으면 수량을 합쳐 차감한다")
+        void sumSameInventoryQuantities() {
+            Cart cart = Cart.create(MEMBER_ID);
+            cart.addItem(100L, 1L, 5);
+            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+
+            cartItemUseCase.removeOrderedItems(paidEvent("PERSONAL", item(1L, 2), item(1L, 1)));
+
+            assertThat(cart.getItems())
+                    .extracting(CartItem::getInventoryId, CartItem::getQuantity)
+                    .containsExactly(tuple(1L, 2));
+        }
+
+        @Test
+        @DisplayName("공동구매 상품 주문이 결제되면 장바구니를 건드리지 않는다")
+        void ignoreIndividualGroupOrder() {
+            cartItemUseCase.removeOrderedItems(paidEvent("INDIVIDUAL_GROUP", item(1L, 1)));
+
+            verifyNoInteractions(cartRepository);
+        }
+
+        private OrderPaidEvent.Item item(Long inventoryId, int quantity) {
+            return new OrderPaidEvent.Item(null, 100L, inventoryId, null, "상품", null, quantity, 10000L);
+        }
+
+        private OrderPaidEvent paidEvent(String orderType, OrderPaidEvent.Item... items) {
+            return new OrderPaidEvent(1L, "ORD-1", MEMBER_ID, orderType, null, LocalDateTime.now(), null, List.of(items));
         }
     }
 

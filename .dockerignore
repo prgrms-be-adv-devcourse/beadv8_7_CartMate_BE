@@ -4,6 +4,7 @@ bin/
 !**/src/main/**/out/
 !**/src/test/**/out/
 .gradle/
+/.uploads/
 
 .idea/
 *.iml

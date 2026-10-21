@@ -1,11 +1,14 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
+import com.cartmate.cartmate.boundedContext.member.domain.Member;
+import com.cartmate.cartmate.boundedContext.member.domain.SellerStatus;
+import com.cartmate.cartmate.boundedContext.member.domain.SellerType;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -14,33 +17,35 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Getter
 public class SalesPostSeller extends BaseManualIdAndTime {
-    @Column(nullable = false, columnDefinition = "BIGINT")
+    @JoinColumn(name = "member_id", nullable = false, unique = true)
     private Long memberId;
 
-    @Column(nullable = false)
+    @Column(name = "seller_type", nullable = false, length = 20)
     private String sellerType;
 
-    @Column(nullable = false)
+    @Column(name = "business_name", length = 100)
     private String businessName;
 
-    @Column(nullable = false)
+    @Column(name = "representative_name", length = 50)
+    private String representativeName;
+
+    @Column(name = "business_number", length = 20, unique = true)
     private String businessNumber;
 
-    @Column(nullable = false)
+    @Column(name = "phone_number", nullable = false, length = 20)
     private String phoneNumber;
 
-    @Column(nullable = false)
+    @Column(name = "bank_name", length = 50)
     private String bankName;
 
-    @Column(nullable = false)
+    @Column(name = "account_holder", length = 50)
     private String accountHolder;
 
-    @Column(nullable = false)
+    @Column(name = "account_number", length = 50)
     private String accountNumber;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String status;
-
 
     public SalesPostSeller(Long id, Long memberId, String sellerType, String businessName, String businessNumber, String phoneNumber, String bankName,
                       String accountHolder, String accountNumber, String status, LocalDateTime createDate, LocalDateTime modifyDate) {

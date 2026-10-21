@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.domain;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
@@ -30,7 +32,7 @@ public class DeliveryAddress {
     private DeliveryAddress(String receiverName, String receiverPhone, String zipCode,
                             String address, String addressDetail) {
         if (isBlank(receiverName) || isBlank(receiverPhone) || isBlank(zipCode) || isBlank(address)) {
-            throw new IllegalArgumentException("받는 사람, 연락처, 우편번호, 주소는 모두 입력해야 합니다.");
+            throw new ServiceException(OrderErrorCode.ORDER_INVALID_DELIVERY_ADDRESS);
         }
         this.receiverName = receiverName;
         this.receiverPhone = receiverPhone;

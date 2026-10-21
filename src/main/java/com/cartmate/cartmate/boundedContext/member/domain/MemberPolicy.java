@@ -16,6 +16,9 @@ public class MemberPolicy {
     public static final String NICKNAME_MESSAGE = "닉네임은 2~10자의 한글, 영문, 숫자만 가능합니다.";
     public static final String PHONE_REGEX = "^010-\\d{4}-\\d{4}$";
     public static final String PHONE_MESSAGE = "휴대폰 번호는 010-0000-0000 형식이어야 합니다.";
+    public static final int MAX_ADDRESS_COUNT = 10;
+    public static final String ZIP_CODE_REGEX = "^\\d{5}$";
+    public static final String ZIP_CODE_MESSAGE = "우편번호는 숫자 5자리여야 합니다.";
 
     // 운영 정책 값: yml에서 읽음
     private static int SELLER_MIN_AGE;

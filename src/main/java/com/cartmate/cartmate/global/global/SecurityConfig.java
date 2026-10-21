@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.global.global;
 
+import com.cartmate.cartmate.global.security.BlockedMemberRegistry;
 import com.cartmate.cartmate.global.security.JwtAuthenticationFilter;
 import com.cartmate.cartmate.global.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtProvider jwtProvider;
+    private final BlockedMemberRegistry blockedMemberRegistry;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -33,9 +35,14 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/members/me").authenticated()
+                        .requestMatchers("/api/wallets/webhooks/toss").permitAll()
                         .requestMatchers("/api/members/me", "/api/members/me/**").authenticated()
                         .requestMatchers("/api/wallets/me/**").authenticated()
+                        .requestMatchers("/api/deliveries/**").authenticated()
+                        .requestMatchers("/api/settlements", "/api/settlements/**").authenticated()
+                        .requestMatchers("/api/claims/**").authenticated()
+                        .requestMatchers("/api/payments/**").authenticated()
+                        .requestMatchers("/api/carts/**", "/api/group-purchases/**", "/api/group-orders/**", "/api/orders/**").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll() // 다른 모듈 개발 중이라 임시 허용
                 )
@@ -53,7 +60,8 @@ public class SecurityConfig {
                                     "{\"resultCode\":\"403-AUTH_FORBIDDEN\",\"msg\":\"접근 권한이 없습니다.\",\"data\":null}");
                         })
                 )
-                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, blockedMemberRegistry),
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

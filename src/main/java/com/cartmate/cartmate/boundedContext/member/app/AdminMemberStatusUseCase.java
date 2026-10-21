@@ -26,6 +26,7 @@ public class AdminMemberStatusUseCase {
     private final MemberRepository memberRepository;
     private final MemberSuspensionRepository memberSuspensionRepository;
     private final EventPublisher eventPublisher;
+    private final MemberTokenUseCase memberTokenUseCase;
 
     public void suspend(Long adminId, Long memberId, AdminSuspendRequest request) {
         Member member = getMember(memberId);
@@ -38,6 +39,7 @@ public class AdminMemberStatusUseCase {
         }
 
         member.suspend(); // 이미 정지·탈퇴면 여기서 예외
+        memberTokenUseCase.revokeAll(memberId); // ← 추가
 
         MemberSuspension suspension = memberSuspensionRepository.save(MemberSuspension.create(
                 member, request.reasonType(), request.reasonDetail().trim(),

@@ -1,8 +1,11 @@
 package com.cartmate.cartmate.boundedContext.post.in;
 
 import com.cartmate.cartmate.boundedContext.post.app.SalesPostFacade;
-import com.cartmate.cartmate.shared.member.event.SellerCreatedEvent;
-import com.cartmate.cartmate.shared.member.event.SellerUpdatedEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
+import com.cartmate.cartmate.shared.product.event.ProductCreatedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,14 +21,32 @@ public class SalesPostEventListener {
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
-    public void handle(SellerCreatedEvent event) {
-        salesPostFacade.syncSeller(event.getSeller());
+    public void handle(SellerRegisteredEvent event) {
+        salesPostFacade.syncSeller(event);
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
-    public void handle(SellerUpdatedEvent event) {
-        salesPostFacade.syncSeller(event.getSeller());
+    public void handle(ProductCreatedEvent event) {
+        salesPostFacade.syncProduct(event.getRequest());
+    }
+
+    @TransactionalEventListener(phase = AFTER_COMMIT)
+    @Transactional(propagation = REQUIRES_NEW)
+    public void handle(ProductUpdatedEvent event) {
+        salesPostFacade.syncProduct(event.syncProductRequest());
+    }
+
+    @TransactionalEventListener(phase = AFTER_COMMIT)
+    @Transactional(propagation = REQUIRES_NEW)
+    public void handle(ProductDeletedEvent event) {
+        salesPostFacade.deleteProductByUser(event.getRequest());
+    }
+
+    @TransactionalEventListener(phase = AFTER_COMMIT)
+    @Transactional(propagation = REQUIRES_NEW)
+    public void handle(ProductListDeletedEvent event) {
+        salesPostFacade.deleteProductByPost(event.getRequest());
     }
 
 }
