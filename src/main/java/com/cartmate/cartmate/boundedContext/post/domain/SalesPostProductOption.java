@@ -37,14 +37,4 @@ public class SalesPostProductOption extends BaseManualIdAndTime {
         this.productOptionId = productOptionId;
     }
 
-    public SelectSalesPostProductOption toSelectProductOptionDto() {
-        return new SelectSalesPostProductOption(
-                getId(),
-                productTypeId,
-                productOptionId,
-                getCreateDate(),
-                getModifyDate()
-        );
-    }
-
 }
