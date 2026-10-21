@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.out;
 
 import com.cartmate.cartmate.boundedContext.wallet.domain.Holding;
+import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,4 +26,8 @@ public interface HoldingRepository extends JpaRepository<Holding, Long> {
     @Query("select h from Holding h where h.orderId = :orderId and h.purchaseType = :purchaseType order by h.id")
     List<Holding> findAllByOrderIdAndPurchaseTypeForUpdate(
             @Param("orderId") Long orderId, @Param("purchaseType") WalletPurchaseType purchaseType);
+
+    // 지갑의 해당 상태 홀딩 금액에서 환불로 돌려준 금액을 뺀 합계. 정산으로 꺼낸 금액은 빠져 있지 않아 따로 뺀다. 홀딩이 없으면 0이다.
+    @Query("select coalesce(sum(h.amount - h.refundedAmount), 0) from Holding h where h.wallet.id = :walletId and h.status = :status")
+    long sumUnrefundedAmountByWalletIdAndStatus(@Param("walletId") Long walletId, @Param("status") HoldingStatus status);
 }
