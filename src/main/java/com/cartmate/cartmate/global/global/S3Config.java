@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.global.config;
+package com.cartmate.cartmate.global.global;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

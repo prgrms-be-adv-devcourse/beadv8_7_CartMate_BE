@@ -1,13 +1,11 @@
 package com.cartmate.cartmate.boundedContext.post.domain;
 
 
-import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProductImage;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -46,16 +44,6 @@ public class SalesPostProductImage extends BaseManualIdAndTime {
         this.s3Key = s3Key;
         this.imageSeq = imageSeq;
         this.status = status;
-    }
-
-    public SelectSalesPostProductImage toSelectProductImageDto() {
-        return new SelectSalesPostProductImage(
-                getId(),
-                s3Key,
-                imageSeq,
-                getCreateDate(),
-                getModifyDate()
-        );
     }
 
     public SalesPostProductImage delete() {
