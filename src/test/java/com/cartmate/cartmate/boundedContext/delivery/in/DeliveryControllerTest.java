@@ -85,7 +85,7 @@ class DeliveryControllerTest {
         when(deliveryFacade.getMyDeliveriesByOrder(1L, 100L, PurchaseType.INDIVIDUAL_GROUP))
                 .thenReturn(List.of(first, second));
 
-        mvc.perform(get("/api/deliveries")
+        mvc.perform(get("/api/deliveries/by-order")
                         .param("orderId", "100")
                         .param("purchaseType", "INDIVIDUAL_GROUP"))
                 .andExpect(status().isOk())
@@ -99,11 +99,11 @@ class DeliveryControllerTest {
     @Test
     @DisplayName("주문별 배송 목록은 orderId나 purchaseType이 없거나 잘못되면 서비스를 호출하지 않고 400이다")
     void deliveriesByOrderBadParams() throws Exception {
-        mvc.perform(get("/api/deliveries").param("purchaseType", "INDIVIDUAL_GROUP"))
+        mvc.perform(get("/api/deliveries/by-order").param("purchaseType", "INDIVIDUAL_GROUP"))
                 .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/deliveries").param("orderId", "100"))
+        mvc.perform(get("/api/deliveries/by-order").param("orderId", "100"))
                 .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/deliveries").param("orderId", "100").param("purchaseType", "UNKNOWN"))
+        mvc.perform(get("/api/deliveries/by-order").param("orderId", "100").param("purchaseType", "UNKNOWN"))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(deliveryFacade);

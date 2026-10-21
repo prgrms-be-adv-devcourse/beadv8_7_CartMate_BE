@@ -48,7 +48,7 @@ public class DeliveryController {
     }
 
     // 주문 상세 화면용. 한 주문의 내 배송을 판매자별로 모두 돌려준다. 주문 ID는 구매 유형별로 겹칠 수 있어 유형이 필요하다.
-    @GetMapping
+    @GetMapping("/by-order")
     public RsData<List<DeliveryResponse>> getDeliveriesByOrder(
             @AuthenticationPrincipal SecurityUser user,
             @RequestParam Long orderId,
