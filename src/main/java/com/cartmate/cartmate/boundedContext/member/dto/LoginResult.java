@@ -4,6 +4,6 @@ import com.cartmate.cartmate.shared.member.dto.MemberDto;
 
 public record LoginResult(
         MemberDto member,
-        String accessToken
+        TokenPair tokens
 ) {
 }

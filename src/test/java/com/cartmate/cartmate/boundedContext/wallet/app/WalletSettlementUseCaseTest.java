@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.domain.Holding;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingSettlement;
 import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.wallet.domain.ReferenceType;
@@ -59,18 +60,18 @@ class WalletSettlementUseCaseTest {
     }
 
     private Holding holding(long id, long paymentId, long amount, long alreadySettled) {
-        Holding holding = Holding.create(Wallet.createWallet(id + 1_000), ORDER_ID, amount, paymentId);
+        Holding holding = Holding.create(Wallet.createWallet(id + 1_000), ORDER_ID, WalletPurchaseType.INDIVIDUAL_GROUP, amount, paymentId);
         ReflectionTestUtils.setField(holding, "id", id);
         when(holdingSettlementRepository.sumAmountByHoldingId(id)).thenReturn(alreadySettled);
         return holding;
     }
 
     private void holdings(Holding... holdings) {
-        when(holdingRepository.findAllByOrderIdForUpdate(ORDER_ID)).thenReturn(List.of(holdings));
+        when(holdingRepository.findAllByOrderIdAndPurchaseTypeForUpdate(ORDER_ID, WalletPurchaseType.INDIVIDUAL_GROUP)).thenReturn(List.of(holdings));
     }
 
     private SettleAndDepositRequest request(long salesAmount, long payoutAmount) {
-        return new SettleAndDepositRequest(PAYOUT_ID, ORDER_ID, SELLER_MEMBER_ID, salesAmount, payoutAmount);
+        return new SettleAndDepositRequest(PAYOUT_ID, ORDER_ID, WalletPurchaseType.INDIVIDUAL_GROUP, SELLER_MEMBER_ID, salesAmount, payoutAmount);
     }
 
     private void assertError(Runnable action, WalletErrorCode code) {
@@ -214,14 +215,38 @@ class WalletSettlementUseCaseTest {
     @Test
     @DisplayName("필수 값이 없거나 금액이 올바르지 않으면 예외가 발생한다")
     void invalidRequest() {
-        assertError(() -> useCase.settleAndDeposit(new SettleAndDepositRequest(PAYOUT_ID, ORDER_ID, null, 1_000L, 970L)),
+        assertError(() -> useCase.settleAndDeposit(new SettleAndDepositRequest(PAYOUT_ID, ORDER_ID, WalletPurchaseType.INDIVIDUAL_GROUP, null, 1_000L, 970L)),
                 WalletErrorCode.WALLET_MEMBER_ID_REQUIRED);
-        assertError(() -> useCase.settleAndDeposit(new SettleAndDepositRequest(null, ORDER_ID, SELLER_MEMBER_ID, 1_000L, 970L)),
+        assertError(() -> useCase.settleAndDeposit(new SettleAndDepositRequest(null, ORDER_ID, WalletPurchaseType.INDIVIDUAL_GROUP, SELLER_MEMBER_ID, 1_000L, 970L)),
                 WalletErrorCode.WALLET_PAYOUT_ID_REQUIRED);
-        assertError(() -> useCase.settleAndDeposit(new SettleAndDepositRequest(PAYOUT_ID, null, SELLER_MEMBER_ID, 1_000L, 970L)),
+        assertError(() -> useCase.settleAndDeposit(new SettleAndDepositRequest(PAYOUT_ID, null, WalletPurchaseType.INDIVIDUAL_GROUP, SELLER_MEMBER_ID, 1_000L, 970L)),
                 WalletErrorCode.WALLET_ORDER_ID_REQUIRED);
+        assertError(() -> useCase.settleAndDeposit(new SettleAndDepositRequest(PAYOUT_ID, ORDER_ID, null, SELLER_MEMBER_ID, 1_000L, 970L)),
+                WalletErrorCode.WALLET_PURCHASE_TYPE_REQUIRED);
         assertError(() -> useCase.settleAndDeposit(request(0L, 0L)), WalletErrorCode.WALLET_INVALID_AMOUNT);
         assertError(() -> useCase.settleAndDeposit(request(1_000L, 0L)), WalletErrorCode.WALLET_INVALID_AMOUNT);
         assertError(() -> useCase.settleAndDeposit(request(1_000L, 1_001L)), WalletErrorCode.WALLET_INVALID_AMOUNT);
+    }
+
+    @Test
+    @DisplayName("주문 ID가 같아도 구매 유형이 다르면 다른 유형의 홀딩에서는 꺼내지 않는다")
+    void settleOnlyHoldingsOfSamePurchaseType() {
+        Holding individual = holding(1L, 200L, 10_000L, 0L);
+        Holding shared = Holding.create(Wallet.createWallet(2_000L), ORDER_ID, WalletPurchaseType.SHARED_GROUP, 30_000L, 300L);
+        ReflectionTestUtils.setField(shared, "id", 2L);
+        when(holdingSettlementRepository.sumAmountByHoldingId(2L)).thenReturn(0L);
+        holdings(individual);
+        when(holdingRepository.findAllByOrderIdAndPurchaseTypeForUpdate(ORDER_ID, WalletPurchaseType.SHARED_GROUP))
+                .thenReturn(List.of(shared));
+
+        useCase.settleAndDeposit(new SettleAndDepositRequest(
+                PAYOUT_ID, ORDER_ID, WalletPurchaseType.SHARED_GROUP, SELLER_MEMBER_ID, 30_000L, 29_100L));
+
+        ArgumentCaptor<HoldingSettlement> captor = ArgumentCaptor.forClass(HoldingSettlement.class);
+        verify(holdingSettlementRepository).save(captor.capture());
+        assertThat(captor.getValue().getHolding()).isSameAs(shared);
+        assertThat(captor.getValue().getAmount()).isEqualTo(30_000L);
+        assertThat(individual.getStatus()).isEqualTo(HoldingStatus.RESERVED);
+        assertThat(shared.getStatus()).isEqualTo(HoldingStatus.SETTLED);
     }
 }

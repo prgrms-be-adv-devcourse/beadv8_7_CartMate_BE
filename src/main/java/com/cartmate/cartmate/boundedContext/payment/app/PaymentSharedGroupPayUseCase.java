@@ -28,7 +28,7 @@ public class PaymentSharedGroupPayUseCase {
     public PaymentResponse pay(Long memberId, Long sharedGroupOrderId, TeamDeliveryAddress teamDeliveryAddress) {
         // 1. 이미 낸 분담금이면 기존 결과 반환
         var existing = paymentRepository.findByTypeAndOrderIdAndMemberId(
-                PaymentType.GROUP_SHARE, sharedGroupOrderId, memberId);
+                PaymentType.SHARED_GROUP, sharedGroupOrderId, memberId);
         if (existing.isPresent()) {
             Payment payment = existing.get();
             if (payment.getStatus() == PaymentStatus.PAID) {
@@ -57,12 +57,13 @@ public class PaymentSharedGroupPayUseCase {
         Payment payment;
         try {
             payment = paymentRepository.saveAndFlush(
-                    Payment.pay(sharedGroupOrderId, memberId, walletId, info.shareAmount(), PaymentType.GROUP_SHARE));
+                    Payment.pay(sharedGroupOrderId, memberId, walletId, info.shareAmount(), PaymentType.SHARED_GROUP));
         } catch (DataIntegrityViolationException e) {
             throw new ServiceException(PaymentErrorCode.PAYMENT_IN_PROGRESS);
         }
 
-        paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), sharedGroupOrderId);
+        paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), sharedGroupOrderId,
+                PaymentType.SHARED_GROUP);
 
         // 개설자가 팀 배송지를 안 보냈으면 order가 예외 → 차감도 롤백
         // 마지막 참여자의 결제면 order가 주문을 확정하고 확정 이벤트를 발행

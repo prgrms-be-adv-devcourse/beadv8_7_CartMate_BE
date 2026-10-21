@@ -18,19 +18,19 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
+    private final BlockedMemberRegistry blockedMemberRegistry;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-
         resolveToken(request)
                 .flatMap(jwtProvider::parse)
+                .filter(user -> !blockedMemberRegistry.isBlocked(user.memberId())) // 정지 회원은 즉시 차단
                 .ifPresent(user -> {
                     var authentication = new UsernamePasswordAuthenticationToken(
                             user, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.role())));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 });
-
         chain.doFilter(request, response);
     }
 

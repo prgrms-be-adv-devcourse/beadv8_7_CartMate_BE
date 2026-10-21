@@ -74,6 +74,12 @@ public class CartItem {
         this.quantity += amount;
     }
 
+    void decreaseQuantity(int amount) {
+        validateQuantity(amount);
+        validateQuantity(this.quantity - amount);
+        this.quantity -= amount;
+    }
+
     private void validateQuantity(int quantity) {
         if (quantity < MIN_QUANTITY || quantity > MAX_QUANTITY) {
             throw new ServiceException(CartErrorCode.CART_INVALID_QUANTITY);

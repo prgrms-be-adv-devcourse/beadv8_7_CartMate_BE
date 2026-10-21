@@ -26,7 +26,7 @@ public class PaymentPayUseCase {
 
     public PaymentResponse payOrder(Long memberId, Long orderId) {
         // 1. 이미 결제한 주문이면 기존 결과 반환
-        var existing = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL, orderId, memberId);
+        var existing = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId);
         if (existing.isPresent()) {
             Payment payment = existing.get();
             if (payment.getStatus() == PaymentStatus.PAID) {
@@ -47,12 +47,12 @@ public class PaymentPayUseCase {
         Payment payment;
         try {
             payment = paymentRepository.saveAndFlush(
-                    Payment.pay(orderId, memberId, walletId, order.amount(), PaymentType.INDIVIDUAL));
+                    Payment.pay(orderId, memberId, walletId, order.amount(), PaymentType.INDIVIDUAL_GROUP));
         } catch (DataIntegrityViolationException e) {
             throw new ServiceException(PaymentErrorCode.PAYMENT_IN_PROGRESS);
         }
 
-        paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), orderId);
+        paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), orderId, PaymentType.INDIVIDUAL_GROUP);
 
         // order가 주문을 결제 완료로 바꾸고 OrderPaidEvent를 발행 (장바구니 비우기 등은 그쪽에서)
         paymentOrderClient.applyPayment(orderId, memberId, payment.getId(), payment.getPaidAt());

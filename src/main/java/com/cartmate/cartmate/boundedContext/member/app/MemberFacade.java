@@ -3,13 +3,13 @@ package com.cartmate.cartmate.boundedContext.member.app;
 import com.cartmate.cartmate.boundedContext.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.member.domain.SuspensionReleaseType;
 import com.cartmate.cartmate.boundedContext.member.dto.*;
-import com.cartmate.cartmate.boundedContext.member.out.MyPageDashboardQuery;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 // member 모듈의 정문. Controller와 다른 모듈은 여기만 호출한다.
@@ -26,6 +26,9 @@ public class MemberFacade {
     private final AdminMemberDetailUseCase adminMemberDetailUseCase;
     private final AdminMemberStatusUseCase adminMemberStatusUseCase;
     private final MemberSellerUseCase memberSellerUseCase;
+    private final MyPageDashboardUseCase myPageDashboardUseCase;
+    private final MemberTokenUseCase memberTokenUseCase;
+    private final MemberAddressUseCase memberAddressUseCase;
 
     @Transactional
     public MemberDto join(SignupRequest request) {
@@ -62,18 +65,31 @@ public class MemberFacade {
 
     private final MemberLoginUseCase memberLoginUseCase;
 
-    @Transactional(readOnly = true)
-    public LoginResult login(String email, String password) {
-        return memberLoginUseCase.login(email, password);
+    @Transactional
+    public LoginResult login(String email, String password, boolean remember) {
+        return memberLoginUseCase.login(email, password, remember);
+    }
+
+    @Transactional
+    public TokenPair refresh(String refreshToken) {
+        return memberTokenUseCase.refresh(refreshToken);
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        memberTokenUseCase.revoke(refreshToken);
+    }
+
+    @Transactional
+    public int deleteExpiredRefreshTokens() {
+        return memberTokenUseCase.deleteExpired();
     }
 
 
     //임시 조회용
-    private final MyPageDashboardQuery myPageDashboardQuery;
-
     @Transactional(readOnly = true)
     public MyPageDashboardResponse getMyPageDashboard(Long memberId) {
-        return myPageDashboardQuery.findByMemberId(memberId);
+        return myPageDashboardUseCase.getDashboard(memberId);
     }
 
     @Transactional(readOnly = true)
@@ -133,5 +149,30 @@ public class MemberFacade {
     @Transactional
     public MemberSellerUseCase.RegisterResult registerSeller(Long memberId, SellerRegisterRequest request) {
         return memberSellerUseCase.register(memberId, request);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MemberAddressResponse> getAddresses(Long memberId) {
+        return memberAddressUseCase.list(memberId);
+    }
+
+    @Transactional
+    public MemberAddressResponse createAddress(Long memberId, MemberAddressRequest request) {
+        return memberAddressUseCase.create(memberId, request);
+    }
+
+    @Transactional
+    public MemberAddressResponse updateAddress(Long memberId, Long addressId, MemberAddressRequest request) {
+        return memberAddressUseCase.update(memberId, addressId, request);
+    }
+
+    @Transactional
+    public MemberAddressResponse makeDefaultAddress(Long memberId, Long addressId) {
+        return memberAddressUseCase.makeDefault(memberId, addressId);
+    }
+
+    @Transactional
+    public void deleteAddress(Long memberId, Long addressId) {
+        memberAddressUseCase.delete(memberId, addressId);
     }
 }

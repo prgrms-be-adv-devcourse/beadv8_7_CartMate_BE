@@ -1,6 +1,8 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletChargeOrderInfo;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletWithdrawOrder;
@@ -51,14 +53,20 @@ public class WalletFacade {
 
     // 결제 ID 기준으로 중복 사용을 확인하고 잔액차감·홀딩생성·거래내역저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void use(Long walletId, Long amount, Long paymentId, Long orderId) {
-        walletPaymentUseCase.use(walletId, amount, paymentId, orderId);
+    public void use(Long walletId, Long amount, Long paymentId, Long orderId, WalletPurchaseType purchaseType) {
+        walletPaymentUseCase.use(walletId, amount, paymentId, orderId, purchaseType);
     }
 
     // 환불 ID 기준으로 중복 환불을 확인하고 홀딩 환불누적·잔액복구·환불거래저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
     public void refund(Long walletId, Long amount, Long paymentId, Long orderId, Long refundId) {
         walletPaymentUseCase.refund(walletId, amount, paymentId, orderId, refundId);
+    }
+
+    // 충전 승인 전에 검증할 수 있도록 충전 주문의 값을 조회한다.
+    @Transactional(readOnly = true)
+    public WalletChargeOrderInfo getChargeOrder(String orderNumber) {
+        return WalletChargeOrderInfo.from(walletChargeUseCase.getChargeOrder(orderNumber));
     }
 
     // 충전 주문을 생성하거나 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.

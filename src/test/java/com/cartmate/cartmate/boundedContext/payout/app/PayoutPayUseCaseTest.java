@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutSellerRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.shared.wallet.WalletSettlementPort;
 import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +45,11 @@ class PayoutPayUseCaseTest {
     }
 
     private Payout payout(long salesAmount) {
-        Payout payout = Payout.create(10L, 100L, PayoutPurchaseType.INDIVIDUAL_GROUP, 1000L, "티셔츠", 1L, salesAmount, CONFIRMED_AT.minusDays(3), CONFIRMED_AT);
+        return payout(salesAmount, PayoutPurchaseType.INDIVIDUAL_GROUP);
+    }
+
+    private Payout payout(long salesAmount, PayoutPurchaseType purchaseType) {
+        Payout payout = Payout.create(10L, 100L, purchaseType, 1000L, "티셔츠", 1L, salesAmount, CONFIRMED_AT.minusDays(3), CONFIRMED_AT);
         ReflectionTestUtils.setField(payout, "id", 7L);
         when(payoutRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(payout));
         return payout;
@@ -57,9 +62,19 @@ class PayoutPayUseCaseTest {
 
         useCase.pay(7L, NOW);
 
-        verify(walletSettlementPort).settleAndDeposit(new SettleAndDepositRequest(7L, 100L, 20L, 10_000L, 9_700L));
+        verify(walletSettlementPort).settleAndDeposit(new SettleAndDepositRequest(7L, 100L, WalletPurchaseType.INDIVIDUAL_GROUP, 20L, 10_000L, 9_700L));
         assertThat(payout.getStatus()).isEqualTo(PayoutStatus.COMPLETED);
         assertThat(payout.getPaidAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    @DisplayName("공동물품 정산은 공동물품 구매 유형으로 입금을 요청한다")
+    void paySharedGroupPayout() {
+        payout(10_000L, PayoutPurchaseType.SHARED_GROUP);
+
+        useCase.pay(7L, NOW);
+
+        verify(walletSettlementPort).settleAndDeposit(new SettleAndDepositRequest(7L, 100L, WalletPurchaseType.SHARED_GROUP, 20L, 10_000L, 9_700L));
     }
 
     @Test
