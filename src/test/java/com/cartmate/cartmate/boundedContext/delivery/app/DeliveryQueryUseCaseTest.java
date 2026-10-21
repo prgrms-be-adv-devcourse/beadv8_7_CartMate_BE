@@ -55,7 +55,7 @@ class DeliveryQueryUseCaseTest {
     void setUp() {
         useCase = new DeliveryQueryUseCase(deliveryRepository, itemRepository, optionRepository, sellerQuery);
 
-        delivery = Delivery.create(BUYER, SELLER_ID, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        delivery = Delivery.create(BUYER, SELLER_ID, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
         ReflectionTestUtils.setField(delivery, "id", 5L);
         when(deliveryRepository.findById(5L)).thenReturn(Optional.of(delivery));

@@ -8,6 +8,7 @@ public record DeliveryCreateCommand(
         Long memberId,
         Long sellerId,
         Long orderId,
+        String orderNumber,     // 사용자에게 보여 주는 주문번호. 주문번호가 없는 주문(공유 공동구매)은 null
         PurchaseType purchaseType,
         String receiverName,
         String receiverPhone,

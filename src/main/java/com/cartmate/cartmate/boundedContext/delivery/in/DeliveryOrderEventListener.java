@@ -29,6 +29,7 @@ public class DeliveryOrderEventListener {
                 event.memberId(),
                 sellerId,
                 event.orderId(),
+                event.orderNumber(),
                 PurchaseType.INDIVIDUAL_GROUP,
                 event.deliveryAddress().receiverName(),
                 event.deliveryAddress().receiverPhone(),
@@ -52,6 +53,7 @@ public class DeliveryOrderEventListener {
                 event.creatorMemberId(),
                 sellerId,
                 event.sharedGroupOrderId(),
+                null,   // 공유 공동구매 주문에는 주문번호가 없다
                 PurchaseType.SHARED_GROUP,
                 event.teamDeliveryAddress().receiverName(),
                 event.teamDeliveryAddress().receiverPhone(),

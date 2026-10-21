@@ -10,7 +10,7 @@ class DeliveryClaimItemTest {
     @Test
     @DisplayName("클레임 상품을 생성하면 클레임, 배송상품, 요청 수량이 저장된다")
     void create() {
-        Delivery delivery = Delivery.create(1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        Delivery delivery = Delivery.create(1L, 10L, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
         DeliveryItem deliveryItem = DeliveryItem.create(delivery, 1000L, "티셔츠", 10_000L, 2L);
         DeliveryClaim claim = DeliveryClaim.create(
