@@ -6,6 +6,8 @@ import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItemOption;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +17,7 @@ public record DeliveryDetailResponse(
         Long memberId,
         Long sellerId,
         Long orderId,
+        String orderNumber,
         PurchaseType purchaseType,
         DeliveryStatus status,
         String carrier,
@@ -41,6 +44,7 @@ public record DeliveryDetailResponse(
                 delivery.getMemberId(),
                 delivery.getSellerId(),
                 delivery.getOrderId(),
+                delivery.getOrderNumber(),
                 delivery.getPurchaseType(),
                 delivery.getStatus(),
                 delivery.getCarrier(),
@@ -61,6 +65,7 @@ public record DeliveryDetailResponse(
         );
     }
 
+    @Schema(name = "DeliveryDetailItemResponse")
     public record Item(
             Long deliveryItemId,
             Long orderItemId,
@@ -79,6 +84,7 @@ public record DeliveryDetailResponse(
         }
     }
 
+    @Schema(name = "DeliveryDetailOptionResponse")
     public record Option(
             String optionName,
             String optionValue

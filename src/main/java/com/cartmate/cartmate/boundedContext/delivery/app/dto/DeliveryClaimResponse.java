@@ -6,6 +6,8 @@ import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryClaim;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryClaimItem;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,6 +34,7 @@ public record DeliveryClaimResponse(
         );
     }
 
+    @Schema(name = "DeliveryClaimItemResponse")
     public record Item(
             Long deliveryItemId,
             Long orderItemId,

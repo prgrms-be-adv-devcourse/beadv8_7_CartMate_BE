@@ -27,7 +27,7 @@ class DeliveryRetryServiceTest {
     private DeliveryRetryService retryService;
 
     private final DeliveryCreateCommand command = new DeliveryCreateCommand(
-            1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP, "홍길동", "010-0000-0000",
+            1L, 10L, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP, "홍길동", "010-0000-0000",
             "12345", "서울", "101호", "key-1",
             List.of(new DeliveryCreateCommand.Item(1000L, "티셔츠", 10_000L, 2L, List.of())));
 

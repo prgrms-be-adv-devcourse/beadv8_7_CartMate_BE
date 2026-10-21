@@ -144,7 +144,7 @@ class CommerceLifecycleIntegrationTest {
         // Order→Delivery 이벤트 연결이 아직 없으므로 이 구간만 실제 공개 생성 기능으로 이어준다.
         String key = UUID.randomUUID().toString();
         var command = new DeliveryCreateCommand(buyer.getId(), seller.getId(), orderId,
-                PurchaseType.SHARED_GROUP, "수령인", "01012345678", "12345", "테스트 주소", "101호", key,
+                null, PurchaseType.SHARED_GROUP, "수령인", "01012345678", "12345", "테스트 주소", "101호", key,
                 List.of(new DeliveryCreateCommand.Item(830001L, "유니폼", 3_000L, 2L, List.of()),
                         new DeliveryCreateCommand.Item(830002L, "축구공", 4_000L, 1L, List.of())));
         delivery.createDelivery(command);

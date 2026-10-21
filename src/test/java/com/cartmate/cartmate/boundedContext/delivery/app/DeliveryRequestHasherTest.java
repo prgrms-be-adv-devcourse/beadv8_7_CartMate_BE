@@ -18,7 +18,7 @@ class DeliveryRequestHasherTest {
     private static final Item SOCKS = new Item(1001L, "양말", 10_000L, 1L, List.of());
 
     private DeliveryCreateCommand command(String key, Long sellerId, String address, List<Item> items) {
-        return new DeliveryCreateCommand(1L, sellerId, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        return new DeliveryCreateCommand(1L, sellerId, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", address, "101호", key, items);
     }
 
@@ -36,6 +36,16 @@ class DeliveryRequestHasherTest {
     void idempotencyKeyExcluded() {
         assertThat(DeliveryRequestHasher.hash(command("k1", 10L, "서울", List.of(SHIRT))))
                 .isEqualTo(DeliveryRequestHasher.hash(command("k2", 10L, "서울", List.of(SHIRT))));
+    }
+
+    @Test
+    @DisplayName("주문번호는 서버 파생값이라 해시에 영향을 주지 않는다")
+    void orderNumberExcluded() {
+        DeliveryCreateCommand withNumber = command("k", 10L, "서울", List.of(SHIRT));
+        DeliveryCreateCommand withoutNumber = new DeliveryCreateCommand(1L, 10L, 100L, null,
+                PurchaseType.INDIVIDUAL_GROUP, "홍길동", "010-0000-0000", "12345", "서울", "101호", "k", List.of(SHIRT));
+
+        assertThat(DeliveryRequestHasher.hash(withNumber)).isEqualTo(DeliveryRequestHasher.hash(withoutNumber));
     }
 
     @Test

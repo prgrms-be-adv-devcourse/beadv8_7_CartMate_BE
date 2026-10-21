@@ -142,7 +142,7 @@ class ClaimControllerTest {
     @DisplayName("GET /api/claims/seller는 주문번호와 상품을 포함한 목록을 RsData로 응답한다")
     void sellerClaims() throws Exception {
         SellerClaimResponse row = new SellerClaimResponse(
-                7L, 5L, 100L, ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
                 ClaimStatus.REQUESTED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.getSellerClaims(eq(1L), any(), any(), any()))
@@ -153,6 +153,7 @@ class ClaimControllerTest {
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.data.content[0].claimId").value(7))
                 .andExpect(jsonPath("$.data.content[0].orderId").value(100))
+                .andExpect(jsonPath("$.data.content[0].orderNumber").value("20261115-AB3K9X2P"))
                 .andExpect(jsonPath("$.data.content[0].claimType").value("REFUND"))
                 .andExpect(jsonPath("$.data.content[0].status").value("REQUESTED"))
                 .andExpect(jsonPath("$.data.content[0].items[0].productName").value("티셔츠"));
@@ -194,7 +195,7 @@ class ClaimControllerTest {
     @DisplayName("PATCH /api/claims/{claimId}/approve는 본문 없이 수락 처리하고 RsData로 응답한다")
     void approveClaim() throws Exception {
         SellerClaimResponse response = new SellerClaimResponse(
-                7L, 5L, 100L, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다",
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다",
                 ClaimStatus.APPROVED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.approveClaim(7L, 1L)).thenReturn(response);
@@ -232,7 +233,7 @@ class ClaimControllerTest {
     @DisplayName("PATCH /api/claims/{claimId}/complete는 본문 없이 완료 처리하고 RsData로 응답한다")
     void completeClaim() throws Exception {
         SellerClaimResponse response = new SellerClaimResponse(
-                7L, 5L, 100L, ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
                 ClaimStatus.COMPLETED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.completeClaim(7L, 1L)).thenReturn(response);

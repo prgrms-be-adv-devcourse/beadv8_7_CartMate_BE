@@ -51,7 +51,7 @@ class DeliveryClaimQueryUseCaseTest {
     }
 
     private Delivery delivery(long id) {
-        Delivery delivery = Delivery.create(BUYER, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        Delivery delivery = Delivery.create(BUYER, 10L, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-" + id, "hash");
         ReflectionTestUtils.setField(delivery, "id", id);
         return delivery;

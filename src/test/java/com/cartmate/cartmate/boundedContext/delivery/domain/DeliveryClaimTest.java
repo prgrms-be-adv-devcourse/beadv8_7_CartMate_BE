@@ -15,7 +15,7 @@ class DeliveryClaimTest {
     @Test
     @DisplayName("클레임을 생성하면 접수 상태로 시작하고 입력한 값이 저장된다")
     void createStartsAsRequested() {
-        Delivery delivery = Delivery.create(1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        Delivery delivery = Delivery.create(1L, 10L, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
 
         DeliveryClaim claim = DeliveryClaim.create(
@@ -31,7 +31,7 @@ class DeliveryClaimTest {
     }
 
     private DeliveryClaim newClaim() {
-        Delivery delivery = Delivery.create(1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        Delivery delivery = Delivery.create(1L, 10L, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
         return DeliveryClaim.create(delivery, 1L, ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "불량입니다");
     }

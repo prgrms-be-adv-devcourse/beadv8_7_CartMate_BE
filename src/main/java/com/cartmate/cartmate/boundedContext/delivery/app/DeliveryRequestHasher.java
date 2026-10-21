@@ -11,6 +11,7 @@ import java.util.List;
 
 // 배송 생성 요청 내용을 SHA-256 해시로 만든다. 같은 내용이면 항상 같은 값이 나온다.
 // 멱등키와 서버 생성값은 제외하고, 규칙을 바꾸면 기존 해시와 달라지므로 VERSION을 올린다.
+// 주문번호도 주문 ID에서 정해지는 서버 파생값이라 제외한다. 넣으면 기존 배송의 해시와 달라져 재처리가 충돌한다.
 public final class DeliveryRequestHasher {
 
     private static final String VERSION = "v1";

@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public record DeliveryResponse(
         Long deliveryId,
         Long orderId,
+        String orderNumber,
         PurchaseType purchaseType,
         String receiverName,
         DeliveryStatus status,
@@ -20,6 +21,7 @@ public record DeliveryResponse(
         return new DeliveryResponse(
                 delivery.getId(),
                 delivery.getOrderId(),
+                delivery.getOrderNumber(),
                 delivery.getPurchaseType(),
                 delivery.getReceiverName(),
                 delivery.getStatus(),
