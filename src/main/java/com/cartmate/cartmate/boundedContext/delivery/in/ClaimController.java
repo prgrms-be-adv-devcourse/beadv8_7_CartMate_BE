@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimType;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -81,7 +82,7 @@ public class ClaimController {
     @ResponseStatus(HttpStatus.CREATED)
     public RsData<DeliveryClaimResponse> createClaim(
             @AuthenticationPrincipal SecurityUser user,
-            @RequestBody DeliveryClaimCreateRequest request
+            @Valid @RequestBody DeliveryClaimCreateRequest request
     ) {
         return new RsData<>("201-1", "교환·환불이 접수되었습니다.",
                 deliveryFacade.createClaim(request.toCommand(user.memberId())));

@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -138,6 +139,23 @@ class DeliveryControllerTest {
                         .content("{\"carrier\":\"CJ대한통운\",\"trackingNumber\":\"1\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.resultCode").value("409-DELIVERY_INVALID_STATUS"));
+    }
+
+    @Test
+    @DisplayName("PATCH ready에서 택배사나 송장번호가 비어 있으면 서비스를 호출하지 않고 400으로 응답한다")
+    void readyDeliveryRejectsBlankFields() throws Exception {
+        mvc.perform(patch("/api/deliveries/5/ready")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"carrier\":\" \",\"trackingNumber\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-COMMON_INVALID_INPUT"));
+        mvc.perform(patch("/api/deliveries/5/ready")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-COMMON_INVALID_INPUT"));
+
+        verifyNoInteractions(deliveryFacade);
     }
 
     @Test

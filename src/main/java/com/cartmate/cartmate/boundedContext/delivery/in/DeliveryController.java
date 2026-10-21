@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerDeliveryRespo
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -59,7 +60,7 @@ public class DeliveryController {
     public RsData<DeliveryResponse> readyDelivery(
             @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long deliveryId,
-            @RequestBody DeliveryReadyRequest request
+            @Valid @RequestBody DeliveryReadyRequest request
     ) {
         return new RsData<>("200-1", "배송 준비 처리되었습니다.",
                 deliveryFacade.readyDelivery(deliveryId, user.memberId(), request.carrier(), request.trackingNumber()));
