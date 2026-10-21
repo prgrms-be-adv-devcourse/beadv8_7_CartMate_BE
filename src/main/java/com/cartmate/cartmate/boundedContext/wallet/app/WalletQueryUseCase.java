@@ -16,6 +16,10 @@ import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 
 @Service
@@ -49,9 +53,14 @@ public class WalletQueryUseCase {
 
     // 전체 기간의 충전 합계와 결제 합계를 반환한다. 결제 합계는 환불로 돌려받은 금액을 뺀 순 결제액이다.
     public WalletTransactionSummaryResponse getTransactionSummary(Long walletId) {
-        long charged = walletTransactionRepository.sumAmountByWalletIdAndType(walletId, WalletTransactionType.CHARGE);
-        long used = walletTransactionRepository.sumAmountByWalletIdAndType(walletId, WalletTransactionType.USE);
-        long refunded = walletTransactionRepository.sumAmountByWalletIdAndType(walletId, WalletTransactionType.REFUND);
+        Map<WalletTransactionType, Long> totals = walletTransactionRepository
+                .sumAmountByWalletIdAndTypes(walletId, List.of(WalletTransactionType.CHARGE, WalletTransactionType.USE, WalletTransactionType.REFUND))
+                .stream()
+                .collect(Collectors.toMap(WalletTransactionRepository.TypeTotal::getType, WalletTransactionRepository.TypeTotal::getTotal));
+
+        long charged = totals.getOrDefault(WalletTransactionType.CHARGE, 0L);
+        long used = totals.getOrDefault(WalletTransactionType.USE, 0L);
+        long refunded = totals.getOrDefault(WalletTransactionType.REFUND, 0L);
         return new WalletTransactionSummaryResponse(charged, used - refunded);
     }
 }

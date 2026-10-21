@@ -15,10 +15,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +44,20 @@ class WalletQueryUseCaseTest {
         ReflectionTestUtils.setField(wallet, "id", WALLET_ID);
         wallet.charge(50_000L);
         when(walletRepository.findByMemberId(MEMBER_ID)).thenReturn(Optional.of(wallet));
+    }
+
+    private static WalletTransactionRepository.TypeTotal typeTotal(WalletTransactionType type, long total) {
+        return new WalletTransactionRepository.TypeTotal() {
+            @Override
+            public WalletTransactionType getType() {
+                return type;
+            }
+
+            @Override
+            public Long getTotal() {
+                return total;
+            }
+        };
     }
 
     @Test
@@ -69,14 +86,28 @@ class WalletQueryUseCaseTest {
     @Test
     @DisplayName("거래 요약의 충전 합계는 충전 거래 합계이고 결제 합계는 결제에서 환불을 뺀 값이다")
     void transactionSummaryNetsRefundFromUse() {
-        when(transactionRepository.sumAmountByWalletIdAndType(WALLET_ID, WalletTransactionType.CHARGE)).thenReturn(200_000L);
-        when(transactionRepository.sumAmountByWalletIdAndType(WALLET_ID, WalletTransactionType.USE)).thenReturn(98_000L);
-        when(transactionRepository.sumAmountByWalletIdAndType(WALLET_ID, WalletTransactionType.REFUND)).thenReturn(5_000L);
+        when(transactionRepository.sumAmountByWalletIdAndTypes(eq(WALLET_ID), anyCollection())).thenReturn(List.of(
+                typeTotal(WalletTransactionType.CHARGE, 200_000L),
+                typeTotal(WalletTransactionType.USE, 98_000L),
+                typeTotal(WalletTransactionType.REFUND, 5_000L)));
 
         WalletTransactionSummaryResponse response = useCase.getTransactionSummary(WALLET_ID);
 
         assertThat(response.totalCharged()).isEqualTo(200_000L);
         assertThat(response.totalPaid()).isEqualTo(93_000L);
+    }
+
+    @Test
+    @DisplayName("환불 거래가 없는 유형은 0으로 계산한다")
+    void transactionSummaryTreatsMissingTypeAsZero() {
+        when(transactionRepository.sumAmountByWalletIdAndTypes(eq(WALLET_ID), anyCollection())).thenReturn(List.of(
+                typeTotal(WalletTransactionType.CHARGE, 200_000L),
+                typeTotal(WalletTransactionType.USE, 98_000L)));
+
+        WalletTransactionSummaryResponse response = useCase.getTransactionSummary(WALLET_ID);
+
+        assertThat(response.totalCharged()).isEqualTo(200_000L);
+        assertThat(response.totalPaid()).isEqualTo(98_000L);
     }
 
     @Test
