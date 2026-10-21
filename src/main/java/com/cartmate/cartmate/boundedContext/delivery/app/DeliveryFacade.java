@@ -10,6 +10,7 @@ import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerDeliveryRespo
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimStatus;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
+import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -94,6 +95,11 @@ public class DeliveryFacade {
     @Transactional(readOnly = true)
     public Page<DeliveryResponse> getMyDeliveries(Long memberId, Pageable pageable) {
         return deliveryQueryUseCase.getMyDeliveries(memberId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DeliveryResponse> getMyDeliveriesByOrder(Long memberId, Long orderId, PurchaseType purchaseType) {
+        return deliveryQueryUseCase.getMyDeliveriesByOrder(memberId, orderId, purchaseType);
     }
 
     @Transactional(readOnly = true)

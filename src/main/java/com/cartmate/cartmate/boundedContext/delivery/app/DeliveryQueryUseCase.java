@@ -7,6 +7,7 @@ import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItemOption;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
+import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemOptionRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
@@ -35,6 +36,18 @@ public class DeliveryQueryUseCase {
     public Page<DeliveryResponse> getMyDeliveries(Long memberId, Pageable pageable) {
         return deliveryRepository.findByMemberIdOrderByCreatedAtDescIdDesc(memberId, pageable)
                 .map(DeliveryResponse::from);
+    }
+
+    // 구매자 본인의 한 주문 배송 목록. 주문은 판매자별로 배송이 나뉘므로 여러 건일 수 있다.
+    public List<DeliveryResponse> getMyDeliveriesByOrder(Long memberId, Long orderId, PurchaseType purchaseType) {
+        if (memberId == null) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_MEMBER_ID_REQUIRED);
+        }
+        return deliveryRepository
+                .findByMemberIdAndOrderIdAndPurchaseTypeOrderByCreatedAtDescIdDesc(memberId, orderId, purchaseType)
+                .stream()
+                .map(DeliveryResponse::from)
+                .toList();
     }
 
     public DeliveryDetailResponse getDeliveryDetails(Long deliveryId, Long memberId) {

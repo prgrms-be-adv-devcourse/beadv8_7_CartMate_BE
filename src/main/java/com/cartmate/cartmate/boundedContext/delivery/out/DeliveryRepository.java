@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.delivery.out;
 
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
+import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;
@@ -26,6 +27,10 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     boolean existsByIdempotencyKey(String idempotencyKey);
 
     Page<Delivery> findByMemberIdOrderByCreatedAtDescIdDesc(Long memberId, Pageable pageable);
+
+    // 한 주문의 배송을 구매자 본인 것만 최신순으로 조회한다. 주문 ID는 구매 유형별로 겹칠 수 있어 유형도 함께 건다.
+    List<Delivery> findByMemberIdAndOrderIdAndPurchaseTypeOrderByCreatedAtDescIdDesc(
+            Long memberId, Long orderId, PurchaseType purchaseType);
 
     // 지정한 시각 이전에 해당 상태가 된 배송의 ID 목록. 배송중 자동 완료 처리 대상 조회에 쓴다.
     @Query("select d.id from Delivery d where d.status = :status and d.shippedAt < :before order by d.id")
