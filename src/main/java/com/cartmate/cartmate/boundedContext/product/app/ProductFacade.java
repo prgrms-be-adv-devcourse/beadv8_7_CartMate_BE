@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.shared.post.dto.ProductSyncUpdateRequest;
+import com.cartmate.cartmate.shared.post.dto.RollbackProductRequest;
 import com.cartmate.cartmate.shared.product.dto.*;
 import com.cartmate.cartmate.shared.product.event.ProductCreatedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductUpdatedEvent;
@@ -95,5 +96,11 @@ public class ProductFacade {
         }
 
         productImageFileDeleteUseCase.deleteByKeys(result.deletedKeys());
+    }
+
+    // api에 의한 보상트랜잭션 처리
+    @Transactional
+    public void rollbackByApiFail(RollbackProductRequest rollbackProductRequest) {
+        productDeleteUseCase.hardDeleteByEvent(rollbackProductRequest.getPostId());
     }
 }
