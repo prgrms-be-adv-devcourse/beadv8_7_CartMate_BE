@@ -53,7 +53,7 @@ class DeliveryClaimApproveUseCaseTest {
     void setUp() {
         useCase = new DeliveryClaimApproveUseCase(claimRepository, claimItemRepository, sellerQuery, eventPublisher);
 
-        Delivery delivery = Delivery.create(BUYER, SELLER_ID, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        Delivery delivery = Delivery.create(BUYER, SELLER_ID, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
         ReflectionTestUtils.setField(delivery, "id", 5L);
         claim = DeliveryClaim.create(delivery, BUYER, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환");

@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DeliveryTest {
 
     private Delivery newDelivery() {
-        return Delivery.create(1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        return Delivery.create(1L, 10L, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
     }
 

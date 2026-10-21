@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -141,7 +142,7 @@ class ClaimControllerTest {
     @DisplayName("GET /api/claims/seller는 주문번호와 상품을 포함한 목록을 RsData로 응답한다")
     void sellerClaims() throws Exception {
         SellerClaimResponse row = new SellerClaimResponse(
-                7L, 5L, 100L, ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
                 ClaimStatus.REQUESTED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.getSellerClaims(eq(1L), any(), any(), any()))
@@ -152,6 +153,7 @@ class ClaimControllerTest {
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.data.content[0].claimId").value(7))
                 .andExpect(jsonPath("$.data.content[0].orderId").value(100))
+                .andExpect(jsonPath("$.data.content[0].orderNumber").value("20261115-AB3K9X2P"))
                 .andExpect(jsonPath("$.data.content[0].claimType").value("REFUND"))
                 .andExpect(jsonPath("$.data.content[0].status").value("REQUESTED"))
                 .andExpect(jsonPath("$.data.content[0].items[0].productName").value("티셔츠"));
@@ -193,7 +195,7 @@ class ClaimControllerTest {
     @DisplayName("PATCH /api/claims/{claimId}/approve는 본문 없이 수락 처리하고 RsData로 응답한다")
     void approveClaim() throws Exception {
         SellerClaimResponse response = new SellerClaimResponse(
-                7L, 5L, 100L, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다",
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다",
                 ClaimStatus.APPROVED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.approveClaim(7L, 1L)).thenReturn(response);
@@ -231,7 +233,7 @@ class ClaimControllerTest {
     @DisplayName("PATCH /api/claims/{claimId}/complete는 본문 없이 완료 처리하고 RsData로 응답한다")
     void completeClaim() throws Exception {
         SellerClaimResponse response = new SellerClaimResponse(
-                7L, 5L, 100L, ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
                 ClaimStatus.COMPLETED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.completeClaim(7L, 1L)).thenReturn(response);
@@ -279,15 +281,28 @@ class ClaimControllerTest {
     }
 
     @Test
-    @DisplayName("items가 없는 요청도 컨트롤러에서 막지 않고 유스케이스 검증에 맡긴다")
-    void nullItemsPassedThrough() throws Exception {
-        when(deliveryFacade.createClaim(any()))
-                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_ITEMS_REQUIRED));
+    @DisplayName("필수 값이 빠지거나 잘못된 요청은 서비스를 호출하지 않고 400으로 응답한다")
+    void invalidRequestRejected() throws Exception {
+        String[] invalidBodies = {
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\"}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[null]}",
+                "{\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[{\"deliveryItemId\":50,\"quantity\":1}]}",
+                "{\"deliveryId\":5,\"reason\":\"OTHER\",\"items\":[{\"deliveryItemId\":50,\"quantity\":1}]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"items\":[{\"deliveryItemId\":50,\"quantity\":1}]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[{\"quantity\":1}]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"items\":[{\"deliveryItemId\":50,\"quantity\":0}]}",
+                "{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\",\"detail\":\"" + "가".repeat(1001)
+                        + "\",\"items\":[{\"deliveryItemId\":50,\"quantity\":1}]}"
+        };
 
-        mvc.perform(post("/api/claims").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"deliveryId\":5,\"claimType\":\"REFUND\",\"reason\":\"OTHER\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.resultCode").value("400-DELIVERY_CLAIM_ITEMS_REQUIRED"));
+        for (String body : invalidBodies) {
+            mvc.perform(post("/api/claims").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.resultCode").value("400-COMMON_INVALID_INPUT"));
+        }
+
+        verifyNoInteractions(deliveryFacade);
     }
 
     @Test

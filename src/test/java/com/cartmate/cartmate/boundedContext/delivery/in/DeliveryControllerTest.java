@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -62,7 +63,7 @@ class DeliveryControllerTest {
     @Test
     @DisplayName("내 배송 목록은 RsData로 감싸서 내려가고 로그인한 회원 ID로 조회한다")
     void myDeliveries() throws Exception {
-        DeliveryResponse response = new DeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        DeliveryResponse response = new DeliveryResponse(5L, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", DeliveryStatus.PREPARING, null, null, null);
         when(deliveryFacade.getMyDeliveries(eq(1L), any())).thenReturn(new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1));
 
@@ -75,9 +76,44 @@ class DeliveryControllerTest {
     }
 
     @Test
+    @DisplayName("주문별 배송 목록은 로그인한 회원과 주문 ID, 구매 유형으로 조회하고 배열로 응답한다")
+    void deliveriesByOrder() throws Exception {
+        DeliveryResponse first = new DeliveryResponse(5L, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP,
+                "홍길동", DeliveryStatus.SHIPPING, "CJ대한통운", "658219384910", null);
+        DeliveryResponse second = new DeliveryResponse(6L, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP,
+                "홍길동", DeliveryStatus.REQUESTED, null, null, null);
+        when(deliveryFacade.getMyDeliveriesByOrder(1L, 100L, PurchaseType.INDIVIDUAL_GROUP))
+                .thenReturn(List.of(first, second));
+
+        mvc.perform(get("/api/deliveries/by-order")
+                        .param("orderId", "100")
+                        .param("purchaseType", "INDIVIDUAL_GROUP"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].deliveryId").value(5))
+                .andExpect(jsonPath("$.data[0].trackingNumber").value("658219384910"))
+                .andExpect(jsonPath("$.data[0].orderNumber").value("20261115-AB3K9X2P"))
+                .andExpect(jsonPath("$.data[1].status").value("REQUESTED"));
+    }
+
+    @Test
+    @DisplayName("주문별 배송 목록은 orderId나 purchaseType이 없거나 잘못되면 서비스를 호출하지 않고 400이다")
+    void deliveriesByOrderBadParams() throws Exception {
+        mvc.perform(get("/api/deliveries/by-order").param("purchaseType", "INDIVIDUAL_GROUP"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/deliveries/by-order").param("orderId", "100"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/deliveries/by-order").param("orderId", "100").param("purchaseType", "UNKNOWN"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(deliveryFacade);
+    }
+
+    @Test
     @DisplayName("판매자 목록은 status를 생략하면 배송요청 상태로 조회하고 status로 탭을 바꿀 수 있다")
     void sellerDeliveries() throws Exception {
-        SellerDeliveryResponse row = new SellerDeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        SellerDeliveryResponse row = new SellerDeliveryResponse(5L, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP,
                 DeliveryStatus.REQUESTED, null, "홍길동", "010-0000-0000", "12345", "서울", "101호", null, null,
                 List.of(new DeliveryDetailResponse.Item(50L, 1000L, "티셔츠", 2L,
                         List.of(new DeliveryDetailResponse.Option("사이즈", "L")))));
@@ -90,6 +126,7 @@ class DeliveryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.data.content[0].orderId").value(100))
+                .andExpect(jsonPath("$.data.content[0].orderNumber").value("20261115-AB3K9X2P"))
                 .andExpect(jsonPath("$.data.content[0].receiverPhone").value("010-0000-0000"))
                 .andExpect(jsonPath("$.data.content[0].items[0].deliveryItemId").value(50))
                 .andExpect(jsonPath("$.data.content[0].items[0].productName").value("티셔츠"))
@@ -113,7 +150,7 @@ class DeliveryControllerTest {
     @Test
     @DisplayName("PATCH ready는 요청 본문의 택배사와 송장번호로 준비 처리하고 RsData로 응답한다")
     void readyDelivery() throws Exception {
-        DeliveryResponse response = new DeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        DeliveryResponse response = new DeliveryResponse(5L, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", DeliveryStatus.PREPARING, "CJ대한통운", "658219384910", null);
         when(deliveryFacade.readyDelivery(5L, 1L, "CJ대한통운", "658219384910")).thenReturn(response);
 
@@ -141,9 +178,26 @@ class DeliveryControllerTest {
     }
 
     @Test
+    @DisplayName("PATCH ready에서 택배사나 송장번호가 비어 있으면 서비스를 호출하지 않고 400으로 응답한다")
+    void readyDeliveryRejectsBlankFields() throws Exception {
+        mvc.perform(patch("/api/deliveries/5/ready")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"carrier\":\" \",\"trackingNumber\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-COMMON_INVALID_INPUT"));
+        mvc.perform(patch("/api/deliveries/5/ready")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-COMMON_INVALID_INPUT"));
+
+        verifyNoInteractions(deliveryFacade);
+    }
+
+    @Test
     @DisplayName("PATCH ship은 본문 없이 출발 처리하고 RsData로 응답한다")
     void shipDelivery() throws Exception {
-        DeliveryResponse response = new DeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        DeliveryResponse response = new DeliveryResponse(5L, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", DeliveryStatus.SHIPPING, "CJ대한통운", "658219384910", null);
         when(deliveryFacade.shipDelivery(5L, 1L)).thenReturn(response);
 
@@ -173,7 +227,7 @@ class DeliveryControllerTest {
     @Test
     @DisplayName("PATCH confirm은 본문 없이 구매확정 처리하고 RsData로 응답한다")
     void confirmDelivery() throws Exception {
-        DeliveryResponse response = new DeliveryResponse(5L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        DeliveryResponse response = new DeliveryResponse(5L, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", DeliveryStatus.CONFIRMED, "CJ대한통운", "658219384910", null);
         when(deliveryFacade.confirmDelivery(5L, 1L)).thenReturn(response);
 
@@ -203,7 +257,7 @@ class DeliveryControllerTest {
     @DisplayName("배송 상세는 RsData로 감싸서 상품명과 옵션을 내려준다")
     void deliveryDetail() throws Exception {
         DeliveryDetailResponse response = new DeliveryDetailResponse(
-                5L, 1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP, DeliveryStatus.PREPARING,
+                5L, 1L, 10L, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP, DeliveryStatus.PREPARING,
                 null, null, "홍길동", "010-0000-0000", "12345", "서울", "101호",
                 null, null, null, null, null,
                 List.of(new DeliveryDetailResponse.Item(50L, 1000L, "티셔츠", 2L,
@@ -213,6 +267,7 @@ class DeliveryControllerTest {
         mvc.perform(get("/api/deliveries/5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.orderNumber").value("20261115-AB3K9X2P"))
                 .andExpect(jsonPath("$.data.items[0].deliveryItemId").value(50))
                 .andExpect(jsonPath("$.data.items[0].productName").value("티셔츠"))
                 .andExpect(jsonPath("$.data.items[0].options[0].optionName").value("사이즈"))

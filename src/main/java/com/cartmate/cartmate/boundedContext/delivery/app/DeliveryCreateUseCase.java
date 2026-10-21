@@ -43,6 +43,7 @@ public class DeliveryCreateUseCase {
                 createCommand.memberId(),
                 createCommand.sellerId(),
                 createCommand.orderId(),
+                createCommand.orderNumber(),
                 createCommand.purchaseType(),
                 createCommand.receiverName(),
                 createCommand.receiverPhone(),

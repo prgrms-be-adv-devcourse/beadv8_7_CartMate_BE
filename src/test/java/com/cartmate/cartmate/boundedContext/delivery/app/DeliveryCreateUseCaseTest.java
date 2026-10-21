@@ -42,7 +42,7 @@ class DeliveryCreateUseCaseTest {
     }
 
     private DeliveryCreateCommand command(Long sellerId, List<Item> items) {
-        return new DeliveryCreateCommand(1L, sellerId, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        return new DeliveryCreateCommand(1L, sellerId, 100L, "20261115-AB3K9X2P", PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", items);
     }
 
@@ -52,7 +52,7 @@ class DeliveryCreateUseCaseTest {
     }
 
     private Delivery saved(DeliveryCreateCommand c, String hash) {
-        return Delivery.create(c.memberId(), c.sellerId(), c.orderId(), c.purchaseType(),
+        return Delivery.create(c.memberId(), c.sellerId(), c.orderId(), c.orderNumber(), c.purchaseType(),
                 c.receiverName(), c.receiverPhone(), c.zipCode(), c.address(), c.addressDetail(),
                 c.idempotencyKey(), hash);
     }
@@ -68,6 +68,24 @@ class DeliveryCreateUseCaseTest {
         ArgumentCaptor<Delivery> captor = ArgumentCaptor.forClass(Delivery.class);
         verify(deliveryRepository).save(captor.capture());
         assertThat(captor.getValue().getRequestHash()).isEqualTo(DeliveryRequestHasher.hash(c));
+    }
+
+    @Test
+    @DisplayName("주문번호를 배송에 함께 저장하고, 주문번호가 없는 주문은 null로 저장한다")
+    void createStoresOrderNumber() {
+        when(deliveryRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
+        DeliveryCreateCommand withNumber = command(10L, items(1));
+        DeliveryCreateCommand withoutNumber = new DeliveryCreateCommand(1L, 10L, 100L, null,
+                PurchaseType.SHARED_GROUP, "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-2", items(1));
+        when(deliveryRepository.findByIdempotencyKey("key-2")).thenReturn(Optional.empty());
+
+        useCase.create(withNumber);
+        useCase.create(withoutNumber);
+
+        ArgumentCaptor<Delivery> captor = ArgumentCaptor.forClass(Delivery.class);
+        verify(deliveryRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues()).extracting(Delivery::getOrderNumber)
+                .containsExactly("20261115-AB3K9X2P", null);
     }
 
     @Test

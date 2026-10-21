@@ -32,6 +32,10 @@ public class Delivery {
     @Column(name = "order_id", nullable = false)
     private Long orderId;
 
+    // 배송 생성 시점의 주문번호 스냅샷. 주문번호가 없는 주문(공유 공동구매)과 이전에 만든 배송은 null이다.
+    @Column(name = "order_number")
+    private String orderNumber;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "purchase_type", nullable = false)
     private PurchaseType purchaseType;
@@ -89,19 +93,19 @@ public class Delivery {
 
 
     public static Delivery create(
-            Long memberId, Long sellerId, Long orderId, PurchaseType purchaseType,
+            Long memberId, Long sellerId, Long orderId, String orderNumber, PurchaseType purchaseType,
             String receiverName, String receiverPhone,
             String zipCode, String address, String addressDetail, String idempotencyKey,
             String requestHash
     ) {
         return new Delivery(
-                memberId, sellerId, orderId, purchaseType,
+                memberId, sellerId, orderId, orderNumber, purchaseType,
                 receiverName, receiverPhone, zipCode, address, addressDetail, idempotencyKey, requestHash
         );
     }
 
     private Delivery(
-            Long memberId, Long sellerId, Long orderId, PurchaseType purchaseType,
+            Long memberId, Long sellerId, Long orderId, String orderNumber, PurchaseType purchaseType,
             String receiverName, String receiverPhone,
             String zipCode, String address, String addressDetail, String idempotencyKey,
             String requestHash
@@ -109,6 +113,7 @@ public class Delivery {
         this.memberId = memberId;
         this.sellerId = sellerId;
         this.orderId = orderId;
+        this.orderNumber = orderNumber;
         this.purchaseType = purchaseType;
         this.receiverName = receiverName;
         this.receiverPhone = receiverPhone;

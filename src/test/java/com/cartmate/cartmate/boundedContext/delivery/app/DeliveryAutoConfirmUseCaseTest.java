@@ -34,7 +34,7 @@ class DeliveryAutoConfirmUseCaseTest {
     void setUp() {
         useCase = new DeliveryAutoConfirmUseCase(deliveryRepository, deliveryClaimRepository, eventPublisher);
 
-        delivery = Delivery.create(1L, 10L, 100L, PurchaseType.INDIVIDUAL_GROUP,
+        delivery = Delivery.create(1L, 10L, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
         delivery.prepare("CJ대한통운", "658219384910");
         delivery.ship();
