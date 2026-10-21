@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.delivery.app.dto;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimReason;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryClaim;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,7 @@ public record DeliveryClaimCreateRequest(
         @NotEmpty
         List<@NotNull @Valid Item> items
 ) {
+    @Schema(name = "DeliveryClaimCreateItemRequest")
     public record Item(
             @NotNull
             Long deliveryItemId,
