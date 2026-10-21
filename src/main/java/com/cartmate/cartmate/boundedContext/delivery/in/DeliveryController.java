@@ -6,6 +6,7 @@ import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryReadyReques
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerDeliveryResponse;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
+import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
 import jakarta.validation.Valid;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/deliveries")
@@ -42,6 +45,17 @@ public class DeliveryController {
         Long memberId = user.memberId();
 
         return new RsData<>("200-1", "배송 목록 조회 성공했습니다.", deliveryFacade.getMyDeliveries(memberId, pageable));
+    }
+
+    // 주문 상세 화면용. 한 주문의 내 배송을 판매자별로 모두 돌려준다. 주문 ID는 구매 유형별로 겹칠 수 있어 유형이 필요하다.
+    @GetMapping
+    public RsData<List<DeliveryResponse>> getDeliveriesByOrder(
+            @AuthenticationPrincipal SecurityUser user,
+            @RequestParam Long orderId,
+            @RequestParam PurchaseType purchaseType
+    ) {
+        return new RsData<>("200-1", "주문별 배송 목록 조회 성공했습니다.",
+                deliveryFacade.getMyDeliveriesByOrder(user.memberId(), orderId, purchaseType));
     }
 
     // 판매자 배송 관리 목록. 상태 탭(배송요청/준비/중/완료)별로 조회하며 기본은 배송요청이다.
