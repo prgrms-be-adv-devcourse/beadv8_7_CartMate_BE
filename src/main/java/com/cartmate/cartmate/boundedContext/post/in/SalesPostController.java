@@ -62,6 +62,6 @@ public class SalesPostController {
     ) {
         salesPostFacade.updateSalesPostByUser(request, images);
         return ResponseEntity.noContent().build();
-    }
+    } 
 
 }
