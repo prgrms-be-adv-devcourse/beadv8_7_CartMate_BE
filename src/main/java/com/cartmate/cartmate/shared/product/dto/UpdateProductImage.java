@@ -16,7 +16,6 @@ public class UpdateProductImage {
     private Long productId;
     private String s3Key;
     private int imageSeq;
-    private ProductStatus status;
 
     // 서버 도착 후 주입
     @JsonIgnore

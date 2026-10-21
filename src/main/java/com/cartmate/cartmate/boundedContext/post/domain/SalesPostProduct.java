@@ -87,6 +87,7 @@ public class SalesPostProduct extends BaseManualIdAndTime {
     public SalesPostProduct delete() {
         this.status = ProductStatus.DELETED;
         imageList.forEach(SalesPostProductImage::delete);
+        optionList.clear();
         return this;
     }
 
