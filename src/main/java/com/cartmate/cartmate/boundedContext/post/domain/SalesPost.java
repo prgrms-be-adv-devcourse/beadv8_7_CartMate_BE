@@ -12,6 +12,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,14 +44,20 @@ public class SalesPost extends BaseIdAndTime {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    private ProductUpdateStatus updateStatus;
+    private SalesPostUpdateStatus updateStatus;
 
-    public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount) {
+    @Column(nullable = false)
+    private LocalDateTime updateStatusChangedAt;
+
+    public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount,
+                     SalesPostUpdateStatus updateStatus, LocalDateTime updateStatusChangedAt) {
         this.sellerId = sellerId;
         this.title = title;
         this.content = content;
         this.status = status;
         this.viewCount = viewCount;
+        this.updateStatus = updateStatus;
+        this.updateStatusChangedAt = updateStatusChangedAt;
     }
 
     public SalesPost delete() {

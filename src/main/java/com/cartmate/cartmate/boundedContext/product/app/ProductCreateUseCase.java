@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,8 @@ public class ProductCreateUseCase {
                     createProduct.getBasePrice(),
                     ProductStatus.ON_SALE,
                     false,
-                    ProductUpdateStatus.NEW
+                    ProductUpdateStatus.NEW,
+                    LocalDateTime.now()
                 )
             );
             product.addProductImage(imagesByProduct.getOrDefault(i, List.of()));

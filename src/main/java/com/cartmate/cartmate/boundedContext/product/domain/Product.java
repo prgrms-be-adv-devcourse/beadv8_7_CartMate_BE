@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,9 +58,12 @@ public class Product extends BaseIdAndTime {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     private ProductUpdateStatus updateStatus;
 
+    @Column(nullable = false)
+    private LocalDateTime updateStatusChangedAt;
 
-    public Product(Long sellerId, Long salesPostId, Long categoryId, String name, String description,
-                   Long basePrice, ProductStatus status, boolean syncStatus, ProductUpdateStatus updateStatus) {
+
+    public Product(Long sellerId, Long salesPostId, Long categoryId, String name, String description, Long basePrice,
+                   ProductStatus status, boolean syncStatus, ProductUpdateStatus updateStatus, LocalDateTime updateStatusChangedAt) {
         this.sellerId = sellerId;
         this.salesPostId = salesPostId;
         this.categoryId = categoryId;
@@ -69,6 +73,7 @@ public class Product extends BaseIdAndTime {
         this.status = status;
         this.syncStatus = syncStatus;
         this.updateStatus = updateStatus;
+        this.updateStatusChangedAt = updateStatusChangedAt;
     }
 
     public SyncProduct toSyncProduct() {
