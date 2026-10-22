@@ -10,6 +10,8 @@ import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +40,7 @@ public class Product extends BaseIdAndTime {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private ProductStatus status;
 
     @Column(nullable = false)
@@ -51,6 +54,7 @@ public class Product extends BaseIdAndTime {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private ProductUpdateStatus updateStatus;
 
 

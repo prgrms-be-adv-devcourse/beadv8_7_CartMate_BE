@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.post.domain;
 
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProduct;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
+import com.cartmate.cartmate.boundedContext.product.domain.ProductUpdateStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -27,6 +28,7 @@ public class SalesPost extends BaseIdAndTime {
 
     private String content;
 
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     private SalesPostSaleStatus status;
@@ -37,6 +39,11 @@ public class SalesPost extends BaseIdAndTime {
     @OneToMany(mappedBy = "salesPost", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     @SQLRestriction("status in ('ON_SALE')")
     private List<SalesPostProduct> productList = new ArrayList<>();
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    private ProductUpdateStatus updateStatus;
 
     public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount) {
         this.sellerId = sellerId;
