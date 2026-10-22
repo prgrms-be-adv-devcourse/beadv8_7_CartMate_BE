@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.product.domain;
 
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostUpdateStatus;
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.product.dto.CreateProductOption;
@@ -48,9 +49,13 @@ public class Product extends BaseIdAndTime {
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<ProductOption> productOptionList = new ArrayList<>();
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private ProductUpdateStatus updateStatus;
 
-    public Product(Long sellerId, Long salesPostId, Long categoryId, String name,
-                   String description, Long basePrice, ProductStatus status, boolean syncStatus) {
+
+    public Product(Long sellerId, Long salesPostId, Long categoryId, String name, String description,
+                   Long basePrice, ProductStatus status, boolean syncStatus, ProductUpdateStatus updateStatus) {
         this.sellerId = sellerId;
         this.salesPostId = salesPostId;
         this.categoryId = categoryId;
@@ -59,6 +64,7 @@ public class Product extends BaseIdAndTime {
         this.basePrice = basePrice;
         this.status = status;
         this.syncStatus = syncStatus;
+        this.updateStatus = updateStatus;
     }
 
     public SyncProduct toSyncProduct() {
