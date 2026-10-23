@@ -18,4 +18,6 @@ public interface SalesPostQueryRepository {
                             SalesPostUpdateStatus to, LocalDateTime now);
 
     Long startUpdate(Long salesPostId, Collection<SalesPostUpdateStatus> from, LocalDateTime now);
+
+    Long startDelete(Long salesPostId, Collection<SalesPostUpdateStatus> editable);
 }

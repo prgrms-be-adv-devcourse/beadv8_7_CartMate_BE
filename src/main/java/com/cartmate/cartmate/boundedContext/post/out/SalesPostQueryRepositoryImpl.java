@@ -95,4 +95,21 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
         return updated;
     }
 
+    @Override
+    public Long startDelete(Long salesPostId, Collection<SalesPostUpdateStatus> editable) {
+        long updated = queryFactory
+                .update(salesPost)
+                .set(salesPost.status, SalesPostSaleStatus.PENDING)
+                .where(
+                        salesPost.id.eq(salesPostId),
+                        salesPost.updateStatus.in(editable),
+                        salesPost.status.notIn(SalesPostSaleStatus.PENDING, SalesPostSaleStatus.DELETED)
+                )
+                .execute();
+
+        em.flush();
+        em.clear();
+        return updated;
+    }
+
 }

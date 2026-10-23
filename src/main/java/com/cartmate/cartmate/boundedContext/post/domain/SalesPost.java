@@ -61,11 +61,6 @@ public class SalesPost extends BaseIdAndTime {
         this.updateStatusChangedAt = updateStatusChangedAt;
     }
 
-    public SalesPost delete() {
-        this.status = SalesPostSaleStatus.PENDING;
-        return this;
-    }
-
     public SalesPost deleteComplete() {
         this.status = SalesPostSaleStatus.DELETED;
         return this;
