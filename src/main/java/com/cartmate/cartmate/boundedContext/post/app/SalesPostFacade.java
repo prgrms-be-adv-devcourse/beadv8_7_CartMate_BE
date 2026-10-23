@@ -1,12 +1,9 @@
 package com.cartmate.cartmate.boundedContext.post.app;
 
-import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
-import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSeller;
-import com.cartmate.cartmate.boundedContext.post.dto.CreateSalesPostRequest;
-import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostRequest;
-import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
-import com.cartmate.cartmate.boundedContext.post.dto.UpdateSalesPostRequest;
+import com.cartmate.cartmate.boundedContext.post.domain.*;
+import com.cartmate.cartmate.boundedContext.post.dto.*;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostApiClient;
+import com.cartmate.cartmate.global.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.page.PageResponse;
@@ -34,10 +31,13 @@ public class SalesPostFacade {
     private final SalesPostSyncProductUseCase salesPostSyncProductUseCase;
     private final SalesPostCreateUseCase salesPostCreateUseCase;
     private final SalesPostSelectUseCase salesPostSelectUseCase;
+    private final SalesPostRecoveryUseCase salesPostRecoveryUseCase;
     private final SalesPostUpdateUseCase salesPostUpdateUseCase;
+    private final SalesPostRecoverUseCase salesPostRecoverUseCase;
     private final SalesPostDeleteUseCase salesPostDeleteUseCase;
     private final TransactionTemplate transactionTemplate;
     private final SalesPostApiClient salesPostApiClient;
+    private final SalesPostSupport salesPostSupport;
 
     @Transactional
     public SalesPostSeller syncSeller(SellerRegisteredEvent seller) {
@@ -115,12 +115,44 @@ public class SalesPostFacade {
     }
 
     public void updateSalesPostByUser(UpdateSalesPostRequest request, List<MultipartFile> images) {
-        salesPostUpdateUseCase.validateUpdatable(request);
-        salesPostApiClient.updateProducts(request, images);
+        Long postId = request.getId();
+        SalesPostUpdateStatus previousUpdatedStatus = transactionTemplate.execute(s -> {
+            SalesPost post = salesPostSupport.validateUpdatable(request);
+            SalesPostUpdateStatus beforeUpdateStatus = salesPostUpdateUseCase.markPending(post);
+            List<SelectProductResponse> products = salesPostApiClient.getProduct(postId);
+            SalesPostSnapshot snapshot = SalesPostSnapshot.from(products);
+            salesPostRecoveryUseCase.replace(postId, beforeUpdateStatus, snapshot);
+            return beforeUpdateStatus;
+        });
 
-        transactionTemplate.executeWithoutResult(status ->
-                salesPostUpdateUseCase.updateSalesPostByUser(request)
-        );
+        try {
+            salesPostApiClient.updateProducts(request, images);
+        } catch (ServiceException e) {
+            if (e.getResultCode().equals("PRODUCT_UPDATE_INVALID")) {
+                // 명확한 실패(상품 쪽 rollback 완료)
+                transactionTemplate.executeWithoutResult(s -> {
+                    salesPostRecoveryUseCase.delete(postId);
+                    salesPostUpdateUseCase.revertTo(postId, previousUpdatedStatus);
+                });
+            } else {
+                salesPostRecoverUseCase.recover(postId);
+            }
+            throw e;
+        } catch (RuntimeException e) {
+            salesPostRecoverUseCase.recover(postId);
+            throw e;
+        }
+
+        try {
+            transactionTemplate.executeWithoutResult(s -> {
+                salesPostUpdateUseCase.markCompleted(postId);
+                salesPostUpdateUseCase.updateSalesPostByUser(request);
+                salesPostRecoveryUseCase.delete(postId);
+            });
+        } catch (RuntimeException e) {
+            salesPostRecoverUseCase.recover(postId);
+            throw e;
+        }
     }
 
 }

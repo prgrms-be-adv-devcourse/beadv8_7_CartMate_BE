@@ -1,6 +1,8 @@
 package com.cartmate.cartmate.boundedContext.product.in;
 
+import com.cartmate.cartmate.boundedContext.post.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.product.app.ProductFacade;
+import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import com.cartmate.cartmate.shared.product.dto.UpdateProductsRequest;
 import lombok.RequiredArgsConstructor;
@@ -48,4 +50,8 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{postId}")
+    public ResponseEntity<RsData<List<SelectProductResponse>>> selectProductsByPost(@PathVariable Long postId) {
+        return ResponseEntity.ok(productFacade.selectProductsByPost(postId));
+    }
 }

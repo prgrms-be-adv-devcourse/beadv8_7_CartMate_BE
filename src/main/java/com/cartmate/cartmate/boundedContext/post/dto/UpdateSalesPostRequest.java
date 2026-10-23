@@ -14,6 +14,5 @@ public class UpdateSalesPostRequest {
     private Long sellerId;
     private String title;
     private String content;
-    private String status;
     private List<UpdateSalesPostProduct> productList;
 }

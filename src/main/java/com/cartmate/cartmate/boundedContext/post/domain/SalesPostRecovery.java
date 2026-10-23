@@ -1,5 +1,6 @@
-package com.cartmate.cartmate.boundedContext.product.domain;
+package com.cartmate.cartmate.boundedContext.post.domain;
 
+import com.cartmate.cartmate.boundedContext.product.domain.ProductUpdateStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,29 +12,27 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ProductRecovery extends BaseIdAndTime {
+public class SalesPostRecovery extends BaseIdAndTime {
     @Column(nullable = false, unique = true)
-    private Long productId;
+    private Long salesPostId;
 
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    private ProductUpdateStatus previousStatus;
+    private SalesPostUpdateStatus previousStatus;
 
     @Column(nullable = false, columnDefinition = "json")
     @JdbcTypeCode(SqlTypes.JSON)
-    private ProductSnapshot snapshot;
+    private SalesPostSnapshot snapshot;
 
     @Column(nullable = false)
     private int retryCount;
 
-    public ProductRecovery(Long productId, ProductUpdateStatus previousStatus, ProductSnapshot snapshot) {
-        this.productId = productId;
+    public SalesPostRecovery(Long salesPostId, SalesPostUpdateStatus previousStatus, SalesPostSnapshot snapshot) {
+        this.salesPostId = salesPostId;
         this.previousStatus = previousStatus;
         this.snapshot = snapshot;
         this.retryCount = 0;

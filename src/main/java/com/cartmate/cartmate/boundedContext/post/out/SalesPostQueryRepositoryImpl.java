@@ -2,20 +2,27 @@ package com.cartmate.cartmate.boundedContext.post.out;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostUpdateStatus;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostRequest;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
-import static com.cartmate.cartmate.boundedContext.post.domain.QSalesPost.salesPost;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+
+import static com.cartmate.cartmate.boundedContext.post.domain.QSalesPost.salesPost;
 
 public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
     private final JPAQueryFactory queryFactory;
+    private final EntityManager em;
+
     public SalesPostQueryRepositoryImpl(EntityManager entityManager) {
+        this.em = entityManager;
         this.queryFactory = new JPAQueryFactory(entityManager);
     }
 
@@ -51,12 +58,41 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
         return title == null || title.isBlank() ? null : salesPost.title.contains(title);
     }
 
-//    private BooleanExpression postIdEq(Long postId) {
-//        return postId == null ? null : salesPost.id.eq(postId);
-//    }
-
     private BooleanExpression notDeleted() {
         return salesPost.status.ne(SalesPostSaleStatus.DELETED);
+    }
+
+    @Override
+    public Long changeUpdateStatus(Long salesPostId, Collection<SalesPostUpdateStatus> from,
+                                   SalesPostUpdateStatus to, LocalDateTime now) {
+        long updated = queryFactory
+                .update(salesPost)
+                .set(salesPost.updateStatus, to)
+                .set(salesPost.updateStatusChangedAt, now)
+                .where(salesPost.id.eq(salesPostId), salesPost.updateStatus.in(from))
+                .execute();
+
+        em.flush();
+        em.clear();
+        return updated;
+    }
+
+    @Override
+    public Long startUpdate(Long salesPostId, Collection<SalesPostUpdateStatus> from, LocalDateTime now) {
+        long updated = queryFactory
+                .update(salesPost)
+                .set(salesPost.updateStatus, SalesPostUpdateStatus.PENDING)
+                .set(salesPost.updateStatusChangedAt, now)
+                .where(
+                        salesPost.id.eq(salesPostId),
+                        salesPost.updateStatus.in(from),
+                        salesPost.status.notIn(SalesPostSaleStatus.PENDING, SalesPostSaleStatus.DELETED)
+                )
+                .execute();
+
+        em.flush();
+        em.clear();
+        return updated;
     }
 
 }

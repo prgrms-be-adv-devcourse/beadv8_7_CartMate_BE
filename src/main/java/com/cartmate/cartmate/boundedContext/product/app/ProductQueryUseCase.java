@@ -1,7 +1,11 @@
 package com.cartmate.cartmate.boundedContext.product.app;
 
+import com.cartmate.cartmate.boundedContext.post.dto.SelectProductImage;
+import com.cartmate.cartmate.boundedContext.post.dto.SelectProductOption;
+import com.cartmate.cartmate.boundedContext.post.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductImage;
+import com.cartmate.cartmate.boundedContext.product.domain.ProductOption;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.product.out.ImageStorage;
 import com.cartmate.cartmate.boundedContext.product.out.ProductImageRepository;
@@ -64,6 +68,56 @@ public class ProductQueryUseCase {
                 .filter(Objects::nonNull)
                 .map(product -> toProductForPurchase(product, imageKeyByProductId.get(product.getId())))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SelectProductResponse> selectProductsByPost(Long postId) {
+        return productRepository.findBySalesPostId(postId).stream()
+                .filter(product -> product.getStatus() != ProductStatus.DELETED)
+                .map(this::toSelectProductResponse)
+                .toList();
+    }
+
+    private SelectProductResponse toSelectProductResponse(Product product) {
+        List<SelectProductImage> images = product.getProductImageList().stream()
+                .filter(image -> image.getStatus() == ProductStatus.ACTIVE)
+                .map(this::toSelectProductImage)
+                .toList();
+        List<SelectProductOption> options = product.getProductOptionList().stream()
+                .map(this::toSelectProductOption)
+                .toList();
+        return new SelectProductResponse(
+                product.getId(),
+                product.getSalesPostId(),
+                product.getCategoryId(),
+                product.getName(),
+                product.getDescription(),
+                product.getBasePrice(),
+                product.getStatus(),
+                images,
+                options
+        );
+    }
+
+    private SelectProductImage toSelectProductImage(ProductImage image) {
+        return new SelectProductImage(
+                image.getId(),
+                image.getS3Key(),
+                image.getImageSeq(),
+                image.getStatus(),
+                image.getCreateDate(),
+                image.getModifyDate()
+        );
+    }
+
+    private SelectProductOption toSelectProductOption(ProductOption option) {
+        return new SelectProductOption(
+                option.getId(),
+                option.getProductTypeId(),
+                option.getProductOptionId(),
+                option.getCreateDate(),
+                option.getModifyDate()
+        );
     }
 
     private ProductForPurchase toProductForPurchase(Product product, String imageKey) {

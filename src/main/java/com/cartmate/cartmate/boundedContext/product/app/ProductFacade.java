@@ -1,7 +1,9 @@
 package com.cartmate.cartmate.boundedContext.product.app;
 
+import com.cartmate.cartmate.boundedContext.post.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.global.GlobalConfig;
+import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.shared.post.dto.ProductSyncUpdateRequest;
 import com.cartmate.cartmate.shared.post.dto.RollbackProductRequest;
@@ -103,6 +105,15 @@ public class ProductFacade {
     @Transactional(readOnly = true)
     public List<ProductForPurchase> findProductsForPurchase(Collection<Long> productIds) {
         return productQueryUseCase.findProductsForPurchase(productIds);
+    }
+
+    @Transactional(readOnly = true)
+    public RsData<List<SelectProductResponse>> selectProductsByPost(Long postId) {
+        return new RsData<>(
+                "200-1",
+                "상품 조회에 성공했습니다.",
+                productQueryUseCase.selectProductsByPost(postId)
+        );
     }
 
     // api에 의한 보상트랜잭션 처리

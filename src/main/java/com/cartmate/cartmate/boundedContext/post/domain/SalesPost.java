@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.post.domain;
 
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProduct;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
+import com.cartmate.cartmate.boundedContext.post.dto.UpdateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductUpdateStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import jakarta.persistence.*;
