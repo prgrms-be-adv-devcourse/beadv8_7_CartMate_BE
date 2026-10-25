@@ -9,6 +9,10 @@ import com.cartmate.cartmate.global.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.shared.product.dto.RestoreProduct;
+import com.cartmate.cartmate.shared.product.dto.RestoreProductImage;
+import com.cartmate.cartmate.shared.product.dto.RestoreProductOption;
+import com.cartmate.cartmate.shared.product.dto.RestoreProductsRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
@@ -119,6 +123,44 @@ public class SalesPostApiClient {
     }
 
     public void restoreProducts(Long postId, SalesPostSnapshot snapshot) {
+        if (snapshot == null) {
+            throw new IllegalStateException("복구할 스냅샷이 없습니다. postId=" + postId);
+        }
 
+        try {
+            restClient.put()
+                    .uri("/{postId}/restore", postId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(toRestoreRequest(snapshot))
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        throw new ServiceException(ProductErrorCode.PRODUCT_RESTORE_INVALID);
+                    })
+                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+                        throw new ServiceException(ProductErrorCode.PRODUCT_RESTORE_FAILED);
+                    })
+                    .toBodilessEntity();
+        } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
+            throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
+        }
+    }
+
+    private RestoreProductsRequest toRestoreRequest(SalesPostSnapshot snapshot) {
+        List<RestoreProduct> productList = snapshot.products().stream()
+                .map(p -> new RestoreProduct(
+                        p.id(),
+                        p.categoryId(),
+                        p.name(),
+                        p.description(),
+                        p.basePrice(),
+                        p.images().stream()
+                                .map(i -> new RestoreProductImage(i.imageId(), i.sortOrder()))
+                                .toList(),
+                        p.options().stream()
+                                .map(o -> new RestoreProductOption(o.productTypeId(), o.productOptionId()))
+                                .toList()
+                ))
+                .toList();
+        return new RestoreProductsRequest(productList);
     }
 }

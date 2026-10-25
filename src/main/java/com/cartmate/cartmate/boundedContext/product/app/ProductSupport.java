@@ -3,8 +3,6 @@ package com.cartmate.cartmate.boundedContext.product.app;
 import com.cartmate.cartmate.boundedContext.product.domain.ImageTypePolicy;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductCountPolicy;
 import com.cartmate.cartmate.boundedContext.product.dto.ImageUploadTask;
-import com.cartmate.cartmate.boundedContext.product.out.ProductRecoveryRepository;
-import com.cartmate.cartmate.boundedContext.product.out.ProductRepository;
 import com.cartmate.cartmate.global.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.product.dto.*;

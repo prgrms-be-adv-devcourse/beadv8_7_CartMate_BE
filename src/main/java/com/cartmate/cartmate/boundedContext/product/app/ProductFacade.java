@@ -11,6 +11,7 @@ import com.cartmate.cartmate.shared.product.dto.*;
 import com.cartmate.cartmate.shared.product.event.ProductCreatedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -22,9 +23,11 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductFacade {
     private final ProductCreateUseCase productCreateUseCase;
     private final ProductUpdateUseCase productUpdateUseCase;
+    private final ProductRestoreUseCase productRestoreUseCase;
     private final ProductImageFileUploadUseCase productImageFileUploadUseCase;
     private final ProductImageFileUpdateUseCase productImageFileUpdateUseCase;
     private final ProductImageFileDeleteUseCase productImageFileDeleteUseCase;
@@ -100,6 +103,31 @@ public class ProductFacade {
         }
 
         productImageFileDeleteUseCase.deleteByKeys(result.deletedKeys());
+    }
+
+    // 판매글 수정 실패 시 스냅샷으로 복구 (이미지 파일은 복구하지 않음)
+    public void restoreProducts(Long postId, RestoreProductsRequest request) {
+        if (request.getProductList() == null || request.getProductList().isEmpty()) {
+            return;
+        }
+
+        ProductUpdateResult result = transactionTemplate.execute(status -> {
+            ProductUpdateResult restoreResult = productRestoreUseCase.restoreProduct(postId, request);
+
+            GlobalConfig.getEventPublisher().publish(
+                    new ProductUpdatedEvent(
+                            new SyncProductRequest(restoreResult.syncProductList())
+                    )
+            );
+            return restoreResult;
+        });
+
+        // 복구는 이미 커밋됐으므로 파일 삭제 실패로 복구 실패 처리하지 않음
+        try {
+            productImageFileDeleteUseCase.deleteByKeys(result.deletedKeys());
+        } catch (RuntimeException e) {
+            log.warn("복구 후 이미지 파일 삭제 실패. postId={}", postId, e);
+        }
     }
 
     @Transactional(readOnly = true)

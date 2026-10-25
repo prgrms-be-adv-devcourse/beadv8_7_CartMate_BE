@@ -7,8 +7,6 @@ import com.cartmate.cartmate.boundedContext.post.domain.SalesPostUpdateStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-
 @Service
 @RequiredArgsConstructor
 public class SalesPostRecoveryUseCase {
