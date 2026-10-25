@@ -6,6 +6,8 @@ import com.cartmate.cartmate.boundedContext.post.domain.SalesPostUpdateStatus;
 import com.cartmate.cartmate.boundedContext.post.dto.CreateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductUpdateStatus;
+import com.cartmate.cartmate.global.code.SalesPostErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,5 +31,12 @@ public class SalesPostCreateUseCase {
                         SalesPostUpdateStatus.NEW,
                         LocalDateTime.now()
                 ));
+    }
+
+    @Transactional
+    public void completeSave(Long postId) {
+        SalesPost post = salesPostRepository.findById(postId)
+                .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
+        post.saveComplete();
     }
 }

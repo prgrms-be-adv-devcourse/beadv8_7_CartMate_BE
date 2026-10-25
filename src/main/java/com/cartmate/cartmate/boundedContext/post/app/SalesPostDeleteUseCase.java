@@ -35,6 +35,13 @@ public class SalesPostDeleteUseCase {
     }
 
     @Transactional
+    public void completeDelete(Long postId) {
+        SalesPost post = salesPostRepository.findById(postId)
+                .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
+        post.deleteComplete();
+    }
+
+    @Transactional
     public void deleteSalesPostByEvent(Long postId) {
         salesPostRepository.findById(postId)
                 .ifPresent(salesPostRepository::delete);

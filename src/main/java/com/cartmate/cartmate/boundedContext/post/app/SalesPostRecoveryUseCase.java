@@ -14,10 +14,16 @@ import java.time.LocalDateTime;
 public class SalesPostRecoveryUseCase {
     private final SalesPostRecoveryRepository salesPostRecoveryRepository;
 
-    public void replace(Long postId, SalesPostUpdateStatus previous, SalesPostSnapshot snapshot) {
+    public void replace(Long postId, SalesPostUpdateStatus previous) {
         salesPostRecoveryRepository.deleteBySalesPostId(postId);
         salesPostRecoveryRepository.flush();
-        salesPostRecoveryRepository.save(new SalesPostRecovery(postId, previous, snapshot));
+        salesPostRecoveryRepository.save(new SalesPostRecovery(postId, previous));
+    }
+
+    public void saveSnapshot(Long postId, SalesPostSnapshot snapshot) {
+        SalesPostRecovery recovery = salesPostRecoveryRepository.findBySalesPostId(postId)
+                .orElseThrow(() -> new IllegalStateException("복구 기록이 없습니다. postId=" + postId));
+        recovery.saveSnapshot(snapshot);
     }
 
     public void delete(Long postId) {

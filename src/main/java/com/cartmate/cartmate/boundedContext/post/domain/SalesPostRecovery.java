@@ -24,18 +24,22 @@ public class SalesPostRecovery extends BaseIdAndTime {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     private SalesPostUpdateStatus previousStatus;
 
-    @Column(nullable = false, columnDefinition = "json")
+    // 상품 정보를 가져오기 전에는 비어 있음
+    @Column(columnDefinition = "json")
     @JdbcTypeCode(SqlTypes.JSON)
     private SalesPostSnapshot snapshot;
 
     @Column(nullable = false)
     private int retryCount;
 
-    public SalesPostRecovery(Long salesPostId, SalesPostUpdateStatus previousStatus, SalesPostSnapshot snapshot) {
+    public SalesPostRecovery(Long salesPostId, SalesPostUpdateStatus previousStatus) {
         this.salesPostId = salesPostId;
         this.previousStatus = previousStatus;
-        this.snapshot = snapshot;
         this.retryCount = 0;
+    }
+
+    public void saveSnapshot(SalesPostSnapshot snapshot) {
+        this.snapshot = snapshot;
     }
 
     public void increaseRetryCount() {

@@ -60,7 +60,7 @@ class ProductQueryUseCaseTest {
     }
 
     private Product product(Long id, String name, Long basePrice, ProductStatus status) {
-        Product product = new Product(SELLER, 100L, 1L, name, null, basePrice, status, true, ProductUpdateStatus.NEW);
+        Product product = new Product(SELLER, 100L, 1L, name, null, basePrice, status, true);
         ReflectionTestUtils.setField(product, "id", id);
         return product;
     }

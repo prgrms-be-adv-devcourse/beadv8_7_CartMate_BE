@@ -53,9 +53,9 @@ public class SalesPostFacade {
             CreateProductRequest productRequest = new CreateProductRequest(post.getId(), request.toCreateProductList());
             salesPostApiClient.registerProducts(productRequest, images);
 
-            transactionTemplate.execute(status -> {
-                return post.saveComplete();
-            });
+            transactionTemplate.executeWithoutResult(status ->
+                    salesPostCreateUseCase.completeSave(post.getId())
+            );
         } catch(Exception e) {
             salesPostDeleteUseCase.deleteSalesPostByEvent(post.getId());
             GlobalConfig.getEventPublisher().publish(
@@ -73,9 +73,9 @@ public class SalesPostFacade {
         });
         try {
             salesPostApiClient.deleteProducts(post.getId());
-            transactionTemplate.execute(status -> {
-                return post.deleteComplete();
-            });
+            transactionTemplate.executeWithoutResult(status ->
+                    salesPostDeleteUseCase.completeDelete(post.getId())
+            );
         } catch (ServiceException e) {
             throw e;
         }
@@ -119,11 +119,24 @@ public class SalesPostFacade {
         SalesPostUpdateStatus previousUpdatedStatus = transactionTemplate.execute(s -> {
             SalesPost post = salesPostSupport.validateUpdatable(request);
             SalesPostUpdateStatus beforeUpdateStatus = salesPostUpdateUseCase.markPending(post);
-            List<SelectProductResponse> products = salesPostApiClient.getProduct(postId);
-            SalesPostSnapshot snapshot = SalesPostSnapshot.from(products);
-            salesPostRecoveryUseCase.replace(postId, beforeUpdateStatus, snapshot);
+            salesPostRecoveryUseCase.replace(postId, beforeUpdateStatus);
             return beforeUpdateStatus;
         });
+
+        try {
+            List<SelectProductResponse> products = salesPostApiClient.getProduct(postId);
+            SalesPostSnapshot snapshot = SalesPostSnapshot.from(products);
+            transactionTemplate.executeWithoutResult(s ->
+                    salesPostRecoveryUseCase.saveSnapshot(postId, snapshot)
+            );
+        } catch (RuntimeException e) {
+            // 상품 수정 전이라 상품은 그대로이므로 상태만 되돌림
+            transactionTemplate.executeWithoutResult(s -> {
+                salesPostRecoveryUseCase.delete(postId);
+                salesPostUpdateUseCase.revertTo(postId, previousUpdatedStatus);
+            });
+            throw e;
+        }
 
         try {
             salesPostApiClient.updateProducts(request, images);
