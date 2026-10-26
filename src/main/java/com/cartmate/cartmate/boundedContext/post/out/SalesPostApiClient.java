@@ -17,22 +17,37 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 
 @Service
 public class SalesPostApiClient {
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
+
     private final RestClient restClient;
 
     public SalesPostApiClient(@Value("${product.global.internalUrl}") String internalUrl) {
         this.restClient = RestClient.builder()
+                .requestFactory(requestFactory())
                 .baseUrl(internalUrl + "/api/products")
                 .build();
+    }
+
+    private static ClientHttpRequestFactory requestFactory() {
+        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(READ_TIMEOUT);
+        return factory;
     }
 
     public void registerProducts(CreateProductRequest request, List<MultipartFile> images) {

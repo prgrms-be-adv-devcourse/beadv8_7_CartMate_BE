@@ -4,6 +4,8 @@ import com.cartmate.cartmate.boundedContext.post.domain.SalesPostRecovery;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostRecoveryRepository;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSnapshot;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostUpdateStatus;
+import com.cartmate.cartmate.global.code.SalesPostErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +22,7 @@ public class SalesPostRecoveryUseCase {
 
     public void saveSnapshot(Long postId, SalesPostSnapshot snapshot) {
         SalesPostRecovery recovery = salesPostRecoveryRepository.findBySalesPostId(postId)
-                .orElseThrow(() -> new IllegalStateException("복구 기록이 없습니다. postId=" + postId));
+                .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_RECOVERY_NOT_FOUND));
         recovery.saveSnapshot(snapshot);
     }
 

@@ -119,7 +119,7 @@ public class SalesPostFacade {
         SalesPostUpdateStatus previousUpdatedStatus = transactionTemplate.execute(s -> {
             SalesPost post = salesPostSupport.validateUpdatable(request);
             SalesPostUpdateStatus beforeUpdateStatus = salesPostUpdateUseCase.markPending(post);
-            salesPostRecoveryUseCase.replace(postId, beforeUpdateStatus);
+            salesPostRecoveryUseCase.replace(postId, beforeUpdateStatus); // 복구 데이터 생성(스냅샷 제외)
             return beforeUpdateStatus;
         });
 
@@ -127,7 +127,7 @@ public class SalesPostFacade {
             List<SelectProductResponse> products = salesPostApiClient.getProduct(postId);
             SalesPostSnapshot snapshot = SalesPostSnapshot.from(products);
             transactionTemplate.executeWithoutResult(s ->
-                    salesPostRecoveryUseCase.saveSnapshot(postId, snapshot)
+                    salesPostRecoveryUseCase.saveSnapshot(postId, snapshot) // 스냅샷 저장
             );
         } catch (RuntimeException e) {
             // 상품 수정 전이라 상품은 그대로이므로 상태만 되돌림

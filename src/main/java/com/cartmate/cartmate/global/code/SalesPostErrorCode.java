@@ -13,7 +13,8 @@ public enum SalesPostErrorCode implements ErrorCode {
     POST_PENDING_STATUS(HttpStatus.NOT_ACCEPTABLE, "POST_PENDING_STATUS", "유효성 검증 실패"),
     POST_RECOVERING_STATUS(HttpStatus.NOT_ACCEPTABLE, "POST_RECOVERING_STATUS", "유효성 검증 실패"),
     POST_SALE_PENDING_STATUS(HttpStatus.NOT_ACCEPTABLE, "POST_SALE_PENDING_STATUS", "등록 또는 삭제가 진행 중인 게시글입니다."),
-    POST_NOT_RECOVERING_STATUS(HttpStatus.BAD_REQUEST, "POST_NOT_RECOVERING_STATUS", "복구중인 상태가 아닙니다.");
+    POST_NOT_RECOVERING_STATUS(HttpStatus.BAD_REQUEST, "POST_NOT_RECOVERING_STATUS", "복구중인 상태가 아닙니다."),
+    POST_RECOVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "POST_RECOVERY_NOT_FOUND", "복구 데이터가 존재하지 않습니다.");
 
     private final HttpStatus status;
     private final String code;

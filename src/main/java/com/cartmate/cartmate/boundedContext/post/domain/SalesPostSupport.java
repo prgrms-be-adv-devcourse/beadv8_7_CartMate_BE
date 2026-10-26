@@ -45,10 +45,10 @@ public class SalesPostSupport {
     }
 
     private SalesPostErrorCode reasonOf(SalesPost current) {
-        if (current.getStatus() == SalesPostSaleStatus.PENDING) {
+        if (current.getStatus() == SalesPostSaleStatus.PENDING) { // 판매상태
             return SalesPostErrorCode.POST_SALE_PENDING_STATUS;
         }
-        return switch (current.getUpdateStatus()) {
+        return switch (current.getUpdateStatus()) { // 업데이트 상태
             case PENDING -> SalesPostErrorCode.POST_PENDING_STATUS;
             case RECOVERING -> SalesPostErrorCode.POST_RECOVERING_STATUS;
             default -> SalesPostErrorCode.POST_UPDATE_FAILED;

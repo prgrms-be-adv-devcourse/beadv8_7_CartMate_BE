@@ -33,14 +33,14 @@ public class SalesPostUpdateUseCase {
     }
 
     public SalesPostUpdateStatus markPending(SalesPost post) {
-        SalesPostUpdateStatus previous = post.getUpdateStatus();
+        SalesPostUpdateStatus previousStatus = post.getUpdateStatus();
         Long updated = salesPostRepository.startUpdate(
                 post.getId(), SalesPostUpdateStatus.editableStatuses(), LocalDateTime.now()
-        );
+        ); // 수정 가능한 상태인지 확인 후 마킹
         if (updated == 0) {
             throw new ServiceException(salesPostSupport.reasonOfBlocked(post.getId()));
         }
-        return previous;
+        return previousStatus;
     }
 
     public void revertTo(Long postId, SalesPostUpdateStatus previous) {

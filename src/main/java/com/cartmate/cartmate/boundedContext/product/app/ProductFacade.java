@@ -122,7 +122,6 @@ public class ProductFacade {
             return restoreResult;
         });
 
-        // 복구는 이미 커밋됐으므로 파일 삭제 실패로 복구 실패 처리하지 않음
         try {
             productImageFileDeleteUseCase.deleteByKeys(result.deletedKeys());
         } catch (RuntimeException e) {
