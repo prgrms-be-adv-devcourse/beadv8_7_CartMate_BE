@@ -9,7 +9,10 @@ import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +40,7 @@ public class Product extends BaseIdAndTime {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private ProductStatus status;
 
     @Column(nullable = false)
@@ -48,9 +52,8 @@ public class Product extends BaseIdAndTime {
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<ProductOption> productOptionList = new ArrayList<>();
 
-
-    public Product(Long sellerId, Long salesPostId, Long categoryId, String name,
-                   String description, Long basePrice, ProductStatus status, boolean syncStatus) {
+    public Product(Long sellerId, Long salesPostId, Long categoryId, String name, String description, Long basePrice,
+                   ProductStatus status, boolean syncStatus) {
         this.sellerId = sellerId;
         this.salesPostId = salesPostId;
         this.categoryId = categoryId;

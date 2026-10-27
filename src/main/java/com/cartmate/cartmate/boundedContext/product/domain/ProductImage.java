@@ -71,4 +71,10 @@ public class ProductImage extends BaseIdAndTime {
         this.imageSeq = imageSeq;
         this.syncStatus = false; // 동기화상태 초기화
     }
+
+    // 복구: 삭제됐던 이미지도 다시 활성화하고 순서를 되돌림
+    public void restore(int imageSeq) {
+        this.status = ProductStatus.ACTIVE;
+        changeSeq(imageSeq);
+    }
 }

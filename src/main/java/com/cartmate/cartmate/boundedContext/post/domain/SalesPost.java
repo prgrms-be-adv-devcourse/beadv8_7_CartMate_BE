@@ -3,6 +3,8 @@ package com.cartmate.cartmate.boundedContext.post.domain;
 
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostProduct;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostResponse;
+import com.cartmate.cartmate.boundedContext.post.dto.UpdateSalesPostRequest;
+import com.cartmate.cartmate.boundedContext.product.domain.ProductUpdateStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -11,6 +13,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +30,7 @@ public class SalesPost extends BaseIdAndTime {
 
     private String content;
 
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     private SalesPostSaleStatus status;
@@ -38,17 +42,23 @@ public class SalesPost extends BaseIdAndTime {
     @SQLRestriction("status in ('ON_SALE')")
     private List<SalesPostProduct> productList = new ArrayList<>();
 
-    public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount) {
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    private SalesPostUpdateStatus updateStatus;
+
+    @Column(nullable = false)
+    private LocalDateTime updateStatusChangedAt;
+
+    public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount,
+                     SalesPostUpdateStatus updateStatus, LocalDateTime updateStatusChangedAt) {
         this.sellerId = sellerId;
         this.title = title;
         this.content = content;
         this.status = status;
         this.viewCount = viewCount;
-    }
-
-    public SalesPost delete() {
-        this.status = SalesPostSaleStatus.PENDING;
-        return this;
+        this.updateStatus = updateStatus;
+        this.updateStatusChangedAt = updateStatusChangedAt;
     }
 
     public SalesPost deleteComplete() {

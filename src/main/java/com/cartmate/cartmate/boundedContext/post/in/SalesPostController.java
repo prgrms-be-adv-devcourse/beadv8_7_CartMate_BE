@@ -50,7 +50,7 @@ public class SalesPostController {
     public ResponseEntity<Void> deleteSalesPost(
             @RequestParam Long sellerId,
             @RequestParam Long postId
-            ) {
+    ) {
         salesPostFacade.deleteSalesPostByUser(postId, sellerId);
         return ResponseEntity.status(HttpStatus.OK).build();
     }

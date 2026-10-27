@@ -2,6 +2,8 @@ package com.cartmate.cartmate.boundedContext.post.app;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSupport;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostUpdateStatus;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
 import com.cartmate.cartmate.global.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SalesPostDeleteUseCase {
     private final SalesPostRepository salesPostRepository;
+    private final SalesPostSupport salesPostSupport;
 
     @Transactional
     public SalesPost deleteSalesPostByUser(Long postId, Long sellerId) {
@@ -24,7 +27,18 @@ public class SalesPostDeleteUseCase {
             throw new ServiceException(SalesPostErrorCode.POST_ACCESS_DENIED);
         }
 
-        return post.delete();
+        Long updated = salesPostRepository.startDelete(postId, SalesPostUpdateStatus.editableStatuses());
+        if (updated == 0) {
+            throw new ServiceException(salesPostSupport.reasonOfBlocked(postId));
+        }
+        return post;
+    }
+
+    @Transactional
+    public void completeDelete(Long postId) {
+        SalesPost post = salesPostRepository.findById(postId)
+                .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
+        post.deleteComplete();
     }
 
     @Transactional
