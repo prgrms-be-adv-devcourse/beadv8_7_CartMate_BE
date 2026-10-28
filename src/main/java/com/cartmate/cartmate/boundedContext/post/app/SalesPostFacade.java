@@ -21,6 +21,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
+import com.cartmate.cartmate.boundedContext.post.dto.admin.AdminSalesPostCountResponse;
+import com.cartmate.cartmate.boundedContext.post.dto.admin.AdminSalesPostDetailResponse;
+import com.cartmate.cartmate.boundedContext.post.dto.admin.AdminSalesPostSummaryResponse;
+import com.cartmate.cartmate.boundedContext.post.out.SalesPostProductRepository;
+import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
+import org.springframework.data.domain.Pageable;
+import java.util.List;
 
 import java.util.List;
 
@@ -38,6 +46,9 @@ public class SalesPostFacade {
     private final TransactionTemplate transactionTemplate;
     private final SalesPostApiClient salesPostApiClient;
     private final SalesPostSupport salesPostSupport;
+    private final AdminSalesPostUseCase adminSalesPostUseCase;
+    private final SalesPostHideUseCase salesPostHideUseCase;
+    private final SalesPostProductRepository salesPostProductRepository;
 
     @Transactional
     public SalesPostSeller syncSeller(SellerRegisteredEvent seller) {
@@ -68,14 +79,19 @@ public class SalesPostFacade {
     }
 
     public void deleteSalesPostByUser(Long postId, Long sellerId) {
-        SalesPost post = transactionTemplate.execute(status -> {
-            return salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId);
-        });
+        SalesPost post = transactionTemplate.execute(status ->
+                salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId));
+
+        // 상품 삭제 API가 판매글 쪽 상품 복제본까지 지울 수 있어서, 호출 전에 상품 ID를 모아 둔다
+        List<Long> productIds = salesPostProductRepository.findIdsBySalesPostId(postId);
+
         try {
             salesPostApiClient.deleteProducts(post.getId());
-            transactionTemplate.executeWithoutResult(status ->
-                    salesPostDeleteUseCase.completeDelete(post.getId())
-            );
+            transactionTemplate.executeWithoutResult(status -> {
+                SalesPost deleted = salesPostDeleteUseCase.completeDelete(post.getId());
+                // 삭제도 진행 중 거래 입장에서는 숨김과 같다
+                salesPostHideUseCase.publishHidden(deleted, productIds, SalesPostHideType.SELLER_DELETED, null, null);
+            });
         } catch (ServiceException e) {
             throw e;
         }
@@ -166,6 +182,39 @@ public class SalesPostFacade {
             salesPostRecoverUseCase.recover(postId);
             throw e;
         }
+    }
+
+    // ===== 관리자 =====
+    @Transactional(readOnly = true)
+    public PageResponse<AdminSalesPostSummaryResponse> getAdminSalesPosts(SalesPostSaleStatus status, String keyword, Pageable pageable) {
+        return adminSalesPostUseCase.getList(status, keyword, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminSalesPostCountResponse getAdminSalesPostCounts() {
+        return adminSalesPostUseCase.getCounts();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminSalesPostDetailResponse getAdminSalesPostDetail(Long postId) {
+        return adminSalesPostUseCase.getDetail(postId);
+    }
+
+    public void suspendSalesPostByAdmin(Long postId, Long adminId, String reason) {
+        adminSalesPostUseCase.suspend(postId, adminId, reason);
+    }
+
+    public void resumeSalesPostByAdmin(Long postId, Long adminId, String reason) {
+        adminSalesPostUseCase.resume(postId, adminId, reason);
+    }
+
+    // ===== 판매자 내림·재개 =====
+    public void pauseSalesPostBySeller(Long postId, Long sellerId, Long memberId) {
+        salesPostHideUseCase.pauseBySeller(postId, sellerId, memberId);
+    }
+
+    public void resumeSalesPostBySeller(Long postId, Long sellerId) {
+        salesPostHideUseCase.resumeBySeller(postId, sellerId);
     }
 
 }

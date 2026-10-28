@@ -22,6 +22,12 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     @Query("select d from Delivery d where d.id = :id")
     Optional<Delivery> findByIdForUpdate(@Param("id") Long id);
 
+    // 한 주문의 배송을 모두 잠그고 조회한다. 주문 취소와 판매자의 배송준비 처리가 동시에 들어와도 한쪽만 성공하게 한다.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select d from Delivery d where d.orderId = :orderId and d.purchaseType = :purchaseType order by d.id")
+    List<Delivery> findAllByOrderIdAndPurchaseTypeForUpdate(
+            @Param("orderId") Long orderId, @Param("purchaseType") PurchaseType purchaseType);
+
     Optional<Delivery> findByIdempotencyKey(String idempotencyKey);
 
     boolean existsByIdempotencyKey(String idempotencyKey);

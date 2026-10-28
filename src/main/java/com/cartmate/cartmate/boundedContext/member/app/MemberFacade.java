@@ -29,6 +29,7 @@ public class MemberFacade {
     private final MyPageDashboardUseCase myPageDashboardUseCase;
     private final MemberTokenUseCase memberTokenUseCase;
     private final MemberAddressUseCase memberAddressUseCase;
+    private final AdminDashboardUseCase adminDashboardUseCase;
 
     @Transactional
     public MemberDto join(SignupRequest request) {
@@ -174,5 +175,10 @@ public class MemberFacade {
     @Transactional
     public void deleteAddress(Long memberId, Long addressId) {
         memberAddressUseCase.delete(memberId, addressId);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminDashboardResponse getAdminDashboard() {
+        return adminDashboardUseCase.getDashboard();
     }
 }

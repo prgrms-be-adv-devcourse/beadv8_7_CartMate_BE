@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.post.out;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostProduct;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -14,4 +15,5 @@ public interface SalesPostRepository extends JpaRepository<SalesPost, Long>, Sal
     @Lock(LockModeType.PESSIMISTIC_READ)
     @Query("select p from SalesPost p where p.id = :id")
     Optional<SalesPost> findLatestById(Long id);
+    long countByStatus(SalesPostSaleStatus status);
 }

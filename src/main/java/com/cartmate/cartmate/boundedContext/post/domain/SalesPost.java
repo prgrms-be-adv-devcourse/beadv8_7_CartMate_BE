@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
+import com.cartmate.cartmate.global.code.SalesPostErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -75,5 +77,51 @@ public class SalesPost extends BaseIdAndTime {
         this.title = title;
         this.content = content;
         return this;
+    }
+
+    // ===== 관리자 숨김 =====
+    public void validateSuspendable() {
+        if (status != SalesPostSaleStatus.ON_SALE && status != SalesPostSaleStatus.PAUSED) {
+            throw new ServiceException(SalesPostErrorCode.POST_SUSPEND_NOT_ALLOWED);
+        }
+    }
+
+    public void validateResumable() {
+        if (status != SalesPostSaleStatus.SUSPENDED) {
+            throw new ServiceException(SalesPostErrorCode.POST_RESUME_NOT_ALLOWED);
+        }
+    }
+
+    public void suspendByAdmin() {
+        validateSuspendable();
+        this.status = SalesPostSaleStatus.SUSPENDED;
+    }
+
+    public void resumeByAdmin() {
+        validateResumable();
+        this.status = SalesPostSaleStatus.ON_SALE;
+    }
+
+    // ===== 판매자 내림 =====
+    public void validatePausable() {
+        if (status != SalesPostSaleStatus.ON_SALE) {
+            throw new ServiceException(SalesPostErrorCode.POST_PAUSE_NOT_ALLOWED);
+        }
+    }
+
+    public void validateResumableBySeller() {
+        if (status != SalesPostSaleStatus.PAUSED) {
+            throw new ServiceException(SalesPostErrorCode.POST_SELLER_RESUME_NOT_ALLOWED);
+        }
+    }
+
+    public void pauseBySeller() {
+        validatePausable();
+        this.status = SalesPostSaleStatus.PAUSED;
+    }
+
+    public void resumeBySeller() {
+        validateResumableBySeller();
+        this.status = SalesPostSaleStatus.ON_SALE;
     }
 }

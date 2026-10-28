@@ -36,6 +36,15 @@ public class PaymentRefundUseCase {
                 PaymentRefundReason.CLAIM_REFUND, "판매자 승인 환불 (클레임 #" + claimId + ")");
     }
 
+    // 판매자 확인 전 구매자가 주문을 취소 → 결제 금액 전액 환불
+    public void refundByBuyerCancel(Long orderId, Long memberId) {
+        Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
+                .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        refund(payment, payment.refundableAmount(), "ORDER-CANCEL-" + payment.getId(),
+                PaymentRefundReason.BUYER_CANCEL, "구매자 주문 취소 (주문 #" + orderId + ")");
+    }
+
     // 공동물품 무산 → 이미 낸 분담금 전원 환불
     public int refundCanceledSharedGroupOrder(Long sharedGroupOrderId, String cancelReason) {
         List<Payment> payments = paymentRepository.findAllByTypeAndOrderIdAndStatusIn(
@@ -48,6 +57,16 @@ public class PaymentRefundUseCase {
         }
         log.info("공동 주문 #{} 취소로 {}건 환불", sharedGroupOrderId, payments.size());
         return payments.size();
+    }
+
+    // 판매글이 내려가 발송 전 배송이 취소됨 → 그 배송 금액만 부분 환불 (개인 주문만)
+    public void refundByPostHidden(Long postId, Long deliveryId, Long orderId, Long memberId, Long amount) {
+        Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
+                .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        // 배송 ID까지 키에 넣어서 같은 숨김 이벤트가 두 번 와도 한 번만 환불
+        refund(payment, amount, "HIDE-%d-D%d".formatted(postId, deliveryId),
+                PaymentRefundReason.PRODUCT_HIDDEN, "판매글 #%d 판매 중지로 자동 환불".formatted(postId));
     }
 
     // 관리자 수동 환불 (부분 가능)

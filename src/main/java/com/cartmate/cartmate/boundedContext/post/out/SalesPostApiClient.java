@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
+import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
+import com.cartmate.cartmate.shared.product.dto.ProductStatusChangeRequest;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -86,6 +88,26 @@ public class SalesPostApiClient {
                     })
                     .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
                         throw new ServiceException(ProductErrorCode.PRODUCT_DELETE_FAILED);
+                    })
+                    .toBodilessEntity();
+        } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
+            throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
+        }
+    }
+
+    // 판매글 단위로 상품 판매 상태 변경 (판매자 내림·재개, 관리자 숨김·해제)
+    public void changeProductStatus(Long postId, ProductStatus status) {
+        try {
+            restClient.patch()
+                    .uri("/{postId}/status", postId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ProductStatusChangeRequest(status))
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_INVALID);
+                    })
+                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+                        throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_FAILED);
                     })
                     .toBodilessEntity();
         } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
