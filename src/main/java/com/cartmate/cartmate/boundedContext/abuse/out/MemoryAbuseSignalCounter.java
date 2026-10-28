@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.abuse.out;
 
-import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignal;
+import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +16,7 @@ public class MemoryAbuseSignalCounter implements AbuseSignalCounter {
     private final Map<CounterKey, Map<String, LocalDateTime>> signals = new ConcurrentHashMap<>();
 
     @Override
-    public boolean record(AbuseSignal signal, Duration retention) {
+    public boolean record(AbuseSignalCommand signal, Duration retention) {
         LocalDateTime expiredBefore = signal.occurredAt().minus(retention);
         AtomicBoolean added = new AtomicBoolean();
         signals.compute(new CounterKey(signal.memberId(), signal.type()), (key, entries) -> {

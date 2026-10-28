@@ -57,7 +57,7 @@ public class AbuseJudgment {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    private AbuseJudgment(AbuseSignal signal, List<AbuseRuleResult> ruleResults, AbuseScoreThreshold scoreThreshold,
+    private AbuseJudgment(AbuseSignalCommand signal, List<AbuseRuleResult> ruleResults, AbuseScoreThreshold scoreThreshold,
                           LocalDateTime judgedAt) {
         this.memberId = signal.memberId();
         this.signalType = signal.type();
@@ -71,7 +71,7 @@ public class AbuseJudgment {
         this.judgedAt = judgedAt;
     }
 
-    public static AbuseJudgment judge(AbuseSignal signal, List<AbuseRuleResult> ruleResults,
+    public static AbuseJudgment judge(AbuseSignalCommand signal, List<AbuseRuleResult> ruleResults,
                                       AbuseScoreThreshold scoreThreshold, LocalDateTime judgedAt) {
         return new AbuseJudgment(signal, ruleResults, scoreThreshold, judgedAt);
     }

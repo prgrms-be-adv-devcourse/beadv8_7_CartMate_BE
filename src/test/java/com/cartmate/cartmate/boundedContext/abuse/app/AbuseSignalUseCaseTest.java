@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.abuse.app;
 
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseLevel;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseRuleResult;
-import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignal;
+import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.boundedContext.abuse.out.MemoryAbuseSignalCounter;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
@@ -52,9 +52,9 @@ class AbuseSignalUseCaseTest {
         SharedGroupOrderCanceledEvent event = event(100L, "DEADLINE_EXPIRED", List.of(UNPAID_A, UNPAID_B));
         event.unpaidMemberIds().forEach(memberId -> abuseSignalUseCase.handleSharedGroupOrderCanceled(event, memberId, NOW));
 
-        ArgumentCaptor<AbuseSignal> signals = ArgumentCaptor.forClass(AbuseSignal.class);
+        ArgumentCaptor<AbuseSignalCommand> signals = ArgumentCaptor.forClass(AbuseSignalCommand.class);
         then(abuseJudgmentUseCase).should(times(2)).judge(signals.capture(), any(), eq(NOW));
-        assertThat(signals.getAllValues()).extracting(AbuseSignal::memberId).containsExactly(UNPAID_A, UNPAID_B);
+        assertThat(signals.getAllValues()).extracting(AbuseSignalCommand::memberId).containsExactly(UNPAID_A, UNPAID_B);
         assertThat(signals.getAllValues()).allSatisfy(signal -> {
             assertThat(signal.type()).isEqualTo(AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED);
             assertThat(signal.sourceKey()).isEqualTo("100");

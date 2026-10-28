@@ -12,8 +12,8 @@ class AbuseJudgmentTest {
 
     private static final AbuseScoreThreshold SCORE_THRESHOLD = new AbuseScoreThreshold(30, 60, 100);
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 28, 12, 0);
-    private static final AbuseSignal SIGNAL =
-            new AbuseSignal(1L, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "100", NOW);
+    private static final AbuseSignalCommand SIGNAL =
+            new AbuseSignalCommand(1L, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "100", NOW);
 
     @Test
     @DisplayName("규칙 단계가 점수 단계보다 높으면 규칙 단계가 최종 단계다")
