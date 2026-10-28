@@ -20,7 +20,7 @@ services:
     image: "${APP_IMAGE:?APP_IMAGE is not set}:${APP_TAG:-latest}"
     restart: unless-stopped
     ports:
-      - "8080:8985"
+      - "8985:8985"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:mysql://db:3306/${DB_NAME}
