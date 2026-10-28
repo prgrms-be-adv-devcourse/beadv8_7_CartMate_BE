@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -115,5 +117,10 @@ public class SharedGroupPurchaseFacade {
     @Transactional(readOnly = true)
     public List<SharedGroupPurchaseSummaryResponse> getMyList(Long memberId) {
         return sharedGroupPurchaseQueryUseCase.getMyList(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, String> findTitles(Collection<Long> sharedGroupPurchaseIds) {
+        return sharedGroupPurchaseQueryUseCase.findTitles(sharedGroupPurchaseIds);
     }
 }

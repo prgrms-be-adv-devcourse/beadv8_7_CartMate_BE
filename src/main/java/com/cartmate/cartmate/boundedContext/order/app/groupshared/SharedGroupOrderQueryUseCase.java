@@ -9,6 +9,7 @@ import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.OrderMemberClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
+import com.cartmate.cartmate.boundedContext.order.out.OrderSharedGroupPurchaseClient;
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +28,15 @@ class SharedGroupOrderQueryUseCase {
     private final SharedGroupOrderRepository sharedGroupOrderRepository;
     private final OrderProductClient orderProductClient;
     private final OrderMemberClient orderMemberClient;
+    private final OrderSharedGroupPurchaseClient orderSharedGroupPurchaseClient;
 
     List<SharedGroupOrderSummaryResponse> getMyList(Long memberId) {
-        return sharedGroupOrderRepository.findAllByParticipant(memberId).stream()
-                .map(order -> SharedGroupOrderSummaryResponse.of(order, memberId))
+        List<SharedGroupOrder> orders = sharedGroupOrderRepository.findAllByParticipant(memberId);
+        Map<Long, String> titles = orderSharedGroupPurchaseClient.findTitles(orders.stream()
+                .map(SharedGroupOrder::getSharedGroupPurchaseId)
+                .collect(Collectors.toSet()));
+        return orders.stream()
+                .map(order -> SharedGroupOrderSummaryResponse.of(order, titles.get(order.getSharedGroupPurchaseId()), memberId))
                 .toList();
     }
 
