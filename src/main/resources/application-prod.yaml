@@ -24,3 +24,4 @@ storage:
     bucket: team07-cartmate-s3-storage
     region: ap-northeast-2
     public-url: https://team07-cartmate-s3-storage.s3.ap-northeast-2.amazonaws.com
+    
