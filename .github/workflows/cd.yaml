@@ -57,8 +57,8 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
-            docker-compose.prod.yml \
-            "$SERVER_USER@$SERVER_HOST:~/cartmate/docker-compose.yml"
+            docker-compose.prod.yaml \
+            "$SERVER_USER@$SERVER_HOST:~/cartmate/docker-compose.yaml"
 
       - name: Deploy
         env:

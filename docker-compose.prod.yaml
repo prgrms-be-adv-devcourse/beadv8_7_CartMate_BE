@@ -7,6 +7,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mysqldata:/var/lib/mysql
     healthcheck:
@@ -24,13 +26,13 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:mysql://db:3306/${DB_NAME}
-      DB_USERNAME: root
-      DB_PASSWORD: ${DB_ROOT_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is not set}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is not set}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is not set}
-      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-}
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-} # key 설정 후 변경 필요
       PLATFORM_MEMBER_ID: ${PLATFORM_MEMBER_ID:-1}
-      PRODUCT_URL: ${PRODUCT_INTERNAL_URL:-http://localhost:8985}
+      PRODUCT_URL: ${PRODUCT_URL:-http://localhost:8985}
     depends_on:
       db:
         condition: service_healthy
