@@ -1,0 +1,41 @@
+name: cartmate-backend
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysqldata:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  app:
+    image: "${APP_IMAGE:?APP_IMAGE is not set}:${APP_TAG:-latest}"
+    restart: unless-stopped
+    ports:
+      - "8985:8985"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://db:3306/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is not set}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is not set}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is not set}
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-} # key 설정 후 변경 필요
+      PLATFORM_MEMBER_ID: ${PLATFORM_MEMBER_ID:-1}
+      PRODUCT_URL: ${PRODUCT_URL:-http://localhost:8985}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysqldata:

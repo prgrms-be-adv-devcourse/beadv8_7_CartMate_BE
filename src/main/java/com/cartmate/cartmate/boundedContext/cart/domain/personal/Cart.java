@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.domain.personal;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -10,6 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Getter
@@ -59,11 +62,22 @@ public class Cart {
         return items.stream()
                 .filter(item -> item.getId().equals(cartItemId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("장바구니에 없는 상품입니다."));
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_ITEM_NOT_FOUND));
     }
 
     public void removeItem(Long cartItemId) {
         items.remove(getItem(cartItemId));
+    }
+
+    public void removeOrderedQuantities(Map<Long, Integer> orderedQuantities) {
+        orderedQuantities.forEach((inventoryId, orderedQuantity) ->
+                findItemByInventoryId(inventoryId).ifPresent(item -> {
+                    if (item.getQuantity() <= orderedQuantity) {
+                        items.remove(item);
+                        return;
+                    }
+                    item.decreaseQuantity(orderedQuantity);
+                }));
     }
 
     public void clear() {

@@ -1,16 +1,19 @@
 package com.cartmate.cartmate.boundedContext.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletBalanceResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletChargeOrderInfo;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionResponse;
+import com.cartmate.cartmate.boundedContext.wallet.app.dto.WalletTransactionSummaryResponse;
 import com.cartmate.cartmate.boundedContext.wallet.domain.WalletWithdrawOrder;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +46,12 @@ public class WalletFacade {
         return walletQueryUseCase.getTransactions(walletId, pageable);
     }
 
+    // 지갑 거래 내역의 충전·결제 합계를 조회한다.
+    @Transactional(readOnly = true)
+    public WalletTransactionSummaryResponse getTransactionSummary(Long walletId) {
+        return walletQueryUseCase.getTransactionSummary(walletId);
+    }
+
     // 주문 금액 충전·거래 내역 저장·주문 완료를 하나의 트랜잭션으로 처리한다. 완료 주문은 재충전하지 않는다.
     @Transactional
     public void charge(Long walletId, String orderNumber, String paymentKey, Long amount) {
@@ -51,14 +60,20 @@ public class WalletFacade {
 
     // 결제 ID 기준으로 중복 사용을 확인하고 잔액차감·홀딩생성·거래내역저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void use(Long walletId, Long amount, Long paymentId, Long orderId) {
-        walletPaymentUseCase.use(walletId, amount, paymentId, orderId);
+    public void use(Long walletId, Long amount, Long paymentId, Long orderId, WalletPurchaseType purchaseType) {
+        walletPaymentUseCase.use(walletId, amount, paymentId, orderId, purchaseType);
     }
 
-    // 결제 ID 기준으로 중복 환불을 확인하고 홀딩취소·잔액복구·환불거래저장을 하나의 트랜잭션으로 처리한다.
+    // 환불 ID 기준으로 중복 환불을 확인하고 홀딩 환불누적·잔액복구·환불거래저장을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void refund(Long walletId, Long amount, Long paymentId, Long orderId) {
-        walletPaymentUseCase.refund(walletId, amount, paymentId, orderId);
+    public void refund(Long walletId, Long amount, Long paymentId, Long orderId, Long refundId) {
+        walletPaymentUseCase.refund(walletId, amount, paymentId, orderId, refundId);
+    }
+
+    // 충전 승인 전에 검증할 수 있도록 충전 주문의 값을 조회한다.
+    @Transactional(readOnly = true)
+    public WalletChargeOrderInfo getChargeOrder(String orderNumber) {
+        return WalletChargeOrderInfo.from(walletChargeUseCase.getChargeOrder(orderNumber));
     }
 
     // 충전 주문을 생성하거나 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.
@@ -79,10 +94,10 @@ public class WalletFacade {
         walletChargeUseCase.fail(walletId, orderNumber);
     }
 
-    // 주문별 홀딩의 정산 ID 기록과 정산 완료 전환을 하나의 트랜잭션으로 처리한다. 같은 정산으로 완료된 홀딩은 건너뛴다.
+    // 정산 ID 기준으로 중복 정산을 확인하고 홀딩에서 꺼내기·판매자 정산금 입금·플랫폼 수수료 입금을 하나의 트랜잭션으로 처리한다.
     @Transactional
-    public void settle(List<Long> orderIds, Long settlementId) {
-        walletSettlementUseCase.settle(orderIds, settlementId);
+    public void settleAndDeposit(SettleAndDepositRequest request) {
+        walletSettlementUseCase.settleAndDeposit(request);
     }
 
     // 잔액 차감·출금 요청 완료·거래 내역 저장을 하나의 트랜잭션으로 처리한다. 완료된 요청은 재처리하지 않는다.

@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.domain.personal;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -72,9 +74,15 @@ public class CartItem {
         this.quantity += amount;
     }
 
+    void decreaseQuantity(int amount) {
+        validateQuantity(amount);
+        validateQuantity(this.quantity - amount);
+        this.quantity -= amount;
+    }
+
     private void validateQuantity(int quantity) {
         if (quantity < MIN_QUANTITY || quantity > MAX_QUANTITY) {
-            throw new IllegalArgumentException("수량은 " + MIN_QUANTITY + "개 이상 " + MAX_QUANTITY + "개 이하여야 합니다.");
+            throw new ServiceException(CartErrorCode.CART_INVALID_QUANTITY);
         }
     }
 }

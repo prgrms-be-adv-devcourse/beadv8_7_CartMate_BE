@@ -56,6 +56,12 @@ public class WalletChargeUseCase {
                 chargeOrder.getId(), ReferenceType.CHARGE_ORDER, chargeOrder.getIdempotencyKey(), amount);
     }
 
+    // 주문번호로 충전 주문을 조회한다.
+    public WalletChargeOrder getChargeOrder(String orderNumber) {
+        return walletChargeOrderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_CHARGE_ORDER_NOT_FOUND));
+    }
+
     // 충전 주문을 생성하거나, 같은 멱등성 키·지갑·금액의 기존 주문을 반환한다.
     public WalletChargeOrder createChargeOrder(Long walletId, Long amount, String idempotencyKey) {
 

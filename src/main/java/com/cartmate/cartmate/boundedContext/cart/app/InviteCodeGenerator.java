@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.app;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
@@ -26,7 +28,7 @@ public class InviteCodeGenerator {
                 return code;
             }
         }
-        throw new IllegalStateException("초대 코드를 생성하지 못했습니다.");
+        throw new ServiceException(CartErrorCode.CART_INVITE_CODE_GENERATION_FAILED);
     }
 
 

@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.product.domain;
 
-import com.cartmate.cartmate.shared.product.dto.create.CreateProduct;
-import com.cartmate.cartmate.shared.product.dto.create.CreateProductImage;
+import com.cartmate.cartmate.shared.product.dto.CreateProduct;
+import com.cartmate.cartmate.shared.product.dto.CreateProductImage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -106,6 +106,6 @@ class ProductCountPolicyTest {
         for (int i = 0; i < imageCount; i++) {
             images.add(new CreateProductImage(0L, 0L, 0L, null, i, null));
         }
-        return new CreateProduct(0L, 0L, 0L, 1L, "상품", "설명", 10000L, images);
+        return new CreateProduct(0L, 0L, 0L, 1L, "상품", "설명", 10000L, images, null);
     }
 }
