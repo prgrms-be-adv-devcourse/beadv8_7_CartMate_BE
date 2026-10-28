@@ -347,6 +347,7 @@ CREATE TABLE `shared_group_order_participant` (
 	`member_id`	BIGINT	NOT NULL,
 	`share_amount`	BIGINT	NOT NULL,
 	`status`	VARCHAR(20)	NOT NULL,
+	`payment_id`	BIGINT	NULL,
 	`paid_at`	DATETIME	NULL,
 	`version`	BIGINT	NOT NULL
 );
@@ -356,6 +357,9 @@ CREATE TABLE `shared_group_order_item` (
 	`shared_group_order_id`	BIGINT	NOT NULL,
 	`product_id`	BIGINT	NOT NULL,
 	`inventory_id`	BIGINT	NOT NULL,
+	`seller_id`	BIGINT	NULL,
+	`product_name`	VARCHAR(100)	NOT NULL,
+	`option_name`	VARCHAR(100)	NULL,
 	`quantity`	INT	NOT NULL,
 	`unit_price`	BIGINT	NOT NULL
 );
@@ -375,6 +379,7 @@ CREATE TABLE `orders` (
 	`zip_code`	VARCHAR(10)	NOT NULL,
 	`address`	VARCHAR(255)	NOT NULL,
 	`address_detail`	VARCHAR(255)	NULL,
+	`payment_id`	BIGINT	NULL,
 	`paid_at`	DATETIME	NULL,
 	`canceled_at`	DATETIME	NULL,
 	`created_at`	DATETIME	NOT NULL,
@@ -519,6 +524,52 @@ ALTER TABLE `orders` ADD CONSTRAINT `PK_ORDERS` PRIMARY KEY (
 
 ALTER TABLE `order_item` ADD CONSTRAINT `PK_ORDER_ITEM` PRIMARY KEY (
 	`id`
+);
+
+-- 엔티티에 이름이 없는 unique(@Column(unique = true))는 문서용 이름을 붙였다. 실제 DB 이름은 Hibernate가 자동 생성한다(UK...).
+ALTER TABLE `cart` ADD CONSTRAINT `uk_cart_member_id` UNIQUE (
+	`member_id`
+);
+
+ALTER TABLE `cart_item` ADD CONSTRAINT `uk_cart_item_cart_inventory` UNIQUE (
+	`cart_id`,
+	`inventory_id`
+);
+
+ALTER TABLE `shared_group_purchase` ADD CONSTRAINT `uk_shared_group_purchase_invite_code` UNIQUE (
+	`invite_code`
+);
+
+ALTER TABLE `shared_group_purchase_member` ADD CONSTRAINT `uk_shared_group_purchase_member` UNIQUE (
+	`shared_group_purchase_id`,
+	`member_id`
+);
+
+ALTER TABLE `shared_group_purchase_item` ADD CONSTRAINT `uk_shared_group_purchase_item_inventory` UNIQUE (
+	`shared_group_purchase_id`,
+	`inventory_id`
+);
+
+ALTER TABLE `individual_group_purchase` ADD CONSTRAINT `uk_individual_group_purchase_invite_code` UNIQUE (
+	`invite_code`
+);
+
+ALTER TABLE `individual_group_purchase_product` ADD CONSTRAINT `uk_individual_group_purchase_product` UNIQUE (
+	`individual_group_purchase_id`,
+	`product_id`
+);
+
+ALTER TABLE `shared_group_order` ADD CONSTRAINT `uk_shared_group_order_shared_group_purchase_id` UNIQUE (
+	`shared_group_purchase_id`
+);
+
+ALTER TABLE `shared_group_order_participant` ADD CONSTRAINT `uk_shared_group_order_participant` UNIQUE (
+	`shared_group_order_id`,
+	`member_id`
+);
+
+ALTER TABLE `orders` ADD CONSTRAINT `uk_orders_order_number` UNIQUE (
+	`order_number`
 );
 
 ALTER TABLE `member_address` ADD CONSTRAINT `FK_member_TO_member_address_1` FOREIGN KEY (
@@ -674,3 +725,9 @@ ALTER TABLE `order_item` ADD CONSTRAINT `FK_orders_TO_order_item_1` FOREIGN KEY 
 REFERENCES `orders` (
 	`id`
 );
+
+CREATE INDEX `idx_orders_individual_group_purchase_status` ON `orders` (`individual_group_purchase_id`, `status`);
+
+CREATE INDEX `idx_orders_buyer_created` ON `orders` (`buyer_member_id`, `created_at`);
+
+CREATE INDEX `idx_order_item_order_id` ON `order_item` (`order_id`);
