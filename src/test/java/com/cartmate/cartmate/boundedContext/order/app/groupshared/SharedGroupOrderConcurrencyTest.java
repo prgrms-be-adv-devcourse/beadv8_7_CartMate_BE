@@ -78,7 +78,9 @@ class SharedGroupOrderConcurrencyTest {
 
     @AfterEach
     void tearDown() {
-        new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(memberIds);
+        TestDataCleaner cleaner = new TestDataCleaner(jdbcTemplate);
+        cleaner.deleteDeliveriesOf(memberIds);
+        cleaner.deleteAbuseRecordsOf(memberIds);
         transactionTemplate.executeWithoutResult(status -> createdIds.forEach(repository::deleteById));
     }
 
