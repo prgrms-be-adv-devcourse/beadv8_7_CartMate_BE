@@ -12,6 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.cartmate.cartmate.shared.product.dto.ProductStatusChangeRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -63,5 +66,13 @@ public class ProductController {
     @GetMapping("/{postId}")
     public ResponseEntity<RsData<List<SelectProductResponse>>> selectProductsByPost(@PathVariable Long postId) {
         return ResponseEntity.ok(productFacade.selectProductsByPost(postId));
+    }
+
+    @PatchMapping("/{postId}/status")
+    @Operation(operationId = "changeProductStatusByPost", summary = "판매글 단위 상품 판매 상태 변경 (내부 호출)")
+    public ResponseEntity<Void> changeStatusByPost(@PathVariable Long postId,
+                                                   @Valid @RequestBody ProductStatusChangeRequest request) {
+        productFacade.changeStatusByPost(postId, request.status());
+        return ResponseEntity.noContent().build();
     }
 }

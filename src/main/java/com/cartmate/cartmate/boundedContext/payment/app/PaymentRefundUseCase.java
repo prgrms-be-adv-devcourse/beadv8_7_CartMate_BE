@@ -59,6 +59,16 @@ public class PaymentRefundUseCase {
         return payments.size();
     }
 
+    // 판매글이 내려가 발송 전 배송이 취소됨 → 그 배송 금액만 부분 환불 (개인 주문만)
+    public void refundByPostHidden(Long postId, Long deliveryId, Long orderId, Long memberId, Long amount) {
+        Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
+                .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        // 배송 ID까지 키에 넣어서 같은 숨김 이벤트가 두 번 와도 한 번만 환불
+        refund(payment, amount, "HIDE-%d-D%d".formatted(postId, deliveryId),
+                PaymentRefundReason.PRODUCT_HIDDEN, "판매글 #%d 판매 중지로 자동 환불".formatted(postId));
+    }
+
     // 관리자 수동 환불 (부분 가능)
     public PaymentResponse refundByAdmin(Long adminId, Long paymentId, Long amount, String memo) {
         Payment payment = paymentRepository.findById(paymentId)

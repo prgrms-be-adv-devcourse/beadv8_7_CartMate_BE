@@ -142,4 +142,13 @@ public class Product extends BaseIdAndTime {
     public void addOption(ProductOption newOption) {
         this.getProductOptionList().add(newOption);
     }
+
+    // 판매글 단위 판매 상태 변경. 판매 관련 상태(ON_SALE·PAUSED·SUSPENDED)일 때만 바꾼다.
+    // 삭제·등록 중 상품은 건드리지 않는다. 같은 상태면 그대로(멱등).
+    public void changeSaleStatusByPost(ProductStatus to) {
+        if (status == ProductStatus.ON_SALE || status == ProductStatus.PAUSED || status == ProductStatus.SUSPENDED) {
+            this.status = to;
+        }
+    }
+
 }
