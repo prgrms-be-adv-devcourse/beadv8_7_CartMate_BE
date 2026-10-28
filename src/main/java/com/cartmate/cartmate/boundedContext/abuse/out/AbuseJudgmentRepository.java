@@ -4,7 +4,11 @@ import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseJudgment;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface AbuseJudgmentRepository extends JpaRepository<AbuseJudgment, Long> {
 
     boolean existsByMemberIdAndSignalTypeAndSourceKey(Long memberId, AbuseSignalType signalType, String sourceKey);
+
+    List<AbuseJudgment> findByMemberIdOrderByJudgedAtAsc(Long memberId);
 }
