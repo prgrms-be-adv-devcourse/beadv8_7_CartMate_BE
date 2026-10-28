@@ -80,6 +80,12 @@ public class PaymentFacade {
         paymentRefundUseCase.refundByClaim(claimId, orderId, memberId, amount);
     }
 
+    // 주문 취소 트랜잭션에 참여한다 (이벤트 리스너에서 호출)
+    @Transactional
+    public void refundByBuyerCancel(Long orderId, Long memberId) {
+        paymentRefundUseCase.refundByBuyerCancel(orderId, memberId);
+    }
+
     @Transactional
     public int refundCanceledSharedGroupOrder(Long sharedGroupOrderId, String cancelReason) {
         return paymentRefundUseCase.refundCanceledSharedGroupOrder(sharedGroupOrderId, cancelReason);
