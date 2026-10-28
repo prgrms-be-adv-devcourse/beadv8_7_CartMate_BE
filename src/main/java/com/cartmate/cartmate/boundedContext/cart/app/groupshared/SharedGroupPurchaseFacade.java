@@ -3,13 +3,16 @@ package com.cartmate.cartmate.boundedContext.cart.app.groupshared;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseDetailResponse;
+import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseItemQuantityResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseSummaryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +65,11 @@ public class SharedGroupPurchaseFacade {
     }
 
     @Transactional
+    public SharedGroupPurchaseItemQuantityResponse adjustItemQuantity(Long memberId, Long sharedGroupPurchaseId, Long itemId, int delta) {
+        return sharedGroupPurchaseItemUseCase.adjustItemQuantity(memberId, sharedGroupPurchaseId, itemId, delta);
+    }
+
+    @Transactional
     public void changeItemOption(Long memberId, Long sharedGroupPurchaseId, Long itemId, Long inventoryId) {
         sharedGroupPurchaseItemUseCase.changeItemOption(memberId, sharedGroupPurchaseId, itemId, inventoryId);
     }
@@ -109,5 +117,10 @@ public class SharedGroupPurchaseFacade {
     @Transactional(readOnly = true)
     public List<SharedGroupPurchaseSummaryResponse> getMyList(Long memberId) {
         return sharedGroupPurchaseQueryUseCase.getMyList(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, String> findTitles(Collection<Long> sharedGroupPurchaseIds) {
+        return sharedGroupPurchaseQueryUseCase.findTitles(sharedGroupPurchaseIds);
     }
 }
