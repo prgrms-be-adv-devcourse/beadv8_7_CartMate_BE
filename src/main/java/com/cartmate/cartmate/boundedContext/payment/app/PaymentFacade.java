@@ -1,10 +1,12 @@
 package com.cartmate.cartmate.boundedContext.payment.app;
 
 import com.cartmate.cartmate.boundedContext.payment.domain.PaymentType;
+import com.cartmate.cartmate.boundedContext.payment.dto.PaymentDailySummary;
 import com.cartmate.cartmate.boundedContext.payment.dto.PaymentPreviewResponse;
 import com.cartmate.cartmate.boundedContext.payment.dto.PaymentResponse;
 import com.cartmate.cartmate.boundedContext.payment.exception.PaymentErrorCode;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentOrderClient;
+import com.cartmate.cartmate.boundedContext.payment.out.PaymentRefundRepository;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentRepository;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentWalletClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 // payment 모듈의 정문
@@ -26,6 +29,7 @@ public class PaymentFacade {
     private final PaymentOrderClient paymentOrderClient;
     private final PaymentWalletClient paymentWalletClient;
     private final PaymentRefundUseCase paymentRefundUseCase;
+    private final PaymentRefundRepository paymentRefundRepository;
 
     // ===== 개인 주문 =====
     @Transactional
@@ -84,5 +88,16 @@ public class PaymentFacade {
     @Transactional
     public PaymentResponse refundByAdmin(Long adminId, Long paymentId, Long amount, String memo) {
         return paymentRefundUseCase.refundByAdmin(adminId, paymentId, amount, memo);
+    }
+
+    @Transactional(readOnly = true)
+    public PaymentDailySummary getDailySummary(LocalDate date) {
+        LocalDateTime from = date.atStartOfDay();
+        LocalDateTime to = from.plusDays(1);
+        return new PaymentDailySummary(
+                paymentRepository.countPaidBetween(from, to),
+                paymentRepository.sumPaidBetween(from, to),
+                paymentRefundRepository.countBetween(from, to),
+                paymentRefundRepository.sumBetween(from, to));
     }
 }
