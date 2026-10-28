@@ -100,4 +100,9 @@ public class PaymentFacade {
                 paymentRefundRepository.countBetween(from, to),
                 paymentRefundRepository.sumBetween(from, to));
     }
+
+    @Transactional
+    public void refundByPostHidden(Long postId, Long deliveryId, Long orderId, Long memberId, Long amount) {
+        paymentRefundUseCase.refundByPostHidden(postId, deliveryId, orderId, memberId, amount);
+    }
 }

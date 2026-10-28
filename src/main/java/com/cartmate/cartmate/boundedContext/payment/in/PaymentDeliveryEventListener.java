@@ -8,6 +8,8 @@ import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimApprovedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryCanceledByPostHiddenEvent;
 
 // 결제 후 환불은 판매자 승인으로만 처리한다.
 // 판매자 승인과 같은 트랜잭션에서 환불하며, 환불이 실패하면(이미 정산된 결제 등) 승인도 함께 롤백된다.
@@ -29,5 +31,19 @@ public class PaymentDeliveryEventListener {
         }
 
         paymentFacade.refundByClaim(event.claimId(), event.orderId(), event.buyerMemberId(), event.refundAmount());
+    }
+
+    // 판매글 숨김으로 발송 전 배송이 취소됨. 배송 취소와 같은 트랜잭션 → 환불 실패 시 배송 취소도 롤백.
+    @EventListener
+    public void handle(DeliveryCanceledByPostHiddenEvent event) {
+        if (event.refundAmount() == null || event.refundAmount() <= 0) {
+            return;
+        }
+        // 공동 주문은 order가 공동 주문을 취소하고 기존 취소 이벤트로 전원 환불한다
+        if (event.purchaseType() == PurchaseType.SHARED_GROUP) {
+            return;
+        }
+        paymentFacade.refundByPostHidden(event.postId(), event.deliveryId(), event.orderId(),
+                event.buyerMemberId(), event.refundAmount());
     }
 }

@@ -35,10 +35,10 @@ public class SalesPostDeleteUseCase {
     }
 
     @Transactional
-    public void completeDelete(Long postId) {
+    public SalesPost completeDelete(Long postId) {
         SalesPost post = salesPostRepository.findById(postId)
                 .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
-        post.deleteComplete();
+        return post.deleteComplete();
     }
 
     @Transactional

@@ -59,7 +59,7 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
     }
 
     private BooleanExpression notDeleted() {
-        return salesPost.status.ne(SalesPostSaleStatus.DELETED);
+        return salesPost.status.notIn(SalesPostSaleStatus.DELETED, SalesPostSaleStatus.SUSPENDED);
     }
 
     @Override
@@ -110,6 +110,35 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
         em.flush();
         em.clear();
         return updated;
+    }
+
+    @Override
+    public Page<SalesPost> selectForAdmin(SalesPostSaleStatus status, String keyword, Pageable pageable) {
+        List<SalesPost> content = queryFactory
+                .selectFrom(salesPost)
+                .where(adminVisible(), statusEq(status), titleContains(keyword))
+                .orderBy(salesPost.id.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        return PageableExecutionUtils.getPage(content, pageable, () -> {
+            Long total = queryFactory
+                    .select(salesPost.count())
+                    .from(salesPost)
+                    .where(adminVisible(), statusEq(status), titleContains(keyword))
+                    .fetchOne();
+            return total == null ? 0L : total;
+        });
+    }
+
+    // 관리자는 삭제·등록 진행 중을 제외한 전부를 본다 (숨김 포함)
+    private BooleanExpression adminVisible() {
+        return salesPost.status.notIn(SalesPostSaleStatus.DELETED, SalesPostSaleStatus.PENDING);
+    }
+
+    private BooleanExpression statusEq(SalesPostSaleStatus status) {
+        return status == null ? null : salesPost.status.eq(status);
     }
 
 }
