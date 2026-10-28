@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.cart.app.groupshared;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseDetailResponse;
+import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseItemQuantityResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseSummaryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,11 @@ public class SharedGroupPurchaseFacade {
     @Transactional
     public void changeItemQuantity(Long memberId, Long sharedGroupPurchaseId, Long itemId, int quantity) {
         sharedGroupPurchaseItemUseCase.changeItemQuantity(memberId, sharedGroupPurchaseId, itemId, quantity);
+    }
+
+    @Transactional
+    public SharedGroupPurchaseItemQuantityResponse adjustItemQuantity(Long memberId, Long sharedGroupPurchaseId, Long itemId, int delta) {
+        return sharedGroupPurchaseItemUseCase.adjustItemQuantity(memberId, sharedGroupPurchaseId, itemId, delta);
     }
 
     @Transactional

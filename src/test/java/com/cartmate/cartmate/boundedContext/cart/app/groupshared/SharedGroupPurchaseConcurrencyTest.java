@@ -102,6 +102,22 @@ class SharedGroupPurchaseConcurrencyTest {
     }
 
     @Test
+    @DisplayName("여러 명이 동시에 수량을 1씩 늘려도 증가분이 모두 반영된다")
+    void concurrentQuantityAdjust() throws InterruptedException {
+        var created = facade.create(creator, new SharedGroupPurchaseCreateRequest("동시 수량", 5));
+        createdIds.add(created.id());
+        facade.addItem(creator, created.id(), 4L, 10);
+        Long itemId = transactionTemplate.execute(status ->
+                repository.findById(created.id()).orElseThrow().getItems().getFirst().getId());
+
+        runConcurrently(index -> facade.adjustItemQuantity(creator, created.id(), itemId, 1));
+
+        int quantity = transactionTemplate.execute(status ->
+                repository.findById(created.id()).orElseThrow().getItems().getFirst().getQuantity());
+        assertThat(quantity).isEqualTo(10 + THREADS);
+    }
+
+    @Test
     @DisplayName("생성자의 마감 요청이 동시에 여러 번 와도 마감과 마감 이벤트는 한 번만 일어난다")
     void concurrentCreatorClose() throws InterruptedException {
         var created = facade.create(creator, new SharedGroupPurchaseCreateRequest("동시 마감", 5));

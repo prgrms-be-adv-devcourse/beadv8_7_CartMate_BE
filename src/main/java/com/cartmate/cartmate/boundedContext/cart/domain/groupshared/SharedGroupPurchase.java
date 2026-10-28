@@ -177,6 +177,14 @@ public class SharedGroupPurchase {
         getItem(itemId).changeQuantity(quantity, memberId);
     }
 
+    public SharedGroupPurchaseItem adjustItemQuantity(Long memberId, Long itemId, int delta, LocalDateTime now) {
+        validateEditable(now);
+        validateMember(memberId);
+        SharedGroupPurchaseItem item = getItem(itemId);
+        item.adjustQuantity(delta, memberId);
+        return item;
+    }
+
 
     public void changeItemOption(Long memberId, Long itemId, Long productId, Long inventoryId, LocalDateTime now) {
         validateEditableOrFrozenByCreator(memberId, now);
