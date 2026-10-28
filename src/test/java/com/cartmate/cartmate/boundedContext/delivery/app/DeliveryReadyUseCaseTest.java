@@ -40,7 +40,7 @@ class DeliveryReadyUseCaseTest {
         delivery = Delivery.create(BUYER, SELLER_ID, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
         ReflectionTestUtils.setField(delivery, "id", 5L);
-        when(deliveryRepository.findById(5L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(delivery));
 
         doReturn(Optional.of(SELLER_ID)).when(sellerQuery).findSellerIdByMemberId(SELLER_MEMBER);
         doReturn(Optional.of(99L)).when(sellerQuery).findSellerIdByMemberId(40L);
@@ -79,7 +79,7 @@ class DeliveryReadyUseCaseTest {
     @Test
     @DisplayName("없는 배송은 404 오류다")
     void notFound() {
-        when(deliveryRepository.findById(99L)).thenReturn(Optional.empty());
+        when(deliveryRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.ready(99L, SELLER_MEMBER, "CJ대한통운", "658219384910"))
                 .isInstanceOf(ServiceException.class)

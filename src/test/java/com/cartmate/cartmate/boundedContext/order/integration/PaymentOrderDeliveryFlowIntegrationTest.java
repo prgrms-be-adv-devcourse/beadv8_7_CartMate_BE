@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.cart.out.groupshared.SharedGroupPurc
 import com.cartmate.cartmate.boundedContext.cart.out.personal.CartRepository;
 import com.cartmate.cartmate.boundedContext.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
+import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemOptionRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
@@ -23,10 +24,12 @@ import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRespon
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.boundedContext.payment.app.PaymentFacade;
+import com.cartmate.cartmate.boundedContext.payment.domain.PaymentStatus;
 import com.cartmate.cartmate.boundedContext.payment.domain.PaymentType;
 import com.cartmate.cartmate.boundedContext.payment.dto.PaymentResponse;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentRepository;
 import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
+import com.cartmate.cartmate.boundedContext.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.wallet.domain.Wallet;
 import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
@@ -251,6 +254,83 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         assertThat(deliveriesOf(creator)).singleElement()
                 .satisfies(delivery -> assertThat(delivery.getOrderId()).isEqualTo(orderId));
         assertThat(deliveriesOf(member)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("판매자 확인 전에 결제된 주문을 취소하면 주문 취소, 결제 환불, 홀딩 해제, 예치금 복구, 배송 취소가 모두 일어난다")
+    void cancelPaidOrderBeforeSellerConfirm() {
+        long buyer = nextMember();
+        createWallet(buyer, 200_000L);
+        OrderCreateResponse created = createOrderFromCart(buyer);
+        PaymentResponse payment = paymentFacade.payOrder(buyer, created.orderId());
+
+        orderFacade.cancelByBuyer(buyer, created.orderId());
+
+        assertThat(orderRepository.findById(created.orderId()).orElseThrow().getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(paymentRepository.findById(payment.paymentId()).orElseThrow().getStatus())
+                .isEqualTo(PaymentStatus.CANCELED);
+        assertThat(holdingRepository.findByOrderIdAndPaymentId(created.orderId(), payment.paymentId()).orElseThrow().getStatus())
+                .isEqualTo(HoldingStatus.CANCELED);
+        assertThat(walletFacade.getWallet(buyer).balance()).isEqualTo(200_000L);
+        assertThat(deliveriesOf(buyer)).singleElement()
+                .satisfies(delivery -> assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CANCELED));
+    }
+
+    @Test
+    @DisplayName("판매자가 배송을 확인한 뒤에는 취소할 수 없고 주문, 결제, 예치금, 배송이 모두 그대로 남는다")
+    void cancelPaidOrderAfterSellerPrepared() {
+        long buyer = nextMember();
+        createWallet(buyer, 200_000L);
+        OrderCreateResponse created = createOrderFromCart(buyer);
+        PaymentResponse payment = paymentFacade.payOrder(buyer, created.orderId());
+        transactionTemplate.executeWithoutResult(status -> deliveriesOf(buyer).forEach(delivery -> {
+            delivery.prepare("CJ대한통운", "658219384910");
+            deliveryRepository.save(delivery);
+        }));
+
+        assertThatThrownBy(() -> orderFacade.cancelByBuyer(buyer, created.orderId()))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("DELIVERY_NOT_CANCELABLE");
+
+        assertThat(orderRepository.findById(created.orderId()).orElseThrow().getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(paymentRepository.findById(payment.paymentId()).orElseThrow().getStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(holdingRepository.findByOrderIdAndPaymentId(created.orderId(), payment.paymentId()).orElseThrow().getStatus())
+                .isEqualTo(HoldingStatus.RESERVED);
+        assertThat(walletFacade.getWallet(buyer).balance()).isEqualTo(97_000L);
+        assertThat(deliveriesOf(buyer)).singleElement()
+                .satisfies(delivery -> assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.PREPARING));
+    }
+
+    @Test
+    @DisplayName("결제 전에 주문을 취소하면 환불이나 배송 처리 없이 주문만 취소된다")
+    void cancelUnpaidOrder() {
+        long buyer = nextMember();
+        createWallet(buyer, 200_000L);
+        OrderCreateResponse created = createOrderFromCart(buyer);
+
+        orderFacade.cancelByBuyer(buyer, created.orderId());
+
+        assertThat(orderRepository.findById(created.orderId()).orElseThrow().getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, created.orderId(), buyer))
+                .isEmpty();
+        assertThat(walletFacade.getWallet(buyer).balance()).isEqualTo(200_000L);
+        assertThat(deliveriesOf(buyer)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("이미 취소된 주문을 다시 취소하면 오류가 나고 중복 환불되지 않는다")
+    void cancelPaidOrderTwice() {
+        long buyer = nextMember();
+        createWallet(buyer, 200_000L);
+        OrderCreateResponse created = createOrderFromCart(buyer);
+        paymentFacade.payOrder(buyer, created.orderId());
+        orderFacade.cancelByBuyer(buyer, created.orderId());
+
+        assertThatThrownBy(() -> orderFacade.cancelByBuyer(buyer, created.orderId()))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("ORDER_ALREADY_CANCELED");
+
+        assertThat(walletFacade.getWallet(buyer).balance()).isEqualTo(200_000L);
     }
 
     private OrderCreateResponse createOrderFromCart(long buyer) {

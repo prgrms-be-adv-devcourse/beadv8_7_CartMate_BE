@@ -1,0 +1,72 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '배포할 이미지 태그 (예: sha-b66aefb)'
+        required: true
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Decide image tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -n "$INPUT_TAG" ]; then
+            echo "value=$INPUT_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=sha-${HEAD_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Prepare SSH key
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+
+      - name: Copy compose file to server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            docker-compose.prod.yaml \
+            "$SERVER_USER@$SERVER_HOST:~/cartmate/docker-compose.yaml"
+
+      - name: Deploy
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          echo "배포할 태그: $TAG"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            "$SERVER_USER@$SERVER_HOST" \
+            "cd ~/cartmate && export APP_TAG=$TAG && docker compose pull && docker compose up -d && docker image prune -f"

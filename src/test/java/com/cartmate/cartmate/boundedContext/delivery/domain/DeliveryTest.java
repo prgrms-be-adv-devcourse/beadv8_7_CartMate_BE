@@ -256,4 +256,39 @@ class DeliveryTest {
             assertThat(delivery.getStatus()).isEqualTo(status);
         }
     }
+
+    @Test
+    @DisplayName("배송요청 상태에서 취소하면 배송취소 상태가 되고 취소 시각이 기록된다")
+    void cancel() {
+        Delivery delivery = newDelivery();
+
+        delivery.cancel();
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CANCELED);
+        assertThat(delivery.getCanceledAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("이미 취소된 배송을 다시 취소해도 아무 일도 일어나지 않는다")
+    void cancelIsIdempotent() {
+        Delivery delivery = newDelivery();
+        delivery.cancel();
+        LocalDateTime canceledAt = delivery.getCanceledAt();
+
+        delivery.cancel();
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CANCELED);
+        assertThat(delivery.getCanceledAt()).isEqualTo(canceledAt);
+    }
+
+    @Test
+    @DisplayName("배송준비 이후에는 취소할 수 없고 상태가 바뀌지 않는다")
+    void cancelAfterPrepareFails() {
+        Delivery delivery = newDelivery();
+        delivery.prepare("CJ대한통운", "658219384910");
+
+        assertThatThrownBy(delivery::cancel).isInstanceOf(ServiceException.class);
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.PREPARING);
+        assertThat(delivery.getCanceledAt()).isNull();
+    }
 }

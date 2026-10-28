@@ -1,32 +1,26 @@
-server:
-  port: 7777
 spring:
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-
   jpa:
     hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        format_sql: true
-        use_sql_comments: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
 
 logging:
   level:
-    com.cartmate: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
-    org.hibernate.orm.jdbc.extract: TRACE
-    org.springframework.transaction.interceptor: TRACE
+    com.cartmate: INFO
+
+custom:
+  jwt:
+    secret: ${JWT_SECRET}
 
 product:
   global:
-    internalUrl: http://product-service:${server.port:9999}
+    internalUrl: ${PRODUCT_URL}
 
 storage:
   s3:
-    bucket: cartmate-bucket
+    bucket: team07-cartmate-s3-storage
     region: ap-northeast-2
-    public-url: https://cartmate-bucket.s3.ap-northeast-2.amazonaws.com
+    public-url: https://team07-cartmate-s3-storage.s3.ap-northeast-2.amazonaws.com

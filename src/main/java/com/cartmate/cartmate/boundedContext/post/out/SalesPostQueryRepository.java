@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.post.out;
 
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPost;
+import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostUpdateStatus;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostRequest;
 import org.springframework.data.domain.Page;
@@ -20,4 +21,6 @@ public interface SalesPostQueryRepository {
     Long startUpdate(Long salesPostId, Collection<SalesPostUpdateStatus> from, LocalDateTime now);
 
     Long startDelete(Long salesPostId, Collection<SalesPostUpdateStatus> editable);
+
+    Page<SalesPost> selectForAdmin(SalesPostSaleStatus status, String keyword, Pageable pageable);
 }

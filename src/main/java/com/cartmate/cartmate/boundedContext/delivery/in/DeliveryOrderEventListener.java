@@ -3,10 +3,13 @@ package com.cartmate.cartmate.boundedContext.delivery.in;
 import com.cartmate.cartmate.boundedContext.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryCreateCommand;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -42,6 +45,17 @@ public class DeliveryOrderEventListener {
                                 item.optionName(), item.unitPrice(), item.quantity()))
                         .toList()
         )));
+    }
+
+    // 결제된 주문을 구매자가 취소하면 배송도 취소한다. 판매자가 이미 확인한 배송이면 예외로 주문 취소까지 롤백된다.
+    // 결제 전 취소(paid=false)는 만들어진 배송이 없으므로 무시한다. 환불보다 먼저 실행되어야 한다.
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    @EventListener
+    public void handle(OrderCanceledEvent event) {
+        if (!event.paid()) {
+            return;
+        }
+        deliveryFacade.cancelByOrder(event.orderId());
     }
 
     // 공동물품 확정 이벤트를 받아 판매자별 배송을 생성한다. 생성 실패 시 마지막 결제도 함께 롤백된다.

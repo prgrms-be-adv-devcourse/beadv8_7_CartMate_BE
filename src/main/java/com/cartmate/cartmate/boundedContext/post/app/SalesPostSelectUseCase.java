@@ -32,7 +32,7 @@ public class SalesPostSelectUseCase {
     @Transactional(readOnly = true)
     public SelectSalesPostResponse selectSalesPostDetail(Long postId) {
         SalesPost post = salesPostRepository.findById(postId)
-                .filter(p -> p.getStatus() != SalesPostSaleStatus.DELETED)
+                .filter(p -> p.getStatus() != SalesPostSaleStatus.DELETED && p.getStatus() != SalesPostSaleStatus.SUSPENDED)
                 .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
 
         return this.toSelectResultDto(post);
