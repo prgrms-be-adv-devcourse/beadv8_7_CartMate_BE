@@ -36,6 +36,15 @@ public class PaymentRefundUseCase {
                 PaymentRefundReason.CLAIM_REFUND, "판매자 승인 환불 (클레임 #" + claimId + ")");
     }
 
+    // 판매자 확인 전 구매자가 주문을 취소 → 결제 금액 전액 환불
+    public void refundByBuyerCancel(Long orderId, Long memberId) {
+        Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
+                .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        refund(payment, payment.refundableAmount(), "ORDER-CANCEL-" + payment.getId(),
+                PaymentRefundReason.BUYER_CANCEL, "구매자 주문 취소 (주문 #" + orderId + ")");
+    }
+
     // 공동물품 무산 → 이미 낸 분담금 전원 환불
     public int refundCanceledSharedGroupOrder(Long sharedGroupOrderId, String cancelReason) {
         List<Payment> payments = paymentRepository.findAllByTypeAndOrderIdAndStatusIn(
