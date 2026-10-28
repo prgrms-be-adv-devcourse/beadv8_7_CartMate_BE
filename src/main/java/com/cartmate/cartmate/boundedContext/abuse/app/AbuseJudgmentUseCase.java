@@ -4,7 +4,7 @@ import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseJudgment;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseRestriction;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseRuleResult;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseScoreThreshold;
-import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignal;
+import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseJudgmentRepository;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseRestrictionRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +22,12 @@ class AbuseJudgmentUseCase {
     private final AbuseJudgmentRepository abuseJudgmentRepository;
     private final AbuseRestrictionRepository abuseRestrictionRepository;
 
-    boolean isJudged(AbuseSignal signal) {
+    boolean isJudged(AbuseSignalCommand signal) {
         return abuseJudgmentRepository.existsByMemberIdAndSignalTypeAndSourceKey(
                 signal.memberId(), signal.type(), signal.sourceKey());
     }
 
-    void judge(AbuseSignal signal, List<AbuseRuleResult> ruleResults, LocalDateTime judgedAt) {
+    void judge(AbuseSignalCommand signal, List<AbuseRuleResult> ruleResults, LocalDateTime judgedAt) {
         AbuseJudgment judgment = AbuseJudgment.judge(signal, ruleResults, SCORE_THRESHOLD, judgedAt);
         if (judgment.isNone()) {
             return;

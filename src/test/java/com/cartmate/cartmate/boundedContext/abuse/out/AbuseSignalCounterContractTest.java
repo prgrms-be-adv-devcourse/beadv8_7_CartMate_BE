@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.abuse.out;
 
-import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignal;
+import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -112,7 +112,7 @@ abstract class AbuseSignalCounterContractTest {
         assertThat(counter.count(member, TYPE, NOW.minus(RETENTION))).isEqualTo(perThread + (long) threads * perThread);
     }
 
-    private AbuseSignal signal(long memberId, String sourceKey, LocalDateTime occurredAt) {
-        return new AbuseSignal(memberId, TYPE, sourceKey, occurredAt);
+    private AbuseSignalCommand signal(long memberId, String sourceKey, LocalDateTime occurredAt) {
+        return new AbuseSignalCommand(memberId, TYPE, sourceKey, occurredAt);
     }
 }

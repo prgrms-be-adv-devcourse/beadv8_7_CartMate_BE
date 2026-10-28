@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.abuse.app;
 
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseRule;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseRuleResult;
-import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignal;
+import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseSignalCounter;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
@@ -29,11 +29,11 @@ class AbuseSignalUseCase {
         if (!DEADLINE_EXPIRED.equals(event.cancelReason())) {
             return;
         }
-        handle(new AbuseSignal(memberId, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
+        handle(new AbuseSignalCommand(memberId, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
                 String.valueOf(event.sharedGroupOrderId()), event.canceledAt()), now);
     }
 
-    void handle(AbuseSignal signal, LocalDateTime now) {
+    void handle(AbuseSignalCommand signal, LocalDateTime now) {
         Optional<Duration> retention = retentionOf(signal.type());
         if (retention.isEmpty() || abuseJudgmentUseCase.isJudged(signal)) {
             return;

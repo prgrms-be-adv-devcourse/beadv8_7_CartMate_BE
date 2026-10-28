@@ -4,7 +4,7 @@ import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseJudgment;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseLevel;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseRestriction;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseRuleResult;
-import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignal;
+import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseJudgmentRepository;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseRestrictionRepository;
@@ -31,8 +31,8 @@ class AbuseJudgmentUseCaseTest {
 
     private static final Long MEMBER = 1L;
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 28, 12, 0);
-    private static final AbuseSignal SIGNAL =
-            new AbuseSignal(MEMBER, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "100", NOW);
+    private static final AbuseSignalCommand SIGNAL =
+            new AbuseSignalCommand(MEMBER, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "100", NOW);
 
     @Mock
     private AbuseJudgmentRepository abuseJudgmentRepository;
