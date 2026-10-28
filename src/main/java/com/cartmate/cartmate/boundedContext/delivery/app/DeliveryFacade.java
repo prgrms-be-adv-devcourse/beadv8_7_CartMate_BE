@@ -26,6 +26,7 @@ public class DeliveryFacade {
     private final DeliveryCreateUseCase deliveryCreateUseCase;
     private final DeliveryQueryUseCase deliveryQueryUseCase;
     private final DeliveryReadyUseCase deliveryReadyUseCase;
+    private final DeliveryCancelUseCase deliveryCancelUseCase;
     private final DeliveryShipUseCase deliveryShipUseCase;
     private final DeliveryDeliverUseCase deliveryDeliverUseCase;
     private final DeliveryConfirmUseCase deliveryConfirmUseCase;
@@ -38,6 +39,11 @@ public class DeliveryFacade {
     @Transactional
     public void createDelivery(DeliveryCreateCommand createCommand) {
         deliveryCreateUseCase.create(createCommand);
+    }
+
+    @Transactional
+    public void cancelByOrder(Long orderId) {
+        deliveryCancelUseCase.cancelByOrder(orderId);
     }
 
     @Transactional

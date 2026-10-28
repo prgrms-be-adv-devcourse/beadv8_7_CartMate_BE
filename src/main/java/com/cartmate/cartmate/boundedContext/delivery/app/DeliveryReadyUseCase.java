@@ -21,7 +21,7 @@ public class DeliveryReadyUseCase {
         if (memberId == null) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_MEMBER_ID_REQUIRED);
         }
-        Delivery delivery = deliveryRepository.findById(deliveryId)
+        Delivery delivery = deliveryRepository.findByIdForUpdate(deliveryId)
                 .orElseThrow(() -> new ServiceException(DeliveryErrorCode.DELIVERY_NOT_FOUND));
 
         if (!sellerQuery.isSellerOwner(memberId, delivery.getSellerId())) {
