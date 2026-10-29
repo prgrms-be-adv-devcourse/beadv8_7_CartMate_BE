@@ -101,6 +101,15 @@ public class SharedGroupPurchaseItem {
         this.updatedMemberId = memberId;
     }
 
+    void adjustQuantity(int delta, Long memberId) {
+        if (delta == 0 || Math.abs(delta) > MAX_QUANTITY - MIN_QUANTITY) {
+            throw new ServiceException(CartErrorCode.CART_INVALID_QUANTITY_DELTA);
+        }
+        validateQuantity(this.quantity + delta);
+        this.quantity += delta;
+        this.updatedMemberId = memberId;
+    }
+
 
     void changeOption(Long productId, Long inventoryId, Long memberId) {
         validateSameProduct(productId);

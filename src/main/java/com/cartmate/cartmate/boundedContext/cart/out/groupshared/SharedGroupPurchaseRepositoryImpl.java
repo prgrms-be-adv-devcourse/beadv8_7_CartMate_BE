@@ -7,8 +7,11 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.cartmate.cartmate.boundedContext.cart.domain.groupshared.QSharedGroupPurchase.sharedGroupPurchase;
 import static com.cartmate.cartmate.boundedContext.cart.domain.groupshared.QSharedGroupPurchaseItem.sharedGroupPurchaseItem;
@@ -92,5 +95,22 @@ public class SharedGroupPurchaseRepositoryImpl implements SharedGroupPurchaseRep
                         sharedGroupPurchase.frozenAt.loe(now.minus(SharedGroupPurchase.FROZEN_PERIOD))
                 )
                 .fetch();
+    }
+
+    @Override
+    public Map<Long, String> findTitlesByIds(Collection<Long> ids) {
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return queryFactory
+                .select(sharedGroupPurchase.id, sharedGroupPurchase.title)
+                .from(sharedGroupPurchase)
+                .where(sharedGroupPurchase.id.in(ids))
+                .fetch()
+                .stream()
+                .collect(Collectors.toMap(
+                        tuple -> tuple.get(sharedGroupPurchase.id),
+                        tuple -> tuple.get(sharedGroupPurchase.title)
+                ));
     }
 }

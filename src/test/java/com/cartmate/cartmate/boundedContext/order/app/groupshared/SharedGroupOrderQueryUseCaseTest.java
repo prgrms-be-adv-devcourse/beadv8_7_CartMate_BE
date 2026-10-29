@@ -3,10 +3,12 @@ package com.cartmate.cartmate.boundedContext.order.app.groupshared;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderDetailResponse;
+import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.OrderMemberClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
+import com.cartmate.cartmate.boundedContext.order.out.OrderSharedGroupPurchaseClient;
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
@@ -43,6 +45,9 @@ class SharedGroupOrderQueryUseCaseTest {
     @Mock
     private OrderMemberClient orderMemberClient;
 
+    @Mock
+    private OrderSharedGroupPurchaseClient orderSharedGroupPurchaseClient;
+
     @InjectMocks
     private SharedGroupOrderQueryUseCase queryUseCase;
 
@@ -64,6 +69,32 @@ class SharedGroupOrderQueryUseCaseTest {
         assertThat(response.items()).singleElement()
                 .satisfies(item -> assertThat(item.productName()).isEqualTo("축구공"));
         assertThat(response.teamDeliveryAddress()).isNull();
+    }
+
+    @Test
+    @DisplayName("내 공동 주문 목록에 공동구매 제목, 대표 상품명, 상품 수가 담긴다")
+    void getMyList() {
+        given(sharedGroupOrderRepository.findAllByParticipant(MEMBER)).willReturn(List.of(order()));
+        given(orderSharedGroupPurchaseClient.findTitles(Set.of(10L))).willReturn(Map.of(10L, "FC 훈련용품"));
+
+        List<SharedGroupOrderSummaryResponse> response = queryUseCase.getMyList(MEMBER);
+
+        assertThat(response).singleElement().satisfies(summary -> {
+            assertThat(summary.purchaseTitle()).isEqualTo("FC 훈련용품");
+            assertThat(summary.firstProductName()).isEqualTo("상품");
+            assertThat(summary.itemCount()).isEqualTo(1);
+            assertThat(summary.myShareAmount()).isEqualTo(25000L);
+        });
+    }
+
+    @Test
+    @DisplayName("공동구매 제목을 찾지 못해도 목록은 내려가고 제목만 비어 있다")
+    void getMyListWithoutTitle() {
+        given(sharedGroupOrderRepository.findAllByParticipant(MEMBER)).willReturn(List.of(order()));
+        given(orderSharedGroupPurchaseClient.findTitles(Set.of(10L))).willReturn(Map.of());
+
+        assertThat(queryUseCase.getMyList(MEMBER)).singleElement()
+                .satisfies(summary -> assertThat(summary.purchaseTitle()).isNull());
     }
 
     @Test

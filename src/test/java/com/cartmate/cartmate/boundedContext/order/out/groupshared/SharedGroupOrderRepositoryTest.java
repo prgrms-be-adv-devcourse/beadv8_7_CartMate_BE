@@ -57,7 +57,7 @@ class SharedGroupOrderRepositoryTest {
     }
 
     @Test
-    @DisplayName("참여 중인 공동 주문만 최신순으로 조회한다")
+    @DisplayName("참여 중인 공동 주문만 최신순으로 조회하고 항목도 함께 불러온다")
     void findAllByParticipant() {
         SharedGroupOrder first = sharedGroupOrderRepository.save(order(base + 10));
         SharedGroupOrder second = sharedGroupOrderRepository.save(order(base + 11));
@@ -66,8 +66,10 @@ class SharedGroupOrderRepositoryTest {
         flushAndClear();
 
         List<SharedGroupOrder> found = sharedGroupOrderRepository.findAllByParticipant(member);
+        flushAndClear();
 
         assertThat(found).extracting(SharedGroupOrder::getId).containsExactly(second.getId(), first.getId());
+        assertThat(found).allSatisfy(order -> assertThat(order.getItems()).hasSize(2));
     }
 
     @Test

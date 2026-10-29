@@ -55,7 +55,7 @@ public class SharedGroupOrderRepositoryImpl implements SharedGroupOrderRepositor
     @Override
     public List<SharedGroupOrder> findAllByParticipant(Long memberId) {
         QSharedGroupOrderParticipant mine = new QSharedGroupOrderParticipant("mine");
-        return queryFactory
+        List<SharedGroupOrder> result = queryFactory
                 .selectFrom(sharedGroupOrder)
                 .distinct()
                 .leftJoin(sharedGroupOrder.participants, sharedGroupOrderParticipant).fetchJoin()
@@ -65,6 +65,16 @@ public class SharedGroupOrderRepositoryImpl implements SharedGroupOrderRepositor
                         .exists())
                 .orderBy(sharedGroupOrder.id.desc())
                 .fetch();
+        if (result.isEmpty()) {
+            return result;
+        }
+        queryFactory
+                .selectFrom(sharedGroupOrder)
+                .distinct()
+                .leftJoin(sharedGroupOrder.items, sharedGroupOrderItem).fetchJoin()
+                .where(sharedGroupOrder.in(result))
+                .fetch();
+        return result;
     }
 
     @Override

@@ -31,7 +31,7 @@ public class DeliveryClaimApproveUseCase {
         if (memberId == null) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_MEMBER_ID_REQUIRED);
         }
-        DeliveryClaim claim = deliveryClaimRepository.findById(claimId)
+        DeliveryClaim claim = deliveryClaimRepository.findByIdForUpdate(claimId)
                 .orElseThrow(() -> new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_NOT_FOUND));
 
         if (!sellerQuery.isSellerOwner(memberId, claim.getDelivery().getSellerId())) {

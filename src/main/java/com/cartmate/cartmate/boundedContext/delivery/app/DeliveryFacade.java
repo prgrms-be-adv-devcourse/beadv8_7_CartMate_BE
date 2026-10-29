@@ -26,6 +26,7 @@ public class DeliveryFacade {
     private final DeliveryCreateUseCase deliveryCreateUseCase;
     private final DeliveryQueryUseCase deliveryQueryUseCase;
     private final DeliveryReadyUseCase deliveryReadyUseCase;
+    private final DeliveryCancelUseCase deliveryCancelUseCase;
     private final DeliveryShipUseCase deliveryShipUseCase;
     private final DeliveryDeliverUseCase deliveryDeliverUseCase;
     private final DeliveryConfirmUseCase deliveryConfirmUseCase;
@@ -33,11 +34,17 @@ public class DeliveryFacade {
     private final DeliveryClaimCreateUseCase deliveryClaimCreateUseCase;
     private final DeliveryClaimQueryUseCase deliveryClaimQueryUseCase;
     private final DeliveryClaimApproveUseCase deliveryClaimApproveUseCase;
+    private final DeliveryClaimRejectUseCase deliveryClaimRejectUseCase;
     private final DeliveryClaimCompleteUseCase deliveryClaimCompleteUseCase;
 
     @Transactional
     public void createDelivery(DeliveryCreateCommand createCommand) {
         deliveryCreateUseCase.create(createCommand);
+    }
+
+    @Transactional
+    public void cancelByOrder(Long orderId) {
+        deliveryCancelUseCase.cancelByOrder(orderId);
     }
 
     @Transactional
@@ -73,6 +80,11 @@ public class DeliveryFacade {
     @Transactional
     public SellerClaimResponse approveClaim(Long claimId, Long memberId) {
         return deliveryClaimApproveUseCase.approve(claimId, memberId);
+    }
+
+    @Transactional
+    public SellerClaimResponse rejectClaim(Long claimId, Long memberId, String reason) {
+        return deliveryClaimRejectUseCase.reject(claimId, memberId, reason);
     }
 
     @Transactional

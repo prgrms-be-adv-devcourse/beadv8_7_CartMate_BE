@@ -14,6 +14,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.cartmate.cartmate.global.security.SecurityUser;
+import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
@@ -53,6 +56,21 @@ public class SalesPostController {
     ) {
         salesPostFacade.deleteSalesPostByUser(postId, sellerId);
         return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @PatchMapping("/sellers/{sellerId}/posts/{postId}/pause")
+    @Operation(operationId = "pauseSalesPost", summary = "판매자 판매 중지")
+    public RsData<Void> pause(@PathVariable Long sellerId, @PathVariable Long postId,
+                              @AuthenticationPrincipal SecurityUser user) {
+        salesPostFacade.pauseSalesPostBySeller(postId, sellerId, user == null ? null : user.memberId());
+        return new RsData<>("200-1", "판매를 중지했습니다. 진행 중인 주문은 취소·환불됩니다.");
+    }
+
+    @PatchMapping("/sellers/{sellerId}/posts/{postId}/resume")
+    @Operation(operationId = "resumeSalesPostBySeller", summary = "판매자 판매 재개")
+    public RsData<Void> resume(@PathVariable Long sellerId, @PathVariable Long postId) {
+        salesPostFacade.resumeSalesPostBySeller(postId, sellerId);
+        return new RsData<>("200-1", "판매를 다시 시작했습니다.");
     }
 
     @PatchMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

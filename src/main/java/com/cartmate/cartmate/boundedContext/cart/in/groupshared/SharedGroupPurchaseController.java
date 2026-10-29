@@ -6,6 +6,8 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurc
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseItemAddRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseItemOptionUpdateRequest;
+import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseItemQuantityAdjustRequest;
+import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseItemQuantityResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseItemQuantityUpdateRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseJoinRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseMaxParticipantsUpdateRequest;
@@ -108,6 +110,17 @@ public class SharedGroupPurchaseController {
     ) {
         sharedGroupPurchaseFacade.changeItemQuantity(user.memberId(), id, itemId, request.quantity());
         return new RsData<>("200-1", "수량을 변경했습니다.");
+    }
+
+    @PatchMapping("/{id}/items/{itemId}/quantity/adjust")
+    public RsData<SharedGroupPurchaseItemQuantityResponse> adjustItemQuantity(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long id,
+            @PathVariable Long itemId,
+            @Valid @RequestBody SharedGroupPurchaseItemQuantityAdjustRequest request
+    ) {
+        return new RsData<>("200-1", "수량을 변경했습니다.",
+                sharedGroupPurchaseFacade.adjustItemQuantity(user.memberId(), id, itemId, request.delta()));
     }
 
     @PatchMapping("/{id}/items/{itemId}/option")

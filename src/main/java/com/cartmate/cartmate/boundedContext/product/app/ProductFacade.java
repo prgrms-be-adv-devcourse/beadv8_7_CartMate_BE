@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.product.app;
 
 import com.cartmate.cartmate.boundedContext.post.dto.SelectProductResponse;
+import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.rsData.RsData;
@@ -36,6 +37,7 @@ public class ProductFacade {
     private final ProductQueryUseCase productQueryUseCase;
     private final ProductSupport productSupport;
     private final TransactionTemplate transactionTemplate;
+    private final ProductStatusChangeUseCase productStatusChangeUseCase;
 
     public void registerProduct(CreateProductRequest request, List<MultipartFile> images) {
         productSupport.validateProductCount(request.getProductList());
@@ -147,5 +149,9 @@ public class ProductFacade {
     @Transactional
     public void rollbackByApiFail(RollbackProductRequest rollbackProductRequest) {
         productDeleteUseCase.hardDeleteByEvent(rollbackProductRequest.getPostId());
+    }
+
+    public void changeStatusByPost(Long postId, ProductStatus status) {
+        productStatusChangeUseCase.changeStatusByPost(postId, status);
     }
 }
