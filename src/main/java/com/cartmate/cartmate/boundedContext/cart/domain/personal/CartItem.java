@@ -18,6 +18,10 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_cart_item_cart_inventory",
                 columnNames = {"cart_id", "inventory_id"}
+        ),
+        indexes = @Index(
+                name = "idx_cart_item_updated_product",
+                columnList = "updated_at, product_id, cart_id"
         )
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
