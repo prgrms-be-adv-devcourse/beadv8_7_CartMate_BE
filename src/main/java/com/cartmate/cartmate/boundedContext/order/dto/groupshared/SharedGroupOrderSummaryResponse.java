@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.dto.groupshared;
 
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder;
+import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderItem;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderParticipant;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderParticipantStatus;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderStatus;
@@ -18,10 +19,13 @@ public record SharedGroupOrderSummaryResponse(
         int paidCount,
         int participantCount,
         LocalDateTime paymentDeadlineAt,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String purchaseTitle,
+        String firstProductName,
+        int itemCount
 ) {
 
-    public static SharedGroupOrderSummaryResponse of(SharedGroupOrder order, Long viewerId) {
+    public static SharedGroupOrderSummaryResponse of(SharedGroupOrder order, String purchaseTitle, Long viewerId) {
         SharedGroupOrderParticipant me = order.getParticipant(viewerId);
         int paidCount = (int) order.getParticipants().stream()
                 .filter(SharedGroupOrderParticipant::isPaid)
@@ -37,7 +41,10 @@ public record SharedGroupOrderSummaryResponse(
                 paidCount,
                 order.getParticipants().size(),
                 order.getPaymentDeadlineAt(),
-                order.getCreatedAt()
+                order.getCreatedAt(),
+                purchaseTitle,
+                order.getItems().stream().findFirst().map(SharedGroupOrderItem::getProductName).orElse(null),
+                order.getItems().size()
         );
     }
 }

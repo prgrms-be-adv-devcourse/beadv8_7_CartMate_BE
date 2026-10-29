@@ -3,6 +3,8 @@ package com.cartmate.cartmate.boundedContext.cart.app.groupshared;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
+import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseItem;
+import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseItemQuantityResponse;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.cart.out.ProductClient;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,12 @@ class SharedGroupPurchaseItemUseCase {
     void changeItemQuantity(Long memberId, Long sharedGroupPurchaseId, Long itemId, int quantity) {
         sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
                 .changeItemQuantity(memberId, itemId, quantity, LocalDateTime.now());
+    }
+
+    SharedGroupPurchaseItemQuantityResponse adjustItemQuantity(Long memberId, Long sharedGroupPurchaseId, Long itemId, int delta) {
+        SharedGroupPurchaseItem item = sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
+                .adjustItemQuantity(memberId, itemId, delta, LocalDateTime.now());
+        return SharedGroupPurchaseItemQuantityResponse.from(item);
     }
 
     void changeItemOption(Long memberId, Long sharedGroupPurchaseId, Long itemId, Long inventoryId) {
