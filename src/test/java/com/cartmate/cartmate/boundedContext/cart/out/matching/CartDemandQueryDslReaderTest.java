@@ -50,7 +50,7 @@ class CartDemandQueryDslReaderTest {
         addItems(3, POPULAR);
         flushAndClear();
 
-        Map<Long, Set<Long>> demands = demandsOf(cartDemandReader.findRecentDemands(LocalDateTime.now().minusDays(30), 3, ALL));
+        Map<Long, Set<Long>> demands = demandsOf(cartDemandReader.findRecentDemands(LocalDateTime.now().minusDays(30), 3, ALL, List.of()));
 
         assertThat(demands).containsOnlyKeys(POPULAR);
         assertThat(demands.get(POPULAR)).containsExactlyInAnyOrder(member(1), member(2), member(3));
@@ -65,8 +65,8 @@ class CartDemandQueryDslReaderTest {
         addItems(2, POPULAR);
         flushAndClear();
 
-        assertThat(demandsOf(cartDemandReader.findRecentDemands(LocalDateTime.now().minusDays(30), 3, ALL))).isEmpty();
-        assertThat(demandsOf(cartDemandReader.findRecentDemands(LocalDateTime.now().minusDays(30), 2, ALL)).get(POPULAR))
+        assertThat(demandsOf(cartDemandReader.findRecentDemands(LocalDateTime.now().minusDays(30), 3, ALL, List.of()))).isEmpty();
+        assertThat(demandsOf(cartDemandReader.findRecentDemands(LocalDateTime.now().minusDays(30), 2, ALL, List.of())).get(POPULAR))
                 .containsExactlyInAnyOrder(member(1), member(2));
     }
 
@@ -83,7 +83,7 @@ class CartDemandQueryDslReaderTest {
         addItems(3, OLD_ONLY);
         flushAndClear();
 
-        Map<Long, Set<Long>> demands = demandsOf(cartDemandReader.findRecentDemands(LocalDateTime.now().minusDays(30), 1, ALL));
+        Map<Long, Set<Long>> demands = demandsOf(cartDemandReader.findRecentDemands(LocalDateTime.now().minusDays(30), 1, ALL, List.of()));
 
         assertThat(demands.get(OLD_ONLY)).containsExactly(member(3));
     }
@@ -100,9 +100,9 @@ class CartDemandQueryDslReaderTest {
                 .executeUpdate();
         flushAndClear();
 
-        assertThat(demandsOf(cartDemandReader.findRecentDemands(since, 1, ALL)).get(OLD_ONLY))
+        assertThat(demandsOf(cartDemandReader.findRecentDemands(since, 1, ALL, List.of())).get(OLD_ONLY))
                 .containsExactly(member(1));
-        assertThat(demandsOf(cartDemandReader.findRecentDemands(since.plusSeconds(1), 1, ALL)))
+        assertThat(demandsOf(cartDemandReader.findRecentDemands(since.plusSeconds(1), 1, ALL, List.of())))
                 .doesNotContainKey(OLD_ONLY);
     }
 
@@ -115,14 +115,27 @@ class CartDemandQueryDslReaderTest {
         flushAndClear();
         LocalDateTime since = LocalDateTime.now().minusDays(30);
 
-        int maxMemberCount = cartDemandReader.findRecentDemands(since, 1, ALL).stream()
+        int maxMemberCount = cartDemandReader.findRecentDemands(since, 1, ALL, List.of()).stream()
                 .mapToInt(demand -> demand.memberIds().size())
                 .max()
                 .orElseThrow();
-        List<ProductDemand> top = cartDemandReader.findRecentDemands(since, 1, 1);
+        List<ProductDemand> top = cartDemandReader.findRecentDemands(since, 1, 1, List.of());
 
         assertThat(top).hasSize(1);
         assertThat(top.getFirst().memberIds()).hasSize(maxMemberCount);
+    }
+
+    @Test
+    @DisplayName("제외할 상품은 집계하지 않는다")
+    void excludeProducts() {
+        addItems(1, POPULAR, LESS_POPULAR);
+        addItems(2, POPULAR, LESS_POPULAR);
+        flushAndClear();
+
+        Map<Long, Set<Long>> demands = demandsOf(
+                cartDemandReader.findRecentDemands(LocalDateTime.now().minusDays(30), 2, ALL, List.of(POPULAR)));
+
+        assertThat(demands).containsOnlyKeys(LESS_POPULAR);
     }
 
     private void addItems(int memberIndex, Long... productIds) {

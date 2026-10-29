@@ -15,7 +15,7 @@ public class CartMatchingFacade {
     private final DemandCandidateQueryUseCase demandCandidateQueryUseCase;
 
     @Transactional(readOnly = true)
-    public List<DemandCandidateResponse> getDemandCandidates(int minMembers, int days, int size) {
-        return demandCandidateQueryUseCase.getCandidates(minMembers, days, size, LocalDateTime.now());
+    public List<DemandCandidateResponse> getDemandCandidates(int minMembers, int days, int size, int cooldownDays) {
+        return demandCandidateQueryUseCase.getCandidates(minMembers, days, size, cooldownDays, LocalDateTime.now());
     }
 }

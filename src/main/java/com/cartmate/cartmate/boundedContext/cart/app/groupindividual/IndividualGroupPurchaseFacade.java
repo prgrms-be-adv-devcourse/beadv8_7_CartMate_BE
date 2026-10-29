@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.cart.app.groupindividual;
 
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseCreateResponse;
+import com.cartmate.cartmate.boundedContext.cart.dto.matching.DemandGroupPurchaseOpenRequest;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDashboardResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseSummaryResponse;
@@ -18,12 +19,19 @@ import java.util.List;
 public class IndividualGroupPurchaseFacade {
 
     private final IndividualGroupPurchaseCreateUseCase individualGroupPurchaseCreateUseCase;
+    private final IndividualGroupPurchaseDemandOpenUseCase individualGroupPurchaseDemandOpenUseCase;
     private final IndividualGroupPurchaseManageUseCase individualGroupPurchaseManageUseCase;
     private final IndividualGroupPurchaseQueryUseCase individualGroupPurchaseQueryUseCase;
 
     @Transactional
     public IndividualGroupPurchaseCreateResponse create(Long memberId, IndividualGroupPurchaseCreateRequest request) {
         return individualGroupPurchaseCreateUseCase.create(memberId, request);
+    }
+
+    @Transactional
+    public IndividualGroupPurchaseCreateResponse openFromDemand(Long adminMemberId, Long productId,
+                                                                DemandGroupPurchaseOpenRequest request) {
+        return individualGroupPurchaseDemandOpenUseCase.open(adminMemberId, productId, request, LocalDateTime.now());
     }
 
     @Transactional

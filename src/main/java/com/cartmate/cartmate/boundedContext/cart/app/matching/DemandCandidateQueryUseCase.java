@@ -6,6 +6,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.matching.DemandCandidateRes
 import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductOptions;
 import com.cartmate.cartmate.boundedContext.cart.out.ProductClient;
+import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.cart.out.matching.CartDemandReader;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
@@ -24,14 +25,21 @@ class DemandCandidateQueryUseCase {
     private static final int MAX_MIN_MEMBERS = 1000;
     private static final int MAX_DAYS = 90;
     private static final int MAX_SIZE = 100;
+    private static final int MAX_COOLDOWN_DAYS = 90;
 
     private final CartDemandReader cartDemandReader;
     private final DemandAggregator demandAggregator;
     private final ProductClient productClient;
+    private final IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
 
-    List<DemandCandidateResponse> getCandidates(int minMembers, int days, int size, LocalDateTime now) {
-        validate(minMembers, days, size);
-        List<ProductDemand> demands = cartDemandReader.findRecentDemands(now.minusDays(days), minMembers, size);
+    List<DemandCandidateResponse> getCandidates(int minMembers, int days, int size, int cooldownDays,
+                                                LocalDateTime now) {
+        validate(minMembers, days, size, cooldownDays);
+        List<Long> coolingDownProductIds = cooldownDays == 0
+                ? List.of()
+                : individualGroupPurchaseRepository.findDemandProductIdsEndedBetween(now.minusDays(cooldownDays), now);
+        List<ProductDemand> demands =
+                cartDemandReader.findRecentDemands(now.minusDays(days), minMembers, size, coolingDownProductIds);
         List<DemandCandidate> candidates = demandAggregator.aggregate(demands, minMembers).stream()
                 .limit(size)
                 .toList();
@@ -39,15 +47,17 @@ class DemandCandidateQueryUseCase {
             return List.of();
         }
 
-        Map<Long, CartProductOptions> products = productClient.findAllProductOptions(
-                        candidates.stream().map(DemandCandidate::productId).toList()).stream()
+        List<Long> productIds = candidates.stream().map(DemandCandidate::productId).toList();
+        Map<Long, CartProductOptions> products = productClient.findAllProductOptions(productIds).stream()
                 .collect(Collectors.toMap(CartProductOptions::productId, Function.identity(), (first, second) -> first));
+        Map<Long, Long> openPurchaseIds = individualGroupPurchaseRepository.findOpenDemandPurchaseIds(productIds, now);
         return candidates.stream()
-                .map(candidate -> DemandCandidateResponse.of(candidate, products.get(candidate.productId())))
+                .map(candidate -> DemandCandidateResponse.of(candidate, products.get(candidate.productId()),
+                        openPurchaseIds.get(candidate.productId())))
                 .toList();
     }
 
-    private void validate(int minMembers, int days, int size) {
+    private void validate(int minMembers, int days, int size, int cooldownDays) {
         if (minMembers < 1 || minMembers > MAX_MIN_MEMBERS) {
             throw new ServiceException(CartErrorCode.CART_DEMAND_INVALID_MIN_MEMBERS);
         }
@@ -56,6 +66,9 @@ class DemandCandidateQueryUseCase {
         }
         if (size < 1 || size > MAX_SIZE) {
             throw new ServiceException(CartErrorCode.CART_DEMAND_INVALID_SIZE);
+        }
+        if (cooldownDays < 0 || cooldownDays > MAX_COOLDOWN_DAYS) {
+            throw new ServiceException(CartErrorCode.CART_DEMAND_INVALID_COOLDOWN);
         }
     }
 }

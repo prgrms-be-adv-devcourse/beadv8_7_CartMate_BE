@@ -13,13 +13,15 @@ public record DemandCandidateResponse(
         String productName,
         String imageUrl,
         boolean purchasable,
+        Long openGroupPurchaseId,
         int exactMemberCount,
         int similarMemberCount,
         int totalMemberCount,
         List<SimilarProduct> similarProducts
 ) {
 
-    public static DemandCandidateResponse of(DemandCandidate candidate, CartProductOptions product) {
+    public static DemandCandidateResponse of(DemandCandidate candidate, CartProductOptions product,
+                                             Long openGroupPurchaseId) {
         List<SimilarProduct> similarProducts = candidate.similarProducts().stream()
                 .map(SimilarProduct::from)
                 .toList();
@@ -28,6 +30,7 @@ public record DemandCandidateResponse(
                 product == null ? null : product.productName(),
                 product == null ? null : product.imageUrl(),
                 product != null && product.purchasable(),
+                openGroupPurchaseId,
                 candidate.exactMemberCount(),
                 candidate.similarMemberCount(),
                 candidate.totalMemberCount(),
