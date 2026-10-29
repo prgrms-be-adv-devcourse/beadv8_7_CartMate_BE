@@ -1,6 +1,8 @@
 package com.cartmate.cartmate.boundedContext.abuse.out;
 
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignal;
+import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalStatus;
+import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -27,4 +29,16 @@ public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> 
                         @Param("status") String status);
 
     List<AbuseSignal> findByMemberIdOrderByOccurredAtAsc(Long memberId);
+
+    List<AbuseSignal> findByMemberIdAndStatusOrderByOccurredAtAscIdAsc(Long memberId, AbuseSignalStatus status);
+
+    @Query("""
+            select count(s) from AbuseSignal s
+            where s.memberId = :memberId and s.signalType = :signalType
+              and s.occurredAt >= :from and s.occurredAt <= :to
+            """)
+    long countInWindow(@Param("memberId") Long memberId,
+                       @Param("signalType") AbuseSignalType signalType,
+                       @Param("from") LocalDateTime from,
+                       @Param("to") LocalDateTime to);
 }

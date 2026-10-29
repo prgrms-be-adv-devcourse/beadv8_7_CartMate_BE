@@ -1,7 +1,6 @@
 package com.cartmate.cartmate.boundedContext.abuse.app;
 
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalCommand;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -13,8 +12,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AbuseFacade {
 
-    private final AbuseSignalUseCase abuseSignalUseCase;
     private final AbuseSignalReceiveUseCase abuseSignalReceiveUseCase;
+    private final AbuseJudgeUseCase abuseJudgeUseCase;
 
     @Transactional
     public void receive(AbuseSignalCommand command) {
@@ -22,7 +21,7 @@ public class AbuseFacade {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleSharedGroupOrderCanceled(SharedGroupOrderCanceledEvent event, Long memberId) {
-        abuseSignalUseCase.handleSharedGroupOrderCanceled(event, memberId, LocalDateTime.now());
+    public int judgePending(Long memberId) {
+        return abuseJudgeUseCase.judgePending(memberId, LocalDateTime::now);
     }
 }

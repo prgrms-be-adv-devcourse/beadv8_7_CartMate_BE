@@ -37,9 +37,9 @@ public class TestDataCleaner {
             return;
         }
         Map<String, Object> params = Map.of("memberIds", memberIds);
-        jdbc.update("DELETE FROM abuse_restriction WHERE member_id IN (:memberIds)", params);
-        jdbc.update("DELETE FROM abuse_judgment WHERE member_id IN (:memberIds)", params);
+        jdbc.update("DELETE FROM abuse_restriction_history WHERE member_id IN (:memberIds)", params);
         jdbc.update("DELETE FROM abuse_signal WHERE member_id IN (:memberIds)", params);
+        jdbc.update("DELETE FROM abuse_member_state WHERE member_id IN (:memberIds)", params);
     }
 
     public void deleteSharedGroupOrdersOfPurchases(Collection<Long> purchaseIds) {
