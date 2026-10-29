@@ -28,6 +28,7 @@ public enum CartErrorCode implements ErrorCode {
     CART_INVITE_CODE_GENERATION_FAILED("CART_INVITE_CODE_GENERATION_FAILED", "초대 코드를 생성하지 못했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
     CART_CREATOR_ONLY("CART_CREATOR_ONLY", "공동구매 생성자만 할 수 있습니다.", HttpStatus.FORBIDDEN),
     CART_CREATOR_ONLY_VIEW("CART_CREATOR_ONLY_VIEW", "공동구매 생성자만 볼 수 있습니다.", HttpStatus.FORBIDDEN),
+    CART_MEMBER_RESTRICTED("CART_MEMBER_RESTRICTED", "결제 기한 내 미결제가 반복되어 공동구매 생성·참여가 제한되었습니다.", HttpStatus.FORBIDDEN),
     CART_INVALID_TITLE("CART_INVALID_TITLE", "제목은 1자 이상 50자 이하여야 합니다.", HttpStatus.BAD_REQUEST),
 
     // 공동구매-공동물품: 참여

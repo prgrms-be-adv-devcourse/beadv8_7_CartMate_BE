@@ -1,13 +1,16 @@
 package com.cartmate.cartmate.boundedContext.abuse.app;
 
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalCommand;
+import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +19,7 @@ public class AbuseFacade {
     private final AbuseSignalReceiveUseCase abuseSignalReceiveUseCase;
     private final AbuseJudgeUseCase abuseJudgeUseCase;
     private final AbuseJudgeRetryUseCase abuseJudgeRetryUseCase;
+    private final AbuseRestrictionQueryUseCase abuseRestrictionQueryUseCase;
 
     @Transactional
     public void receive(AbuseSignalCommand command) {
@@ -35,5 +39,15 @@ public class AbuseFacade {
     @Transactional(readOnly = true)
     public List<Long> findPendingMemberIds(int limit) {
         return abuseJudgeRetryUseCase.findPendingMemberIds(LocalDateTime.now(), limit);
+    }
+
+    @Transactional(readOnly = true)
+    public AbuseRestrictionStatus getRestriction(Long memberId) {
+        return abuseRestrictionQueryUseCase.getRestriction(memberId, LocalDateTime.now());
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, AbuseRestrictionStatus> getRestrictions(Collection<Long> memberIds) {
+        return abuseRestrictionQueryUseCase.getRestrictions(memberIds, LocalDateTime.now());
     }
 }
