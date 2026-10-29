@@ -260,6 +260,18 @@ public class SharedGroupPurchase {
         finish(items.isEmpty() ? SharedGroupPurchaseStatus.CANCELED : SharedGroupPurchaseStatus.CLOSED, now);
     }
 
+    // 판매글 판매 중지: 담긴 상품을 빼고 계속 모집한다. 남은 상품이 없으면 공동구매를 취소한다. 바뀐 게 있으면 true.
+    public boolean removeItemsBySalesStopped(Set<Long> productIds, LocalDateTime now) {
+        if (status != SharedGroupPurchaseStatus.OPEN && status != SharedGroupPurchaseStatus.FROZEN) {
+            return false;
+        }
+        boolean removed = items.removeIf(item -> productIds.contains(item.getProductId()));
+        if (removed && items.isEmpty()) {
+            finish(SharedGroupPurchaseStatus.CANCELED, now);
+        }
+        return removed;
+    }
+
     public boolean isEditable(LocalDateTime now) {
         return status == SharedGroupPurchaseStatus.OPEN && now.isBefore(editDeadlineAt);
     }

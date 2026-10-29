@@ -7,5 +7,7 @@ public enum SharedGroupOrderCancelReason {
 
     OUT_OF_STOCK,
 
-    CREATOR_CANCELED
+    CREATOR_CANCELED,
+
+    SALES_STOPPED   // 판매글 판매 중지·숨김·삭제
 }

@@ -139,6 +139,20 @@ public class Delivery {
         this.canceledAt = LocalDateTime.now();
     }
 
+    // 판매글 판매 중지로 취소: 판매자가 판매를 멈춘 것이라 배송준비중(판매자 확인 후)까지 취소한다.
+    // 발송(배송중) 이후면 예외 → 호출한 주문 처리까지 롤백되고 클레임으로 넘어간다. 이미 취소면 그대로(멱등).
+    public void cancelByPostHidden() {
+        if (this.status == DeliveryStatus.CANCELED) {
+            return;
+        }
+        if (this.status != DeliveryStatus.REQUESTED && this.status != DeliveryStatus.PREPARING) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_NOT_CANCELABLE);
+        }
+        
+        this.status = DeliveryStatus.CANCELED;
+        this.canceledAt = LocalDateTime.now();
+    }
+
     // 택배사와 송장번호를 등록하고 배송요청을 배송준비로 바꾼다.
     // 이미 같은 송장 정보로 준비 처리된 경우에는 아무것도 하지 않아 재요청해도 안전하다.
     public void prepare(String carrier, String trackingNumber) {

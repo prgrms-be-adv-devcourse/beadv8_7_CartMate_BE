@@ -47,6 +47,17 @@ public class DeliveryFacade {
         deliveryCancelUseCase.cancelByOrder(orderId);
     }
 
+    // 판매글 판매 중지: order 이벤트와 같은 트랜잭션에서 실행 (실패하면 주문 처리·환불까지 롤백)
+    @Transactional
+    public void cancelSellerBySalesStop(Long orderId, PurchaseType purchaseType, Long sellerId) {
+        deliveryCancelUseCase.cancelSellerBySalesStop(orderId, purchaseType, sellerId);
+    }
+
+    @Transactional
+    public void cancelAllSharedBySalesStop(Long sharedGroupOrderId) {
+        deliveryCancelUseCase.cancelAllSharedBySalesStop(sharedGroupOrderId);
+    }
+
     @Transactional
     public DeliveryResponse readyDelivery(Long deliveryId, Long memberId, String carrier, String trackingNumber) {
         return deliveryReadyUseCase.ready(deliveryId, memberId, carrier, trackingNumber);

@@ -5,6 +5,8 @@ import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
+import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
+import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
@@ -49,7 +51,11 @@ class OrderPaymentUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        paymentUseCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher);
+        // 결제 반영 시 상품 재확인: 기본은 모든 상품이 판매 중
+                OrderProductClient allOnSale = inventoryIds -> inventoryIds.stream().distinct()
+                        .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
+                        .toList();
+                paymentUseCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher, allOnSale);
     }
 
     @Test

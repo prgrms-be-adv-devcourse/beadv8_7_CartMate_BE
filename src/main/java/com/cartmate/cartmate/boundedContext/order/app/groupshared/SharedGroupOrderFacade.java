@@ -7,6 +7,7 @@ import com.cartmate.cartmate.shared.order.dto.SharedGroupOrderPaymentInfo;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -60,6 +61,23 @@ public class SharedGroupOrderFacade {
     @Transactional(readOnly = true)
     public List<Long> findIdsToCancelByDeadline(LocalDateTime now) {
         return sharedGroupOrderCancelUseCase.findIdsToCancelByDeadline(now);
+    }
+
+    // ===== 판매글 판매 중지 =====
+    @Transactional(readOnly = true)
+    public List<Long> findActiveIdsByProductIds(List<Long> productIds) {
+        return sharedGroupOrderCancelUseCase.findActiveIdsByProductIds(productIds);
+    }
+
+    // 공동 주문 하나마다 새 트랜잭션. 발송된 배송이 있으면 delivery가 거절 → 이 트랜잭션만 롤백
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void cancelBySalesStopped(Long sharedGroupOrderId) {
+        sharedGroupOrderCancelUseCase.cancelBySalesStopped(sharedGroupOrderId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void cancelSellerItemsBySalesStopped(Long sharedGroupOrderId, Long sellerId, Long postId) {
+        sharedGroupOrderCancelUseCase.cancelSellerItemsBySalesStopped(sharedGroupOrderId, sellerId, postId);
     }
 
     @Transactional(readOnly = true)

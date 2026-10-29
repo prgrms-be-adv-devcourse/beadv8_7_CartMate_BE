@@ -3,9 +3,7 @@ package com.cartmate.cartmate.boundedContext.delivery.in;
 import com.cartmate.cartmate.boundedContext.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryCreateCommand;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
-import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
-import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
+import com.cartmate.cartmate.shared.order.event.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.Ordered;
@@ -56,6 +54,31 @@ public class DeliveryOrderEventListener {
             return;
         }
         deliveryFacade.cancelByOrder(event.orderId());
+    }
+
+    // 판매글 판매 중지: 결제 완료 주문의 한 판매자 항목 취소 → 그 판매자 배송 취소.
+    // 발송됐으면 예외로 주문 처리까지 롤백된다 (클레임으로). 환불보다 먼저 실행되어야 한다.
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    @EventListener
+    public void handle(OrderSellerItemsCanceledEvent event) {
+        deliveryFacade.cancelSellerBySalesStop(event.orderId(), PurchaseType.INDIVIDUAL_GROUP, event.sellerId());
+    }
+
+    // 판매글 판매 중지: 확정 공동 주문의 한 판매자 항목 취소 → 그 판매자 배송 취소
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    @EventListener
+    public void handle(SharedGroupOrderSellerItemsCanceledEvent event) {
+        deliveryFacade.cancelSellerBySalesStop(event.sharedGroupOrderId(), PurchaseType.SHARED_GROUP, event.sellerId());
+    }
+
+    // 판매글 판매 중지로 공동 주문 전체 취소 → 배송 전부 취소. 하나라도 발송됐으면 예외로 공동 주문 취소까지 롤백된다.
+    // 다른 사유(기한 만료·만든 사람 취소)는 결제 중이라 배송이 없으므로 건드리지 않는다.
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    @EventListener
+    public void handle(SharedGroupOrderCanceledEvent event) {
+        if ("SALES_STOPPED".equals(event.cancelReason())) {
+            deliveryFacade.cancelAllSharedBySalesStop(event.sharedGroupOrderId());
+        }
     }
 
     // 공동물품 확정 이벤트를 받아 판매자별 배송을 생성한다. 생성 실패 시 마지막 결제도 함께 롤백된다.
