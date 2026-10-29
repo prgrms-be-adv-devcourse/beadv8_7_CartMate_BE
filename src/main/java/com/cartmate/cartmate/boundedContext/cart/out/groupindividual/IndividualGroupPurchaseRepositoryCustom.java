@@ -22,4 +22,6 @@ public interface IndividualGroupPurchaseRepositoryCustom {
     Map<Long, Long> findOpenDemandPurchaseIds(Collection<Long> productIds, LocalDateTime now);
 
     List<Long> findDemandProductIdsEndedBetween(LocalDateTime since, LocalDateTime now);
+
+    List<IndividualGroupPurchase> findOpenDemandPurchases(LocalDateTime now);
 }

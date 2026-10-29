@@ -110,6 +110,28 @@ class IndividualGroupPurchaseDemandRepositoryTest {
                 .containsEntry(OPEN_PRODUCT, reopened.getId());
     }
 
+    @Test
+    @DisplayName("판매 중인 어드민 공동구매만 마감 임박 순으로 조회하고, 회원 공동구매 · 마감 지난 것 · 닫힌 것은 뺀다")
+    void findOpenDemandPurchases() {
+        IndividualGroupPurchase later = repository.save(IndividualGroupPurchase.openFromDemand(
+                "수요 공동구매", ADMIN, "mat11later01", OPEN_PRODUCT, now.plusDays(3), 10, 1_000L, now));
+        IndividualGroupPurchase sooner = repository.save(IndividualGroupPurchase.openFromDemand(
+                "수요 공동구매", ADMIN, "mat11soon001", CLOSED_PRODUCT, now.plusDays(1), 10, 1_000L, now));
+        repository.save(open(EXPIRED_PRODUCT, "mat11expired", now.minusDays(4)));
+        IndividualGroupPurchase closed = repository.save(open(OLD_CLOSED_PRODUCT, "mat11closed1", now.minusHours(1)));
+        closed.close(ADMIN, now);
+        repository.save(IndividualGroupPurchase.create("회원 공동구매", ADMIN, "mat11member1", List.of(OPEN_PRODUCT), now));
+        flushAndClear();
+
+        List<Long> ids = repository.findOpenDemandPurchases(now).stream()
+                .filter(purchase -> TEST_PRODUCTS.contains(purchase.getSourceProductId())
+                        || ADMIN.equals(purchase.getCreatorMemberId()))
+                .map(IndividualGroupPurchase::getId)
+                .toList();
+
+        assertThat(ids).containsExactly(sooner.getId(), later.getId());
+    }
+
     private static IndividualGroupPurchase open(Long productId, String inviteCode, LocalDateTime openedAt) {
         return IndividualGroupPurchase.openFromDemand(
                 "수요 공동구매", ADMIN, inviteCode, productId, null, 10, 1_000L, openedAt);

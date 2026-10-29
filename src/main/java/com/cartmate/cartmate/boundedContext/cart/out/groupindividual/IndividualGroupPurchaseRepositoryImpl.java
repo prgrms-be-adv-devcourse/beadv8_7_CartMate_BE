@@ -101,4 +101,18 @@ public class IndividualGroupPurchaseRepositoryImpl implements IndividualGroupPur
                 )
                 .fetch();
     }
+
+    @Override
+    public List<IndividualGroupPurchase> findOpenDemandPurchases(LocalDateTime now) {
+        return queryFactory
+                .selectFrom(individualGroupPurchase)
+                .where(
+                        individualGroupPurchase.origin.eq(IndividualGroupPurchaseOrigin.ADMIN_DEMAND),
+                        individualGroupPurchase.status.eq(IndividualGroupPurchaseStatus.OPEN),
+                        individualGroupPurchase.deadlineAt.gt(now),
+                        individualGroupPurchase.sourceProductId.isNotNull()
+                )
+                .orderBy(individualGroupPurchase.deadlineAt.asc(), individualGroupPurchase.id.asc())
+                .fetch();
+    }
 }
