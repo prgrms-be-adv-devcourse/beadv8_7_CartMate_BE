@@ -32,6 +32,16 @@ public class TestDataCleaner {
         jdbc.update("DELETE FROM delivery WHERE id IN (:deliveryIds)", params);
     }
 
+    public void deleteAbuseRecordsOf(Collection<Long> memberIds) {
+        if (memberIds.isEmpty()) {
+            return;
+        }
+        Map<String, Object> params = Map.of("memberIds", memberIds);
+        jdbc.update("DELETE FROM abuse_restriction WHERE member_id IN (:memberIds)", params);
+        jdbc.update("DELETE FROM abuse_judgment WHERE member_id IN (:memberIds)", params);
+        jdbc.update("DELETE FROM abuse_signal WHERE member_id IN (:memberIds)", params);
+    }
+
     public void deleteSharedGroupOrdersOfPurchases(Collection<Long> purchaseIds) {
         if (purchaseIds.isEmpty()) {
             return;

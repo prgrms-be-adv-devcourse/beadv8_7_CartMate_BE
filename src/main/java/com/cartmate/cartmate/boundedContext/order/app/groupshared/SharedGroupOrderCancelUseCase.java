@@ -48,7 +48,8 @@ class SharedGroupOrderCancelUseCase {
                 order.getId(),
                 order.getSharedGroupPurchaseId(),
                 order.getCancelReason().name(),
-                order.getCanceledAt()
+                order.getCanceledAt(),
+                order.getUnpaidMemberIds()
         );
     }
 }

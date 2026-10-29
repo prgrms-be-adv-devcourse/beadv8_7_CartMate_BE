@@ -185,6 +185,13 @@ public class SharedGroupOrder {
         return participants.stream().anyMatch(participant -> participant.is(memberId));
     }
 
+    public List<Long> getUnpaidMemberIds() {
+        return participants.stream()
+                .filter(participant -> !participant.isPaid())
+                .map(SharedGroupOrderParticipant::getMemberId)
+                .toList();
+    }
+
     public SharedGroupOrderParticipant getParticipant(Long memberId) {
         return participants.stream()
                 .filter(participant -> participant.is(memberId))
