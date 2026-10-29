@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Getter
 @Entity
@@ -64,5 +65,18 @@ public class SharedGroupOrderItem {
 
     public long amount() {
         return unitPrice * quantity;
+    }
+
+    // 판매 중지 등으로 이 항목만 취소된 시각 (주문 전체 취소와 별개)
+    private LocalDateTime canceledAt;
+
+    public boolean isCanceled() {
+        return canceledAt != null;
+    }
+
+    void cancel(LocalDateTime now) {
+        if (canceledAt == null) {
+            canceledAt = now;
+        }
     }
 }

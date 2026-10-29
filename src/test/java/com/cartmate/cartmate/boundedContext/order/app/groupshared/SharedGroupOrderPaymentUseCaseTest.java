@@ -4,11 +4,14 @@ import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroup
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
+import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
+import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.dto.SharedGroupOrderPaymentInfo;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,8 +31,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SharedGroupOrderPaymentUseCaseTest {
@@ -53,8 +55,22 @@ class SharedGroupOrderPaymentUseCaseTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private OrderProductClient orderProductClient;
+
     @InjectMocks
     private SharedGroupOrderPaymentUseCase paymentUseCase;
+
+    // 결제 반영 시 상품 재확인: 기본은 모든 상품이 판매 중
+    @BeforeEach
+    void allProductsOnSale() {
+        lenient().when(orderProductClient.findAllByInventoryIds(any())).thenAnswer(invocation -> {
+            java.util.Collection<Long> ids = invocation.getArgument(0);
+            return ids.stream().distinct()
+                    .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
+                    .toList();
+        });
+    }
 
     @Test
     @DisplayName("결제 정보는 생성자에게 팀 배송지 입력과 재고 선점 필요 여부를 알려준다")

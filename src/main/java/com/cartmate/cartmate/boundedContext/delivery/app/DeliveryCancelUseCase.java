@@ -21,4 +21,18 @@ public class DeliveryCancelUseCase {
                 orderId, PurchaseType.INDIVIDUAL_GROUP);
         deliveries.forEach(Delivery::cancel);
     }
+
+    // 판매글 판매 중지: 한 주문에서 한 판매자 배송만 취소 (발송됐으면 예외)
+    public void cancelSellerBySalesStop(Long orderId, PurchaseType purchaseType, Long sellerId) {
+        deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(orderId, purchaseType).stream()
+                .filter(delivery -> delivery.getSellerId().equals(sellerId))
+                .forEach(Delivery::cancelByPostHidden);
+    }
+
+    // 판매글 판매 중지: 공동 주문 배송 전부 취소. 하나라도 발송됐으면 예외 → 공동 주문 취소까지 롤백.
+    // 결제 중이던 공동 주문은 아직 배송이 없어 아무 일도 없다.
+    public void cancelAllSharedBySalesStop(Long sharedGroupOrderId) {
+        deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(sharedGroupOrderId, PurchaseType.SHARED_GROUP)
+                .forEach(Delivery::cancelByPostHidden);
+    }
 }
