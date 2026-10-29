@@ -66,7 +66,7 @@ class DeliveryClaimRejectUseCaseTest {
     @Test
     @DisplayName("해당 배송의 판매자가 사유와 함께 거절하면 거절 상태가 되고 사유를 포함해 응답한다")
     void reject() {
-        SellerClaimResponse response = useCase.reject(7L, SELLER_MEMBER, "  사용 흔적이 확인됩니다  ");
+        SellerClaimResponse response = useCase.reject(7L, SELLER_MEMBER, "사용 흔적이 확인됩니다");
 
         assertThat(claim.getStatus()).isEqualTo(ClaimStatus.REJECTED);
         assertThat(claim.getProcessedAt()).isNotNull();

@@ -29,8 +29,7 @@ public class DeliveryClaimRejectUseCase {
         if (reason == null || reason.isBlank()) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REJECT_REASON_REQUIRED);
         }
-        String rejectReason = reason.strip();
-        if (rejectReason.length() > DeliveryClaim.DETAIL_MAX_LENGTH) {
+        if (reason.length() > DeliveryClaim.DETAIL_MAX_LENGTH) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REJECT_REASON_TOO_LONG);
         }
 
@@ -41,7 +40,7 @@ public class DeliveryClaimRejectUseCase {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_ACCESS_DENIED);
         }
 
-        claim.reject(rejectReason);
+        claim.reject(reason);
 
         return SellerClaimResponse.from(claim,
                 deliveryClaimItemRepository.findAllWithDeliveryItemByClaimIds(List.of(claim.getId())));
