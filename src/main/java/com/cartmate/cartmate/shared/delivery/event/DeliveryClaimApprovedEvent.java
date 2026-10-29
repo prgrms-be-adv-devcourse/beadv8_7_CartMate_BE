@@ -2,9 +2,7 @@ package com.cartmate.cartmate.shared.delivery.event;
 
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 
-import java.time.LocalDateTime;
-
-// 판매자가 교환·환불 요청을 승인할 때 발행. payment가 받아서 환불하고, trust가 받아서 판매자 귀책 이력을 남긴다.
+// 판매자가 교환·환불 요청을 승인할 때 발행. payment가 받아서 환불한다.
 public record DeliveryClaimApprovedEvent(
         Long claimId,
         Long deliveryId,
@@ -13,8 +11,6 @@ public record DeliveryClaimApprovedEvent(
         Long buyerMemberId,
         Long sellerId,
         String claimType,          // EXCHANGE, REFUND
-        String claimReason,        // 클레임 사유(ClaimReason 이름). 판매자 귀책 여부를 가릴 때 쓴다.
-        Long refundAmount,         // 승인된 상품의 단가 × 요청 수량 합계. 교환이면 0
-        LocalDateTime approvedAt   // 판매자가 승인한 시각
+        Long refundAmount          // 승인된 상품의 단가 × 요청 수량 합계. 교환이면 0
 ) {
 }

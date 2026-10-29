@@ -85,20 +85,6 @@ class DeliveryClaimApproveUseCaseTest {
     }
 
     @Test
-    @DisplayName("수락하면 클레임 사유와 승인 시각을 담은 승인 이벤트를 발행한다")
-    void approvePublishesEventWithReasonAndApprovedAt() {
-        useCase.approve(7L, SELLER_MEMBER);
-
-        ArgumentCaptor<DeliveryClaimApprovedEvent> captor = ArgumentCaptor.forClass(DeliveryClaimApprovedEvent.class);
-        verify(eventPublisher).publish(captor.capture());
-        DeliveryClaimApprovedEvent event = captor.getValue();
-        assertThat(event.claimId()).isEqualTo(7L);
-        assertThat(event.sellerId()).isEqualTo(SELLER_ID);
-        assertThat(event.claimReason()).isEqualTo(ClaimReason.SIZE_MISMATCH.name());
-        assertThat(event.approvedAt()).isEqualTo(claim.getProcessedAt());
-    }
-
-    @Test
     @DisplayName("이미 수락된 클레임을 다시 수락해도 성공한다")
     void approveIsIdempotent() {
         useCase.approve(7L, SELLER_MEMBER);

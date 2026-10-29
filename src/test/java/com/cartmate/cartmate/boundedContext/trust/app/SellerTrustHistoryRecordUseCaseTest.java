@@ -3,7 +3,7 @@ package com.cartmate.cartmate.boundedContext.trust.app;
 import com.cartmate.cartmate.boundedContext.trust.domain.SellerTrustHistory;
 import com.cartmate.cartmate.boundedContext.trust.domain.TrustHistoryType;
 import com.cartmate.cartmate.boundedContext.trust.out.SellerTrustHistoryRepository;
-import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimApprovedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimCompletedEvent;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,8 +32,8 @@ class SellerTrustHistoryRecordUseCaseTest {
         return new DeliveryConfirmedEvent(10L, 1L, 100L, null, AT.minusDays(7), AT, List.of());
     }
 
-    private DeliveryClaimApprovedEvent claimEvent(String reason) {
-        return new DeliveryClaimApprovedEvent(20L, 10L, 100L, null, 2L, 1L, "REFUND", reason, 5_000L, AT);
+    private DeliveryClaimCompletedEvent claimEvent(String reason) {
+        return new DeliveryClaimCompletedEvent(20L, 10L, 1L, "REFUND", reason, AT);
     }
 
     @Test
@@ -60,11 +60,11 @@ class SellerTrustHistoryRecordUseCaseTest {
         verify(repository, never()).save(any());
     }
 
-    @ParameterizedTest(name = "{0} 사유의 클레임 승인은 귀책 클레임 이력을 남긴다")
+    @ParameterizedTest(name = "{0} 사유의 클레임 완료는 귀책 클레임 이력을 남긴다")
     @ValueSource(strings = {"PRODUCT_DEFECT", "WRONG_DELIVERY"})
-    @DisplayName("판매자 귀책 사유의 클레임 승인은 클레임 ID를 식별 키로 귀책 클레임 이력을 남긴다")
+    @DisplayName("판매자 귀책 사유의 클레임 완료는 클레임 ID를 식별 키로 귀책 클레임 이력을 남긴다")
     void recordFaultClaim(String reason) {
-        useCase.recordClaimApproved(claimEvent(reason));
+        useCase.recordClaimCompleted(claimEvent(reason));
 
         ArgumentCaptor<SellerTrustHistory> captor = ArgumentCaptor.forClass(SellerTrustHistory.class);
         verify(repository).save(captor.capture());
@@ -75,21 +75,21 @@ class SellerTrustHistoryRecordUseCaseTest {
         assertThat(history.getOccurredAt()).isEqualTo(AT);
     }
 
-    @ParameterizedTest(name = "{0} 사유의 클레임 승인은 이력을 남기지 않는다")
+    @ParameterizedTest(name = "{0} 사유의 클레임 완료는 이력을 남기지 않는다")
     @ValueSource(strings = {"SIZE_MISMATCH", "SIMPLE_CHANGE", "OTHER"})
-    @DisplayName("판매자 귀책이 아닌 사유의 클레임 승인은 이력을 남기지 않는다")
+    @DisplayName("판매자 귀책이 아닌 사유의 클레임 완료는 이력을 남기지 않는다")
     void ignoreNonFaultClaim(String reason) {
-        useCase.recordClaimApproved(claimEvent(reason));
+        useCase.recordClaimCompleted(claimEvent(reason));
 
         verify(repository, never()).save(any());
     }
 
     @Test
-    @DisplayName("같은 클레임의 승인 이벤트가 다시 오면 이력을 남기지 않는다")
+    @DisplayName("같은 클레임의 완료 이벤트가 다시 오면 이력을 남기지 않는다")
     void faultClaimIsIdempotent() {
         when(repository.existsByTypeAndSourceKey(TrustHistoryType.FAULT_CLAIM, "20")).thenReturn(true);
 
-        useCase.recordClaimApproved(claimEvent("PRODUCT_DEFECT"));
+        useCase.recordClaimCompleted(claimEvent("PRODUCT_DEFECT"));
 
         verify(repository, never()).save(any());
     }

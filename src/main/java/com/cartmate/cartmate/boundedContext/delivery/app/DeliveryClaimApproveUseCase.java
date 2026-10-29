@@ -51,9 +51,7 @@ public class DeliveryClaimApproveUseCase {
                 claim.getMemberId(),
                 claim.getDelivery().getSellerId(),
                 claim.getClaimType().name(),
-                claim.getReason().name(),
-                refundAmountOf(claim, claimItems),
-                claim.getProcessedAt()
+                refundAmountOf(claim, claimItems)
         ));
 
         return SellerClaimResponse.from(claim, claimItems);

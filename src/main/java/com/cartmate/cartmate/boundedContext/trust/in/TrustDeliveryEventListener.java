@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.trust.in;
 
 import com.cartmate.cartmate.boundedContext.trust.app.TrustFacade;
-import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimApprovedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimCompletedEvent;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,10 +23,10 @@ public class TrustDeliveryEventListener {
         trustFacade.recordPurchaseConfirmed(event);
     }
 
-    // 클레임 승인이 커밋된 뒤 이력을 남긴다. 이력 저장이 실패해도 클레임 승인과 환불은 롤백되지 않는다.
+    // 클레임 처리 완료가 커밋된 뒤 이력을 남긴다. 이력 저장이 실패해도 클레임 완료는 롤백되지 않는다.
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handle(DeliveryClaimApprovedEvent event) {
-        trustFacade.recordClaimApproved(event);
+    public void handle(DeliveryClaimCompletedEvent event) {
+        trustFacade.recordClaimCompleted(event);
     }
 }
