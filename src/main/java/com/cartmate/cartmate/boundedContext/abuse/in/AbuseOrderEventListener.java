@@ -23,6 +23,7 @@ public class AbuseOrderEventListener {
     private static final String DEADLINE_EXPIRED = "DEADLINE_EXPIRED";
 
     private final AbuseFacade abuseFacade;
+    private final AbuseJudgeRunner abuseJudgeRunner;
 
     @EventListener
     public void receive(SharedGroupOrderCanceledEvent event) {
@@ -40,20 +41,11 @@ public class AbuseOrderEventListener {
         event.unpaidMemberIds().stream()
                 .filter(Objects::nonNull)
                 .distinct()
-                .forEach(memberId -> judgeQuietly(event, memberId));
+                .forEach(abuseJudgeRunner::judge);
     }
 
     private boolean isSignal(SharedGroupOrderCanceledEvent event) {
         return DEADLINE_EXPIRED.equals(event.cancelReason()) && event.unpaidMemberIds() != null;
-    }
-
-    private void judgeQuietly(SharedGroupOrderCanceledEvent event, Long memberId) {
-        try {
-            abuseFacade.judgePending(memberId);
-        } catch (Exception e) {
-            log.error("어뷰징 판정 실패, 재판정 대기: sharedGroupOrderId={}, memberId={}",
-                    event.sharedGroupOrderId(), memberId, e);
-        }
     }
 
     private Optional<AbuseSignalCommand> toCommand(SharedGroupOrderCanceledEvent event, Long memberId) {

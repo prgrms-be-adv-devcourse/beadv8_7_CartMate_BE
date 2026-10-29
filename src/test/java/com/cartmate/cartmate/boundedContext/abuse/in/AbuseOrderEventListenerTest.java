@@ -32,6 +32,9 @@ class AbuseOrderEventListenerTest {
     @Mock
     private AbuseFacade abuseFacade;
 
+    @Mock
+    private AbuseJudgeRunner abuseJudgeRunner;
+
     @InjectMocks
     private AbuseOrderEventListener listener;
 
@@ -77,23 +80,15 @@ class AbuseOrderEventListenerTest {
     }
 
     @Test
-    @DisplayName("커밋 후에는 미결제 참여자마다 한 번씩 판정을 호출한다")
+    @DisplayName("커밋 후에는 미결제 참여자마다 한 번씩 판정을 실행한다")
     void judgesPerUnpaidMember() {
         listener.judge(new SharedGroupOrderCanceledEvent(
                 100L, 10L, "DEADLINE_EXPIRED", CANCELED_AT, Arrays.asList(2L, null, 3L, 2L)));
 
-        then(abuseFacade).should().judgePending(2L);
-        then(abuseFacade).should().judgePending(3L);
-        then(abuseFacade).shouldHaveNoMoreInteractions();
-    }
-
-    @Test
-    @DisplayName("한 참여자 판정이 실패해도 예외를 던지지 않고 다음 참여자를 판정한다")
-    void continuesAfterFailure() {
-        willThrow(new IllegalStateException("fail")).given(abuseFacade).judgePending(2L);
-
-        assertThatCode(() -> listener.judge(EVENT)).doesNotThrowAnyException();
-        then(abuseFacade).should().judgePending(3L);
+        then(abuseJudgeRunner).should().judge(2L);
+        then(abuseJudgeRunner).should().judge(3L);
+        then(abuseJudgeRunner).shouldHaveNoMoreInteractions();
+        then(abuseFacade).shouldHaveNoInteractions();
     }
 
     @Test
@@ -102,6 +97,6 @@ class AbuseOrderEventListenerTest {
         listener.judge(new SharedGroupOrderCanceledEvent(100L, 10L, "CREATOR_CANCELED", CANCELED_AT, List.of(2L)));
         listener.judge(new SharedGroupOrderCanceledEvent(100L, 10L, "DEADLINE_EXPIRED", CANCELED_AT, null));
 
-        then(abuseFacade).shouldHaveNoInteractions();
+        then(abuseJudgeRunner).shouldHaveNoInteractions();
     }
 }

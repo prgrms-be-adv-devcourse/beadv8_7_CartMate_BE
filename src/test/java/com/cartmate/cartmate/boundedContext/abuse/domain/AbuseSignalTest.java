@@ -29,4 +29,12 @@ class AbuseSignalTest {
         assertThat(signal.getJudgedAt()).isEqualTo(judgedAt);
         assertThat(signal.getUpdatedAt()).isEqualTo(judgedAt);
     }
+
+    @Test
+    @DisplayName("너무 긴 오류 메시지는 500자로 자르고, 짧거나 없는 메시지는 그대로 둔다")
+    void truncatesLongError() {
+        assertThat(AbuseSignal.truncateError("x".repeat(600))).hasSize(AbuseSignal.LAST_ERROR_LENGTH);
+        assertThat(AbuseSignal.truncateError("boom")).isEqualTo("boom");
+        assertThat(AbuseSignal.truncateError(null)).isNull();
+    }
 }

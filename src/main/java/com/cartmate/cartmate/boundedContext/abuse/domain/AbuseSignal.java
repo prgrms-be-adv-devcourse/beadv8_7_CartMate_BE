@@ -28,10 +28,16 @@ import java.util.List;
                 name = "uk_abuse_signal_source",
                 columnNames = {"member_id", "signal_type", "source_key"}
         ),
-        indexes = @Index(name = "idx_abuse_signal_member_type_occurred", columnList = "member_id, signal_type, occurred_at")
+        indexes = {
+                @Index(name = "idx_abuse_signal_member_type_occurred", columnList = "member_id, signal_type, occurred_at"),
+                @Index(name = "idx_abuse_signal_status_received", columnList = "status, received_at")
+        }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AbuseSignal {
+
+    public static final int MAX_JUDGE_ATTEMPTS = 10;
+    public static final int LAST_ERROR_LENGTH = 500;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -69,6 +75,12 @@ public class AbuseSignal {
 
     private LocalDateTime judgedAt;
 
+    @Column(nullable = false)
+    private int attemptCount;
+
+    @Column(length = LAST_ERROR_LENGTH)
+    private String lastError;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -96,5 +108,9 @@ public class AbuseSignal {
         this.judgedAt = judgedAt;
         this.status = AbuseSignalStatus.JUDGED;
         this.updatedAt = judgedAt;
+    }
+
+    public static String truncateError(String error) {
+        return error == null || error.length() <= LAST_ERROR_LENGTH ? error : error.substring(0, LAST_ERROR_LENGTH);
     }
 }
