@@ -52,7 +52,7 @@ class DeliveryClaimRejectUseCaseTest {
         ReflectionTestUtils.setField(delivery, "id", 5L);
         claim = DeliveryClaim.create(delivery, BUYER, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환");
         ReflectionTestUtils.setField(claim, "id", 7L);
-        when(claimRepository.findById(7L)).thenReturn(Optional.of(claim));
+        when(claimRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(claim));
 
         DeliveryItem deliveryItem = DeliveryItem.create(delivery, 1000L, "티셔츠", 10_000L, 2L);
         ReflectionTestUtils.setField(deliveryItem, "id", 50L);
@@ -132,7 +132,7 @@ class DeliveryClaimRejectUseCaseTest {
     @Test
     @DisplayName("없는 클레임은 404 오류다")
     void notFound() {
-        when(claimRepository.findById(99L)).thenReturn(Optional.empty());
+        when(claimRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.reject(99L, SELLER_MEMBER, "사유"))
                 .isInstanceOf(ServiceException.class)

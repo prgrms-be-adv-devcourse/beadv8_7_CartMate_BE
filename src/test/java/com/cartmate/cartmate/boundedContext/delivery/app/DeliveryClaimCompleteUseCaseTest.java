@@ -53,7 +53,7 @@ class DeliveryClaimCompleteUseCaseTest {
         claim = DeliveryClaim.create(delivery, BUYER, ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "불량입니다");
         ReflectionTestUtils.setField(claim, "id", 7L);
         claim.approve();
-        when(claimRepository.findById(7L)).thenReturn(Optional.of(claim));
+        when(claimRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(claim));
 
         DeliveryItem deliveryItem = DeliveryItem.create(delivery, 1000L, "티셔츠", 10_000L, 2L);
         ReflectionTestUtils.setField(deliveryItem, "id", 50L);
@@ -111,7 +111,7 @@ class DeliveryClaimCompleteUseCaseTest {
     @Test
     @DisplayName("없는 클레임은 404 오류다")
     void notFound() {
-        when(claimRepository.findById(99L)).thenReturn(Optional.empty());
+        when(claimRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.complete(99L, SELLER_MEMBER))
                 .isInstanceOf(ServiceException.class)

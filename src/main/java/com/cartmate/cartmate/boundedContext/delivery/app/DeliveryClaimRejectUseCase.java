@@ -34,7 +34,7 @@ public class DeliveryClaimRejectUseCase {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REJECT_REASON_TOO_LONG);
         }
 
-        DeliveryClaim claim = deliveryClaimRepository.findById(claimId)
+        DeliveryClaim claim = deliveryClaimRepository.findByIdForUpdate(claimId)
                 .orElseThrow(() -> new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_NOT_FOUND));
 
         if (!sellerQuery.isSellerOwner(memberId, claim.getDelivery().getSellerId())) {
