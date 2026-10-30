@@ -12,11 +12,14 @@ import com.cartmate.cartmate.boundedContext.delivery.domain.DeliveryItem;
 import com.cartmate.cartmate.boundedContext.delivery.domain.PurchaseType;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryClaimItemRepository;
 import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryClaimRepository;
+import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimCompletedEvent;
 import com.cartmate.cartmate.shared.member.SellerQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -28,6 +31,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DeliveryClaimCompleteUseCaseTest {
@@ -40,12 +44,13 @@ class DeliveryClaimCompleteUseCaseTest {
     private final DeliveryClaimItemRepository claimItemRepository = mock(DeliveryClaimItemRepository.class);
     // isSellerOwner는 default 메서드라 실제 로직을 호출하도록 한다.
     private final SellerQuery sellerQuery = mock(SellerQuery.class, CALLS_REAL_METHODS);
+    private final EventPublisher eventPublisher = mock(EventPublisher.class);
     private DeliveryClaimCompleteUseCase useCase;
     private DeliveryClaim claim;
 
     @BeforeEach
     void setUp() {
-        useCase = new DeliveryClaimCompleteUseCase(claimRepository, claimItemRepository, sellerQuery);
+        useCase = new DeliveryClaimCompleteUseCase(claimRepository, claimItemRepository, sellerQuery, eventPublisher);
 
         Delivery delivery = Delivery.create(BUYER, SELLER_ID, 100L, null, PurchaseType.INDIVIDUAL_GROUP,
                 "홍길동", "010-0000-0000", "12345", "서울", "101호", "key-1", "hash");
@@ -77,6 +82,20 @@ class DeliveryClaimCompleteUseCaseTest {
         assertThat(response.items())
                 .extracting(DeliveryClaimResponse.Item::deliveryItemId, DeliveryClaimResponse.Item::productName)
                 .containsExactly(tuple(50L, "티셔츠"));
+    }
+
+    @Test
+    @DisplayName("완료 처리하면 클레임 사유와 완료 시각을 담은 완료 이벤트를 발행한다")
+    void completePublishesEvent() {
+        useCase.complete(7L, SELLER_MEMBER);
+
+        ArgumentCaptor<DeliveryClaimCompletedEvent> captor = ArgumentCaptor.forClass(DeliveryClaimCompletedEvent.class);
+        verify(eventPublisher).publish(captor.capture());
+        DeliveryClaimCompletedEvent event = captor.getValue();
+        assertThat(event.claimId()).isEqualTo(7L);
+        assertThat(event.sellerId()).isEqualTo(SELLER_ID);
+        assertThat(event.claimReason()).isEqualTo(ClaimReason.PRODUCT_DEFECT.name());
+        assertThat(event.completedAt()).isEqualTo(claim.getCompletedAt());
     }
 
     @Test
