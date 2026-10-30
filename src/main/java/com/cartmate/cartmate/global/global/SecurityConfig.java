@@ -6,6 +6,7 @@ import com.cartmate.cartmate.global.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -36,6 +37,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/wallets/webhooks/toss").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/sellers/*/trust").permitAll() // 판매자 신뢰도는 로그인 없이 조회
                         .requestMatchers("/api/members/me", "/api/members/me/**").authenticated()
                         .requestMatchers("/api/wallets/me/**").authenticated()
                         .requestMatchers("/api/deliveries/**").authenticated()

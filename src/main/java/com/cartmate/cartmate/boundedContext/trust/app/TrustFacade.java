@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.trust.app;
 
 import com.cartmate.cartmate.boundedContext.trust.domain.TrustMetrics;
+import com.cartmate.cartmate.boundedContext.trust.dto.SellerTrustResponse;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimCompletedEvent;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ public class TrustFacade {
     private final SellerTrustHistoryRecordUseCase sellerTrustHistoryRecordUseCase;
     private final SellerTrustMetricsAggregateUseCase sellerTrustMetricsAggregateUseCase;
     private final SellerTrustRecalculateUseCase sellerTrustRecalculateUseCase;
+    private final SellerTrustQueryUseCase sellerTrustQueryUseCase;
 
     // 구매확정 이벤트를 받아 구매확정 이력을 남긴다.
     @Transactional
@@ -39,5 +41,11 @@ public class TrustFacade {
     @Transactional
     public void recalculate(Long sellerId, TrustMetrics metrics) {
         sellerTrustRecalculateUseCase.recalculate(sellerId, metrics);
+    }
+
+    // 판매자의 신뢰도 점수와 등급을 조회한다.
+    @Transactional(readOnly = true)
+    public SellerTrustResponse getSellerTrust(Long sellerId) {
+        return sellerTrustQueryUseCase.getSellerTrust(sellerId);
     }
 }
