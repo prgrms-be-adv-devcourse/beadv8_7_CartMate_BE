@@ -6,6 +6,7 @@ import com.cartmate.cartmate.shared.product.event.ProductCreatedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductUpdatedEvent;
+import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +48,13 @@ public class SalesPostEventListener {
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(ProductListDeletedEvent event) {
         salesPostFacade.deleteProductByPost(event.getRequest());
+    }
+
+    // 신뢰도 점수가 커밋된 뒤 판매글에 보여줄 판매자 신뢰도를 복제한다. 복제가 실패해도 점수 계산은 롤백되지 않는다.
+    @TransactionalEventListener(phase = AFTER_COMMIT)
+    @Transactional(propagation = REQUIRES_NEW)
+    public void handle(SellerTrustScoreChangedEvent event) {
+        salesPostFacade.syncSellerTrust(event);
     }
 
 }
