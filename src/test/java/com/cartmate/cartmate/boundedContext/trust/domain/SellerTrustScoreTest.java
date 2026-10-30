@@ -117,4 +117,30 @@ class SellerTrustScoreTest {
         assertThat(trustScore.isChanged(new TrustEvaluation(null, TrustLevel.NEW))).isFalse();
         assertThat(trustScore.isChanged(new TrustEvaluation(100, TrustLevel.HIGH))).isTrue();
     }
+
+    @Test
+    @DisplayName("집계 건수와 점수·등급이 모두 같으면 변경되지 않은 것이다")
+    void isChangedWithMetricsWhenSame() {
+        SellerTrustScore trustScore = SellerTrustScore.create(1L, metrics, evaluation, CALCULATED_AT);
+
+        assertThat(trustScore.isChanged(new TrustMetrics(100, 5), new TrustEvaluation(90, TrustLevel.HIGH))).isFalse();
+    }
+
+    @Test
+    @DisplayName("점수는 그대로여도 집계 건수가 다르면 변경된 것이다")
+    void isChangedWithMetricsWhenOnlyCountsDiffer() {
+        SellerTrustScore trustScore = SellerTrustScore.create(1L, metrics, evaluation, CALCULATED_AT);
+
+        assertThat(trustScore.isChanged(new TrustMetrics(101, 5), new TrustEvaluation(90, TrustLevel.HIGH))).isTrue();
+        assertThat(trustScore.isChanged(new TrustMetrics(100, 6), new TrustEvaluation(90, TrustLevel.HIGH))).isTrue();
+    }
+
+    @Test
+    @DisplayName("집계 건수는 같아도 점수나 등급이 다르면 변경된 것이다")
+    void isChangedWithMetricsWhenEvaluationDiffers() {
+        SellerTrustScore trustScore = SellerTrustScore.create(1L, metrics, evaluation, CALCULATED_AT);
+
+        assertThat(trustScore.isChanged(new TrustMetrics(100, 5), new TrustEvaluation(89, TrustLevel.HIGH))).isTrue();
+        assertThat(trustScore.isChanged(new TrustMetrics(100, 5), new TrustEvaluation(90, TrustLevel.NORMAL))).isTrue();
+    }
 }

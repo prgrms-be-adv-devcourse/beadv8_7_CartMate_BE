@@ -41,7 +41,7 @@ public class SellerTrustScore {
     private int faultClaimCount;
 
     @Column(name = "calculated_at", nullable = false)
-    private LocalDateTime calculatedAt;
+    private LocalDateTime calculatedAt;   // 집계 건수나 점수·등급이 마지막으로 바뀐 시각
 
     @Version
     private Long version;
@@ -84,6 +84,13 @@ public class SellerTrustScore {
     // 평가 결과가 현재 점수·등급과 다르면 true. 변경 이벤트 발행 여부를 가릴 때 쓴다.
     public boolean isChanged(TrustEvaluation evaluation) {
         return !Objects.equals(score, evaluation.score()) || level != evaluation.level();
+    }
+
+    // 집계 건수나 점수·등급이 현재 값과 하나라도 다르면 true. 모두 같으면 다시 저장할 필요가 없다.
+    public boolean isChanged(TrustMetrics metrics, TrustEvaluation evaluation) {
+        return confirmedCount != metrics.confirmedCount()
+                || faultClaimCount != metrics.faultClaimCount()
+                || isChanged(evaluation);
     }
 
     private SellerTrustScore(Long sellerId) {
