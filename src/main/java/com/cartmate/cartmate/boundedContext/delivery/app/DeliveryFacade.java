@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -49,13 +50,13 @@ public class DeliveryFacade {
 
     // 판매글 판매 중지: order 이벤트와 같은 트랜잭션에서 실행 (실패하면 주문 처리·환불까지 롤백)
     @Transactional
-    public void cancelSellerBySalesStop(Long orderId, PurchaseType purchaseType, Long sellerId) {
-        deliveryCancelUseCase.cancelSellerBySalesStop(orderId, purchaseType, sellerId);
+    public void cancelSellerBySalesStop(Long orderId, PurchaseType purchaseType, Long sellerId, LocalDateTime canceledAt) {
+        deliveryCancelUseCase.cancelSellerBySalesStop(orderId, purchaseType, sellerId, canceledAt);
     }
 
     @Transactional
-    public void cancelAllSharedBySalesStop(Long sharedGroupOrderId) {
-        deliveryCancelUseCase.cancelAllSharedBySalesStop(sharedGroupOrderId);
+    public void cancelAllSharedBySalesStop(Long sharedGroupOrderId, LocalDateTime canceledAt) {
+        deliveryCancelUseCase.cancelAllSharedBySalesStop(sharedGroupOrderId, canceledAt);
     }
 
     @Transactional

@@ -109,13 +109,13 @@ public class PaymentFacade {
 
     // 판매글 판매 중지: 개인 주문 판매자 항목 취소 금액만 환불
     @Transactional
-    public void refundOrderSellerItems(Long orderId, Long memberId, long amount, String cancelKey) {
-        paymentRefundUseCase.refundOrderSellerItems(orderId, memberId, amount, cancelKey);
+    public void refundOrderSellerItems(Long orderId, Long memberId, Long sellerId, long amount) {
+        paymentRefundUseCase.refundOrderSellerItems(orderId, memberId, sellerId, amount);
     }
 
     // 판매글 판매 중지: 공동 주문 판매자 항목 취소 금액을 결제한 사람들에게 나눠 환불
     @Transactional
-    public void refundSharedSellerItems(Long sharedGroupOrderId, long amount, String cancelKey) {
-        paymentRefundUseCase.refundSharedSellerItems(sharedGroupOrderId, amount, cancelKey);
+    public void refundSharedSellerItems(Long sharedGroupOrderId, Long sellerId, long amount) {
+        paymentRefundUseCase.refundSharedSellerItems(sharedGroupOrderId, sellerId, amount);
     }
 }

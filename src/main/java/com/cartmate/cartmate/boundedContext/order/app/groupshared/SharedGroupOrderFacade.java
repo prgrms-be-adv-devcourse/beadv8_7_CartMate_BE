@@ -76,8 +76,8 @@ public class SharedGroupOrderFacade {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void cancelSellerItemsBySalesStopped(Long sharedGroupOrderId, Long sellerId, Long postId) {
-        sharedGroupOrderCancelUseCase.cancelSellerItemsBySalesStopped(sharedGroupOrderId, sellerId, postId);
+    public void cancelSellerItemsBySalesStopped(Long sharedGroupOrderId, Long sellerId) {
+            sharedGroupOrderCancelUseCase.cancelSellerItemsBySalesStopped(sharedGroupOrderId, sellerId);
     }
 
     @Transactional(readOnly = true)

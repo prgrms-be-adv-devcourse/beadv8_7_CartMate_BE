@@ -1,10 +1,6 @@
 package com.cartmate.cartmate.boundedContext.payment.app;
 
-import com.cartmate.cartmate.boundedContext.payment.domain.Payment;
-import com.cartmate.cartmate.boundedContext.payment.domain.PaymentRefund;
-import com.cartmate.cartmate.boundedContext.payment.domain.PaymentRefundReason;
-import com.cartmate.cartmate.boundedContext.payment.domain.PaymentStatus;
-import com.cartmate.cartmate.boundedContext.payment.domain.PaymentType;
+import com.cartmate.cartmate.boundedContext.payment.domain.*;
 import com.cartmate.cartmate.boundedContext.payment.dto.PaymentResponse;
 import com.cartmate.cartmate.boundedContext.payment.exception.PaymentErrorCode;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentRefundRepository;
@@ -35,7 +31,7 @@ public class PaymentRefundUseCase {
         Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
-        refund(payment, amount, "CLAIM-" + claimId,
+        refund(payment, amount, RefundKey.claim(claimId),
                 PaymentRefundReason.CLAIM_REFUND, "판매자 승인 환불 (클레임 #" + claimId + ")");
     }
 
@@ -44,7 +40,7 @@ public class PaymentRefundUseCase {
         Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
-        refund(payment, payment.refundableAmount(), "ORDER-CANCEL-" + payment.getId(),
+        refund(payment, payment.refundableAmount(), RefundKey.orderCancel(payment.getId()),
                 PaymentRefundReason.BUYER_CANCEL, "구매자 주문 취소 (주문 #" + orderId + ")");
     }
 
@@ -55,7 +51,7 @@ public class PaymentRefundUseCase {
                 List.of(PaymentStatus.PAID, PaymentStatus.PARTIALLY_REFUNDED));
 
         for (Payment payment : payments) {
-            refund(payment, payment.refundableAmount(), "SHARED-CANCEL-" + payment.getId(),
+            refund(payment, payment.refundableAmount(), RefundKey.sharedGroupCancel(payment.getId()),
                     PaymentRefundReason.SHARED_GROUP_CANCEL, "공동물품 구매 취소: " + cancelReason);
         }
         log.info("공동 주문 #{} 취소로 {}건 환불", sharedGroupOrderId, payments.size());
@@ -63,22 +59,30 @@ public class PaymentRefundUseCase {
     }
 
     // 판매글 판매 중지: 개인 주문에서 한 판매자 항목만 취소됨 → 그 금액만 환불 (cancelKey로 중복 방지)
-    public void refundOrderSellerItems(Long orderId, Long memberId, long amount, String cancelKey) {
+    // 판매글 판매 중지: 개인 주문에서 한 판매자 항목만 취소됨 → 그 금액만 환불 (주문·판매자당 한 번)
+    public void refundOrderSellerItems(Long orderId, Long memberId, Long sellerId, long amount) {
+        validateRefundAmount(amount);
         Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
-        refund(payment, amount, cancelKey, PaymentRefundReason.PRODUCT_HIDDEN, "판매 중지 상품 자동 환불");
+        refund(payment, amount, RefundKey.orderSellerItems(orderId, sellerId),
+                PaymentRefundReason.PRODUCT_HIDDEN, "판매 중지 상품 자동 환불");
     }
 
     // 판매글 판매 중지: 확정 공동 주문에서 한 판매자 항목만 취소됨 → 결제한 사람들에게 낸 금액 비율대로 나눠 환불.
     // 분담금이 같으면 n분의 1. 끝전은 많이 낸 사람(분담금 끝전을 낸 만든 사람)부터 1원씩 →
     // 각자 순 부담이 남은 상품의 n분의 1과 맞는다.
-    public void refundSharedSellerItems(Long sharedGroupOrderId, long amount, String cancelKey) {
+    // 확정된 공동 주문인데 결제가 없다면 데이터가 어긋난 것이므로 조용히 넘기지 않고 예외로 주문 취소까지 롤백한다.
+    public void refundSharedSellerItems(Long sharedGroupOrderId, Long sellerId, long amount) {
+        validateRefundAmount(amount);
         List<Payment> payments = new ArrayList<>(paymentRepository.findAllByTypeAndOrderIdAndStatusIn(
                 PaymentType.SHARED_GROUP, sharedGroupOrderId,
                 List.of(PaymentStatus.PAID, PaymentStatus.PARTIALLY_REFUNDED)));
         long total = payments.stream().mapToLong(Payment::getAmount).sum();
-        if (total == 0 || amount <= 0) {
-            return;
+        if (total <= 0) {
+            throw new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND);
+        }
+        if (amount > total) {
+            throw new ServiceException(PaymentErrorCode.PAYMENT_REFUND_EXCEEDS_REMAINING);
         }
         payments.sort(Comparator.comparing(Payment::getAmount).reversed().thenComparing(Payment::getId));
         long[] parts = new long[payments.size()];
@@ -95,14 +99,19 @@ public class PaymentRefundUseCase {
         for (int i = 0; i < payments.size(); i++) {
             if (parts[i] > 0) {
                 Payment payment = payments.get(i);
-                refund(payment, parts[i], cancelKey + "-PAY" + payment.getId(),
+                refund(payment, parts[i], RefundKey.sharedSellerItems(sharedGroupOrderId, sellerId, payment.getId()),
                         PaymentRefundReason.PRODUCT_HIDDEN, "판매 중지 상품 몫 자동 환불");
             }
         }
-        log.info("공동 주문 #{} 판매 중지 상품 {}원을 {}명에게 나눠 환불", sharedGroupOrderId, amount, payments.size());
+        log.info("공동 주문 #{} 판매자 #{} 판매 중지 상품 {}원을 {}명에게 나눠 환불", sharedGroupOrderId, sellerId, amount, payments.size());
     }
 
-
+// 이벤트로 받은 환불 금액이 0 이하면 앞 단계 계산이 틀어진 것 → 무시하지 않고 예외
+    private void validateRefundAmount(long amount) {
+        if (amount <= 0) {
+            throw new ServiceException(PaymentErrorCode.PAYMENT_REFUND_INVALID_AMOUNT);
+        }
+    }
 
     
 
@@ -110,7 +119,7 @@ public class PaymentRefundUseCase {
     public PaymentResponse refundByAdmin(Long adminId, Long paymentId, Long amount, String memo) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
-        String key = "ADMIN-%d-%d".formatted(paymentId, System.currentTimeMillis());
+        String key = RefundKey.admin(paymentId, System.currentTimeMillis());
         refund(payment, amount, key, PaymentRefundReason.ADMIN,
                 "관리자(%d) %s".formatted(adminId, memo == null ? "" : memo));
         return PaymentResponse.from(payment);

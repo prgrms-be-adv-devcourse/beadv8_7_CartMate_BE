@@ -56,19 +56,19 @@ public class DeliveryOrderEventListener {
         deliveryFacade.cancelByOrder(event.orderId());
     }
 
-    // 판매글 판매 중지: 결제 완료 주문의 한 판매자 항목 취소 → 그 판매자 배송 취소.
+    // 판매글 판매 중지: 결제 완료 주문의 한 판매자 항목 취소 → 그 판매자 배송 취소 (주문 취소와 같은 시각).
     // 발송됐으면 예외로 주문 처리까지 롤백된다 (클레임으로). 환불보다 먼저 실행되어야 한다.
     @Order(Ordered.HIGHEST_PRECEDENCE)
     @EventListener
     public void handle(OrderSellerItemsCanceledEvent event) {
-        deliveryFacade.cancelSellerBySalesStop(event.orderId(), PurchaseType.INDIVIDUAL_GROUP, event.sellerId());
+        deliveryFacade.cancelSellerBySalesStop(event.orderId(), PurchaseType.INDIVIDUAL_GROUP, event.sellerId(), event.canceledAt());
     }
 
     // 판매글 판매 중지: 확정 공동 주문의 한 판매자 항목 취소 → 그 판매자 배송 취소
     @Order(Ordered.HIGHEST_PRECEDENCE)
     @EventListener
     public void handle(SharedGroupOrderSellerItemsCanceledEvent event) {
-        deliveryFacade.cancelSellerBySalesStop(event.sharedGroupOrderId(), PurchaseType.SHARED_GROUP, event.sellerId());
+        deliveryFacade.cancelSellerBySalesStop(event.sharedGroupOrderId(), PurchaseType.SHARED_GROUP, event.sellerId(), event.canceledAt());
     }
 
     // 판매글 판매 중지로 공동 주문 전체 취소 → 배송 전부 취소. 하나라도 발송됐으면 예외로 공동 주문 취소까지 롤백된다.
@@ -77,7 +77,7 @@ public class DeliveryOrderEventListener {
     @EventListener
     public void handle(SharedGroupOrderCanceledEvent event) {
         if ("SALES_STOPPED".equals(event.cancelReason())) {
-            deliveryFacade.cancelAllSharedBySalesStop(event.sharedGroupOrderId());
+            deliveryFacade.cancelAllSharedBySalesStop(event.sharedGroupOrderId(), event.canceledAt());
         }
     }
 
