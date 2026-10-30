@@ -47,6 +47,9 @@ public class DeliveryClaim {
     @Column(name = "status", nullable = false)
     private ClaimStatus status;
 
+    @Column(name = "reject_reason", length = DETAIL_MAX_LENGTH)
+    private String rejectReason;    //판매자 거절 사유
+
     @Column(name = "processed_at")
     private LocalDateTime processedAt;  //판매자 승인·거절 시각
 
@@ -88,6 +91,20 @@ public class DeliveryClaim {
         }
 
         this.status = ClaimStatus.APPROVED;
+        this.processedAt = LocalDateTime.now();
+    }
+
+    // 판매자가 접수된 교환·환불을 거절하고 사유를 남긴다. 이미 거절된 클레임이면 아무것도 하지 않아 재요청해도 안전하다.
+    public void reject(String rejectReason) {
+        if (this.status == ClaimStatus.REJECTED) {
+            return;
+        }
+        if (this.status != ClaimStatus.REQUESTED) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_INVALID_STATUS);
+        }
+
+        this.status = ClaimStatus.REJECTED;
+        this.rejectReason = rejectReason;
         this.processedAt = LocalDateTime.now();
     }
 

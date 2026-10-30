@@ -107,8 +107,15 @@ public class PaymentFacade {
                 paymentRefundRepository.sumBetween(from, to));
     }
 
+    // 판매글 판매 중지: 개인 주문 판매자 항목 취소 금액만 환불
     @Transactional
-    public void refundByPostHidden(Long postId, Long deliveryId, Long orderId, Long memberId, Long amount) {
-        paymentRefundUseCase.refundByPostHidden(postId, deliveryId, orderId, memberId, amount);
+    public void refundOrderSellerItems(Long orderId, Long memberId, Long sellerId, long amount) {
+        paymentRefundUseCase.refundOrderSellerItems(orderId, memberId, sellerId, amount);
+    }
+
+    // 판매글 판매 중지: 공동 주문 판매자 항목 취소 금액을 결제한 사람들에게 나눠 환불
+    @Transactional
+    public void refundSharedSellerItems(Long sharedGroupOrderId, Long sellerId, long amount) {
+        paymentRefundUseCase.refundSharedSellerItems(sharedGroupOrderId, sellerId, amount);
     }
 }

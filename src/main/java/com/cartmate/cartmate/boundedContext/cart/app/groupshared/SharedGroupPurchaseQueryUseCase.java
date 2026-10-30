@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,10 @@ class SharedGroupPurchaseQueryUseCase {
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
     private final ProductClient productClient;
     private final MemberClient memberClient;
+
+    Map<Long, String> findTitles(Collection<Long> sharedGroupPurchaseIds) {
+        return sharedGroupPurchaseRepository.findTitlesByIds(sharedGroupPurchaseIds);
+    }
 
     SharedGroupPurchaseDetailResponse getDetail(Long memberId, Long sharedGroupPurchaseId) {
         SharedGroupPurchase purchase = sharedGroupPurchaseRepository.findWithDetailsById(sharedGroupPurchaseId)

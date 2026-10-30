@@ -176,6 +176,30 @@ public class SharedGroupOrder {
         return true;
     }
 
+    // 판매글 판매 중지: 결제 중·확정 공동 주문 전체 취소. 이미 취소면 그대로.
+    public boolean cancelBySalesStopped(LocalDateTime now) {
+        if (status == SharedGroupOrderStatus.CANCELED) {
+            return false;
+        }
+        cancel(SharedGroupOrderCancelReason.SALES_STOPPED, now);
+        return true;
+    }
+
+    // 판매글 판매 중지: 확정 공동 주문에서 한 판매자 항목만 취소 (다른 판매자 배송이 이미 발송돼 전체 취소가 안 될 때)
+    public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
+        if (status != SharedGroupOrderStatus.CONFIRMED) {
+            return 0;
+        }
+        long amount = 0;
+        for (SharedGroupOrderItem item : items) {
+            if (item.getSellerId().equals(sellerId) && !item.isCanceled()) {
+                item.cancel(now);
+                amount += item.amount();
+            }
+        }
+        return amount;
+    }
+
 
     public boolean isCreator(Long memberId) {
         return creatorMemberId.equals(memberId);
@@ -183,6 +207,13 @@ public class SharedGroupOrder {
 
     public boolean isParticipant(Long memberId) {
         return participants.stream().anyMatch(participant -> participant.is(memberId));
+    }
+
+    public List<Long> getUnpaidMemberIds() {
+        return participants.stream()
+                .filter(participant -> !participant.isPaid())
+                .map(SharedGroupOrderParticipant::getMemberId)
+                .toList();
     }
 
     public SharedGroupOrderParticipant getParticipant(Long memberId) {

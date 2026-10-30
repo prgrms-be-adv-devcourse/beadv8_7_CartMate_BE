@@ -2,7 +2,9 @@ package com.cartmate.cartmate.boundedContext.payment.in;
 
 import com.cartmate.cartmate.boundedContext.payment.app.PaymentFacade;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -27,5 +29,16 @@ public class PaymentOrderEventListener {
     @EventListener
     public void handle(SharedGroupOrderCanceledEvent event) {
         paymentFacade.refundCanceledSharedGroupOrder(event.sharedGroupOrderId(), event.cancelReason());
+    }
+
+    // 판매글 판매 중지: 개인 주문 판매자 항목 취소 → 그 금액만 환불 (배송 취소와 같은 트랜잭션)
+    @EventListener
+    public void handle(OrderSellerItemsCanceledEvent event) {
+        paymentFacade.refundOrderSellerItems(event.orderId(), event.buyerMemberId(), event.sellerId(), event.amount());
+    }
+    // 판매글 판매 중지: 확정 공동 주문 판매자 항목 취소 → 결제한 사람들에게 나눠 환불
+    @EventListener
+    public void handle(SharedGroupOrderSellerItemsCanceledEvent event) {
+            paymentFacade.refundSharedSellerItems(event.sharedGroupOrderId(), event.sellerId(), event.amount());
     }
 }

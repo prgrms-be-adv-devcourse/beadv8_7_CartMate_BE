@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -34,6 +35,7 @@ public class DeliveryFacade {
     private final DeliveryClaimCreateUseCase deliveryClaimCreateUseCase;
     private final DeliveryClaimQueryUseCase deliveryClaimQueryUseCase;
     private final DeliveryClaimApproveUseCase deliveryClaimApproveUseCase;
+    private final DeliveryClaimRejectUseCase deliveryClaimRejectUseCase;
     private final DeliveryClaimCompleteUseCase deliveryClaimCompleteUseCase;
 
     @Transactional
@@ -44,6 +46,17 @@ public class DeliveryFacade {
     @Transactional
     public void cancelByOrder(Long orderId) {
         deliveryCancelUseCase.cancelByOrder(orderId);
+    }
+
+    // 판매글 판매 중지: order 이벤트와 같은 트랜잭션에서 실행 (실패하면 주문 처리·환불까지 롤백)
+    @Transactional
+    public void cancelSellerBySalesStop(Long orderId, PurchaseType purchaseType, Long sellerId, LocalDateTime canceledAt) {
+        deliveryCancelUseCase.cancelSellerBySalesStop(orderId, purchaseType, sellerId, canceledAt);
+    }
+
+    @Transactional
+    public void cancelAllSharedBySalesStop(Long sharedGroupOrderId, LocalDateTime canceledAt) {
+        deliveryCancelUseCase.cancelAllSharedBySalesStop(sharedGroupOrderId, canceledAt);
     }
 
     @Transactional
@@ -79,6 +92,11 @@ public class DeliveryFacade {
     @Transactional
     public SellerClaimResponse approveClaim(Long claimId, Long memberId) {
         return deliveryClaimApproveUseCase.approve(claimId, memberId);
+    }
+
+    @Transactional
+    public SellerClaimResponse rejectClaim(Long claimId, Long memberId, String reason) {
+        return deliveryClaimRejectUseCase.reject(claimId, memberId, reason);
     }
 
     @Transactional

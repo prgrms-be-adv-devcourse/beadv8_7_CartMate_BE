@@ -177,6 +177,14 @@ public class SharedGroupPurchase {
         getItem(itemId).changeQuantity(quantity, memberId);
     }
 
+    public SharedGroupPurchaseItem adjustItemQuantity(Long memberId, Long itemId, int delta, LocalDateTime now) {
+        validateEditable(now);
+        validateMember(memberId);
+        SharedGroupPurchaseItem item = getItem(itemId);
+        item.adjustQuantity(delta, memberId);
+        return item;
+    }
+
 
     public void changeItemOption(Long memberId, Long itemId, Long productId, Long inventoryId, LocalDateTime now) {
         validateEditableOrFrozenByCreator(memberId, now);
@@ -250,6 +258,18 @@ public class SharedGroupPurchase {
         }
         items.removeIf(item -> unavailableInventoryIds.contains(item.getInventoryId()));
         finish(items.isEmpty() ? SharedGroupPurchaseStatus.CANCELED : SharedGroupPurchaseStatus.CLOSED, now);
+    }
+
+    // 판매글 판매 중지: 담긴 상품을 빼고 계속 모집한다. 남은 상품이 없으면 공동구매를 취소한다. 바뀐 게 있으면 true.
+    public boolean removeItemsBySalesStopped(Set<Long> productIds, LocalDateTime now) {
+        if (status != SharedGroupPurchaseStatus.OPEN && status != SharedGroupPurchaseStatus.FROZEN) {
+            return false;
+        }
+        boolean removed = items.removeIf(item -> productIds.contains(item.getProductId()));
+        if (removed && items.isEmpty()) {
+            finish(SharedGroupPurchaseStatus.CANCELED, now);
+        }
+        return removed;
     }
 
     public boolean isEditable(LocalDateTime now) {

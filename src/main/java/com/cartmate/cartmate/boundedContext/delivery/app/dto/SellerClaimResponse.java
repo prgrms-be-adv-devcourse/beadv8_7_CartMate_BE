@@ -18,6 +18,7 @@ public record SellerClaimResponse(
         ClaimType claimType,
         ClaimReason reason,
         String detail,
+        String rejectReason,
         ClaimStatus status,
         LocalDateTime createdAt,
         List<DeliveryClaimResponse.Item> items
@@ -31,6 +32,7 @@ public record SellerClaimResponse(
                 claim.getClaimType(),
                 claim.getReason(),
                 claim.getDetail(),
+                claim.getRejectReason(),
                 claim.getStatus(),
                 claim.getCreatedAt(),
                 claimItems.stream().map(DeliveryClaimResponse.Item::from).toList()

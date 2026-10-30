@@ -3,7 +3,9 @@ package com.cartmate.cartmate.boundedContext.cart.out.groupshared;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface SharedGroupPurchaseRepositoryCustom {
@@ -19,4 +21,6 @@ public interface SharedGroupPurchaseRepositoryCustom {
     List<Long> findIdsToCloseByDeadline(LocalDateTime now);
 
     List<Long> findIdsToReleaseFrozen(LocalDateTime now);
+
+    Map<Long, String> findTitlesByIds(Collection<Long> ids);
 }

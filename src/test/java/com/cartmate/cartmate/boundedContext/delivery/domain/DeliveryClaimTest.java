@@ -117,4 +117,45 @@ class DeliveryClaimTest {
             assertThat(claim.getProcessedAt()).isNull();
         }
     }
+
+    @Test
+    @DisplayName("접수된 클레임을 거절하면 거절 상태가 되고 사유와 처리 시각이 기록된다")
+    void reject() {
+        DeliveryClaim claim = newClaim();
+
+        claim.reject("사용 흔적이 확인됩니다");
+
+        assertThat(claim.getStatus()).isEqualTo(ClaimStatus.REJECTED);
+        assertThat(claim.getRejectReason()).isEqualTo("사용 흔적이 확인됩니다");
+        assertThat(claim.getProcessedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("이미 거절된 클레임을 다시 거절해도 사유와 처리 시각이 바뀌지 않는다")
+    void rejectIsIdempotent() {
+        DeliveryClaim claim = newClaim();
+        claim.reject("첫 사유");
+        LocalDateTime firstProcessedAt = claim.getProcessedAt();
+
+        claim.reject("다른 사유");
+
+        assertThat(claim.getStatus()).isEqualTo(ClaimStatus.REJECTED);
+        assertThat(claim.getRejectReason()).isEqualTo("첫 사유");
+        assertThat(claim.getProcessedAt()).isEqualTo(firstProcessedAt);
+    }
+
+    @Test
+    @DisplayName("수락됐거나 완료된 클레임은 거절할 수 없다")
+    void rejectInvalidStatus() {
+        for (ClaimStatus status : new ClaimStatus[]{ClaimStatus.APPROVED, ClaimStatus.COMPLETED}) {
+            DeliveryClaim claim = newClaim();
+            ReflectionTestUtils.setField(claim, "status", status);
+
+            assertThatThrownBy(() -> claim.reject("사유"))
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining("409-DELIVERY_CLAIM_INVALID_STATUS");
+            assertThat(claim.getStatus()).isEqualTo(status);
+            assertThat(claim.getRejectReason()).isNull();
+        }
+    }
 }

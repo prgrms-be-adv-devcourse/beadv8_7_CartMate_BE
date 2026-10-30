@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.app.groupshared;
 
+import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderCancelReason;
@@ -62,6 +63,7 @@ class SharedGroupOrderCancelUseCaseTest {
         assertThat(event.sharedGroupPurchaseId()).isEqualTo(PURCHASE_ID);
         assertThat(event.cancelReason()).isEqualTo(SharedGroupOrderCancelReason.CREATOR_CANCELED.name());
         assertThat(event.canceledAt()).isEqualTo(order.getCanceledAt());
+        assertThat(event.unpaidMemberIds()).containsExactly(CREATOR, MEMBER);
     }
 
     @Test
@@ -91,6 +93,26 @@ class SharedGroupOrderCancelUseCaseTest {
         then(eventPublisher).should().publishEvent(captor.capture());
         assertThat(captor.getValue().cancelReason()).isEqualTo(SharedGroupOrderCancelReason.DEADLINE_EXPIRED.name());
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
+    }
+
+    @Test
+    @DisplayName("기한 만료 취소 이벤트에는 결제하지 않은 참여자만 담긴다")
+    void cancelByDeadlineEventHasOnlyUnpaidMembers() {
+        LocalDateTime closedAt = LocalDateTime.now()
+                .minus(SharedGroupOrder.PAYMENT_PERIOD)
+                .minus(SharedGroupOrder.GRACE_PERIOD)
+                .minusMinutes(1);
+        SharedGroupOrder order = order(closedAt);
+        order.markStockReserved();
+        order.pay(CREATOR, 1L, closedAt.plusMinutes(1),
+                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+        given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
+
+        cancelUseCase.cancelByDeadline(ORDER_ID);
+
+        ArgumentCaptor<SharedGroupOrderCanceledEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCanceledEvent.class);
+        then(eventPublisher).should().publishEvent(captor.capture());
+        assertThat(captor.getValue().unpaidMemberIds()).containsExactly(MEMBER);
     }
 
     @Test

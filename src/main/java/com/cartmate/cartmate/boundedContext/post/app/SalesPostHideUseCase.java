@@ -31,7 +31,7 @@ public class SalesPostHideUseCase {
     private final SalesPostHidePolicy hidePolicy;
     private final EventPublisher eventPublisher;
 
-    // 판매자 내림. 상품 API 먼저 → 성공하면 판매글 변경 + 이벤트 (판매글 수정과 같은 순서 원칙)
+    // 판매자 내림. 상품 API 먼저 → 성공하면 판매글 변경  이벤트 (판매글 수정과 같은 순서 원칙)
     @Transactional
     public void pauseBySeller(Long postId, Long sellerId, Long actorMemberId) {
         SalesPost post = findOwnedPost(postId, sellerId);
@@ -76,5 +76,27 @@ public class SalesPostHideUseCase {
             throw new ServiceException(SalesPostErrorCode.POST_ACCESS_DENIED);
         }
         return post;
+    }
+
+    // 최근 24시간 안에 내려간 판매글의 숨김 이벤트를 다시 발행한다 (대사).
+    // 후처리는 멱등이라 이미 정리된 건은 건너뛰고 놓친 것만 처리된다.
+    // 리스너가 커밋 후에 실행되므로 반드시 트랜잭션 안에서 발행한다.
+    @Transactional
+    public int republishRecentlyHidden() {
+        List<SalesPost> posts = salesPostRepository.findByStatusInAndHiddenAtAfter(
+                List.of(SalesPostSaleStatus.PAUSED, SalesPostSaleStatus.SUSPENDED, SalesPostSaleStatus.DELETED),
+                LocalDateTime.now().minusHours(24));
+        for (SalesPost post : posts) {
+            publishHidden(post, toHideType(post.getStatus()), null, "대사 재처리");
+        }
+        return posts.size();
+    }
+
+    private SalesPostHideType toHideType(SalesPostSaleStatus status) {
+        return switch (status) {
+            case PAUSED -> SalesPostHideType.SELLER_PAUSED;
+            case SUSPENDED -> SalesPostHideType.ADMIN_SUSPENDED;
+            default -> SalesPostHideType.SELLER_DELETED;
+        };
     }
 }

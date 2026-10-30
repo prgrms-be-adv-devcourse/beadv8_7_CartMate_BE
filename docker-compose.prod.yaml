@@ -33,6 +33,10 @@ services:
       TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-} # key 설정 후 변경 필요
       PLATFORM_MEMBER_ID: ${PLATFORM_MEMBER_ID:-1}
       PRODUCT_URL: ${PRODUCT_URL:-http://localhost:8985}
+      REDIS_CACHE_HOST: ${REDIS_HOST:?REDIS_HOST is not set}
+      REDIS_CORE_HOST: ${REDIS_HOST:?REDIS_HOST is not set}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is not set}
+      REDIS_DATABASE: ${REDIS_DATABASE:?REDIS_DATABASE is not set}
     depends_on:
       db:
         condition: service_healthy

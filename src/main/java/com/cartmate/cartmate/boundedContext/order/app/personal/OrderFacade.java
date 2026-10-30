@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
@@ -9,6 +10,7 @@ import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -73,5 +75,27 @@ public class OrderFacade {
     @Transactional(readOnly = true)
     public List<Long> findIdsToCancelByDeadline(LocalDateTime now) {
         return orderCancelUseCase.findIdsToCancelByDeadline(now);
+    }
+
+    // ===== 판매글 판매 중지 =====
+    @Transactional(readOnly = true)
+    public List<Long> findPendingIdsByProductIds(List<Long> productIds) {
+        return orderCancelUseCase.findIdsByStatusAndProductIds(OrderStatus.PAYMENT_PENDING, productIds);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findPaidIdsByProductIds(List<Long> productIds) {
+        return orderCancelUseCase.findIdsByStatusAndProductIds(OrderStatus.PAID, productIds);
+    }
+
+    // 주문 하나마다 새 트랜잭션 (하나가 실패·거절돼도 다른 주문 처리에 영향 없음)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void cancelBySalesStopped(Long orderId) {
+        orderCancelUseCase.cancelBySalesStopped(orderId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
+        orderCancelUseCase.cancelSellerItemsBySalesStopped(orderId, sellerId);
     }
 }

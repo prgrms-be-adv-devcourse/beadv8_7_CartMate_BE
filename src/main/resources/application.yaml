@@ -26,7 +26,16 @@ custom:
   jwt:
     secret: ${JWT_SECRET:cartmate-local-dev-secret-key-must-be-at-least-32-bytes}
     accessTokenExpireSeconds: 1800
-    refreshTokenRememberDays: 30   # 로그인 유지 체크
-    refreshTokenSessionHours: 24   # 로그인 유지 미체크
+    refreshTokenRememberDays: 30
+    refreshTokenSessionHours: 24
   cookie:
     secure: false
+  redis:
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:1}
+    cache:
+      host: ${REDIS_CACHE_HOST:localhost}
+      port: ${REDIS_CACHE_PORT:6379}
+    core:
+      host: ${REDIS_CORE_HOST:localhost}
+      port: ${REDIS_CORE_PORT:6380}

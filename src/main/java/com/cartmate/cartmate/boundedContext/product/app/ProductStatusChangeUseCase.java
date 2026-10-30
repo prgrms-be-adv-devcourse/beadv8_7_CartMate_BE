@@ -9,15 +9,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class ProductStatusChangeUseCase {
-    private static final Set<ProductStatus> TARGETS =
-            EnumSet.of(ProductStatus.ON_SALE, ProductStatus.PAUSED, ProductStatus.SUSPENDED);
 
     private final ProductRepository productRepository;
 
@@ -25,7 +21,7 @@ public class ProductStatusChangeUseCase {
     // 장바구니·주문·공동구매 담기가 바로 막힌다. 이미 그 상태면 건너뛰므로 다시 보내도 안전하다.
     @Transactional
     public void changeStatusByPost(Long postId, ProductStatus to) {
-        if (!TARGETS.contains(to)) {
+        if (!to.isSaleControllable()) {   // 상품을 찾기 전에 잘못된 요청부터 거른다 (규칙은 ProductStatus가 가진다)
             throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_INVALID);
         }
         List<Product> products = productRepository.findBySalesPostId(postId);
