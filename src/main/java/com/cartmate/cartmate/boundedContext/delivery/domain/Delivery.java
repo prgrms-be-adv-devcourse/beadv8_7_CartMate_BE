@@ -141,7 +141,9 @@ public class Delivery {
 
     // 판매글 판매 중지로 취소: 판매자가 판매를 멈춘 것이라 배송준비중(판매자 확인 후)까지 취소한다.
     // 발송(배송중) 이후면 예외 → 호출한 주문 처리까지 롤백되고 클레임으로 넘어간다. 이미 취소면 그대로(멱등).
-    public void cancelByPostHidden() {
+    // 취소 시각은 밖에서 받는다. 한 번의 판매 중지로 여러 배송이 취소될 때 같은 시각으로 남기고,
+    // 주문 취소 시각과도 맞추기 위해서다.
+    public void cancelByPostHidden(LocalDateTime canceledAt) {
         if (this.status == DeliveryStatus.CANCELED) {
             return;
         }
@@ -150,7 +152,7 @@ public class Delivery {
         }
         
         this.status = DeliveryStatus.CANCELED;
-        this.canceledAt = LocalDateTime.now();
+        this.canceledAt = canceledAt;
     }
 
     // 택배사와 송장번호를 등록하고 배송요청을 배송준비로 바꾼다.

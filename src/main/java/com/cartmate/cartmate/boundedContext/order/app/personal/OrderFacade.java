@@ -95,7 +95,7 @@ public class OrderFacade {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId, Long postId) {
-        orderCancelUseCase.cancelSellerItemsBySalesStopped(orderId, sellerId, postId);
+    public void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
+        orderCancelUseCase.cancelSellerItemsBySalesStopped(orderId, sellerId);
     }
 }

@@ -43,14 +43,13 @@ class SharedGroupOrderCancelUseCase {
     }
 
     // 판매글 판매 중지: 확정 공동 주문에서 한 판매자 항목만 취소 → 그 배송 취소, 결제한 사람들에게 나눠 환불
-    void cancelSellerItemsBySalesStopped(Long sharedGroupOrderId, Long sellerId, Long postId) {
+    void cancelSellerItemsBySalesStopped(Long sharedGroupOrderId, Long sellerId) {
         SharedGroupOrder order = sharedGroupOrderSupport.getOrderForUpdate(sharedGroupOrderId);
         LocalDateTime now = LocalDateTime.now();
         long amount = order.cancelSellerItemsBySalesStopped(sellerId, now);
         if (amount > 0) {
             eventPublisher.publishEvent(new SharedGroupOrderSellerItemsCanceledEvent(
-                   sharedGroupOrderId, sellerId, amount,
-                    "HIDE-P%d-SG%d-S%d".formatted(postId, sharedGroupOrderId, sellerId), now));
+                    sharedGroupOrderId, sellerId, amount, now));
         }
     }
 

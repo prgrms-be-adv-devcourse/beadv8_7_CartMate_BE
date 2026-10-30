@@ -13,7 +13,6 @@ public record SharedGroupOrderSellerItemsCanceledEvent(
         Long sharedGroupOrderId,
         Long sellerId,
         long amount,
-        String cancelKey,
         LocalDateTime canceledAt
 ) {
 }
