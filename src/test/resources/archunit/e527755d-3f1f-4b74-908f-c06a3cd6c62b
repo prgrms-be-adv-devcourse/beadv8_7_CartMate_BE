@@ -1,0 +1,1 @@
+Method <com.cartmate.cartmate.boundedContext.order.in.groupshared.SharedGroupOrderEventListener.handle(com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent)> is annotated with @EventListener in (SharedGroupOrderEventListener.java:17)
