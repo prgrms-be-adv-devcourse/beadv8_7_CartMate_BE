@@ -11,8 +11,8 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
 import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -24,7 +24,7 @@ class OrderPaymentUseCase {
 
     private final OrderRepository orderRepository;
     private final OrderSupport orderSupport;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
     private final OrderProductClient orderProductClient;
 
     OrderPaymentInfo getPaymentInfo(Long orderId, Long memberId, LocalDateTime now) {
@@ -46,7 +46,7 @@ class OrderPaymentUseCase {
         orderSupport.validateBuyer(order, memberId);
         validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
         if (order.markPaid(paymentId, paidAt)) {
-            eventPublisher.publishEvent(toPaidEvent(order));
+            eventPublisher.publish(toPaidEvent(order));
         }
     }
 

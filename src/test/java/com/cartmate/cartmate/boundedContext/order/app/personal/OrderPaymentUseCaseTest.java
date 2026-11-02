@@ -11,6 +11,8 @@ import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.event.DomainEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +20,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,7 +46,7 @@ class OrderPaymentUseCaseTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private DomainEventPublisher eventPublisher;
 
     private OrderPaymentUseCase paymentUseCase;
 
@@ -68,7 +69,7 @@ class OrderPaymentUseCaseTest {
         paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, paidAt);
 
         ArgumentCaptor<OrderPaidEvent> captor = ArgumentCaptor.forClass(OrderPaidEvent.class);
-        then(eventPublisher).should().publishEvent(captor.capture());
+        then(eventPublisher).should().publish(captor.capture());
         OrderPaidEvent event = captor.getValue();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
         assertThat(event.memberId()).isEqualTo(BUYER);
@@ -95,7 +96,7 @@ class OrderPaymentUseCaseTest {
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_PAYMENT_EXPIRED.getMsg());
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
-        then(eventPublisher).should(never()).publishEvent(any(Object.class));
+        then(eventPublisher).should(never()).publish(any(DomainEvent.class));
     }
 
     @Test
@@ -108,7 +109,7 @@ class OrderPaymentUseCaseTest {
         paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, paidAt);
         paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, paidAt);
 
-        then(eventPublisher).should(times(1)).publishEvent(any(OrderPaidEvent.class));
+        then(eventPublisher).should(times(1)).publish(any(OrderPaidEvent.class));
         assertThat(order.getPaymentId()).isEqualTo(PAYMENT_ID);
     }
 
@@ -123,7 +124,7 @@ class OrderPaymentUseCaseTest {
         assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID + 1, paidAt))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NOT_PAYMENT_PENDING.getMsg());
-        then(eventPublisher).should(times(1)).publishEvent(any(OrderPaidEvent.class));
+        then(eventPublisher).should(times(1)).publish(any(OrderPaidEvent.class));
     }
 
     private Order order() {

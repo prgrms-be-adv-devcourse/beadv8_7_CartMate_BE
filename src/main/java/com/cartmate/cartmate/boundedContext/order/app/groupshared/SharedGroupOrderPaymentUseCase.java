@@ -13,8 +13,8 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.dto.SharedGroupOrderPaymentInfo;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,7 +26,7 @@ class SharedGroupOrderPaymentUseCase {
 
     private final SharedGroupOrderRepository sharedGroupOrderRepository;
     private final SharedGroupOrderSupport sharedGroupOrderSupport;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
     private final OrderProductClient orderProductClient;
 
     SharedGroupOrderPaymentInfo getPaymentInfo(Long sharedGroupOrderId, Long memberId, LocalDateTime now) {
@@ -61,7 +61,7 @@ class SharedGroupOrderPaymentUseCase {
         validatePurchasable(order.getItems().stream().map(SharedGroupOrderItem::getInventoryId).toList());
         DeliveryAddress deliveryAddress = order.isCreator(memberId) ? toDeliveryAddress(teamDeliveryAddress) : null;
         if (order.pay(memberId, paymentId, paidAt, deliveryAddress)) {
-            eventPublisher.publishEvent(toConfirmedEvent(order));
+            eventPublisher.publish(toConfirmedEvent(order));
         }
     }
 

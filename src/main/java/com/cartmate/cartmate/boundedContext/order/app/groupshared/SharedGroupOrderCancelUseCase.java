@@ -5,8 +5,8 @@ import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroup
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,7 +19,7 @@ class SharedGroupOrderCancelUseCase {
 
     private final SharedGroupOrderRepository sharedGroupOrderRepository;
     private final SharedGroupOrderSupport sharedGroupOrderSupport;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     void cancelByCreator(Long memberId, Long sharedGroupOrderId) {
         SharedGroupOrder order = sharedGroupOrderSupport.getOrderForUpdate(sharedGroupOrderId);
@@ -48,7 +48,7 @@ class SharedGroupOrderCancelUseCase {
         LocalDateTime now = LocalDateTime.now();
         long amount = order.cancelSellerItemsBySalesStopped(sellerId, now);
         if (amount > 0) {
-            eventPublisher.publishEvent(new SharedGroupOrderSellerItemsCanceledEvent(
+            eventPublisher.publish(new SharedGroupOrderSellerItemsCanceledEvent(
                     sharedGroupOrderId, sellerId, amount, now));
         }
     }
@@ -64,7 +64,7 @@ class SharedGroupOrderCancelUseCase {
 
     private void publishCanceledEventIf(boolean canceled, SharedGroupOrder order) {
         if (canceled) {
-            eventPublisher.publishEvent(toCanceledEvent(order));
+            eventPublisher.publish(toCanceledEvent(order));
         }
     }
 

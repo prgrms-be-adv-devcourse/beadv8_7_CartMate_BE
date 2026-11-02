@@ -5,8 +5,8 @@ import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupP
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.boundedContext.cart.out.groupshared.SharedGroupPurchaseRepository;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,7 +19,7 @@ class SharedGroupPurchaseCloseUseCase {
 
     private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     void close(Long memberId, Long sharedGroupPurchaseId) {
         SharedGroupPurchase purchase = sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId);
@@ -64,7 +64,7 @@ class SharedGroupPurchaseCloseUseCase {
 
     private void publishClosedEventIfClosed(SharedGroupPurchase purchase) {
         if (purchase.getStatus() == SharedGroupPurchaseStatus.CLOSED) {
-            eventPublisher.publishEvent(toClosedEvent(purchase));
+            eventPublisher.publish(toClosedEvent(purchase));
         }
     }
 

@@ -5,8 +5,8 @@ import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,7 +19,7 @@ class OrderCancelUseCase {
 
     private final OrderRepository orderRepository;
     private final OrderSupport orderSupport;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     void cancelByBuyer(Long memberId, Long orderId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
@@ -52,7 +52,7 @@ class OrderCancelUseCase {
         LocalDateTime now = LocalDateTime.now();
         long amount = order.cancelSellerItemsBySalesStopped(sellerId, now);
         if (amount > 0) {
-            eventPublisher.publishEvent(new OrderSellerItemsCanceledEvent(
+            eventPublisher.publish(new OrderSellerItemsCanceledEvent(
                     orderId, order.getBuyerMemberId(), sellerId, amount, now));
         }
     }
@@ -71,7 +71,7 @@ class OrderCancelUseCase {
 
     private void publishCanceledEventIf(boolean canceled, Order order, boolean paid) {
         if (canceled) {
-            eventPublisher.publishEvent(toCanceledEvent(order, paid));
+            eventPublisher.publish(toCanceledEvent(order, paid));
         }
     }
 
