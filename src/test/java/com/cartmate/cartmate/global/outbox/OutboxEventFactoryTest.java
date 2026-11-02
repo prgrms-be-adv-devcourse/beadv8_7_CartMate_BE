@@ -18,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -139,27 +140,78 @@ class OutboxEventFactoryTest {
     }
 
     @Test
-    @DisplayName("실패 기록: attempts가 늘고 last_error가 1000자로 잘리며, 최대 시도에 이르면 FAILED")
+    @DisplayName("실패 기록: attempts가 늘고 last_error가 1000자로 잘리며, 다음 시도가 백오프만큼 밀리고, 최대 시도에 이르면 FAILED")
     void recordFailure() {
         OutboxEvent outbox = factory.create(paidEvent(100L));
+        OutboxRelayProperties policy = policy(3);
+        LocalDateTime now = LocalDateTime.of(2026, 11, 2, 13, 0);
+        assertThat(outbox.getNextAttemptAt()).isEqualTo(outbox.getOccurredAt());
 
-        assertThat(outbox.recordFailure("x".repeat(2_000), 2)).isFalse();
+        assertThat(outbox.recordFailure("x".repeat(2_000), policy, now)).isFalse();
         assertThat(outbox.getAttempts()).isEqualTo(1);
         assertThat(outbox.getLastError()).hasSize(1_000);
         assertThat(outbox.getStatus()).isEqualTo(OutboxEventStatus.NEW);
+        assertThat(outbox.getNextAttemptAt()).isEqualTo(now.plusSeconds(1));
 
-        assertThat(outbox.recordFailure("boom", 2)).isTrue();
-        assertThat(outbox.getAttempts()).isEqualTo(2);
+        assertThat(outbox.recordFailure("again", policy, now)).isFalse();
+        assertThat(outbox.getNextAttemptAt()).isEqualTo(now.plusSeconds(2));
+
+        assertThat(outbox.recordFailure("boom", policy, now)).isTrue();
+        assertThat(outbox.getAttempts()).isEqualTo(3);
         assertThat(outbox.getLastError()).isEqualTo("boom");
         assertThat(outbox.getStatus()).isEqualTo(OutboxEventStatus.FAILED);
+    }
+
+    @Test
+    @DisplayName("백오프: 1초에서 두 배씩 늘고 10분에서 멈춘다. 기본값이면 마지막 시도까지 약 57분")
+    void backoffDoublesUpToCap() {
+        OutboxRelayProperties policy = policy(15);
+
+        assertThat(policy.backoffAfter(1)).isEqualTo(Duration.ofSeconds(1));
+        assertThat(policy.backoffAfter(2)).isEqualTo(Duration.ofSeconds(2));
+        assertThat(policy.backoffAfter(10)).isEqualTo(Duration.ofSeconds(512));
+        assertThat(policy.backoffAfter(11)).isEqualTo(Duration.ofMinutes(10));
+        assertThat(policy.backoffAfter(1_000)).isEqualTo(Duration.ofMinutes(10));
+        Duration total = Duration.ZERO;
+        for (int attempts = 1; attempts < policy.maxAttempts(); attempts++) {
+            total = total.plus(policy.backoffAfter(attempts));
+        }
+        assertThat(total).isBetween(Duration.ofMinutes(55), Duration.ofMinutes(60));
+    }
+
+    @Test
+    @DisplayName("다시 해도 소용없는 실패: 시도 횟수와 상관없이 바로 FAILED")
+    void markFailedImmediately() {
+        OutboxEvent outbox = factory.create(paidEvent(100L));
+
+        assertThat(outbox.markFailed("unknown type")).isTrue();
+
+        assertThat(outbox.getStatus()).isEqualTo(OutboxEventStatus.FAILED);
+        assertThat(outbox.getAttempts()).isEqualTo(1);
+        assertThat(outbox.getLastError()).isEqualTo("unknown type");
+    }
+
+    @Test
+    @DisplayName("NEW가 아닌 행은 성공 · 실패 기록이 상태를 바꾸지 않는다 (다른 노드가 먼저 처리한 행)")
+    void nonNewRowIsUntouched() {
+        OutboxEvent outbox = factory.create(paidEvent(100L));
+        LocalDateTime publishedAt = LocalDateTime.of(2026, 11, 2, 13, 0);
+        outbox.markPublished(publishedAt);
+
+        assertThat(outbox.recordFailure("late", policy(3), publishedAt)).isFalse();
+        assertThat(outbox.markFailed("late")).isFalse();
+
+        assertThat(outbox.getStatus()).isEqualTo(OutboxEventStatus.PUBLISHED);
+        assertThat(outbox.getAttempts()).isZero();
+        assertThat(outbox.getLastError()).isNull();
     }
 
     @Test
     @DisplayName("발행 성공: PUBLISHED로 바뀌고 published_at이 찍히며 last_error는 지워진다")
     void markPublished() {
         OutboxEvent outbox = factory.create(paidEvent(100L));
-        outbox.recordFailure("transient", 10);
         LocalDateTime publishedAt = LocalDateTime.of(2026, 11, 2, 13, 0);
+        outbox.recordFailure("transient", policy(10), publishedAt);
 
         outbox.markPublished(publishedAt);
 
@@ -167,6 +219,11 @@ class OutboxEventFactoryTest {
         assertThat(outbox.getPublishedAt()).isEqualTo(publishedAt);
         assertThat(outbox.getLastError()).isNull();
         assertThat(outbox.getAttempts()).isEqualTo(1);
+    }
+
+    private static OutboxRelayProperties policy(int maxAttempts) {
+        return new OutboxRelayProperties(Duration.ofSeconds(1), Duration.ofSeconds(1), 100, maxAttempts,
+                Duration.ofSeconds(1), Duration.ofMinutes(10));
     }
 
     private static OrderPaidEvent paidEvent(Long orderId) {

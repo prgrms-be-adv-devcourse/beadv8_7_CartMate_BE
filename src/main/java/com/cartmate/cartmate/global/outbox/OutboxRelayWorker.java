@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 class OutboxRelayWorker {
 
     private final OutboxEventRepository outboxEventRepository;
+    private final OutboxRelayProperties properties;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markPublished(Long id, LocalDateTime publishedAt) {
@@ -27,9 +28,16 @@ class OutboxRelayWorker {
      * @return 최대 시도에 이르러 FAILED가 됐으면 true
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public boolean recordFailure(Long id, String error, int maxAttempts) {
+    public boolean recordFailure(Long id, String error, LocalDateTime now) {
         return outboxEventRepository.findById(id)
-                .map(event -> event.recordFailure(error, maxAttempts))
+                .map(event -> event.recordFailure(error, properties, now))
+                .orElse(false);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean markFailed(Long id, String error) {
+        return outboxEventRepository.findById(id)
+                .map(event -> event.markFailed(error))
                 .orElse(false);
     }
 }

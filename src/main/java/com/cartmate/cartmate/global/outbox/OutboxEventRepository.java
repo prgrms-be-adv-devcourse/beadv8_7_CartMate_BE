@@ -3,13 +3,15 @@ package com.cartmate.cartmate.global.outbox;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> {
 
-    // 인덱스 (status, id)를 탄다. 릴레이가 배치 크기만큼 오래된 순으로 읽는다
-    List<OutboxEvent> findByStatusOrderByIdAsc(OutboxEventStatus status, Limit limit);
+    // 인덱스 (status, id)로 오래된 순으로 훑고, 백오프 중인 행만 건너뛴다(평소엔 거의 없음)
+    List<OutboxEvent> findByStatusAndNextAttemptAtLessThanEqualOrderByIdAsc(
+            OutboxEventStatus status, LocalDateTime now, Limit limit);
 
     Optional<OutboxEvent> findByEventId(String eventId);
 }

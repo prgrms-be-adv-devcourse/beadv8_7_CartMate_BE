@@ -153,12 +153,39 @@ class OutboxIntegrationTest {
     }
 
     @Test
-    @DisplayName("④ 싱크가 실패하면 attempts · last_error가 쌓이고, 최대 시도(3회)에 이르면 FAILED가 되어 더는 시도하지 않는다")
+    @DisplayName("④ 싱크가 실패하면 다음 시도를 백오프만큼 미룬다: 바로 다시 돌려도 시도하지 않는다")
+    void sinkFailureIsRetriedAfterBackoff() {
+        transactionTemplate.executeWithoutResult(status -> domainEventPublisher.publish(probe("backoff")));
+        switchableSink.failing.set(true);
+        LocalDateTime before = LocalDateTime.now();
+
+        outboxRelay.relay();
+        outboxRelay.relay();
+
+        Map<String, Object> row = rows().getFirst();
+        assertThat(row.get("status")).isEqualTo("NEW");
+        assertThat(row.get("attempts")).isEqualTo(1);
+        assertThat(((LocalDateTime) row.get("next_attempt_at"))).isAfter(before);
+
+        switchableSink.failing.set(false);
+        makeDue();
+        outboxRelay.relay();
+
+        row = rows().getFirst();
+        assertThat(row.get("status")).isEqualTo("PUBLISHED");
+        assertThat(row.get("attempts")).isEqualTo(1);
+        assertThat(row.get("last_error")).isNull();
+        assertThat(recorder.relayed).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("④-1 실패가 최대 시도(3회)에 이르면 FAILED가 되어 더는 시도하지 않는다")
     void sinkFailureIsCountedThenGivenUp() {
         transactionTemplate.executeWithoutResult(status -> domainEventPublisher.publish(probe("fail")));
         switchableSink.failing.set(true);
 
         outboxRelay.relay();
+        makeDue();
         outboxRelay.relay();
 
         Map<String, Object> row = rows().getFirst();
@@ -166,6 +193,7 @@ class OutboxIntegrationTest {
         assertThat(row.get("attempts")).isEqualTo(2);
         assertThat((String) row.get("last_error")).contains("sink down");
 
+        makeDue();
         outboxRelay.relay();
 
         row = rows().getFirst();
@@ -174,9 +202,33 @@ class OutboxIntegrationTest {
         assertThat(row.get("published_at")).isNull();
 
         switchableSink.failing.set(false);
+        makeDue();
         outboxRelay.relay();
 
         assertThat(rows().getFirst().get("attempts")).isEqualTo(3);
+        assertThat(recorder.relayed).isEmpty();
+    }
+
+    @Test
+    @DisplayName("④-3 되돌릴 수 없는 행(모르는 이벤트 타입 · 깨진 payload)은 재시도 없이 바로 FAILED")
+    void undecodableRowFailsImmediately() {
+        OutboxProbeEvent unknownType = probe("unknown-type");
+        OutboxProbeEvent brokenPayload = probe("broken-payload");
+        transactionTemplate.executeWithoutResult(status -> {
+            domainEventPublisher.publish(unknownType);
+            domainEventPublisher.publish(brokenPayload);
+        });
+        jdbcTemplate.update("UPDATE outbox_event SET event_type = 'NoSuchEvent' WHERE aggregate_id = ? AND payload LIKE ?",
+                String.valueOf(probeId), "%unknown-type%");
+        jdbcTemplate.update("UPDATE outbox_event SET payload = '{not json' WHERE aggregate_id = ? AND payload LIKE ?",
+                String.valueOf(probeId), "%broken-payload%");
+
+        outboxRelay.relay();
+
+        List<Map<String, Object>> rows = rows();
+        assertThat(rows).extracting(r -> r.get("status")).containsExactly("FAILED", "FAILED");
+        assertThat(rows).extracting(r -> r.get("attempts")).containsExactly(1, 1);
+        assertThat(rows).allSatisfy(r -> assertThat((String) r.get("last_error")).contains("NonRetryableRelayException"));
         assertThat(recorder.relayed).isEmpty();
     }
 
@@ -217,6 +269,12 @@ class OutboxIntegrationTest {
 
     private OutboxProbeEvent probe(String note) {
         return new OutboxProbeEvent(probeId, note, LocalDateTime.of(2026, 11, 2, 12, 0, 0, 123_000_000));
+    }
+
+    // 백오프를 기다리는 대신 다음 시도 시각을 과거로 당긴다
+    private void makeDue() {
+        jdbcTemplate.update("UPDATE outbox_event SET next_attempt_at = ? WHERE aggregate_id = ?",
+                LocalDateTime.now().minusMinutes(1), String.valueOf(probeId));
     }
 
     private List<Map<String, Object>> rows() {

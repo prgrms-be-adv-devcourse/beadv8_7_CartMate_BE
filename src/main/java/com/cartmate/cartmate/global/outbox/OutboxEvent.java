@@ -71,6 +71,10 @@ public class OutboxEvent {
     @Column(name = "attempts", nullable = false)
     private int attempts;
 
+    // 이 시각이 지나야 릴레이가 다시 집는다. 처음엔 발행 시각, 실패하면 백오프만큼 뒤로 민다
+    @Column(name = "next_attempt_at", nullable = false)
+    private LocalDateTime nextAttemptAt;
+
     @Column(name = "last_error", length = LAST_ERROR_MAX_LENGTH)
     private String lastError;
 
@@ -92,6 +96,7 @@ public class OutboxEvent {
         this.payload = payload;
         this.status = OutboxEventStatus.NEW;
         this.attempts = 0;
+        this.nextAttemptAt = createdAt;
         this.createdAt = createdAt;
     }
 
@@ -118,22 +123,39 @@ public class OutboxEvent {
     }
 
     /**
-     * 싱크 전달 실패를 기록한다. 시도 횟수가 {@code maxAttempts}에 이르면 FAILED로 바꾼다.
+     * 다시 시도하면 풀릴 수 있는 실패를 기록한다. 다음 시도를 백오프만큼 미루고,
+     * 시도 횟수가 최대에 이르면 FAILED로 바꾼다.
      * NEW가 아닌 행(다른 노드가 이미 PUBLISHED로 바꾼 행)은 건드리지 않는다.
      *
      * @return FAILED로 바뀌었으면 true
      */
-    boolean recordFailure(String error, int maxAttempts) {
+    boolean recordFailure(String error, OutboxRelayProperties policy, LocalDateTime now) {
         if (this.status != OutboxEventStatus.NEW) {
             return false;
         }
         this.attempts++;
         this.lastError = truncate(error);
-        if (this.attempts >= maxAttempts) {
+        if (this.attempts >= policy.maxAttempts()) {
             this.status = OutboxEventStatus.FAILED;
             return true;
         }
+        this.nextAttemptAt = now.plus(policy.backoffAfter(this.attempts));
         return false;
+    }
+
+    /**
+     * 다시 시도해도 똑같이 실패할 행(모르는 이벤트 타입, 깨진 payload)을 바로 FAILED로 바꾼다.
+     *
+     * @return FAILED로 바뀌었으면 true
+     */
+    boolean markFailed(String error) {
+        if (this.status != OutboxEventStatus.NEW) {
+            return false;
+        }
+        this.attempts++;
+        this.lastError = truncate(error);
+        this.status = OutboxEventStatus.FAILED;
+        return true;
     }
 
     private static String truncate(String error) {

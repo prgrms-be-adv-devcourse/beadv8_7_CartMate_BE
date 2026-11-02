@@ -12,8 +12,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 아웃박스 폴링 릴레이. NEW 행을 id 순으로 배치만큼 읽어 {@link OutboxRelaySink}에 넘긴다.
- * 성공 → PUBLISHED, 실패 → attempts · last_error 기록, 최대 시도에 이르면 FAILED + ERROR 로그.
+ * 아웃박스 폴링 릴레이. 시도 시각이 된 NEW 행을 id 순으로 배치만큼 읽어 {@link OutboxRelaySink}에 넘긴다.
+ * 성공 → PUBLISHED. 실패 → attempts · last_error를 쌓고 다음 시도를 백오프만큼 미룬다.
+ * 최대 시도에 이르거나 다시 해도 소용없는 실패({@link NonRetryableRelayException})면 FAILED + ERROR 로그.
+ * FAILED 행은 자동으로 되살리지 않는다. 원인을 고친 뒤 status를 NEW로, next_attempt_at을 지금으로 돌려 다시 태운다.
  *
  * <p>인스턴스가 여럿이어도 한 번에 하나만 돌도록 ShedLock을 건다(이름 {@code outboxRelay}).
  * 락이 있어도 전달은 at-least-once다(싱크 성공 뒤 PUBLISHED 기록이 실패하면 다음 폴링에 다시 전달).
@@ -40,8 +42,8 @@ public class OutboxRelay {
     )
     @SchedulerLock(name = LOCK_NAME, lockAtMostFor = "PT30S")
     public void relay() {
-        List<OutboxEvent> batch = outboxEventRepository.findByStatusOrderByIdAsc(
-                OutboxEventStatus.NEW, Limit.of(properties.batchSize()));
+        List<OutboxEvent> batch = outboxEventRepository.findByStatusAndNextAttemptAtLessThanEqualOrderByIdAsc(
+                OutboxEventStatus.NEW, LocalDateTime.now(), Limit.of(properties.batchSize()));
         for (OutboxEvent event : batch) {
             relayOne(event);
         }
@@ -51,6 +53,9 @@ public class OutboxRelay {
     private void relayOne(OutboxEvent event) {
         try {
             sink.send(event.toEnvelope());
+        } catch (NonRetryableRelayException e) {
+            giveUp(event, e);
+            return;
         } catch (Exception e) {
             recordFailure(event, e);
             return;
@@ -65,7 +70,7 @@ public class OutboxRelay {
 
     private void recordFailure(OutboxEvent event, Exception cause) {
         try {
-            boolean failed = worker.recordFailure(event.getId(), describe(cause), properties.maxAttempts());
+            boolean failed = worker.recordFailure(event.getId(), describe(cause), LocalDateTime.now());
             if (failed) {
                 log.error("아웃박스 릴레이 포기: eventId={} type={} attempts={}",
                         event.getEventId(), event.getEventType(), event.getAttempts() + 1, cause);
@@ -73,6 +78,16 @@ public class OutboxRelay {
                 log.warn("아웃박스 릴레이 실패, 다시 시도: eventId={} type={} attempts={}",
                         event.getEventId(), event.getEventType(), event.getAttempts() + 1, cause);
             }
+        } catch (Exception e) {
+            log.warn("아웃박스 실패 기록 실패: eventId={} type={}", event.getEventId(), event.getEventType(), e);
+        }
+    }
+
+    private void giveUp(OutboxEvent event, NonRetryableRelayException cause) {
+        try {
+            worker.markFailed(event.getId(), describe(cause));
+            log.error("아웃박스 릴레이 포기(다시 시도해도 실패): eventId={} type={}",
+                    event.getEventId(), event.getEventType(), cause);
         } catch (Exception e) {
             log.warn("아웃박스 실패 기록 실패: eventId={} type={}", event.getEventId(), event.getEventType(), e);
         }

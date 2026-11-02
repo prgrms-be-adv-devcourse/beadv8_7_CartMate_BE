@@ -6,6 +6,7 @@ import com.cartmate.cartmate.shared.event.OutboxMessageRelayed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -22,8 +23,17 @@ public class InProcessOutboxRelaySink implements OutboxRelaySink {
 
     @Override
     public void send(EventEnvelope envelope) {
-        Class<? extends DomainEvent> type = typeRegistry.resolve(envelope.eventType());
-        DomainEvent event = objectMapper.readValue(envelope.payload(), type);
-        applicationEventPublisher.publishEvent(new OutboxMessageRelayed(envelope, event));
+        applicationEventPublisher.publishEvent(new OutboxMessageRelayed(envelope, deserialize(envelope)));
+    }
+
+    // 여기서 나는 실패는 다시 해도 같다. consumer에서 나는 예외는 감싸지 않고 그대로 올려 재시도한다
+    private DomainEvent deserialize(EventEnvelope envelope) {
+        try {
+            Class<? extends DomainEvent> type = typeRegistry.resolve(envelope.eventType());
+            return objectMapper.readValue(envelope.payload(), type);
+        } catch (IllegalArgumentException | JacksonException e) {
+            throw new NonRetryableRelayException(
+                    "이벤트를 되돌릴 수 없다: type=" + envelope.eventType() + ", eventId=" + envelope.eventId(), e);
+        }
     }
 }
