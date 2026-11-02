@@ -142,6 +142,7 @@ public class Order {
         this.status = OrderStatus.PAID;
         this.paymentId = paymentId;
         this.paidAt = paidAt;
+        releasePendingItems();
         return true;
     }
 
@@ -210,6 +211,12 @@ public class Order {
         this.status = OrderStatus.CANCELED;
         this.cancelReason = reason;
         this.canceledAt = now;
+        releasePendingItems();
+    }
+
+    // 결제 대기를 벗어나면 같은 상품으로 다시 주문할 수 있게 unique 대상에서 뺀다
+    private void releasePendingItems() {
+        items.forEach(OrderItem::releasePending);
     }
 
     private void validatePaymentPending() {

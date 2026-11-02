@@ -1,13 +1,13 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
-import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseFacade;
-import com.cartmate.cartmate.boundedContext.cart.app.personal.CartFacade;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order.OrderLine;
+import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderItem;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
+import com.cartmate.cartmate.boundedContext.order.out.OrderCartClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
@@ -15,6 +15,8 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
 import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,12 +32,11 @@ class OrderCreateUseCase {
     private final OrderRepository orderRepository;
     private final OrderProductClient orderProductClient;
     private final OrderNumberGenerator orderNumberGenerator;
-    private final CartFacade cartFacade;
-    private final IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
+    private final OrderCartClient orderCartClient;
 
     OrderCreateResponse createPersonal(Long memberId, List<Long> cartItemIds, DeliveryAddress deliveryAddress,
                                        LocalDateTime now) {
-        List<CartOrderItem> cartItems = cartFacade.getCartItemsForOrder(memberId, cartItemIds);
+        List<CartOrderItem> cartItems = orderCartClient.getCartItemsForOrder(memberId, cartItemIds);
         List<Long> inventoryIds = cartItems.stream().map(CartOrderItem::inventoryId).toList();
         if (orderRepository.findPendingPersonalOrderIdContaining(memberId, inventoryIds).isPresent()) {
             throw new ServiceException(OrderErrorCode.ORDER_ALREADY_PENDING);
@@ -45,7 +46,7 @@ class OrderCreateUseCase {
                 .map(item -> toLine(products, item.inventoryId(), item.quantity()))
                 .toList();
         Order order = Order.createPersonal(generateOrderNumber(now), memberId, lines, deliveryAddress, now);
-        return OrderCreateResponse.from(orderRepository.save(order));
+        return OrderCreateResponse.from(savePersonal(order));
     }
 
     OrderCreateResponse createIndividualGroup(Long memberId, Long individualGroupPurchaseId,
@@ -61,13 +62,37 @@ class OrderCreateUseCase {
                 .toList();
         List<Long> productIds = lines.stream().map(OrderLine::productId).distinct().toList();
         IndividualGroupPurchaseOrderable orderable =
-                individualGroupPurchaseFacade.getOrderable(individualGroupPurchaseId, productIds, now);
+                orderCartClient.getIndividualGroupPurchaseOrderable(individualGroupPurchaseId, productIds, now);
         if (orderRepository.findPendingIndividualGroupOrderId(memberId, orderable.individualGroupPurchaseId()).isPresent()) {
             throw new ServiceException(OrderErrorCode.ORDER_ALREADY_PENDING);
         }
         Order order = Order.createIndividualGroup(generateOrderNumber(now), memberId,
                 orderable.individualGroupPurchaseId(), orderable.saleDeadlineAt(), lines, deliveryAddress, now);
         return OrderCreateResponse.from(orderRepository.save(order));
+    }
+
+    // 위 조회와 저장 사이에 같은 상품의 결제 대기 주문이 먼저 들어오면 order_item의 unique가 막는다.
+    // 지금은 cart 행 락이 같은 회원의 주문 생성을 줄 세우지만, cart가 다른 서비스가 되면 그 락은 이 트랜잭션에 없다.
+    private Order savePersonal(Order order) {
+        try {
+            return orderRepository.saveAndFlush(order);
+        } catch (DataIntegrityViolationException e) {
+            if (isPendingItemConflict(e)) {
+                throw new ServiceException(OrderErrorCode.ORDER_ALREADY_PENDING);
+            }
+            throw e;
+        }
+    }
+
+    // Hibernate가 알려 주는 제약 이름을 먼저 보고, 없으면 DB 메시지에서 찾는다 (MySQL은 'order_item.uk_...'처럼 테이블을 붙인다)
+    private static boolean isPendingItemConflict(DataIntegrityViolationException e) {
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConstraintViolationException violation && violation.getConstraintName() != null) {
+                return violation.getConstraintName().contains(OrderItem.PENDING_BUYER_INVENTORY_UNIQUE);
+            }
+        }
+        String message = e.getMostSpecificCause().getMessage();
+        return message != null && message.contains(OrderItem.PENDING_BUYER_INVENTORY_UNIQUE);
     }
 
     private String generateOrderNumber(LocalDateTime now) {
