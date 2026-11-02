@@ -17,7 +17,9 @@ import java.time.LocalDateTime;
 @Table(
         name = "payment",
         uniqueConstraints = @UniqueConstraint(name = "uk_payment_type_order_member",
-                columnNames = {"payment_type", "order_id", "member_id"})
+                columnNames = {"payment_type", "order_id", "member_id"}),
+        // 관리자 대시보드: 하루 결제 건수·금액을 결제 시각 범위로 조회
+        indexes = @Index(name = "idx_payment_paid_at", columnList = "paid_at")
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
