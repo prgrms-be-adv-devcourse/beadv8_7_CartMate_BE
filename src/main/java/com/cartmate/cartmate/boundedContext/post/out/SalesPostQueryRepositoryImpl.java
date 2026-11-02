@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.post.domain.SalesPostUpdateStatus;
 import com.cartmate.cartmate.boundedContext.post.dto.SelectSalesPostRequest;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.Page;
@@ -14,6 +15,8 @@ import org.springframework.data.support.PageableExecutionUtils;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.cartmate.cartmate.boundedContext.post.domain.QSalesPost.salesPost;
 
@@ -139,6 +142,22 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
 
     private BooleanExpression statusEq(SalesPostSaleStatus status) {
         return status == null ? null : salesPost.status.eq(status);
+    }
+
+    // select status, count(*) from post_sales_post where status in (...) group by status
+    @Override
+    public Map<SalesPostSaleStatus, Long> countByStatuses(Collection<SalesPostSaleStatus> statuses) {
+        NumberExpression<Long> count = salesPost.count();   // select와 결과 꺼내기에 같은 식을 쓴다
+                return queryFactory
+                        .select(salesPost.status, count)
+                        .from(salesPost)
+                        .where(salesPost.status.in(statuses))
+                        .groupBy(salesPost.status)
+                        .fetch()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                row -> row.get(salesPost.status),
+                                row -> row.get(count)));
     }
 
 }
