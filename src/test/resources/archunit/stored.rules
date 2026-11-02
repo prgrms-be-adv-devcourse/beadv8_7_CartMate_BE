@@ -1,0 +1,8 @@
+#
+#Mon Nov 02 12:44:05 KST 2026
+R1\ cart\ must\ not\ depend\ on\ order,\ because\ cart\ and\ order\ are\ separate\ services;\ they\ talk\ only\ through\ shared\ events\ and\ ports\ (ARCH-1\ rule\ 1)=6a88640e-eda9-4033-9716-60c6ffb072d8
+R1\ order\ must\ not\ depend\ on\ cart,\ because\ cart\ and\ order\ are\ separate\ services;\ they\ talk\ only\ through\ shared\ events\ and\ ports\ (ARCH-1\ rule\ 1)=f1ab5b7c-8b54-4a44-80fb-8c6b98361d8e
+R2\ cart\ must\ not\ depend\ on\ other\ bounded\ contexts,\ because\ contracts\ with\ other\ modules\ live\ in\ shared\ only;\ no\ direct\ use\ of\ another\ module's\ Facade\ or\ entity\ (ARCH-1\ rules\ 1,\ 3)=7bd4d9c5-8bb8-4c1d-a9e1-eeb219a13747
+R2\ order\ must\ not\ depend\ on\ other\ bounded\ contexts,\ because\ contracts\ with\ other\ modules\ live\ in\ shared\ only;\ no\ direct\ use\ of\ another\ module's\ Facade\ or\ entity\ (ARCH-1\ rules\ 1,\ 3)=fe43557d-b88d-44cf-9b1b-a9209954849e
+R3\ classes\ outside\ cart\ and\ order\ must\ not\ depend\ on\ cart/order\ internals\ (app,\ domain,\ out,\ in,\ dto),\ because\ the\ only\ contract\ cart\ and\ order\ expose\ is\ the\ shared\ package\:\ events,\ ports,\ records\ (ARCH-1\ rules\ 1,\ 3)=bb4f6212-35e9-40eb-af61-41bb78c07034
+R4\ methods\ in\ cart\ and\ order\ must\ not\ be\ annotated\ with\ @EventListener\ (use\ @TransactionalEventListener\ AFTER_COMMIT),\ because\ cross-module\ writes\ happen\ only\ after\ commit;\ a\ same-transaction\ listener\ lets\ one\ module's\ rollback\ spread\ into\ another\ (ARCH-1\ rule\ 2)=e527755d-3f1f-4b74-908f-c06a3cd6c62b
