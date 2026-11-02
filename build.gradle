@@ -53,6 +53,10 @@ dependencies {
 	// Redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+	// Outbox · ShedLock (릴레이 스케줄러 분산 락, 같은 DB의 shedlock 테이블 사용)
+	implementation 'net.javacrumbs.shedlock:shedlock-spring:7.10.1'
+	implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.10.1'
 }
 
 tasks.named('test') {
