@@ -6,6 +6,7 @@ import com.cartmate.cartmate.boundedContext.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayPayment;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeGateway;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.lock.DistributedLockExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,12 +20,19 @@ public class WalletChargeWebhookService {
     private final WalletFacade walletFacade;
     private final WalletChargeGateway chargeGateway;
     private final WalletChargeSettlement settlement;
+    private final DistributedLockExecutor lockExecutor;
 
     // 웹훅 본문은 믿지 않고 결제키로 결제사에 다시 조회한다.
     // 결제사 조회가 실패하면 예외를 그대로 던져 결제사가 웹훅을 다시 보내게 한다.
+    // 결제사 조회는 주문번호를 알아내는 읽기라서 락 밖에서 하고, 주문을 읽고 바꾸는 부분만 잠근다.
     public void sync(String paymentKey) {
         ChargeGatewayPayment payment = chargeGateway.fetch(paymentKey);
 
+        lockExecutor.run("wallet-charge:" + payment.orderNumber(), () -> apply(paymentKey, payment));
+    }
+
+    // 락을 얻은 동안 실행된다. 승인 API(WalletChargeConfirmService.confirm)와 같은 키로 잠가서 같은 주문을 동시에 확정하지 않는다.
+    private void apply(String paymentKey, ChargeGatewayPayment payment) {
         WalletChargeOrderInfo order;
         try {
             order = walletFacade.getChargeOrder(payment.orderNumber());
