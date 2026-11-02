@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.shared.order.event;
 
+import com.cartmate.cartmate.shared.event.DomainEvent;
+
 import java.time.LocalDateTime;
 
 /**
@@ -17,5 +19,15 @@ public record OrderSellerItemsCanceledEvent(
         Long sellerId,
         long amount,
         LocalDateTime canceledAt
-) {
+) implements DomainEvent {
+
+    @Override
+    public String aggregateType() {
+        return "Order";
+    }
+
+    @Override
+    public String aggregateId() {
+        return String.valueOf(orderId);
+    }
 }
