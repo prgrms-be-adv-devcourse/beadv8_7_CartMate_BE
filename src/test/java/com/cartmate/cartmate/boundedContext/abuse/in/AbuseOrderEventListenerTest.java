@@ -32,6 +32,9 @@ class AbuseOrderEventListenerTest {
     @Mock
     private AbuseFacade abuseFacade;
 
+    @Mock
+    private AbuseJudgeRunner abuseJudgeRunner;
+
     @InjectMocks
     private AbuseOrderEventListener listener;
 
@@ -77,28 +80,23 @@ class AbuseOrderEventListenerTest {
     }
 
     @Test
-    @DisplayName("커밋 후에는 미결제 참여자마다 판정 Facade를 따로 호출한다")
-    void delegatesPerUnpaidMember() {
-        listener.handle(EVENT);
+    @DisplayName("커밋 후에는 미결제 참여자마다 한 번씩 판정을 실행한다")
+    void judgesPerUnpaidMember() {
+        listener.judge(new SharedGroupOrderCanceledEvent(
+                100L, 10L, "DEADLINE_EXPIRED", CANCELED_AT, Arrays.asList(2L, null, 3L, 2L)));
 
-        then(abuseFacade).should().handleSharedGroupOrderCanceled(EVENT, 2L);
-        then(abuseFacade).should().handleSharedGroupOrderCanceled(EVENT, 3L);
-    }
-
-    @Test
-    @DisplayName("한 참여자 판정이 실패해도 예외를 던지지 않고 다음 참여자를 처리한다")
-    void continuesAfterFailure() {
-        willThrow(new IllegalStateException("fail")).given(abuseFacade).handleSharedGroupOrderCanceled(EVENT, 2L);
-
-        assertThatCode(() -> listener.handle(EVENT)).doesNotThrowAnyException();
-        then(abuseFacade).should().handleSharedGroupOrderCanceled(EVENT, 3L);
-    }
-
-    @Test
-    @DisplayName("커밋 후 미결제자 목록이 없으면 아무것도 하지 않는다")
-    void noUnpaidMembers() {
-        listener.handle(new SharedGroupOrderCanceledEvent(100L, 10L, "DEADLINE_EXPIRED", CANCELED_AT, null));
-
+        then(abuseJudgeRunner).should().judge(2L);
+        then(abuseJudgeRunner).should().judge(3L);
+        then(abuseJudgeRunner).shouldHaveNoMoreInteractions();
         then(abuseFacade).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("기한 만료가 아니거나 미결제자 목록이 없으면 판정하지 않는다")
+    void judgesNothingForOtherEvents() {
+        listener.judge(new SharedGroupOrderCanceledEvent(100L, 10L, "CREATOR_CANCELED", CANCELED_AT, List.of(2L)));
+        listener.judge(new SharedGroupOrderCanceledEvent(100L, 10L, "DEADLINE_EXPIRED", CANCELED_AT, null));
+
+        then(abuseJudgeRunner).shouldHaveNoInteractions();
     }
 }

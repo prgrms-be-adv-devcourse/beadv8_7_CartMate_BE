@@ -21,6 +21,7 @@ class SharedGroupPurchaseMemberUseCase {
         if (purchase.isMember(memberId)) {
             return purchase.getId();
         }
+        sharedGroupPurchaseSupport.validateNotRestricted(memberId);
         purchase.join(memberId, LocalDateTime.now());
         return purchase.getId();
     }

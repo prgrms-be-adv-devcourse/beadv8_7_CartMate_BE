@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -22,28 +23,29 @@ public class AbuseOrderEventListener {
     private static final String DEADLINE_EXPIRED = "DEADLINE_EXPIRED";
 
     private final AbuseFacade abuseFacade;
+    private final AbuseJudgeRunner abuseJudgeRunner;
 
     @EventListener
     public void receive(SharedGroupOrderCanceledEvent event) {
-        if (!DEADLINE_EXPIRED.equals(event.cancelReason()) || event.unpaidMemberIds() == null) {
+        if (!isSignal(event)) {
             return;
         }
         event.unpaidMemberIds().forEach(memberId -> toCommand(event, memberId).ifPresent(abuseFacade::receive));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handle(SharedGroupOrderCanceledEvent event) {
-        if (event.unpaidMemberIds() == null) {
+    public void judge(SharedGroupOrderCanceledEvent event) {
+        if (!isSignal(event)) {
             return;
         }
-        event.unpaidMemberIds().forEach(memberId -> {
-            try {
-                abuseFacade.handleSharedGroupOrderCanceled(event, memberId);
-            } catch (Exception e) {
-                log.error("공동 주문 취소 어뷰징 신호 처리 실패: sharedGroupOrderId={}, memberId={}",
-                        event.sharedGroupOrderId(), memberId, e);
-            }
-        });
+        event.unpaidMemberIds().stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(abuseJudgeRunner::judge);
+    }
+
+    private boolean isSignal(SharedGroupOrderCanceledEvent event) {
+        return DEADLINE_EXPIRED.equals(event.cancelReason()) && event.unpaidMemberIds() != null;
     }
 
     private Optional<AbuseSignalCommand> toCommand(SharedGroupOrderCanceledEvent event, Long memberId) {

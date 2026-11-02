@@ -7,13 +7,18 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Entity
@@ -22,10 +27,17 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_abuse_signal_source",
                 columnNames = {"member_id", "signal_type", "source_key"}
-        )
+        ),
+        indexes = {
+                @Index(name = "idx_abuse_signal_member_type_occurred", columnList = "member_id, signal_type, occurred_at"),
+                @Index(name = "idx_abuse_signal_status_received", columnList = "status, received_at")
+        }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AbuseSignal {
+
+    public static final int MAX_JUDGE_ATTEMPTS = 10;
+    public static final int LAST_ERROR_LENGTH = 500;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,9 +63,54 @@ public class AbuseSignal {
     @Column(nullable = false, columnDefinition = "varchar(20)")
     private AbuseSignalStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar(20)")
+    private AbuseLevel level;
+
+    private Integer totalScore;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "json")
+    private List<AbuseRuleResult> ruleResults;
+
+    private LocalDateTime judgedAt;
+
+    @Column(nullable = false)
+    private int attemptCount;
+
+    @Column(length = LAST_ERROR_LENGTH)
+    private String lastError;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    static AbuseSignal received(Long memberId, AbuseSignalType signalType, String sourceKey, LocalDateTime occurredAt,
+                                LocalDateTime receivedAt) {
+        AbuseSignal signal = new AbuseSignal();
+        signal.memberId = memberId;
+        signal.signalType = signalType;
+        signal.sourceKey = sourceKey;
+        signal.occurredAt = occurredAt;
+        signal.receivedAt = receivedAt;
+        signal.status = AbuseSignalStatus.RECEIVED;
+        signal.createdAt = receivedAt;
+        signal.updatedAt = receivedAt;
+        return signal;
+    }
+
+    public void judge(AbuseVerdict verdict, LocalDateTime judgedAt) {
+        this.level = verdict.level();
+        this.totalScore = verdict.totalScore();
+        this.ruleResults = new ArrayList<>(verdict.ruleResults());
+        this.judgedAt = judgedAt;
+        this.status = AbuseSignalStatus.JUDGED;
+        this.updatedAt = judgedAt;
+    }
+
+    public static String truncateError(String error) {
+        return error == null || error.length() <= LAST_ERROR_LENGTH ? error : error.substring(0, LAST_ERROR_LENGTH);
+    }
 }

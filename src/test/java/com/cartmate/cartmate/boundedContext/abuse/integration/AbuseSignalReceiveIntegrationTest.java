@@ -72,7 +72,7 @@ class AbuseSignalReceiveIntegrationTest {
     }
 
     @Test
-    @DisplayName("공동 주문이 기한 만료로 취소되면 같은 트랜잭션에서 미결제 참여자 신호만 RECEIVED로 저장된다")
+    @DisplayName("공동 주문이 기한 만료로 취소되면 미결제 참여자 신호만 저장되고 커밋 후 판정된다")
     void deadlineCancelReceivesSignalForUnpaidMember() {
         long creator = nextMemberId();
         long unpaid = nextMemberId();
@@ -88,7 +88,7 @@ class AbuseSignalReceiveIntegrationTest {
         AbuseSignal signal = signals.getFirst();
         assertThat(signal.getSignalType()).isEqualTo(AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED);
         assertThat(signal.getSourceKey()).isEqualTo(String.valueOf(orderId));
-        assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.RECEIVED);
+        assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
         assertThat(signal.getOccurredAt()).isEqualTo(canceledAtOf(orderId));
         assertThat(signal.getReceivedAt()).isNotNull();
     }
