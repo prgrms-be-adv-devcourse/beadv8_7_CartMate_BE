@@ -78,7 +78,7 @@ class ClaimControllerTest {
     @DisplayName("POST /api/claims는 201과 RsData로 응답하고 요청 본문을 로그인한 회원의 커맨드로 변환한다")
     void createClaim() throws Exception {
         DeliveryClaimResponse response = new DeliveryClaimResponse(
-                7L, 5L, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다",
+                7L, 5L, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다", null,
                 ClaimStatus.REQUESTED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.createClaim(any())).thenReturn(response);
@@ -107,7 +107,7 @@ class ClaimControllerTest {
     @DisplayName("GET /api/claims/me는 로그인한 회원의 클레임 목록과 진행 상태를 RsData로 응답한다")
     void myClaims() throws Exception {
         DeliveryClaimResponse response = new DeliveryClaimResponse(
-                7L, 5L, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다",
+                7L, 5L, ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다", null,
                 ClaimStatus.APPROVED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.getMyClaims(eq(1L), any()))
@@ -142,7 +142,7 @@ class ClaimControllerTest {
     @DisplayName("GET /api/claims/seller는 주문번호와 상품을 포함한 목록을 RsData로 응답한다")
     void sellerClaims() throws Exception {
         SellerClaimResponse row = new SellerClaimResponse(
-                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다", null,
                 ClaimStatus.REQUESTED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.getSellerClaims(eq(1L), any(), any(), any()))
@@ -195,7 +195,7 @@ class ClaimControllerTest {
     @DisplayName("PATCH /api/claims/{claimId}/approve는 본문 없이 수락 처리하고 RsData로 응답한다")
     void approveClaim() throws Exception {
         SellerClaimResponse response = new SellerClaimResponse(
-                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다",
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.EXCHANGE, ClaimReason.SIZE_MISMATCH, "L로 교환 원합니다", null,
                 ClaimStatus.APPROVED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.approveClaim(7L, 1L)).thenReturn(response);
@@ -230,10 +230,59 @@ class ClaimControllerTest {
     }
 
     @Test
+    @DisplayName("PATCH /api/claims/{claimId}/reject는 사유를 받아 거절 처리하고 RsData로 응답한다")
+    void rejectClaim() throws Exception {
+        SellerClaimResponse response = new SellerClaimResponse(
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
+                "사용 흔적이 확인됩니다", ClaimStatus.REJECTED, null,
+                List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
+        when(deliveryFacade.rejectClaim(7L, 1L, "사용 흔적이 확인됩니다")).thenReturn(response);
+
+        mvc.perform(patch("/api/claims/7/reject").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"사용 흔적이 확인됩니다\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data.status").value("REJECTED"))
+                .andExpect(jsonPath("$.data.rejectReason").value("사용 흔적이 확인됩니다"));
+    }
+
+    @Test
+    @DisplayName("거절 사유가 없거나 공백이면 400이고 거절하지 않는다")
+    void rejectClaimRequiresReason() throws Exception {
+        for (String body : new String[]{"{}", "{\"reason\":\"   \"}"}) {
+            mvc.perform(patch("/api/claims/7/reject").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest());
+        }
+        verifyNoInteractions(deliveryFacade);
+    }
+
+    @Test
+    @DisplayName("거절에서 권한 없음 403, 수락 후 409, 없는 클레임 404로 변환된다")
+    void rejectClaimErrors() throws Exception {
+        when(deliveryFacade.rejectClaim(6L, 1L, "사유"))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_ACCESS_DENIED));
+        when(deliveryFacade.rejectClaim(7L, 1L, "사유"))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_INVALID_STATUS));
+        when(deliveryFacade.rejectClaim(8L, 1L, "사유"))
+                .thenThrow(new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_NOT_FOUND));
+        String body = "{\"reason\":\"사유\"}";
+
+        mvc.perform(patch("/api/claims/6/reject").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.resultCode").value("403-DELIVERY_ACCESS_DENIED"));
+        mvc.perform(patch("/api/claims/7/reject").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.resultCode").value("409-DELIVERY_CLAIM_INVALID_STATUS"));
+        mvc.perform(patch("/api/claims/8/reject").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-DELIVERY_CLAIM_NOT_FOUND"));
+    }
+
+    @Test
     @DisplayName("PATCH /api/claims/{claimId}/complete는 본문 없이 완료 처리하고 RsData로 응답한다")
     void completeClaim() throws Exception {
         SellerClaimResponse response = new SellerClaimResponse(
-                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다",
+                7L, 5L, 100L, "20261115-AB3K9X2P", ClaimType.REFUND, ClaimReason.PRODUCT_DEFECT, "마감 불량입니다", null,
                 ClaimStatus.COMPLETED, null,
                 List.of(new DeliveryClaimResponse.Item(50L, 1000L, "티셔츠", 1L)));
         when(deliveryFacade.completeClaim(7L, 1L)).thenReturn(response);

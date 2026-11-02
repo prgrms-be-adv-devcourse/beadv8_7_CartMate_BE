@@ -25,12 +25,16 @@ public class JwtProvider {
         this.accessTokenExpireSeconds = accessTokenExpireSeconds;
     }
 
-    public String createAccessToken(Long memberId, String email, String role) {
+    public String createAccessToken(Long memberId, String email, String role, Long sellerId) {
         Date now = new Date();
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(String.valueOf(memberId))
                 .claim("email", email)
-                .claim("role", role)
+                .claim("role", role);
+        if (sellerId != null) {
+            builder.claim("sellerId", sellerId);   // 판매자만 넣는다
+        }
+        return builder
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + accessTokenExpireSeconds * 1000))
                 .signWith(key)
@@ -45,10 +49,13 @@ public class JwtProvider {
                     .parseSignedClaims(token)
                     .getPayload();
 
+            // 판매자 토큰에만 sellerId가 있다. 숫자는 Integer로 읽힐 수도 있어 Number로 받아 Long으로 바꾼다.
+            Number sellerId = claims.get("sellerId", Number.class);
             return Optional.of(new SecurityUser(
                     Long.valueOf(claims.getSubject()),
                     claims.get("email", String.class),
-                    claims.get("role", String.class)
+                    claims.get("role", String.class),
+                    sellerId == null ? null : sellerId.longValue()
             ));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty(); // 위조, 만료, 형식 오류 모두 "인증 안 됨"으로 처리

@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.delivery.in;
 
 import com.cartmate.cartmate.boundedContext.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryClaimCreateRequest;
+import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryClaimRejectRequest;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.DeliveryClaimResponse;
 import com.cartmate.cartmate.boundedContext.delivery.app.dto.SellerClaimResponse;
 import com.cartmate.cartmate.boundedContext.delivery.domain.ClaimStatus;
@@ -65,6 +66,17 @@ public class ClaimController {
     ) {
         return new RsData<>("200-1", "교환·환불이 수락되었습니다.",
                 deliveryFacade.approveClaim(claimId, user.memberId()));
+    }
+
+    // 판매자가 접수된 교환·환불을 사유와 함께 거절한다.
+    @PatchMapping("/{claimId}/reject")
+    public RsData<SellerClaimResponse> rejectClaim(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long claimId,
+            @Valid @RequestBody DeliveryClaimRejectRequest request
+    ) {
+        return new RsData<>("200-1", "교환·환불이 거절되었습니다.",
+                deliveryFacade.rejectClaim(claimId, user.memberId(), request.reason()));
     }
 
     // 판매자가 수락한 교환·환불을 처리 완료로 바꾼다.

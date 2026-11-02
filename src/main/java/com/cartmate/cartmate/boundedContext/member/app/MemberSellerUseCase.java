@@ -90,8 +90,9 @@ public class MemberSellerUseCase {
                         seller.getModifyDate()
         ));
 
-        // 역할이 SELLER로 바뀌었으니 새 토큰 발급 (다시 로그인하지 않아도 판매자로 인식)
-        String accessToken = jwtProvider.createAccessToken(member.getId(), member.getEmail(), member.getRole().name());
+        // 역할이 SELLER로 바뀌었으니 새 토큰 발급 (다시 로그인하지 않아도 판매자로 인식, 판매자 ID 포함)
+        String accessToken = jwtProvider.createAccessToken(
+                member.getId(), member.getEmail(), member.getRole().name(), seller.getId());
 
         return new RegisterResult(SellerResponse.from(seller), accessToken);
     }

@@ -52,6 +52,9 @@ public class SalesPost extends BaseIdAndTime {
     @Column(nullable = false)
     private LocalDateTime updateStatusChangedAt;
 
+    // 판매 중지·숨김·삭제된 시각. 진행 중 거래 정리 대사(재처리) 대상을 찾는 데 쓴다.
+    private LocalDateTime hiddenAt;
+
     public SalesPost(Long sellerId, String title, String content, SalesPostSaleStatus status, Long viewCount,
                      SalesPostUpdateStatus updateStatus, LocalDateTime updateStatusChangedAt) {
         this.sellerId = sellerId;
@@ -65,6 +68,7 @@ public class SalesPost extends BaseIdAndTime {
 
     public SalesPost deleteComplete() {
         this.status = SalesPostSaleStatus.DELETED;
+        this.hiddenAt = LocalDateTime.now();
         return this;
     }
 
@@ -95,6 +99,7 @@ public class SalesPost extends BaseIdAndTime {
     public void suspendByAdmin() {
         validateSuspendable();
         this.status = SalesPostSaleStatus.SUSPENDED;
+        this.hiddenAt = LocalDateTime.now();
     }
 
     public void resumeByAdmin() {
@@ -118,6 +123,7 @@ public class SalesPost extends BaseIdAndTime {
     public void pauseBySeller() {
         validatePausable();
         this.status = SalesPostSaleStatus.PAUSED;
+        this.hiddenAt = LocalDateTime.now();
     }
 
     public void resumeBySeller() {

@@ -49,6 +49,10 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.12.6'
 	implementation platform('software.amazon.awssdk:bom:2.25.0')
 	implementation 'software.amazon.awssdk:s3'
+
+	// Redis
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 }
 
 tasks.named('test') {

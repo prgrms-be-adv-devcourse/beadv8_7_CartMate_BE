@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Entity
@@ -109,6 +110,19 @@ public class IndividualGroupPurchase {
                 .findFirst()
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCT_NOT_ON_SALE));
         products.remove(product);
+    }
+
+    // 판매글 판매 중지: 해당 상품을 제외한다. 남은 상품이 없으면 공동구매를 종료한다. 바뀐 게 있으면 true.
+    public boolean removeProductsBySalesStopped(Set<Long> productIds, LocalDateTime now) {
+                if (status != IndividualGroupPurchaseStatus.OPEN) {
+                    return false;
+                }
+                boolean removed = products.removeIf(product -> productIds.contains(product.getProductId()));
+                if (removed && products.isEmpty()) {
+                    this.status = IndividualGroupPurchaseStatus.CLOSED;
+                    this.closedAt = now;
+                }
+                return removed;
     }
 
     public boolean hasProduct(Long productId) {
