@@ -19,7 +19,6 @@ public interface OrderRepositoryCustom {
 
     boolean existsActiveOrderByIndividualGroupPurchaseAndProduct(Long individualGroupPurchaseId, Long productId);
 
-    List<IndividualGroupPurchaseOrderLineView> findPaidOrderLines(Long individualGroupPurchaseId);
 
     Optional<Long> findPendingIndividualGroupOrderId(Long memberId, Long individualGroupPurchaseId);
 

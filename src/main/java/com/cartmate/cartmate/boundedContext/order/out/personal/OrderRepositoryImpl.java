@@ -3,7 +3,6 @@ package com.cartmate.cartmate.boundedContext.order.out.personal;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderType;
-import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
@@ -81,29 +80,6 @@ public class OrderRepositoryImpl implements OrderRepositoryCustom {
                 )
                 .fetchFirst();
         return found != null;
-    }
-
-    @Override
-    public List<IndividualGroupPurchaseOrderLineView> findPaidOrderLines(Long individualGroupPurchaseId) {
-        return queryFactory
-                .select(Projections.constructor(IndividualGroupPurchaseOrderLineView.class,
-                        order.id,
-                        order.buyerMemberId,
-                        orderItem.productId,
-                        orderItem.inventoryId,
-                        orderItem.quantity,
-                        orderItem.unitPrice,
-                        order.createdAt
-                ))
-                .from(orderItem)
-                .join(orderItem.order, order)
-                .where(
-                        order.orderType.eq(OrderType.INDIVIDUAL_GROUP),
-                        order.individualGroupPurchaseId.eq(individualGroupPurchaseId),
-                        order.status.eq(OrderStatus.PAID)
-                )
-                .orderBy(order.id.asc(), orderItem.id.asc())
-                .fetch();
     }
 
     @Override

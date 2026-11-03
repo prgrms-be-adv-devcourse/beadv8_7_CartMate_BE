@@ -14,6 +14,8 @@ import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
 import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
+import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -33,6 +35,7 @@ class OrderCreateUseCase {
     private final OrderProductClient orderProductClient;
     private final OrderNumberGenerator orderNumberGenerator;
     private final OrderCartClient orderCartClient;
+    private final DomainEventPublisher eventPublisher;
 
     OrderCreateResponse createPersonal(Long memberId, List<Long> cartItemIds, DeliveryAddress deliveryAddress,
                                        LocalDateTime now) {
@@ -46,7 +49,9 @@ class OrderCreateUseCase {
                 .map(item -> toLine(products, item.inventoryId(), item.quantity()))
                 .toList();
         Order order = Order.createPersonal(generateOrderNumber(now), memberId, lines, deliveryAddress, now);
-        return OrderCreateResponse.from(savePersonal(order));
+        Order saved = savePersonal(order);
+        eventPublisher.publish(toCreatedEvent(saved));
+        return OrderCreateResponse.from(saved);
     }
 
     OrderCreateResponse createIndividualGroup(Long memberId, Long individualGroupPurchaseId,
@@ -68,7 +73,29 @@ class OrderCreateUseCase {
         }
         Order order = Order.createIndividualGroup(generateOrderNumber(now), memberId,
                 orderable.individualGroupPurchaseId(), orderable.saleDeadlineAt(), lines, deliveryAddress, now);
-        return OrderCreateResponse.from(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        eventPublisher.publish(toCreatedEvent(saved));
+        return OrderCreateResponse.from(saved);
+    }
+
+    private OrderCreatedEvent toCreatedEvent(Order order) {
+        return new OrderCreatedEvent(
+                order.getId(),
+                order.getOrderNumber(),
+                order.getBuyerMemberId(),
+                order.getOrderType().name(),
+                order.getIndividualGroupPurchaseId(),
+                order.getCreatedAt(),
+                order.getItems().stream()
+                        .map(item -> new OrderCreatedEvent.Item(
+                                item.getId(),
+                                item.getProductId(),
+                                item.getInventoryId(),
+                                item.getSellerId(),
+                                item.getQuantity(),
+                                item.getUnitPrice()))
+                        .toList()
+        );
     }
 
     // 위 조회와 저장 사이에 같은 상품의 결제 대기 주문이 먼저 들어오면 order_item의 unique가 막는다.

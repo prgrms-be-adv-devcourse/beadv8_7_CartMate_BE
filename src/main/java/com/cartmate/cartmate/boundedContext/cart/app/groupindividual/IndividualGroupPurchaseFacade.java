@@ -7,6 +7,10 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualG
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseSummaryResponse;
 import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +26,7 @@ public class IndividualGroupPurchaseFacade {
     private final IndividualGroupPurchaseDemandOpenUseCase individualGroupPurchaseDemandOpenUseCase;
     private final IndividualGroupPurchaseManageUseCase individualGroupPurchaseManageUseCase;
     private final IndividualGroupPurchaseQueryUseCase individualGroupPurchaseQueryUseCase;
+    private final IndividualGroupPurchaseOrderReplicaUseCase individualGroupPurchaseOrderReplicaUseCase;
 
     @Transactional
     public IndividualGroupPurchaseCreateResponse create(Long memberId, IndividualGroupPurchaseCreateRequest request) {
@@ -78,5 +83,26 @@ public class IndividualGroupPurchaseFacade {
     public IndividualGroupPurchaseOrderable getOrderable(Long individualGroupPurchaseId, List<Long> productIds,
                                                          LocalDateTime now) {
         return individualGroupPurchaseQueryUseCase.getOrderable(individualGroupPurchaseId, productIds, now);
+    }
+
+    // 아래 넷은 order 이벤트로 주문 읽기 모델을 고친다 (아웃박스 릴레이 → IndividualGroupPurchaseOrderReplicaListener)
+    @Transactional
+    public void applyOrderCreated(OrderCreatedEvent event) {
+        individualGroupPurchaseOrderReplicaUseCase.applyCreated(event);
+    }
+
+    @Transactional
+    public void applyOrderPaid(OrderPaidEvent event) {
+        individualGroupPurchaseOrderReplicaUseCase.applyPaid(event);
+    }
+
+    @Transactional
+    public void applyOrderCanceled(OrderCanceledEvent event) {
+        individualGroupPurchaseOrderReplicaUseCase.applyCanceled(event);
+    }
+
+    @Transactional
+    public void applyOrderSellerItemsCanceled(OrderSellerItemsCanceledEvent event) {
+        individualGroupPurchaseOrderReplicaUseCase.applySellerItemsCanceled(event);
     }
 }

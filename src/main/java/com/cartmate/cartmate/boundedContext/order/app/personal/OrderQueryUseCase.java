@@ -4,7 +4,6 @@ import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
-import com.cartmate.cartmate.boundedContext.order.out.personal.IndividualGroupPurchaseOrderLineView;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
@@ -34,9 +33,5 @@ class OrderQueryUseCase {
 
     boolean hasActiveIndividualGroupOrder(Long individualGroupPurchaseId, Long productId) {
         return orderRepository.existsActiveOrderByIndividualGroupPurchaseAndProduct(individualGroupPurchaseId, productId);
-    }
-
-    List<IndividualGroupPurchaseOrderLineView> findPaidIndividualGroupOrderLines(Long individualGroupPurchaseId) {
-        return orderRepository.findPaidOrderLines(individualGroupPurchaseId);
     }
 }

@@ -8,8 +8,8 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualG
 import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.cart.out.CartProductOptions;
 import com.cartmate.cartmate.boundedContext.cart.out.MemberClient;
-import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderClient;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderLine;
+import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderReplicaRepository;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
@@ -27,7 +27,7 @@ class IndividualGroupPurchaseQueryUseCase {
 
     private final IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
     private final IndividualGroupPurchaseSupport individualGroupPurchaseSupport;
-    private final IndividualGroupPurchaseOrderClient orderClient;
+    private final IndividualGroupPurchaseOrderReplicaRepository orderReplicaRepository;
     private final MemberClient memberClient;
 
     IndividualGroupPurchaseDetailResponse getByInviteCode(Long memberId, String inviteCode) {
@@ -43,7 +43,8 @@ class IndividualGroupPurchaseQueryUseCase {
 
     IndividualGroupPurchaseDashboardResponse getDashboard(Long memberId, Long individualGroupPurchaseId) {
         IndividualGroupPurchase purchase = getWithProductsForCreator(memberId, individualGroupPurchaseId);
-        List<IndividualGroupPurchaseOrderLine> lines = orderClient.findOrderLines(individualGroupPurchaseId);
+        // order 이벤트로 채운 읽기 모델이라 결제 직후 1~2초는 빠질 수 있다 (표시용이라 받아들임)
+        List<IndividualGroupPurchaseOrderLine> lines = orderReplicaRepository.findPaidLines(individualGroupPurchaseId);
         Map<Long, String> nicknames = memberClient.findNicknames(lines.stream()
                 .map(IndividualGroupPurchaseOrderLine::buyerMemberId)
                 .collect(Collectors.toSet()));
