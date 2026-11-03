@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.out.groupindividual;
 
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchase;
+import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchaseStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,4 +23,7 @@ public interface IndividualGroupPurchaseRepository
             "where g.status = com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchaseStatus.OPEN " +
             "and p.productId in :productIds")
     List<Long> findOpenIdsByProductIds(@Param("productIds") Collection<Long> productIds);
+
+    // 회원 탈퇴 확인: 만든 사람의 특정 상태 공동구매 수
+    long countByCreatorMemberIdAndStatus(Long creatorMemberId, IndividualGroupPurchaseStatus status);
 }

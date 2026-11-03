@@ -98,4 +98,10 @@ public class OrderFacade {
     public void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
         orderCancelUseCase.cancelSellerItemsBySalesStopped(orderId, sellerId);
     }
+
+    // 회원 탈퇴 확인: 결제 대기 중인 개인 주문 수
+    @Transactional(readOnly = true)
+    public long countPaymentPendingOfBuyer(Long buyerMemberId) {
+        return orderQueryUseCase.countPaymentPendingOfBuyer(buyerMemberId);
+    }
 }

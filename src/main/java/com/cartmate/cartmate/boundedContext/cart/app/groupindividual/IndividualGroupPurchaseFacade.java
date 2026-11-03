@@ -71,4 +71,10 @@ public class IndividualGroupPurchaseFacade {
                                                          LocalDateTime now) {
         return individualGroupPurchaseQueryUseCase.getOrderable(individualGroupPurchaseId, productIds, now);
     }
+
+    // 회원 탈퇴 확인: 내가 만든 모집 중 개인물품 공동구매 수
+    @Transactional(readOnly = true)
+    public long countOpenOfCreator(Long creatorMemberId) {
+        return individualGroupPurchaseQueryUseCase.countOpenOfCreator(creatorMemberId);
+    }
 }

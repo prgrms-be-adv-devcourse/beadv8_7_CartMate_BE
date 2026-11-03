@@ -65,4 +65,7 @@ public interface PayoutRepository extends JpaRepository<Payout, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Payout p where p.id = :id")
     Optional<Payout> findByIdForUpdate(@Param("id") Long id);
+
+    // 회원 탈퇴 확인: 판매자의 특정 상태 정산 수
+    long countBySellerIdAndStatus(Long sellerId, PayoutStatus status);
 }
