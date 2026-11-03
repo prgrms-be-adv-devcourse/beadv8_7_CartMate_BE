@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.app.groupshared;
 
+import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
@@ -88,5 +89,17 @@ public class SharedGroupOrderFacade {
     @Transactional(readOnly = true)
     public SharedGroupOrderDetailResponse getDetail(Long memberId, Long sharedGroupOrderId) {
         return sharedGroupOrderQueryUseCase.getDetail(memberId, sharedGroupOrderId);
+    }
+
+    // 회원 탈퇴 확인: 참여 중인 결제 중 공동 주문
+    @Transactional(readOnly = true)
+    public List<Long> findPayingIdsOfParticipant(Long memberId) {
+        return sharedGroupOrderQueryUseCase.findIdsOfParticipant(memberId, List.of(SharedGroupOrderStatus.PAYING));
+    }
+
+    // 회원 탈퇴 확인: 참여 중인 확정 공동 주문 (배송이 구매확정까지 끝났는지는 delivery가 판단)
+    @Transactional(readOnly = true)
+    public List<Long> findConfirmedIdsOfParticipant(Long memberId) {
+        return sharedGroupOrderQueryUseCase.findIdsOfParticipant(memberId, List.of(SharedGroupOrderStatus.CONFIRMED));
     }
 }

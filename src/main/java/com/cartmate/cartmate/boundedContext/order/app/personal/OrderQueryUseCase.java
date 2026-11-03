@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
+import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
@@ -38,5 +39,9 @@ class OrderQueryUseCase {
 
     List<IndividualGroupPurchaseOrderLineView> findPaidIndividualGroupOrderLines(Long individualGroupPurchaseId) {
         return orderRepository.findPaidOrderLines(individualGroupPurchaseId);
+    }
+
+    long countPaymentPendingOfBuyer(Long buyerMemberId) {
+        return orderRepository.countByBuyerMemberIdAndStatus(buyerMemberId, OrderStatus.PAYMENT_PENDING);
     }
 }
