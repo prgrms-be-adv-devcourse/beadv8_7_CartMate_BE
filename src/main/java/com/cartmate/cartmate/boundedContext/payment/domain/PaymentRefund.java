@@ -12,7 +12,9 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(
         name = "payment_refund",
-        uniqueConstraints = @UniqueConstraint(name = "uk_payment_refund_key", columnNames = "refund_key")
+        uniqueConstraints = @UniqueConstraint(name = "uk_payment_refund_key", columnNames = "refund_key"),
+        // 관리자 대시보드: 하루 환불 건수·금액을 환불 시각 범위로 조회
+                indexes = @Index(name = "idx_payment_refund_created_at", columnList = "created_at")
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

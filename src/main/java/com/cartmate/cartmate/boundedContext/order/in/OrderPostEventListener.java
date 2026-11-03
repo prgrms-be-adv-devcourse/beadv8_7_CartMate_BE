@@ -44,7 +44,7 @@ public class OrderPostEventListener {
         // 개인 주문 결제 완료 → 숨긴 판매자 상품만 취소·환불 (발송됐으면 delivery가 거절 → 클레임으로)
         for (Long orderId : orderFacade.findPaidIdsByProductIds(productIds)) {
             run(event, "결제 완료 주문", orderId,
-                    () -> orderFacade.cancelSellerItemsBySalesStopped(orderId, event.sellerId(), event.postId()));
+                    () -> orderFacade.cancelSellerItemsBySalesStopped(orderId, event.sellerId()));
         }
 
         // 공동 주문 (결제 중·확정) → 전체 취소 시도, 다른 판매자 배송이 이미 발송돼 거절되면 숨긴 판매자 몫만
@@ -53,7 +53,7 @@ public class OrderPostEventListener {
                 sharedGroupOrderFacade.cancelBySalesStopped(orderId);
             } catch (ServiceException wholeRefused) {
                 run(event, "공동 주문(부분)", orderId,
-                        () -> sharedGroupOrderFacade.cancelSellerItemsBySalesStopped(orderId, event.sellerId(), event.postId()));
+                        () -> sharedGroupOrderFacade.cancelSellerItemsBySalesStopped(orderId, event.sellerId()));
             } catch (Exception e) {
                 log.error("판매글 #{} 숨김: 공동 주문 #{} 처리 실패", event.postId(), orderId, e);
             }

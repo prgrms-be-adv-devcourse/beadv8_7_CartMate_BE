@@ -1,7 +1,9 @@
 package com.cartmate.cartmate.boundedContext.product.domain;
 
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.code.ProductErrorCode;
 import com.cartmate.cartmate.boundedContext.product.dto.UploadedImage;
-import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
+    import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.product.dto.CreateProductOption;
 import com.cartmate.cartmate.shared.product.dto.SyncProduct;
 import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
@@ -145,8 +147,13 @@ public class Product extends BaseIdAndTime {
 
     // 판매글 단위 판매 상태 변경. 판매 관련 상태(ON_SALE·PAUSED·SUSPENDED)일 때만 바꾼다.
     // 삭제·등록 중 상품은 건드리지 않는다. 같은 상태면 그대로(멱등).
+    // 판매글 단위 판매 상태 변경. 바꿀 대상과 지금 상태가 모두 '판매 관련' 상태일 때만 바꾼다.
+    // 대상이 판매 관련 상태가 아니면 잘못된 요청, 지금 상태가 아니면(삭제·등록 중 등) 그대로 둔다. 같은 상태면 그대로(멱등).
     public void changeSaleStatusByPost(ProductStatus to) {
-        if (status == ProductStatus.ON_SALE || status == ProductStatus.PAUSED || status == ProductStatus.SUSPENDED) {
+        if (!to.isSaleControllable()) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_INVALID);
+        }
+        if (status.isSaleControllable()) {
             this.status = to;
         }
     }

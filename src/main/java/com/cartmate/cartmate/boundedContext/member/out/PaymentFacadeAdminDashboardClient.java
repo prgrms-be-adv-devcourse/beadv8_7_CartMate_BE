@@ -14,7 +14,7 @@ public class PaymentFacadeAdminDashboardClient implements AdminDashboardPaymentC
 
     @Override
     public PaymentStats getDailyStats(LocalDate date) {
-        PaymentDailySummary s = paymentFacade.getDailySummary(date);
-        return new PaymentStats(s.paidCount(), s.paidAmount(), s.refundCount(), s.refundAmount());
+        PaymentDailySummary summary = paymentFacade.getDailySummary(date);
+            return new PaymentStats(summary.paidCount(), summary.paidAmount(), summary.refundCount(), summary.refundAmount());
     }
 }

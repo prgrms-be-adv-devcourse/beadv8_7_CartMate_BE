@@ -47,14 +47,13 @@ class OrderCancelUseCase {
 
     // 판매글 판매 중지: 결제 완료 주문에서 한 판매자 항목만 취소 → delivery가 배송 취소, payment가 환불.
     // 주문이 전부 취소 상태가 되더라도 OrderCanceledEvent는 발행하지 않는다 (전액 환불이 겹쳐 이중 환불됨).
-    void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId, Long postId) {
+    void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         LocalDateTime now = LocalDateTime.now();
         long amount = order.cancelSellerItemsBySalesStopped(sellerId, now);
         if (amount > 0) {
             eventPublisher.publishEvent(new OrderSellerItemsCanceledEvent(
-                    orderId, order.getBuyerMemberId(), sellerId, amount,
-                    "HIDE-P%d-O%d-S%d".formatted(postId, orderId, sellerId), now));
+                    orderId, order.getBuyerMemberId(), sellerId, amount, now));
         }
     }
 

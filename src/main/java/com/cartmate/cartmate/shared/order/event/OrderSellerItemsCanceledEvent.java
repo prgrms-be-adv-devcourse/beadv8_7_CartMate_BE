@@ -9,14 +9,13 @@ import java.time.LocalDateTime;
  * delivery가 그 판매자 배송을 취소하고(발송됐으면 예외 → 전부 롤백), payment가 amount만큼 환불한다.
  * 구매자 주문 취소용 {@link OrderCanceledEvent}와 구분하기 위해 따로 둔다 (그 이벤트는 전액 환불을 일으킴).
  *
- * @param cancelKey 환불 중복 방지 키. 같은 키로 두 번 오면 한 번만 환불된다.
+ * <p>환불 중복 방지 키는 payment가 주문·판매자로 정한다 ({@code RefundKey.orderSellerItems}).
  */
 public record OrderSellerItemsCanceledEvent(
         Long orderId,
         Long buyerMemberId,
         Long sellerId,
         long amount,
-        String cancelKey,
         LocalDateTime canceledAt
 ) {
 }

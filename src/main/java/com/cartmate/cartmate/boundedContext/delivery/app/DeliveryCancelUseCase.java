@@ -6,6 +6,7 @@ import com.cartmate.cartmate.boundedContext.delivery.out.DeliveryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -22,17 +23,22 @@ public class DeliveryCancelUseCase {
         deliveries.forEach(Delivery::cancel);
     }
 
-    // 판매글 판매 중지: 한 주문에서 한 판매자 배송만 취소 (발송됐으면 예외)
-    public void cancelSellerBySalesStop(Long orderId, PurchaseType purchaseType, Long sellerId) {
-        deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(orderId, purchaseType).stream()
+    // 판매글 판매 중지: 한 주문에서 한 판매자 배송만 취소 (발송됐으면 예외).
+    // 변경 감지에 기대지 않고 저장을 명시해, 어떤 배송이 바뀌는지 코드에서 드러나게 한다.
+    public void cancelSellerBySalesStop(Long orderId, PurchaseType purchaseType, Long sellerId, LocalDateTime canceledAt) {
+        List<Delivery> deliveries = deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(orderId, purchaseType).stream()
                 .filter(delivery -> delivery.getSellerId().equals(sellerId))
-                .forEach(Delivery::cancelByPostHidden);
+                .toList();
+                deliveries.forEach(delivery -> delivery.cancelByPostHidden(canceledAt));
+                deliveryRepository.saveAll(deliveries);
     }
 
     // 판매글 판매 중지: 공동 주문 배송 전부 취소. 하나라도 발송됐으면 예외 → 공동 주문 취소까지 롤백.
     // 결제 중이던 공동 주문은 아직 배송이 없어 아무 일도 없다.
-    public void cancelAllSharedBySalesStop(Long sharedGroupOrderId) {
-        deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(sharedGroupOrderId, PurchaseType.SHARED_GROUP)
-                .forEach(Delivery::cancelByPostHidden);
+    public void cancelAllSharedBySalesStop(Long sharedGroupOrderId, LocalDateTime canceledAt) {
+        List<Delivery> deliveries = deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(
+                sharedGroupOrderId, PurchaseType.SHARED_GROUP);
+        deliveries.forEach(delivery -> delivery.cancelByPostHidden(canceledAt));
+        deliveryRepository.saveAll(deliveries);
     }
 }

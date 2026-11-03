@@ -6,7 +6,6 @@ import com.cartmate.cartmate.boundedContext.payment.dto.PaymentPreviewResponse;
 import com.cartmate.cartmate.boundedContext.payment.dto.PaymentResponse;
 import com.cartmate.cartmate.boundedContext.payment.exception.PaymentErrorCode;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentOrderClient;
-import com.cartmate.cartmate.boundedContext.payment.out.PaymentRefundRepository;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentRepository;
 import com.cartmate.cartmate.boundedContext.payment.out.PaymentWalletClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -29,7 +28,6 @@ public class PaymentFacade {
     private final PaymentOrderClient paymentOrderClient;
     private final PaymentWalletClient paymentWalletClient;
     private final PaymentRefundUseCase paymentRefundUseCase;
-    private final PaymentRefundRepository paymentRefundRepository;
 
     // ===== 개인 주문 =====
     @Transactional
@@ -100,22 +98,18 @@ public class PaymentFacade {
     public PaymentDailySummary getDailySummary(LocalDate date) {
         LocalDateTime from = date.atStartOfDay();
         LocalDateTime to = from.plusDays(1);
-        return new PaymentDailySummary(
-                paymentRepository.countPaidBetween(from, to),
-                paymentRepository.sumPaidBetween(from, to),
-                paymentRefundRepository.countBetween(from, to),
-                paymentRefundRepository.sumBetween(from, to));
+        return paymentRepository.summarize(from, to);
     }
 
     // 판매글 판매 중지: 개인 주문 판매자 항목 취소 금액만 환불
     @Transactional
-    public void refundOrderSellerItems(Long orderId, Long memberId, long amount, String cancelKey) {
-        paymentRefundUseCase.refundOrderSellerItems(orderId, memberId, amount, cancelKey);
+    public void refundOrderSellerItems(Long orderId, Long memberId, Long sellerId, long amount) {
+        paymentRefundUseCase.refundOrderSellerItems(orderId, memberId, sellerId, amount);
     }
 
     // 판매글 판매 중지: 공동 주문 판매자 항목 취소 금액을 결제한 사람들에게 나눠 환불
     @Transactional
-    public void refundSharedSellerItems(Long sharedGroupOrderId, long amount, String cancelKey) {
-        paymentRefundUseCase.refundSharedSellerItems(sharedGroupOrderId, amount, cancelKey);
+    public void refundSharedSellerItems(Long sharedGroupOrderId, Long sellerId, long amount) {
+        paymentRefundUseCase.refundSharedSellerItems(sharedGroupOrderId, sellerId, amount);
     }
 }
