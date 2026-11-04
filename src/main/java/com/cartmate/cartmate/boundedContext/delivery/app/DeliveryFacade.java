@@ -37,6 +37,7 @@ public class DeliveryFacade {
     private final DeliveryClaimApproveUseCase deliveryClaimApproveUseCase;
     private final DeliveryClaimRejectUseCase deliveryClaimRejectUseCase;
     private final DeliveryClaimCompleteUseCase deliveryClaimCompleteUseCase;
+    private final DeliveryWithdrawalQueryUseCase deliveryWithdrawalQueryUseCase;
 
     @Transactional
     public void createDelivery(DeliveryCreateCommand createCommand) {
@@ -134,5 +135,30 @@ public class DeliveryFacade {
     @Transactional(readOnly = true)
     public DeliveryDetailResponse getDeliveryDetails(Long deliveryId, Long memberId) {
         return deliveryQueryUseCase.getDeliveryDetails(deliveryId, memberId);
+    }
+
+    // ===== 회원 탈퇴 확인 =====
+    @Transactional(readOnly = true)
+    public long countUnfinishedOfBuyer(Long memberId) {
+        return deliveryWithdrawalQueryUseCase.countUnfinishedOfBuyer(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public long countUnfinishedOfSharedOrders(List<Long> sharedGroupOrderIds) {
+        return deliveryWithdrawalQueryUseCase.countUnfinishedOfSharedOrders(sharedGroupOrderIds);
+    }
+
+    @Transactional(readOnly = true)
+    public long countUnfinishedOfSeller(Long sellerId) {
+                return deliveryWithdrawalQueryUseCase.countUnfinishedOfSeller(sellerId);
+    }
+    @Transactional(readOnly = true)
+    public long countClaimsInProgressOfBuyer(Long memberId) {
+        return deliveryWithdrawalQueryUseCase.countClaimsInProgressOfBuyer(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public long countClaimsInProgressOfSeller(Long sellerId) {
+        return deliveryWithdrawalQueryUseCase.countClaimsInProgressOfSeller(sellerId);
     }
 }

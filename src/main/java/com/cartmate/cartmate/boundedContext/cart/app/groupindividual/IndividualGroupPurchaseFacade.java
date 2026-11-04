@@ -85,6 +85,12 @@ public class IndividualGroupPurchaseFacade {
         return individualGroupPurchaseQueryUseCase.getOrderable(individualGroupPurchaseId, productIds, now);
     }
 
+    // 회원 탈퇴 확인: 내가 만든 모집 중 개인물품 공동구매 수
+    @Transactional(readOnly = true)
+    public long countOpenOfCreator(Long creatorMemberId) {
+        return individualGroupPurchaseQueryUseCase.countOpenOfCreator(creatorMemberId);
+    }
+
     // 아래 넷은 order 이벤트로 주문 읽기 모델을 고친다 (아웃박스 릴레이 → IndividualGroupPurchaseOrderReplicaListener)
     @Transactional
     public void applyOrderCreated(OrderCreatedEvent event) {

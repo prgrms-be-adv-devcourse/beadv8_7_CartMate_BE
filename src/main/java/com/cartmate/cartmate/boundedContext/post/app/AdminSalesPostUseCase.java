@@ -52,10 +52,14 @@ public class AdminSalesPostUseCase {
 
     @Transactional(readOnly = true)
     public AdminSalesPostCountResponse getCounts() {
-        long onSale = salesPostRepository.countByStatus(SalesPostSaleStatus.ON_SALE);
-        long paused = salesPostRepository.countByStatus(SalesPostSaleStatus.PAUSED);
-        long suspended = salesPostRepository.countByStatus(SalesPostSaleStatus.SUSPENDED);
-        long closed = salesPostRepository.countByStatus(SalesPostSaleStatus.CLOSED);
+        // 상태별 개수를 한 번의 GROUP BY로 받는다 (전에는 상태마다 한 번씩 4번 조회)
+        Map<SalesPostSaleStatus, Long> counts = salesPostRepository.countByStatuses(List.of(
+                SalesPostSaleStatus.ON_SALE, SalesPostSaleStatus.PAUSED,
+                SalesPostSaleStatus.SUSPENDED, SalesPostSaleStatus.CLOSED));
+        long onSale = counts.getOrDefault(SalesPostSaleStatus.ON_SALE, 0L);
+        long paused = counts.getOrDefault(SalesPostSaleStatus.PAUSED, 0L);
+        long suspended = counts.getOrDefault(SalesPostSaleStatus.SUSPENDED, 0L);
+        long closed = counts.getOrDefault(SalesPostSaleStatus.CLOSED, 0L);
         return new AdminSalesPostCountResponse(onSale + paused + suspended + closed, onSale, paused, suspended);
     }
 

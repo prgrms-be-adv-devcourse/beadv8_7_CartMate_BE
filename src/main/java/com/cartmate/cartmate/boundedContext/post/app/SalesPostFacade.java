@@ -225,4 +225,10 @@ public class SalesPostFacade {
         salesPostHideUseCase.resumeBySeller(postId, sellerId);
     }
 
+    // 회원 탈퇴 신청: 판매자의 판매 중인 판매글 ID
+    @Transactional(readOnly = true)
+    public List<Long> findOnSalePostIdsOfSeller(Long sellerId) {
+        return salesPostHideUseCase.findOnSalePostIdsOfSeller(sellerId);
+    }
+
 }

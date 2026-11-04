@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.cart.app.groupindividual;
 
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchaseProduct;
+import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchaseStatus;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDashboardResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseSummaryResponse;
@@ -86,5 +87,9 @@ class IndividualGroupPurchaseQueryUseCase {
                 .map(IndividualGroupPurchaseProduct::getProductId)
                 .toList();
         return individualGroupPurchaseSupport.productOptionsOf(productIds);
+    }
+
+    long countOpenOfCreator(Long creatorMemberId) {
+        return individualGroupPurchaseRepository.countByCreatorMemberIdAndStatus(creatorMemberId, IndividualGroupPurchaseStatus.OPEN);
     }
 }
