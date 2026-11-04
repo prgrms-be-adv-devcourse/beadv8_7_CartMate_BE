@@ -37,6 +37,7 @@ import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -170,7 +171,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
 
-        PaymentResponse payment = paymentFacade.payOrder(buyer, created.orderId());
+        PaymentResult payment = orderFacade.payOrder(buyer, created.orderId());
 
         Order order = orderRepository.findById(created.orderId()).orElseThrow();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
@@ -189,8 +190,8 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
 
-        PaymentResponse first = paymentFacade.payOrder(buyer, created.orderId());
-        PaymentResponse second = paymentFacade.payOrder(buyer, created.orderId());
+        PaymentResult first = orderFacade.payOrder(buyer, created.orderId());
+        PaymentResult second = orderFacade.payOrder(buyer, created.orderId());
 
         assertThat(second.paymentId()).isEqualTo(first.paymentId());
         assertThat(walletFacade.getWallet(buyer).balance()).isEqualTo(97_000L);
@@ -204,7 +205,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         createWallet(buyer, 10_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
 
-        assertThatThrownBy(() -> paymentFacade.payOrder(buyer, created.orderId()))
+        assertThatThrownBy(() -> orderFacade.payOrder(buyer, created.orderId()))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(WalletErrorCode.WALLET_INSUFFICIENT_BALANCE.getMsg());
 
@@ -239,14 +240,14 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         paymentKeys.add(new PaymentKey(PaymentType.SHARED_GROUP, orderId, creator));
         paymentKeys.add(new PaymentKey(PaymentType.SHARED_GROUP, orderId, member));
 
-        paymentFacade.paySharedGroupOrder(member, orderId, null);
+        sharedGroupOrderFacade.pay(member, orderId, null);
 
         assertThat(sharedGroupOrderFacade.getDetail(creator, orderId).status()).isEqualTo(SharedGroupOrderStatus.PAYING);
         assertThat(deliveriesOf(creator)).isEmpty();
         assertThat(walletFacade.getWallet(member).balance()).isEqualTo(62_500L);
 
-        PaymentResponse last = paymentFacade.paySharedGroupOrder(creator, orderId, TEAM_ADDRESS);
-        PaymentResponse retried = paymentFacade.paySharedGroupOrder(creator, orderId, TEAM_ADDRESS);
+        PaymentResult last = sharedGroupOrderFacade.pay(creator, orderId, TEAM_ADDRESS);
+        PaymentResult retried = sharedGroupOrderFacade.pay(creator, orderId, TEAM_ADDRESS);
 
         assertThat(retried.paymentId()).isEqualTo(last.paymentId());
         assertThat(sharedGroupOrderFacade.getDetail(creator, orderId).status()).isEqualTo(SharedGroupOrderStatus.CONFIRMED);
@@ -262,7 +263,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         long buyer = nextMember();
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
-        PaymentResponse payment = paymentFacade.payOrder(buyer, created.orderId());
+        PaymentResult payment = orderFacade.payOrder(buyer, created.orderId());
 
         orderFacade.cancelByBuyer(buyer, created.orderId());
 
@@ -282,7 +283,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         long buyer = nextMember();
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
-        PaymentResponse payment = paymentFacade.payOrder(buyer, created.orderId());
+        PaymentResult payment = orderFacade.payOrder(buyer, created.orderId());
         transactionTemplate.executeWithoutResult(status -> deliveriesOf(buyer).forEach(delivery -> {
             delivery.prepare("CJ대한통운", "658219384910");
             deliveryRepository.save(delivery);
@@ -323,7 +324,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         long buyer = nextMember();
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
-        paymentFacade.payOrder(buyer, created.orderId());
+        orderFacade.payOrder(buyer, created.orderId());
         orderFacade.cancelByBuyer(buyer, created.orderId());
 
         assertThatThrownBy(() -> orderFacade.cancelByBuyer(buyer, created.orderId()))
