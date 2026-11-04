@@ -10,11 +10,13 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import org.springframework.context.event.EventListener;
 
 import static com.tngtech.archunit.base.DescribedPredicate.not;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.simpleNameEndingWith;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
 @AnalyzeClasses(packages = "com.cartmate.cartmate", importOptions = ImportOption.DoNotIncludeTests.class)
 class AbuseModuleBoundaryTest {
@@ -40,6 +42,13 @@ class AbuseModuleBoundaryTest {
                     resideInAPackage("..boundedContext.abuse.app..").and(simpleNameEndingWith("Facade"))))
             .as("A2 classes outside abuse must not depend on abuse, except other modules' out adapters calling abuse app facades")
             .because("abuse tables live in their own schema; other modules reach abuse only through an out adapter that can become an HTTP or Kafka client (ABU-14, ARCH-15)");
+
+    @ArchTest
+    static final ArchRule a3_abuseMustNotUseSameTransactionEventListener = noMethods()
+            .that().areDeclaredInClassesThat().resideInAPackage(ABUSE)
+            .should().beAnnotatedWith(EventListener.class)
+            .as("A3 methods in abuse must not be annotated with @EventListener (consume relayed outbox messages instead)")
+            .because("a same-transaction listener writes abuse tables inside another module's transaction; signals arrive through the outbox relay (ABU-14, ABU-15)");
 
     private static ArchCondition<JavaClass> dependOnlyThroughAdapterFacades(DescribedPredicate<JavaClass> adapter,
                                                                          DescribedPredicate<JavaClass> guarded,

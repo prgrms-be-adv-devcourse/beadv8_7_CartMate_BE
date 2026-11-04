@@ -3,6 +3,7 @@ package com.cartmate.cartmate.architecture;
 import com.cartmate.cartmate.architecture.fixture.boundedContext.abuse.app.FixtureAbuseFacade;
 import com.cartmate.cartmate.architecture.fixture.boundedContext.abuse.app.FixtureAbuseUseCase;
 import com.cartmate.cartmate.architecture.fixture.boundedContext.abuse.domain.FixtureAbuseEntity;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.abuse.in.FixtureSameTransactionListener;
 import com.cartmate.cartmate.architecture.fixture.boundedContext.cart.app.FixtureCartService;
 import com.cartmate.cartmate.architecture.fixture.boundedContext.cart.out.FixtureAbuseAdapter;
 import com.cartmate.cartmate.architecture.fixture.boundedContext.cart.out.FixtureEntityAdapter;
@@ -19,7 +20,17 @@ class AbuseModuleBoundaryRuleTest {
 
     private static final JavaClasses FIXTURES = new ClassFileImporter().importClasses(
             FixtureAbuseFacade.class, FixtureAbuseUseCase.class, FixtureAbuseEntity.class,
-            FixtureCartService.class, FixtureAbuseAdapter.class, FixtureEntityAdapter.class);
+            FixtureCartService.class, FixtureAbuseAdapter.class, FixtureEntityAdapter.class,
+            FixtureSameTransactionListener.class);
+
+    @Test
+    @DisplayName("A3은 abuse 안의 같은 트랜잭션 @EventListener를 잡는다")
+    void a3CatchesSameTransactionListener() {
+        List<String> violations = AbuseModuleBoundaryTest.a3_abuseMustNotUseSameTransactionEventListener
+                .evaluate(FIXTURES).getFailureReport().getDetails();
+
+        assertThat(violations).anyMatch(line -> line.contains("FixtureSameTransactionListener.on"));
+    }
 
     @Test
     @DisplayName("A1은 abuse가 다른 모듈 클래스를 직접 쓰면 잡는다")
