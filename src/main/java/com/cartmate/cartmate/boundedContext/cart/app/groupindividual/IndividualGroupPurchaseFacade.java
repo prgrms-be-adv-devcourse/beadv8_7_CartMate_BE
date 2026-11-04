@@ -59,6 +59,27 @@ public class IndividualGroupPurchaseFacade {
         individualGroupPurchaseManageUseCase.close(memberId, individualGroupPurchaseId);
     }
 
+    @Transactional
+    public void closeByAdmin(Long adminId, Long individualGroupPurchaseId) {
+        individualGroupPurchaseManageUseCase.closeByAdmin(adminId, individualGroupPurchaseId);
+    }
+
+    // 스케줄러용: 공동구매 하나마다 자기 트랜잭션
+    @Transactional
+    public void closeByDeadline(Long individualGroupPurchaseId) {
+        individualGroupPurchaseManageUseCase.closeByDeadline(individualGroupPurchaseId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findDemandIdsToCloseByDeadline(LocalDateTime now) {
+        return individualGroupPurchaseManageUseCase.findDemandIdsToCloseByDeadline(now);
+    }
+
+    @Transactional(readOnly = true)
+    public IndividualGroupPurchaseDashboardResponse getDashboardForAdmin(Long individualGroupPurchaseId) {
+        return individualGroupPurchaseQueryUseCase.getDashboardForAdmin(individualGroupPurchaseId);
+    }
+
     @Transactional(readOnly = true)
     public IndividualGroupPurchaseDetailResponse getByInviteCode(Long memberId, String inviteCode) {
         return individualGroupPurchaseQueryUseCase.getByInviteCode(memberId, inviteCode);

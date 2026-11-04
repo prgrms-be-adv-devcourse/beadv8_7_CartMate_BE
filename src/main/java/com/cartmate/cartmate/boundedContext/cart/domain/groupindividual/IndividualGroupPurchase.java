@@ -174,8 +174,7 @@ public class IndividualGroupPurchase {
                 }
                 boolean removed = products.removeIf(product -> productIds.contains(product.getProductId()));
                 if (removed && products.isEmpty()) {
-                    this.status = IndividualGroupPurchaseStatus.CLOSED;
-                    this.closedAt = now;
+                    markClosed(now);
                 }
                 return removed;
     }
@@ -194,12 +193,44 @@ public class IndividualGroupPurchase {
 
     public void close(Long requesterId, LocalDateTime now) {
         validateCreator(requesterId);
-        if (status != IndividualGroupPurchaseStatus.OPEN) {
-            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_ALREADY_CLOSED);
+        validateNotClosed();
+        markClosed(now);
+    }
+
+    // 어드민 공동구매는 만든 어드민이 아니어도 어드민이면 마감할 수 있다 (권한 확인은 /api/admin 경로가 한다)
+    public void closeByAdmin(LocalDateTime now) {
+        if (!isFromDemand()) {
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_ADMIN_DEMAND_ONLY);
         }
+        validateNotClosed();
+        markClosed(now);
+    }
+
+    // 마감 시각이 지난 어드민 공동구매를 시스템이 닫는다. 회원 공동구매는 지금처럼 시간 비교로만 닫힌 것으로 본다.
+    // 대상이 아니면(이미 닫힘 · 마감 전 · 회원 공동구매) 아무것도 하지 않고 false
+    public boolean closeByDeadline(LocalDateTime now) {
+        if (!isFromDemand() || status != IndividualGroupPurchaseStatus.OPEN || now.isBefore(deadlineAt)) {
+            return false;
+        }
+        markClosed(now);
+        return true;
+    }
+
+    public boolean isClosed() {
+        return status == IndividualGroupPurchaseStatus.CLOSED;
+    }
+
+    // 닫는 길은 모두 여기를 지난다. 수요 상품 키를 비워 같은 상품으로 다시 열 수 있게 한다
+    private void markClosed(LocalDateTime now) {
         this.status = IndividualGroupPurchaseStatus.CLOSED;
         this.closedAt = now;
         this.demandProductKey = null;
+    }
+
+    private void validateNotClosed() {
+        if (status != IndividualGroupPurchaseStatus.OPEN) {
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_ALREADY_CLOSED);
+        }
     }
 
     public boolean isOpen(LocalDateTime now) {

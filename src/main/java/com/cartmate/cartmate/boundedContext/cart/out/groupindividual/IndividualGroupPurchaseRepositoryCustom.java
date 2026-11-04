@@ -21,6 +21,9 @@ public interface IndividualGroupPurchaseRepositoryCustom {
 
     Map<Long, Long> findOpenDemandPurchaseIds(Collection<Long> productIds, LocalDateTime now);
 
+    // 마감 시각이 지났는데 아직 OPEN인 어드민 공동구매 (시스템 마감 대상)
+    List<Long> findDemandIdsToCloseByDeadline(LocalDateTime now);
+
     List<Long> findDemandProductIdsEndedBetween(LocalDateTime since, LocalDateTime now);
 
     List<IndividualGroupPurchase> findOpenDemandPurchases(LocalDateTime now);

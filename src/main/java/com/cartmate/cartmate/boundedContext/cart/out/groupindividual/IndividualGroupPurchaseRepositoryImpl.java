@@ -115,4 +115,18 @@ public class IndividualGroupPurchaseRepositoryImpl implements IndividualGroupPur
                 .orderBy(individualGroupPurchase.deadlineAt.asc(), individualGroupPurchase.id.asc())
                 .fetch();
     }
+
+    @Override
+    public List<Long> findDemandIdsToCloseByDeadline(LocalDateTime now) {
+        return queryFactory
+                .select(individualGroupPurchase.id)
+                .from(individualGroupPurchase)
+                .where(
+                        individualGroupPurchase.origin.eq(IndividualGroupPurchaseOrigin.ADMIN_DEMAND),
+                        individualGroupPurchase.status.eq(IndividualGroupPurchaseStatus.OPEN),
+                        individualGroupPurchase.deadlineAt.loe(now)
+                )
+                .orderBy(individualGroupPurchase.id.asc())
+                .fetch();
+    }
 }

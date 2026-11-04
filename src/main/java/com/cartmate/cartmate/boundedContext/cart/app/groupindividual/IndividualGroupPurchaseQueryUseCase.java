@@ -43,7 +43,21 @@ class IndividualGroupPurchaseQueryUseCase {
     }
 
     IndividualGroupPurchaseDashboardResponse getDashboard(Long memberId, Long individualGroupPurchaseId) {
-        IndividualGroupPurchase purchase = getWithProductsForCreator(memberId, individualGroupPurchaseId);
+        return toDashboard(getWithProductsForCreator(memberId, individualGroupPurchaseId));
+    }
+
+    // 어드민 공동구매는 만든 어드민이 아니어도 어드민이면 현황판을 본다
+    IndividualGroupPurchaseDashboardResponse getDashboardForAdmin(Long individualGroupPurchaseId) {
+        IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findWithProductsById(individualGroupPurchaseId)
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_GROUP_PURCHASE_NOT_FOUND));
+        if (!purchase.isFromDemand()) {
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_ADMIN_DEMAND_ONLY);
+        }
+        return toDashboard(purchase);
+    }
+
+    private IndividualGroupPurchaseDashboardResponse toDashboard(IndividualGroupPurchase purchase) {
+        Long individualGroupPurchaseId = purchase.getId();
         // order 이벤트로 채운 읽기 모델이라 결제 직후 1~2초는 빠질 수 있다 (표시용이라 받아들임)
         List<IndividualGroupPurchaseOrderLine> lines = orderReplicaRepository.findPaidLines(individualGroupPurchaseId);
         Map<Long, String> nicknames = memberClient.findNicknames(lines.stream()
