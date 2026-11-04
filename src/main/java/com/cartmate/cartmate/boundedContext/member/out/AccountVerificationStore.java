@@ -4,9 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.List;
 
 // 계좌 확인 통과 표시와 호출 횟수를 Redis에 잠깐 보관한다. 값이 사라지면 판매자가 다시 확인하면 된다.
 @Component
@@ -14,6 +16,14 @@ public class AccountVerificationStore {
 
     private static final String VERIFIED_KEY = "seller-account:verified:";
     private static final String ATTEMPTS_KEY = "seller-account:attempts:";
+
+    private static final DefaultRedisScript<Long> ATTEMPT_SCRIPT = new DefaultRedisScript<>("""
+            local count = redis.call('INCR', KEYS[1])
+            if count == 1 then
+                redis.call('EXPIRE', KEYS[1], ARGV[1])
+            end
+            return count
+            """, Long.class);
 
     private final StringRedisTemplate redis;
 
@@ -40,12 +50,10 @@ public class AccountVerificationStore {
     }
 
     // 성공한 호출도 센다. 첫 호출에서 윈도 만료 시간을 건다.
+    // 증가와 만료 설정을 한 스크립트로 처리한다. 둘을 따로 보내면 그 사이에 끊겼을 때 만료 없는 카운터가 남아 계속 차단된다.
     public boolean tryAcquireAttempt(Long memberId, int maxAttempts, Duration window) {
-        String key = ATTEMPTS_KEY + memberId;
-        Long count = redis.opsForValue().increment(key);
-        if (count != null && count == 1L) {
-            redis.expire(key, window);
-        }
+        long windowSeconds = Math.max(1, window.toSeconds());
+        Long count = redis.execute(ATTEMPT_SCRIPT, List.of(ATTEMPTS_KEY + memberId), String.valueOf(windowSeconds));
         return count != null && count <= maxAttempts;
     }
 }

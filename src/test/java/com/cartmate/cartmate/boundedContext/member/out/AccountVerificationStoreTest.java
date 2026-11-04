@@ -5,10 +5,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,28 +66,35 @@ class AccountVerificationStoreTest {
         verify(redis).delete("seller-account:verified:7");
     }
 
-    @Test
-    @DisplayName("첫 호출에서 윈도 만료 시간을 건다")
-    void firstAttemptSetsExpire() {
-        when(ops.increment("seller-account:attempts:7")).thenReturn(1L);
-
-        assertThat(store.tryAcquireAttempt(7L, 5, WINDOW)).isTrue();
-        verify(redis).expire("seller-account:attempts:7", WINDOW);
+    @SuppressWarnings("unchecked")
+    private void stubAttemptCount(long count) {
+        when(redis.execute(any(RedisScript.class), eq(List.of("seller-account:attempts:7")), eq("600")))
+                .thenReturn(count);
     }
 
     @Test
-    @DisplayName("한도까지는 허용하고 만료 시간을 다시 걸지 않는다")
-    void withinLimit() {
-        when(ops.increment("seller-account:attempts:7")).thenReturn(5L);
+    @DisplayName("횟수 증가와 만료 설정을 하나의 스크립트로 보낸다")
+    void attemptUsesSingleScript() {
+        stubAttemptCount(1L);
 
         assertThat(store.tryAcquireAttempt(7L, 5, WINDOW)).isTrue();
-        verify(redis, never()).expire("seller-account:attempts:7", WINDOW);
+        // 증가와 만료를 따로 보내지 않는다. 따로 보내면 그 사이에 끊겼을 때 만료 없는 카운터가 남는다.
+        verify(ops, never()).increment(anyString());
+        verify(redis, never()).expire(anyString(), any(Duration.class));
+    }
+
+    @Test
+    @DisplayName("한도까지는 허용한다")
+    void withinLimit() {
+        stubAttemptCount(5L);
+
+        assertThat(store.tryAcquireAttempt(7L, 5, WINDOW)).isTrue();
     }
 
     @Test
     @DisplayName("한도를 넘으면 거절한다")
     void overLimit() {
-        when(ops.increment("seller-account:attempts:7")).thenReturn(6L);
+        stubAttemptCount(6L);
 
         assertThat(store.tryAcquireAttempt(7L, 5, WINDOW)).isFalse();
     }
