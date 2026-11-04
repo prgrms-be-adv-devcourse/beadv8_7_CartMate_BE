@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.member.in;
 import com.cartmate.cartmate.boundedContext.member.app.MemberFacade;
 import com.cartmate.cartmate.boundedContext.member.app.MemberSellerUseCase;
 import com.cartmate.cartmate.boundedContext.member.dto.AvailabilityResponse;
+import com.cartmate.cartmate.boundedContext.member.dto.SellerAccountVerifyRequest;
 import com.cartmate.cartmate.boundedContext.member.dto.SellerRegisterRequest;
 import com.cartmate.cartmate.boundedContext.member.dto.SellerResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
@@ -37,6 +38,14 @@ public class SellerController {
         return new RsData<>("200-1",
                 available ? "사용 가능한 사업자등록번호입니다." : "이미 등록된 사업자등록번호입니다.",
                 new AvailabilityResponse(available));
+    }
+
+    // 판매자 등록 전에 정산 계좌를 확인한다. 통과하면 짧은 시간 동안 같은 입력값으로 등록할 수 있다.
+    @PostMapping("/account/verify")
+    public RsData<Void> verifyAccount(@AuthenticationPrincipal SecurityUser user,
+                                      @Valid @RequestBody SellerAccountVerifyRequest request) {
+        memberFacade.verifySellerAccount(user.memberId(), request);
+        return new RsData<>("200-1", "계좌 확인이 완료되었습니다.");
     }
 
     @PostMapping

@@ -121,7 +121,7 @@ class CommerceLifecycleIntegrationTest {
         Member buyer = newMember("buyer");
         Member sellerMember = newMember("seller");
         Seller seller = sellers.saveAndFlush(Seller.create(sellerMember, SellerType.INDIVIDUAL,
-                null, null, null, "01012345678", "테스트은행", "판매자", "123456"));
+                null, null, null, "01012345678", "테스트은행", "판매자", UUID.randomUUID().toString()));
         events.publishEvent(new SellerRegisteredEvent(seller.getId(), sellerMember.getId(),
                 seller.getSellerType().name(), seller.getDisplayName(), seller.getBusinessNumber(),
                 seller.getPhoneNumber(), seller.getBankName(), seller.getAccountHolder(), seller.getAccountNumber(),
