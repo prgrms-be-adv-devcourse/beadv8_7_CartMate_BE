@@ -9,7 +9,7 @@ import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseMemberStateRepository;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseRestrictionRepository;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseSignalRepository;
-import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
+import com.cartmate.cartmate.boundedContext.abuse.support.AbuseTestDataCleaner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,7 +66,7 @@ class AbuseJudgeConcurrencyTest {
 
     @AfterEach
     void tearDown() {
-        new TestDataCleaner(jdbcTemplate).deleteAbuseRecordsOf(memberIds);
+        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
     }
 
     @Test

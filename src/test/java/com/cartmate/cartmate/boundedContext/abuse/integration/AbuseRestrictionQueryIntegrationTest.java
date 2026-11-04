@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.abuse.integration;
 
 import com.cartmate.cartmate.boundedContext.abuse.app.AbuseFacade;
-import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
+import com.cartmate.cartmate.boundedContext.abuse.support.AbuseTestDataCleaner;
 import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,7 +42,7 @@ class AbuseRestrictionQueryIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        new TestDataCleaner(jdbcTemplate).deleteAbuseRecordsOf(memberIds);
+        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
     }
 
     @Test
