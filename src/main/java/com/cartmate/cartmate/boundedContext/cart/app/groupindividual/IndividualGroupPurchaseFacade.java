@@ -6,7 +6,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.matching.DemandGroupPurchas
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDashboardResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseSummaryResponse;
-import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseSnapshot;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -100,10 +101,9 @@ public class IndividualGroupPurchaseFacade {
         return individualGroupPurchaseQueryUseCase.getMyList(memberId);
     }
 
-    @Transactional
-    public IndividualGroupPurchaseOrderable getOrderable(Long individualGroupPurchaseId, List<Long> productIds,
-                                                         LocalDateTime now) {
-        return individualGroupPurchaseQueryUseCase.getOrderable(individualGroupPurchaseId, productIds, now);
+    @Transactional(readOnly = true)
+    public Optional<IndividualGroupPurchaseSnapshot> findSnapshot(Long individualGroupPurchaseId) {
+        return individualGroupPurchaseQueryUseCase.findSnapshot(individualGroupPurchaseId);
     }
 
     // 회원 탈퇴 확인: 내가 만든 모집 중 개인물품 공동구매 수

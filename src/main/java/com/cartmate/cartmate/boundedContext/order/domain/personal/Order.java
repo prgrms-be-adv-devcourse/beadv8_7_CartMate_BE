@@ -19,7 +19,11 @@ import java.util.List;
 @Entity
 @Table(
         name = "orders",
-        uniqueConstraints = @UniqueConstraint(name = "uk_orders_order_number", columnNames = "order_number"),
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_orders_order_number", columnNames = "order_number"),
+                @UniqueConstraint(name = Order.PENDING_BUYER_INDIVIDUAL_GROUP_UNIQUE,
+                        columnNames = {"buyer_member_id", "pending_individual_group_purchase_id"})
+        },
         indexes = {
                 @Index(name = "idx_orders_individual_group_purchase_status", columnList = "individual_group_purchase_id, status"),
                 @Index(name = "idx_orders_buyer_created", columnList = "buyer_member_id, created_at")
@@ -29,6 +33,7 @@ import java.util.List;
 public class Order {
 
     public static final Duration PAYMENT_PERIOD = Duration.ofMinutes(30);
+    public static final String PENDING_BUYER_INDIVIDUAL_GROUP_UNIQUE = "uk_orders_pending_buyer_individual_group";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,6 +50,11 @@ public class Order {
     private Long buyerMemberId;
 
     private Long individualGroupPurchaseId;
+
+    // 결제 대기 중인 개인물품 공동구매 주문일 때만 공동구매 ID, 아니면 NULL. unique(buyer_member_id, 이 컬럼)로
+    // "같은 회원은 같은 공동구매에 결제 대기 주문을 하나만"을 order DB가 보장한다 (예전엔 cart 공동구매 행 락이 맡았다)
+    @Column(name = "pending_individual_group_purchase_id")
+    private Long pendingIndividualGroupPurchaseId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(20)")
@@ -99,6 +109,7 @@ public class Order {
         this.orderType = orderType;
         this.buyerMemberId = buyerMemberId;
         this.individualGroupPurchaseId = individualGroupPurchaseId;
+        this.pendingIndividualGroupPurchaseId = orderType == OrderType.INDIVIDUAL_GROUP ? individualGroupPurchaseId : null;
         this.status = OrderStatus.PAYMENT_PENDING;
         this.paymentDeadlineAt = paymentDeadlineAt;
         this.deliveryAddress = deliveryAddress;
@@ -142,7 +153,7 @@ public class Order {
         this.status = OrderStatus.PAID;
         this.paymentId = paymentId;
         this.paidAt = paidAt;
-        releasePendingItems();
+        releasePending();
         return true;
     }
 
@@ -207,15 +218,24 @@ public class Order {
         return orderType == OrderType.INDIVIDUAL_GROUP;
     }
 
+    public boolean isPaymentPending() {
+        return status == OrderStatus.PAYMENT_PENDING;
+    }
+
+    public List<Long> productIds() {
+        return items.stream().map(OrderItem::getProductId).distinct().toList();
+    }
+
     private void cancel(OrderCancelReason reason, LocalDateTime now) {
         this.status = OrderStatus.CANCELED;
         this.cancelReason = reason;
         this.canceledAt = now;
-        releasePendingItems();
+        releasePending();
     }
 
-    // 결제 대기를 벗어나면 같은 상품으로 다시 주문할 수 있게 unique 대상에서 뺀다
-    private void releasePendingItems() {
+    // 결제 대기를 벗어나면 같은 상품 · 같은 공동구매로 다시 주문할 수 있게 unique 대상에서 뺀다
+    private void releasePending() {
+        this.pendingIndividualGroupPurchaseId = null;
         items.forEach(OrderItem::releasePending);
     }
 

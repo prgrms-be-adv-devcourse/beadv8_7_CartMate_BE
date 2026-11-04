@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
+import com.cartmate.cartmate.boundedContext.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,12 +43,16 @@ class OrderPaymentUseCaseTest {
     private static final Long BUYER = 1L;
     private static final Long PAYMENT_ID = 500L;
     private static final LocalDateTime CREATED_AT = LocalDateTime.of(2026, 10, 19, 12, 0);
+    private static final Long PURCHASE_ID = 10L;
 
     @Mock
     private OrderRepository orderRepository;
 
     @Mock
     private DomainEventPublisher eventPublisher;
+
+    @Mock
+    private IndividualGroupPurchaseReplicaUseCase replicaUseCase;
 
     private OrderPaymentUseCase paymentUseCase;
 
@@ -56,7 +62,8 @@ class OrderPaymentUseCaseTest {
                 OrderProductClient allOnSale = inventoryIds -> inventoryIds.stream().distinct()
                         .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
                         .toList();
-                paymentUseCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher, allOnSale);
+                paymentUseCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher, allOnSale,
+                        replicaUseCase);
     }
 
     @Test
@@ -125,6 +132,60 @@ class OrderPaymentUseCaseTest {
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NOT_PAYMENT_PENDING.getMsg());
         then(eventPublisher).should(times(1)).publish(any(OrderPaidEvent.class));
+    }
+
+    @Test
+    @DisplayName("공동구매가 닫히기 전에 만든 개인물품 주문은 닫힌 뒤에도 결제 기한 안이면 결제할 수 있다")
+    void payIndividualGroupOrderedBeforeClose() {
+        Order order = individualGroupOrder(CREATED_AT);
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(IndividualGroupPurchaseReplica.of(
+                PURCHASE_ID, CREATED_AT.plusDays(1), true, CREATED_AT.plusMinutes(1), List.of(2L), 3)));
+
+        paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, CREATED_AT.plusMinutes(5));
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    @DisplayName("사본이 늦어 공동구매가 닫힌 뒤에 만들어진 개인물품 주문은 결제 정보에서 결제 불가이고 결제 반영도 거절한다")
+    void rejectIndividualGroupOrderedAfterClose() {
+        Order order = individualGroupOrder(CREATED_AT);
+        given(orderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(IndividualGroupPurchaseReplica.of(
+                PURCHASE_ID, CREATED_AT.plusDays(1), true, CREATED_AT.minusSeconds(1), List.of(2L), 3)));
+
+        assertThat(paymentUseCase.getPaymentInfo(ORDER_ID, BUYER, CREATED_AT.plusMinutes(1)).payable()).isFalse();
+        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, CREATED_AT.plusMinutes(1)))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_GROUP_PURCHASE_NOT_SOLD_AT_ORDER.getMsg());
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
+    }
+
+    @Test
+    @DisplayName("주문 상품이 공동구매에서 빠졌으면(제거와 주문이 겹침) 결제를 거절하고, 공동구매를 못 찾아도 거절한다")
+    void rejectIndividualGroupProductRemovedOrUnknown() {
+        Order order = individualGroupOrder(CREATED_AT);
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        given(replicaUseCase.find(PURCHASE_ID))
+                .willReturn(Optional.of(IndividualGroupPurchaseReplica.of(
+                        PURCHASE_ID, CREATED_AT.plusDays(1), false, null, List.of(3L), 2)))
+                .willReturn(Optional.empty());
+
+        for (int i = 0; i < 2; i++) {
+            assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, CREATED_AT.plusMinutes(1)))
+                    .isInstanceOf(ServiceException.class)
+                    .hasMessageContaining(OrderErrorCode.ORDER_GROUP_PURCHASE_NOT_SOLD_AT_ORDER.getMsg());
+        }
+    }
+
+    private Order individualGroupOrder(LocalDateTime createdAt) {
+        Order order = Order.createIndividualGroup("20261019-IGPORDER", BUYER, PURCHASE_ID, createdAt.plusDays(1),
+                List.of(new OrderLine(2L, 4L, 9L, "축구공", "5호", 25000, 2)),
+                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", null), createdAt);
+        ReflectionTestUtils.setField(order, "createdAt", createdAt); // @CreationTimestamp는 저장할 때 채워진다
+        return order;
     }
 
     private Order order() {

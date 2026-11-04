@@ -159,6 +159,51 @@ class OrderRepositoryTest {
     }
 
     @Test
+    @DisplayName("같은 회원이 같은 공동구매에 결제 대기 주문을 둘 만들면 DB가 거절한다 (공동구매 행 락 대신)")
+    void uniquePendingIndividualGroupOrder() {
+        Long buyer = uniqueMemberId();
+        Long purchaseId = uniqueMemberId();
+        Order first = orderRepository.saveAndFlush(individualGroup(buyer, purchaseId));
+        assertThat(first.getPendingIndividualGroupPurchaseId()).isEqualTo(purchaseId);
+        flushAndClear();
+
+        DataIntegrityViolationException e = catchThrowableOfType(DataIntegrityViolationException.class,
+                () -> orderRepository.saveAndFlush(individualGroup(buyer, purchaseId)));
+
+        // OrderCreateUseCase가 판별에 쓰는 두 경로(Hibernate 제약 이름, 가장 안쪽 DB 메시지)를 실제 MySQL에서 확인한다
+        assertThat(e).isNotNull();
+        assertThat(((ConstraintViolationException) e.getCause()).getConstraintName())
+                .contains(Order.PENDING_BUYER_INDIVIDUAL_GROUP_UNIQUE);
+        assertThat(e.getMostSpecificCause().getMessage()).contains(Order.PENDING_BUYER_INDIVIDUAL_GROUP_UNIQUE);
+    }
+
+    @Test
+    @DisplayName("결제 · 취소된 개인물품 주문은 unique 대상에서 빠지고, 다른 회원 · 다른 공동구매 · 개인 주문은 겹쳐도 된다")
+    void pendingIndividualGroupUniqueReleased() {
+        Long buyer = uniqueMemberId();
+        Long purchaseId = uniqueMemberId();
+        Order paid = orderRepository.saveAndFlush(individualGroup(buyer, purchaseId));
+        flushAndClear();
+        Order loadedPaid = orderRepository.findWithItemsById(paid.getId()).orElseThrow();
+        loadedPaid.markPaid(1L, NOW);
+        flushAndClear();
+        Order canceled = orderRepository.saveAndFlush(individualGroup(buyer, purchaseId));
+        Order loadedCanceled = orderRepository.findWithItemsById(canceled.getId()).orElseThrow();
+        loadedCanceled.cancelByBuyer(buyer, NOW);
+        flushAndClear();
+
+        orderRepository.saveAndFlush(individualGroup(buyer, purchaseId));
+        orderRepository.saveAndFlush(individualGroup(buyer + 1, purchaseId));
+        orderRepository.saveAndFlush(individualGroup(buyer, purchaseId + 1));
+        Order personal = orderRepository.saveAndFlush(personal(newOrderNumber(), buyer));
+        flushAndClear();
+
+        assertThat(orderRepository.findById(loadedPaid.getId()).orElseThrow().getPendingIndividualGroupPurchaseId()).isNull();
+        assertThat(orderRepository.findById(loadedCanceled.getId()).orElseThrow().getPendingIndividualGroupPurchaseId()).isNull();
+        assertThat(orderRepository.findById(personal.getId()).orElseThrow().getPendingIndividualGroupPurchaseId()).isNull();
+    }
+
+    @Test
     @DisplayName("같은 공동구매의 결제 대기 주문만 찾고 결제 완료·취소 주문은 찾지 않는다")
     void findPendingIndividualGroupOrderId() {
         Long buyer = uniqueMemberId();

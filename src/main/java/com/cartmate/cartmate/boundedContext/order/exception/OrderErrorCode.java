@@ -43,7 +43,13 @@ public enum OrderErrorCode implements ErrorCode {
     ORDER_ALREADY_CANCELED("ORDER_ALREADY_CANCELED", "이미 취소된 주문입니다.", HttpStatus.CONFLICT),
     ORDER_ALREADY_PENDING("ORDER_ALREADY_PENDING", "결제 대기 중인 주문이 이미 있습니다.", HttpStatus.CONFLICT),
     ORDER_DUPLICATE_ITEM("ORDER_DUPLICATE_ITEM", "같은 상품이 중복으로 담겼습니다.", HttpStatus.BAD_REQUEST),
-    ORDER_NUMBER_GENERATION_FAILED("ORDER_NUMBER_GENERATION_FAILED", "주문 번호를 생성하지 못했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+    ORDER_NUMBER_GENERATION_FAILED("ORDER_NUMBER_GENERATION_FAILED", "주문 번호를 생성하지 못했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // 개인물품 공동구매 주문 (order 쪽 공동구매 사본으로 판단, cart의 같은 뜻 코드와 상태 코드를 맞춘다)
+    ORDER_GROUP_PURCHASE_NOT_FOUND("ORDER_GROUP_PURCHASE_NOT_FOUND", "존재하지 않는 공동구매입니다.", HttpStatus.NOT_FOUND),
+    ORDER_GROUP_PURCHASE_SALE_CLOSED("ORDER_GROUP_PURCHASE_SALE_CLOSED", "판매가 마감된 공동구매입니다.", HttpStatus.CONFLICT),
+    ORDER_GROUP_PURCHASE_PRODUCT_NOT_SOLD("ORDER_GROUP_PURCHASE_PRODUCT_NOT_SOLD", "이 공동구매에서 판매하지 않는 상품입니다.", HttpStatus.BAD_REQUEST),
+    ORDER_GROUP_PURCHASE_NOT_SOLD_AT_ORDER("ORDER_GROUP_PURCHASE_NOT_SOLD_AT_ORDER", "주문 시점에 공동구매에서 판매하지 않던 상품이 있어 결제할 수 없습니다.", HttpStatus.CONFLICT);
 
     private final String code;
     private final String msg;

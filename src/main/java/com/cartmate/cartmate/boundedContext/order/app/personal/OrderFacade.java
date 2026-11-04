@@ -6,6 +6,9 @@ import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateReques
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderSummaryResponse;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
 import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ public class OrderFacade {
     private final OrderQueryUseCase orderQueryUseCase;
     private final OrderPaymentUseCase orderPaymentUseCase;
     private final OrderCancelUseCase orderCancelUseCase;
+    private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
 
     @Transactional
     public OrderCreateResponse createPersonal(Long memberId, OrderCreateRequest request) {
@@ -97,6 +101,22 @@ public class OrderFacade {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
         orderCancelUseCase.cancelSellerItemsBySalesStopped(orderId, sellerId);
+    }
+
+    // ===== 개인물품 공동구매 사본 (cart 이벤트 consumer가 부른다) =====
+    @Transactional
+    public void applyIndividualGroupPurchaseOpened(IndividualGroupPurchaseOpenedEvent event) {
+        individualGroupPurchaseReplicaUseCase.applyOpened(event);
+    }
+
+    @Transactional
+    public void applyIndividualGroupPurchaseUpdated(IndividualGroupPurchaseUpdatedEvent event) {
+        individualGroupPurchaseReplicaUseCase.applyUpdated(event);
+    }
+
+    @Transactional
+    public void applyIndividualGroupPurchaseClosed(IndividualGroupPurchaseClosedEvent event) {
+        individualGroupPurchaseReplicaUseCase.applyClosed(event);
     }
 
     // 회원 탈퇴 확인: 결제 대기 중인 개인 주문 수

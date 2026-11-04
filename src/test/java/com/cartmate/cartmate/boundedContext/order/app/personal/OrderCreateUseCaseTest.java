@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
-import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
+import com.cartmate.cartmate.boundedContext.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderItem;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
@@ -15,7 +15,6 @@ import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
-import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
 import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
 import org.junit.jupiter.api.DisplayName;
@@ -64,6 +63,9 @@ class OrderCreateUseCaseTest {
 
     @Mock
     private DomainEventPublisher eventPublisher;
+
+    @Mock
+    private IndividualGroupPurchaseReplicaUseCase replicaUseCase;
 
     @InjectMocks
     private OrderCreateUseCase createUseCase;
@@ -123,16 +125,15 @@ class OrderCreateUseCaseTest {
         LocalDateTime saleDeadlineAt = NOW.plusMinutes(10);
         given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
                 new OrderProductInfo(4L, 2L, 8L, "축구공", "5호", 25000, null, true)));
-        given(orderCartClient.getIndividualGroupPurchaseOrderable(PURCHASE_ID, List.of(2L), NOW))
-                .willReturn(new IndividualGroupPurchaseOrderable(PURCHASE_ID, saleDeadlineAt));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(openPurchase(saleDeadlineAt)));
         given(orderNumberGenerator.generateUnique(any(), any())).willReturn(ORDER_NUMBER);
-        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(orderRepository.saveAndFlush(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         OrderCreateResponse response = createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
                 List.of(new IndividualGroupOrderCreateRequest.Item(4L, 3)), ADDRESS, NOW);
 
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
-        then(orderRepository).should().save(captor.capture());
+        then(orderRepository).should().saveAndFlush(captor.capture());
         Order order = captor.getValue();
         assertThat(order.getOrderType()).isEqualTo(OrderType.INDIVIDUAL_GROUP);
         assertThat(order.getIndividualGroupPurchaseId()).isEqualTo(PURCHASE_ID);
@@ -151,14 +152,14 @@ class OrderCreateUseCaseTest {
     void rejectClosedPurchase() {
         given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
                 new OrderProductInfo(4L, 2L, 8L, "축구공", "5호", 25000, null, true)));
-        given(orderCartClient.getIndividualGroupPurchaseOrderable(PURCHASE_ID, List.of(2L), NOW))
-                .willThrow(new ServiceException(CartErrorCode.CART_INDIVIDUAL_SALE_CLOSED));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(IndividualGroupPurchaseReplica.of(
+                PURCHASE_ID, NOW.plusDays(1), true, NOW.minusMinutes(1), List.of(2L), 3)));
 
         assertThatThrownBy(() -> createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
                 List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)), ADDRESS, NOW))
                 .isInstanceOf(ServiceException.class)
-                .hasMessageContaining(CartErrorCode.CART_INDIVIDUAL_SALE_CLOSED.getMsg());
-        then(orderRepository).should(never()).save(any());
+                .hasMessageContaining(OrderErrorCode.ORDER_GROUP_PURCHASE_SALE_CLOSED.getMsg());
+        then(orderRepository).should(never()).saveAndFlush(any());
     }
 
     @Test
@@ -228,15 +229,14 @@ class OrderCreateUseCaseTest {
     void rejectPendingIndividualGroup() {
         given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
                 new OrderProductInfo(4L, 2L, 8L, "축구공", null, 25000, null, true)));
-        given(orderCartClient.getIndividualGroupPurchaseOrderable(PURCHASE_ID, List.of(2L), NOW))
-                .willReturn(new IndividualGroupPurchaseOrderable(PURCHASE_ID, NOW.plusDays(1)));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(openPurchase(NOW.plusDays(1))));
         given(orderRepository.findPendingIndividualGroupOrderId(MEMBER_ID, PURCHASE_ID)).willReturn(Optional.of(99L));
 
         assertThatThrownBy(() -> createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
                 List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)), ADDRESS, NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_ALREADY_PENDING.getMsg());
-        then(orderRepository).should(never()).save(any());
+        then(orderRepository).should(never()).saveAndFlush(any());
     }
 
     @Test
@@ -244,11 +244,10 @@ class OrderCreateUseCaseTest {
     void allowIndividualGroupWhenNoPending() {
         given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
                 new OrderProductInfo(4L, 2L, 8L, "축구공", null, 25000, null, true)));
-        given(orderCartClient.getIndividualGroupPurchaseOrderable(PURCHASE_ID, List.of(2L), NOW))
-                .willReturn(new IndividualGroupPurchaseOrderable(PURCHASE_ID, NOW.plusDays(1)));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(openPurchase(NOW.plusDays(1))));
         given(orderRepository.findPendingIndividualGroupOrderId(MEMBER_ID, PURCHASE_ID)).willReturn(Optional.empty());
         given(orderNumberGenerator.generateUnique(any(), any())).willReturn(ORDER_NUMBER);
-        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(orderRepository.saveAndFlush(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         OrderCreateResponse response = createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
                 List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)), ADDRESS, NOW);
@@ -265,8 +264,8 @@ class OrderCreateUseCaseTest {
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_DUPLICATE_ITEM.getMsg());
         then(orderProductClient).should(never()).findAllByInventoryIds(anyCollection());
-        then(orderCartClient).should(never()).getIndividualGroupPurchaseOrderable(any(), any(), any());
-        then(orderRepository).should(never()).save(any());
+        then(replicaUseCase).should(never()).find(any());
+        then(orderRepository).should(never()).saveAndFlush(any());
     }
 
     @Test
@@ -275,21 +274,69 @@ class OrderCreateUseCaseTest {
         given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
                 new OrderProductInfo(4L, 2L, 8L, "축구공", "5호", 25000, null, true),
                 new OrderProductInfo(5L, 2L, 8L, "축구공", "4호", 23000, null, true)));
-        given(orderCartClient.getIndividualGroupPurchaseOrderable(PURCHASE_ID, List.of(2L), NOW))
-                .willReturn(new IndividualGroupPurchaseOrderable(PURCHASE_ID, NOW.plusDays(1)));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(openPurchase(NOW.plusDays(1))));
         given(orderRepository.findPendingIndividualGroupOrderId(MEMBER_ID, PURCHASE_ID)).willReturn(Optional.empty());
         given(orderNumberGenerator.generateUnique(any(), any())).willReturn(ORDER_NUMBER);
-        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(orderRepository.saveAndFlush(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         OrderCreateResponse response = createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
                 List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1),
                         new IndividualGroupOrderCreateRequest.Item(5L, 2)), ADDRESS, NOW);
 
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
-        then(orderRepository).should().save(captor.capture());
+        then(orderRepository).should().saveAndFlush(captor.capture());
         assertThat(captor.getValue().getItems())
                 .extracting(OrderItem::getInventoryId, OrderItem::getQuantity)
                 .containsExactly(tuple(4L, 1), tuple(5L, 2));
         assertThat(response.totalAmount()).isEqualTo(71000L);
+    }
+
+    @Test
+    @DisplayName("공동구매가 사본에도 cart에도 없으면 주문할 수 없다")
+    void rejectUnknownPurchase() {
+        given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
+                new OrderProductInfo(4L, 2L, 8L, "축구공", null, 25000, null, true)));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)), ADDRESS, NOW))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_GROUP_PURCHASE_NOT_FOUND.getMsg());
+        then(orderRepository).should(never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("공동구매에서 팔지 않는 상품은 주문할 수 없다")
+    void rejectProductNotSold() {
+        given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
+                new OrderProductInfo(4L, 3L, 8L, "농구공", null, 25000, null, true)));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(openPurchase(NOW.plusDays(1))));
+
+        assertThatThrownBy(() -> createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)), ADDRESS, NOW))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_GROUP_PURCHASE_PRODUCT_NOT_SOLD.getMsg());
+        then(orderRepository).should(never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("조회 뒤 같은 공동구매 결제 대기 주문이 먼저 저장되면 orders unique 위반을 '이미 결제 대기 중'으로 바꾼다")
+    void translatePendingIndividualGroupUniqueViolation() {
+        given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
+                new OrderProductInfo(4L, 2L, 8L, "축구공", null, 25000, null, true)));
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(openPurchase(NOW.plusDays(1))));
+        given(orderRepository.findPendingIndividualGroupOrderId(MEMBER_ID, PURCHASE_ID)).willReturn(Optional.empty());
+        given(orderNumberGenerator.generateUnique(any(), any())).willReturn(ORDER_NUMBER);
+        given(orderRepository.saveAndFlush(any(Order.class))).willThrow(new DataIntegrityViolationException(
+                "Duplicate entry '1-10' for key 'orders." + Order.PENDING_BUYER_INDIVIDUAL_GROUP_UNIQUE + "'"));
+
+        assertThatThrownBy(() -> createUseCase.createIndividualGroup(MEMBER_ID, PURCHASE_ID,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)), ADDRESS, NOW))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_ALREADY_PENDING.getMsg());
+    }
+
+    private static IndividualGroupPurchaseReplica openPurchase(LocalDateTime deadlineAt) {
+        return IndividualGroupPurchaseReplica.of(PURCHASE_ID, deadlineAt, false, null, List.of(2L), 0);
     }
 }

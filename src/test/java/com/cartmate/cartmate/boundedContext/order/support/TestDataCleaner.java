@@ -47,4 +47,15 @@ public class TestDataCleaner {
         jdbc.update("DELETE FROM shared_group_order_participant WHERE shared_group_order_id IN (:orderIds)", params);
         jdbc.update("DELETE FROM shared_group_order WHERE id IN (:orderIds)", params);
     }
+
+    // order 쪽 개인물품 공동구매 사본(ARCH-16). 이벤트 consumer가 만든 행만 지운다
+    public void deleteIndividualGroupPurchaseReplicas(Collection<Long> purchaseIds) {
+        if (purchaseIds.isEmpty()) {
+            return;
+        }
+        Map<String, Object> params = Map.of("purchaseIds", purchaseIds);
+        jdbc.update("DELETE FROM individual_group_purchase_replica_product WHERE individual_group_purchase_id IN (:purchaseIds)",
+                params);
+        jdbc.update("DELETE FROM individual_group_purchase_replica WHERE individual_group_purchase_id IN (:purchaseIds)", params);
+    }
 }
