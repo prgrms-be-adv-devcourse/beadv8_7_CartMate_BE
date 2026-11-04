@@ -26,7 +26,7 @@ public class SharedGroupOrderFacade {
     // 아웃박스 consumer(SharedGroupOrderEventListener)가 부른다. 마감 트랜잭션과 따로, order 자기 트랜잭션에서 만든다
     @Transactional
     public void createFromClosedPurchase(SharedGroupPurchaseClosedEvent event) {
-        sharedGroupOrderCreateUseCase.createFromClosedPurchase(event);
+        sharedGroupOrderCreateUseCase.createFromClosedPurchase(event, LocalDateTime.now());
     }
 
     @Transactional

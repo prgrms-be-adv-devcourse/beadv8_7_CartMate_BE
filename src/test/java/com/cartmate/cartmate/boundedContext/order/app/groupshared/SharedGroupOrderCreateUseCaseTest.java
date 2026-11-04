@@ -13,15 +13,16 @@ import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreatedEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreationFailedEvent;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +42,8 @@ class SharedGroupOrderCreateUseCaseTest {
     private static final Long PURCHASE_ID = 10L;
     private static final Long CREATOR = 1L;
     private static final LocalDateTime CLOSED_AT = LocalDateTime.of(2026, 10, 19, 12, 0);
+    private static final Duration CREATION_WINDOW = Duration.ofMinutes(8);
+    private static final LocalDateTime NOW = CLOSED_AT.plusSeconds(1);
 
     @Mock
     private SharedGroupOrderRepository sharedGroupOrderRepository;
@@ -51,8 +54,13 @@ class SharedGroupOrderCreateUseCaseTest {
     @Mock
     private DomainEventPublisher eventPublisher;
 
-    @InjectMocks
     private SharedGroupOrderCreateUseCase createUseCase;
+
+    @BeforeEach
+    void setUp() {
+        createUseCase = new SharedGroupOrderCreateUseCase(
+                sharedGroupOrderRepository, orderProductClient, eventPublisher, CREATION_WINDOW);
+    }
 
     @Test
     @DisplayName("마감 시점 가격으로 주문을 만들고 N빵하며 나머지 원은 생성자가 부담한다")
@@ -65,7 +73,7 @@ class SharedGroupOrderCreateUseCaseTest {
 
         createUseCase.createFromClosedPurchase(event(List.of(1L, 2L, 3L),
                 new SharedGroupPurchaseClosedEvent.Item(2L, 4L, 2),
-                new SharedGroupPurchaseClosedEvent.Item(1L, 1L, 1)));
+                new SharedGroupPurchaseClosedEvent.Item(1L, 1L, 1)), NOW);
 
         ArgumentCaptor<SharedGroupOrder> captor = ArgumentCaptor.forClass(SharedGroupOrder.class);
         then(sharedGroupOrderRepository).should().save(captor.capture());
@@ -92,7 +100,7 @@ class SharedGroupOrderCreateUseCaseTest {
         ReflectionTestUtils.setField(existing, "id", 99L);
         given(sharedGroupOrderRepository.findBySharedGroupPurchaseId(PURCHASE_ID)).willReturn(Optional.of(existing));
 
-        createUseCase.createFromClosedPurchase(event(List.of(1L), new SharedGroupPurchaseClosedEvent.Item(2L, 4L, 1)));
+        createUseCase.createFromClosedPurchase(event(List.of(1L), new SharedGroupPurchaseClosedEvent.Item(2L, 4L, 1)), NOW);
 
         then(sharedGroupOrderRepository).should(never()).save(any());
         then(orderProductClient).shouldHaveNoInteractions();
@@ -109,10 +117,25 @@ class SharedGroupOrderCreateUseCaseTest {
         given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of());
 
         assertThatThrownBy(() -> createUseCase.createFromClosedPurchase(
-                event(List.of(1L), new SharedGroupPurchaseClosedEvent.Item(2L, 4L, 1))))
+                event(List.of(1L), new SharedGroupPurchaseClosedEvent.Item(2L, 4L, 1)), NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_PRODUCT_NOT_FOUND.getMsg());
         then(sharedGroupOrderRepository).should(never()).save(any());
+        then(eventPublisher).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("마감 뒤 생성 창(8분)을 넘긴 마감 이벤트로는 새로 만들지 않는다. 이미 있는 주문의 생성 소식은 창과 상관없이 다시 낸다")
+    void expiredClosedEventIsRejected() {
+        given(sharedGroupOrderRepository.findBySharedGroupPurchaseId(PURCHASE_ID)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> createUseCase.createFromClosedPurchase(
+                event(List.of(1L), new SharedGroupPurchaseClosedEvent.Item(2L, 4L, 1)),
+                CLOSED_AT.plus(CREATION_WINDOW).plusSeconds(1)))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_SHARED_CREATION_EXPIRED.getMsg());
+        then(sharedGroupOrderRepository).should(never()).save(any());
+        then(orderProductClient).shouldHaveNoInteractions();
         then(eventPublisher).shouldHaveNoInteractions();
     }
 

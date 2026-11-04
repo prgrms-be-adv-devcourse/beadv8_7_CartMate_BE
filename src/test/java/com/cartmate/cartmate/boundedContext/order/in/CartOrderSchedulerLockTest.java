@@ -26,7 +26,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-/** cart · order 스케줄러 4개가 ShedLock으로 한 인스턴스에서만 돈다. 다른 인스턴스가 락을 잡고 있으면 건너뛴다. */
+/** cart · order 스케줄러 5개가 ShedLock으로 한 인스턴스에서만 돈다. 다른 인스턴스가 락을 잡고 있으면 건너뛴다. */
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
 class CartOrderSchedulerLockTest {
@@ -71,7 +71,8 @@ class CartOrderSchedulerLockTest {
                 Arguments.of("order.cancelExpired"),
                 Arguments.of("sharedGroupOrder.cancelExpired"),
                 Arguments.of("sharedGroupPurchase.closeExpired"),
-                Arguments.of("sharedGroupPurchase.closeFrozenTimeout")
+                Arguments.of("sharedGroupPurchase.closeFrozenTimeout"),
+                Arguments.of("sharedGroupPurchase.revertOrderTimeout")
         );
     }
 
@@ -108,6 +109,7 @@ class CartOrderSchedulerLockTest {
             case "sharedGroupOrder.cancelExpired" -> sharedGroupOrderScheduler.cancelExpired();
             case "sharedGroupPurchase.closeExpired" -> sharedGroupPurchaseScheduler.closeExpired();
             case "sharedGroupPurchase.closeFrozenTimeout" -> sharedGroupPurchaseScheduler.closeFrozenTimeout();
+            case "sharedGroupPurchase.revertOrderTimeout" -> sharedGroupPurchaseScheduler.revertOrderTimeout();
             default -> throw new IllegalArgumentException(lockName);
         }
     }
@@ -118,6 +120,7 @@ class CartOrderSchedulerLockTest {
             case "sharedGroupOrder.cancelExpired" -> verify(sharedGroupOrderFacade, times(times)).findIdsToCancelByDeadline(any());
             case "sharedGroupPurchase.closeExpired" -> verify(sharedGroupPurchaseFacade, times(times)).findIdsToCloseByDeadline(any());
             case "sharedGroupPurchase.closeFrozenTimeout" -> verify(sharedGroupPurchaseFacade, times(times)).findIdsToReleaseFrozen(any());
+            case "sharedGroupPurchase.revertOrderTimeout" -> verify(sharedGroupPurchaseFacade, times(times)).findIdsAwaitingOrderTooLong(any());
             default -> throw new IllegalArgumentException(lockName);
         }
     }

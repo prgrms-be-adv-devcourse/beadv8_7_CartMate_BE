@@ -114,6 +114,16 @@ public class SharedGroupPurchaseFacade {
     }
 
     @Transactional(readOnly = true)
+    public List<Long> findIdsAwaitingOrderTooLong(LocalDateTime now) {
+        return sharedGroupPurchaseOrderResultUseCase.findIdsAwaitingOrderTooLong(now);
+    }
+
+    @Transactional
+    public void revertByOrderCreationTimeout(Long sharedGroupPurchaseId) {
+        sharedGroupPurchaseOrderResultUseCase.revertByOrderCreationTimeout(sharedGroupPurchaseId, LocalDateTime.now());
+    }
+
+    @Transactional(readOnly = true)
     public List<Long> findIdsToCloseByDeadline(LocalDateTime now) {
         return sharedGroupPurchaseCloseUseCase.findIdsToCloseByDeadline(now);
     }
