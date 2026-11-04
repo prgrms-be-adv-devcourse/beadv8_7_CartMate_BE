@@ -143,6 +143,7 @@ class OrderFlowIntegrationTest {
     // 같은 DB를 쓰는 다른 테스트가 남긴 NEW 행이 앞에 있을 수 있어, 이 주문의 이벤트가 모두 넘어갈 때까지 돌린다
     private void relayUntilPublished(Long orderId) {
         for (int i = 0; i < 20; i++) {
+            ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
             outboxRelay.relay();
             Integer pending = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM outbox_event WHERE aggregate_type = 'Order' AND aggregate_id = ? AND status = 'NEW'",

@@ -69,6 +69,8 @@ class OutboxIntegrationTest {
         switchableSink.failOnNote = null;
         // 같은 컨테이너 DB를 쓰는 다른 통합 테스트(스케줄링 꺼짐)가 남긴 NEW 행이 배치(100건)를 차지하지 않게
         jdbcTemplate.update("DELETE FROM outbox_event WHERE status = 'NEW'");
+        // 다른 컨텍스트가 create-drop으로 shedlock 테이블을 다시 만들면 캐시된 ShedLock이 relay()를 조용히 건너뛴다
+        ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
     }
 
     @AfterEach
