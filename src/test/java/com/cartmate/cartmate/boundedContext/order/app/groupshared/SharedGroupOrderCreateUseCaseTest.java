@@ -10,6 +10,9 @@ import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreationFailedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,9 +20,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,13 +48,17 @@ class SharedGroupOrderCreateUseCaseTest {
     @Mock
     private OrderProductClient orderProductClient;
 
+    @Mock
+    private DomainEventPublisher eventPublisher;
+
     @InjectMocks
     private SharedGroupOrderCreateUseCase createUseCase;
 
     @Test
     @DisplayName("마감 시점 가격으로 주문을 만들고 N빵하며 나머지 원은 생성자가 부담한다")
     void createWithPriceSnapshot() {
-        given(sharedGroupOrderRepository.existsBySharedGroupPurchaseId(PURCHASE_ID)).willReturn(false);
+        given(sharedGroupOrderRepository.findBySharedGroupPurchaseId(PURCHASE_ID)).willReturn(Optional.empty());
+        given(sharedGroupOrderRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
         given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of(
                 new OrderProductInfo(4L, 2L, 1L, "축구공", "5호", 25000, null, true),
                 new OrderProductInfo(1L, 1L, 1L, "축구 유니폼", "M / 레드", 39000, null, true)));
@@ -72,22 +81,31 @@ class SharedGroupOrderCreateUseCaseTest {
         assertThat(order.getParticipant(2L).getShareAmount()).isEqualTo(29666L);
         assertThat(order.getParticipants()).extracting(SharedGroupOrderParticipant::getShareAmount)
                 .containsExactly(29668L, 29666L, 29666L);
+        then(eventPublisher).should().publish(any(SharedGroupOrderCreatedEvent.class));
     }
 
     @Test
-    @DisplayName("이미 같은 공동구매로 만든 주문이 있으면 다시 만들지 않는다")
+    @DisplayName("이미 같은 공동구매로 만든 주문이 있으면 다시 만들지 않고, 그 주문으로 생성 소식만 다시 낸다")
     void skipWhenAlreadyCreated() {
-        given(sharedGroupOrderRepository.existsBySharedGroupPurchaseId(PURCHASE_ID)).willReturn(true);
+        SharedGroupOrder existing = SharedGroupOrder.create(PURCHASE_ID, CREATOR, List.of(CREATOR),
+                List.of(new SharedGroupOrder.OrderItemLine(2L, 4L, 1L, "축구공", "5호", 1, 25000)), CLOSED_AT);
+        ReflectionTestUtils.setField(existing, "id", 99L);
+        given(sharedGroupOrderRepository.findBySharedGroupPurchaseId(PURCHASE_ID)).willReturn(Optional.of(existing));
 
         createUseCase.createFromClosedPurchase(event(List.of(1L), new SharedGroupPurchaseClosedEvent.Item(2L, 4L, 1)));
 
         then(sharedGroupOrderRepository).should(never()).save(any());
+        then(orderProductClient).shouldHaveNoInteractions();
+        ArgumentCaptor<SharedGroupOrderCreatedEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCreatedEvent.class);
+        then(eventPublisher).should().publish(captor.capture());
+        assertThat(captor.getValue().sharedGroupOrderId()).isEqualTo(99L);
+        assertThat(captor.getValue().sharedGroupPurchaseId()).isEqualTo(PURCHASE_ID);
     }
 
     @Test
     @DisplayName("상품 가격을 찾을 수 없으면 주문을 만들지 않는다")
     void productNotFound() {
-        given(sharedGroupOrderRepository.existsBySharedGroupPurchaseId(PURCHASE_ID)).willReturn(false);
+        given(sharedGroupOrderRepository.findBySharedGroupPurchaseId(PURCHASE_ID)).willReturn(Optional.empty());
         given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of());
 
         assertThatThrownBy(() -> createUseCase.createFromClosedPurchase(
@@ -95,6 +113,15 @@ class SharedGroupOrderCreateUseCaseTest {
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_PRODUCT_NOT_FOUND.getMsg());
         then(sharedGroupOrderRepository).should(never()).save(any());
+        then(eventPublisher).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("생성 실패 소식은 공동구매 ID와 실패 코드를 담아 발행한다")
+    void reportCreationFailed() {
+        createUseCase.reportCreationFailed(PURCHASE_ID, "ORDER_PRODUCT_NOT_FOUND");
+
+        then(eventPublisher).should().publish(new SharedGroupOrderCreationFailedEvent(PURCHASE_ID, "ORDER_PRODUCT_NOT_FOUND"));
     }
 
     private SharedGroupPurchaseClosedEvent event(List<Long> participants, SharedGroupPurchaseClosedEvent.Item... items) {

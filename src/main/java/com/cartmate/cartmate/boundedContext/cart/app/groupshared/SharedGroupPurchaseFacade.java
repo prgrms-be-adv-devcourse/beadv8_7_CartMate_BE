@@ -5,6 +5,8 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurc
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseItemQuantityResponse;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseSummaryResponse;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreationFailedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class SharedGroupPurchaseFacade {
     private final SharedGroupPurchaseItemUseCase sharedGroupPurchaseItemUseCase;
     private final SharedGroupPurchaseCloseUseCase sharedGroupPurchaseCloseUseCase;
     private final SharedGroupPurchaseQueryUseCase sharedGroupPurchaseQueryUseCase;
+    private final SharedGroupPurchaseOrderResultUseCase sharedGroupPurchaseOrderResultUseCase;
 
     @Transactional
     public SharedGroupPurchaseCreateResponse create(Long memberId, SharedGroupPurchaseCreateRequest request) {
@@ -97,6 +100,17 @@ public class SharedGroupPurchaseFacade {
     @Transactional
     public void closeByFrozenTimeout(Long sharedGroupPurchaseId) {
         sharedGroupPurchaseCloseUseCase.closeByFrozenTimeout(sharedGroupPurchaseId);
+    }
+
+    // 아래 둘은 order의 공동 주문 생성 결과로 공동구매 단계를 바꾼다 (아웃박스 릴레이 → SharedGroupPurchaseOrderResultListener)
+    @Transactional
+    public void markOrderCreated(SharedGroupOrderCreatedEvent event) {
+        sharedGroupPurchaseOrderResultUseCase.markOrderCreated(event);
+    }
+
+    @Transactional
+    public void revertByOrderCreationFailed(SharedGroupOrderCreationFailedEvent event) {
+        sharedGroupPurchaseOrderResultUseCase.revertByOrderCreationFailed(event);
     }
 
     @Transactional(readOnly = true)
