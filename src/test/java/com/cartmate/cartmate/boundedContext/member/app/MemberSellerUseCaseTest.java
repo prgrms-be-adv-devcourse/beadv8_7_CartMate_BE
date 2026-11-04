@@ -15,6 +15,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.AbstractPlatformTransactionManager;
+import org.springframework.transaction.support.DefaultTransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -24,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -102,6 +107,65 @@ class MemberSellerUseCaseTest {
 
         assertThat(result.accessToken()).isEqualTo("token");
         verify(sellerRepository).saveAndFlush(any(Seller.class));
+        verify(store).remove(MEMBER_ID);
+    }
+
+    // 커밋과 롤백만 흉내 내는 트랜잭션 매니저. 스프링의 트랜잭션 동기화 흐름을 그대로 쓴다.
+    private static class NoopTransactionManager extends AbstractPlatformTransactionManager {
+        @Override
+        protected Object doGetTransaction() {
+            return new Object();
+        }
+
+        @Override
+        protected void doBegin(Object transaction, TransactionDefinition definition) {
+        }
+
+        @Override
+        protected void doCommit(DefaultTransactionStatus status) {
+        }
+
+        @Override
+        protected void doRollback(DefaultTransactionStatus status) {
+        }
+    }
+
+    private final TransactionTemplate transaction = new TransactionTemplate(new NoopTransactionManager());
+
+    @Test
+    @DisplayName("트랜잭션 안에서는 커밋이 끝난 뒤에 통과 표시를 지운다")
+    void removeAfterCommit() {
+        when(store.isVerified(MEMBER_ID, fingerprint)).thenReturn(true);
+
+        transaction.executeWithoutResult(status -> {
+            useCase.register(MEMBER_ID, request);
+            verify(store, never()).remove(anyLong()); // 커밋 전에는 지우지 않는다
+        });
+
+        verify(store).remove(MEMBER_ID);
+    }
+
+    @Test
+    @DisplayName("등록이 롤백되면 통과 표시를 지우지 않는다")
+    void keepMarkWhenRolledBack() {
+        when(store.isVerified(MEMBER_ID, fingerprint)).thenReturn(true);
+
+        assertThatThrownBy(() -> transaction.executeWithoutResult(status -> {
+            useCase.register(MEMBER_ID, request);
+            throw new IllegalStateException("동기 이벤트 처리 실패");
+        })).isInstanceOf(IllegalStateException.class);
+
+        verify(store, never()).remove(anyLong());
+    }
+
+    @Test
+    @DisplayName("커밋 뒤 Redis 삭제가 실패해도 등록은 성공으로 끝난다")
+    void redisFailureAfterCommitDoesNotFailRegistration() {
+        when(store.isVerified(MEMBER_ID, fingerprint)).thenReturn(true);
+        doThrow(new RuntimeException("redis down")).when(store).remove(MEMBER_ID);
+
+        transaction.executeWithoutResult(status -> useCase.register(MEMBER_ID, request));
+
         verify(store).remove(MEMBER_ID);
     }
 
