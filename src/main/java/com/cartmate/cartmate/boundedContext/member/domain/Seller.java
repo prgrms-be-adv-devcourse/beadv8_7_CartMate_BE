@@ -9,7 +9,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "seller")
+@Table(name = "seller", uniqueConstraints = @UniqueConstraint(name = "uk_seller_account", columnNames = {"bank_name", "account_number"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Seller extends BaseIdAndTime {

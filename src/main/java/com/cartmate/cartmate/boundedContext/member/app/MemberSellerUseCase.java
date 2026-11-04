@@ -2,9 +2,11 @@ package com.cartmate.cartmate.boundedContext.member.app;
 
 import com.cartmate.cartmate.boundedContext.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.member.domain.Seller;
+import com.cartmate.cartmate.boundedContext.member.domain.SellerAccountFingerprint;
 import com.cartmate.cartmate.boundedContext.member.domain.SellerType;
 import com.cartmate.cartmate.boundedContext.member.dto.SellerRegisterRequest;
 import com.cartmate.cartmate.boundedContext.member.dto.SellerResponse;
+import com.cartmate.cartmate.boundedContext.member.out.AccountVerificationStore;
 import com.cartmate.cartmate.boundedContext.member.out.MemberRepository;
 import com.cartmate.cartmate.boundedContext.member.out.SellerRepository;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
@@ -22,6 +24,7 @@ import java.util.Optional;
 public class MemberSellerUseCase {
     private final MemberRepository memberRepository;
     private final SellerRepository sellerRepository;
+    private final AccountVerificationStore accountVerificationStore;
     private final EventPublisher eventPublisher;
     private final JwtProvider jwtProvider;
 
@@ -63,16 +66,33 @@ public class MemberSellerUseCase {
             businessNumber = null;
         }
 
+        String bankName = req.bankName().trim();
+        String accountHolder = req.accountHolder().trim();
+        String accountNumber = req.accountNumber().trim();
+
+        // 계좌 확인을 통과한 입력값과 같아야 한다. member를 바꾸기 전에 거절한다.
+        String fingerprint = SellerAccountFingerprint.of(req.sellerType(), bankName, accountNumber,
+                accountHolder, businessName, businessNumber);
+        if (!accountVerificationStore.isVerified(memberId, fingerprint)) {
+            throw new ServiceException("400-SELLER_ACCOUNT_NOT_VERIFIED", "계좌 확인이 필요합니다. 정산 계좌를 먼저 확인해주세요.");
+        }
+        if (sellerRepository.existsByBankNameAndAccountNumber(bankName, accountNumber)) {
+            throw new ServiceException("409-SELLER_ACCOUNT_DUPLICATE", "이미 등록된 정산 계좌입니다.");
+        }
+
         member.becomeSeller(); // 나이, 상태, 역할 검사
 
         Seller seller;
         try {
             seller = sellerRepository.saveAndFlush(Seller.create(member, req.sellerType(), businessName,
-                    representativeName, businessNumber, req.phoneNumber().trim(), req.bankName().trim(),
-                    req.accountHolder().trim(), req.accountNumber().trim()));
+                    representativeName, businessNumber, req.phoneNumber().trim(), bankName,
+                    accountHolder, accountNumber));
         } catch (DataIntegrityViolationException e) {
             throw new ServiceException("409-SELLER_ALREADY_REGISTERED", "이미 등록된 판매자 정보입니다.");
         }
+
+        // 등록이 성공했을 때만 통과 표시를 지운다. 실패하면 남겨 두어 입력을 고쳐 다시 제출할 수 있다.
+        accountVerificationStore.remove(memberId);
 
         eventPublisher.publish(
                 new SellerRegisteredEvent(
