@@ -16,6 +16,11 @@ custom:
     toss:
       base-url: https://api.tosspayments.com
       secret-key: ${TOSS_SECRET_KEY:} # 결제위젯 연동 키의 시크릿 키. 저장소에는 비워 두고 환경 변수 TOSS_SECRET_KEY로 넣는다
+  openbanking:
+    mode: ${OPENBANKING_MODE:fake} # 승인 전에는 fake(실제 계좌 검증 없음). live 구현체는 이용기관 승인 후 추가한다
+    client-id: ${OPENBANKING_CLIENT_ID:} # 저장소에는 비워 두고 환경 변수로 넣는다. live일 때만 필요하다
+    client-secret: ${OPENBANKING_CLIENT_SECRET:}
+    org-code: ${OPENBANKING_ORG_CODE:}
   member:
     seller:
       minAge: 19
