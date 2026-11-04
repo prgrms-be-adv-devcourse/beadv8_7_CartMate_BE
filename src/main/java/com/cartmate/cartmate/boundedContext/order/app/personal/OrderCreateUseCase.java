@@ -22,6 +22,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -39,7 +40,11 @@ class OrderCreateUseCase {
 
     OrderCreateResponse createPersonal(Long memberId, List<Long> cartItemIds, DeliveryAddress deliveryAddress,
                                        LocalDateTime now) {
-        List<CartOrderItem> cartItems = orderCartClient.getCartItemsForOrder(memberId, cartItemIds);
+        // 재고 ID 순으로 정렬해 저장한다. 같은 회원이 같은 상품들을 다른 순서로 동시에 주문해도
+        // order_item unique 인덱스를 같은 순서로 잡아 서로 기다리는 교착 없이 한쪽이 중복으로 거절된다
+        List<CartOrderItem> cartItems = orderCartClient.getCartItemsForOrder(memberId, cartItemIds).stream()
+                .sorted(Comparator.comparing(CartOrderItem::inventoryId))
+                .toList();
         List<Long> inventoryIds = cartItems.stream().map(CartOrderItem::inventoryId).toList();
         if (orderRepository.findPendingPersonalOrderIdContaining(memberId, inventoryIds).isPresent()) {
             throw new ServiceException(OrderErrorCode.ORDER_ALREADY_PENDING);
@@ -99,7 +104,7 @@ class OrderCreateUseCase {
     }
 
     // 위 조회와 저장 사이에 같은 상품의 결제 대기 주문이 먼저 들어오면 order_item의 unique가 막는다.
-    // 지금은 cart 행 락이 같은 회원의 주문 생성을 줄 세우지만, cart가 다른 서비스가 되면 그 락은 이 트랜잭션에 없다.
+    // cart 쪽 장바구니 조회는 잠그지 않으므로(모듈을 넘는 락 금지, ARCH-15) 같은 회원의 동시 주문은 이 unique만 막는다.
     private Order savePersonal(Order order) {
         try {
             return orderRepository.saveAndFlush(order);
