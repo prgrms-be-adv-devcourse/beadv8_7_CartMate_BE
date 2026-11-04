@@ -47,6 +47,10 @@ public class Member extends BaseIdAndTime {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    // 탈퇴 신청 시각. 이 시각부터 유예 기간이 지나면 탈퇴가 확정된다.
+    @Column(name = "withdrawal_requested_at")
+    private LocalDateTime withdrawalRequestedAt;
+
     public static Member create(String email, String encodedPassword, String nickname,
                                 String phone, LocalDate birthDate) {
 
@@ -72,6 +76,26 @@ public class Member extends BaseIdAndTime {
         if (status == MemberStatus.WITHDRAWN) {
             throw new ServiceException("401-MEMBER_LOGIN_FAILED", "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
+    }
+
+    // 탈퇴 신청: 정상 회원만. 유예 기간 동안 로그인·조회는 되고, 변경 요청은 필터에서 막는다.
+    public void requestWithdrawal(LocalDateTime requestedAt) {
+        if (status == MemberStatus.WITHDRAWAL_PENDING) {
+            throw new ServiceException("409-MEMBER_WITHDRAWAL_ALREADY_REQUESTED", "이미 탈퇴를 신청했습니다.");
+        }
+        if (status != MemberStatus.ACTIVE) {
+            throw new ServiceException("409-MEMBER_CANNOT_WITHDRAW", "%s 상태에서는 탈퇴를 신청할 수 없습니다.".formatted(status.getDescription()));
+        }
+        this.status = MemberStatus.WITHDRAWAL_PENDING;
+        this.withdrawalRequestedAt = requestedAt;
+    }
+    // 탈퇴 취소: 탈퇴 대기 중일 때만
+    public void cancelWithdrawal() {
+        if (status != MemberStatus.WITHDRAWAL_PENDING) {
+            throw new ServiceException("409-MEMBER_WITHDRAWAL_NOT_REQUESTED", "탈퇴를 신청한 상태가 아닙니다.");
+        }
+        this.status = MemberStatus.ACTIVE;
+        this.withdrawalRequestedAt = null;
     }
 
     public void updateProfile(String nickname, String phone) {

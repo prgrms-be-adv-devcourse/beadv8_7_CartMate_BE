@@ -18,4 +18,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, OrderReposi
                        "where o.status = :status and i.productId in :productIds order by o.id")
     List<Long> findIdsByStatusAndProductIds(@Param("status") OrderStatus status,
                                             @Param("productIds") Collection<Long> productIds);
+
+    // 회원 탈퇴 확인: 구매자의 특정 상태 주문 수
+    long countByBuyerMemberIdAndStatus(Long buyerMemberId, OrderStatus status);
 }

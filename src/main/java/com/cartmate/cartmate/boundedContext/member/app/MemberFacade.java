@@ -31,6 +31,8 @@ public class MemberFacade {
     private final MemberTokenUseCase memberTokenUseCase;
     private final MemberAddressUseCase memberAddressUseCase;
     private final AdminDashboardUseCase adminDashboardUseCase;
+    private final MemberWithdrawalUseCase memberWithdrawalUseCase;
+
 
     @Transactional
     public MemberDto join(SignupRequest request) {
@@ -186,5 +188,26 @@ public class MemberFacade {
     @Transactional(readOnly = true)
     public AdminDashboardResponse getAdminDashboard() {
         return adminDashboardUseCase.getDashboard();
+    }
+
+    // ===== 회원 탈퇴 =====
+    @Transactional(readOnly = true)
+    public WithdrawalCheckResponse checkWithdrawal(Long memberId) {
+        return memberWithdrawalUseCase.check(memberId);
+    }
+
+    @Transactional
+    public WithdrawalCheckResponse requestWithdrawal(Long memberId, String password) {
+        return memberWithdrawalUseCase.request(memberId, password);
+    }
+
+    @Transactional
+    public WithdrawalCheckResponse cancelWithdrawal(Long memberId) {
+        return memberWithdrawalUseCase.cancel(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findWithdrawalPendingMemberIds() {
+        return memberWithdrawalUseCase.findPendingMemberIds();
     }
 }

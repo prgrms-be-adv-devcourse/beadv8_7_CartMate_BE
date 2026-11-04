@@ -1,8 +1,6 @@
 package com.cartmate.cartmate.global.global;
 
-import com.cartmate.cartmate.global.security.BlockedMemberRegistry;
-import com.cartmate.cartmate.global.security.JwtAuthenticationFilter;
-import com.cartmate.cartmate.global.security.JwtProvider;
+import com.cartmate.cartmate.global.security.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +23,7 @@ import java.util.List;
 public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final BlockedMemberRegistry blockedMemberRegistry;
+    private final WithdrawalPendingRegistry withdrawalPendingRegistry;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -63,7 +62,9 @@ public class SecurityConfig {
                         })
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, blockedMemberRegistry),
-                        UsernamePasswordAuthenticationFilter.class);
+                        UsernamePasswordAuthenticationFilter.class)
+                // 인증 다음에 실행: 탈퇴 대기 회원의 변경 요청 차단
+                .addFilterAfter(new WithdrawalPendingFilter(withdrawalPendingRegistry), JwtAuthenticationFilter.class);
 
         return http.build();
     }

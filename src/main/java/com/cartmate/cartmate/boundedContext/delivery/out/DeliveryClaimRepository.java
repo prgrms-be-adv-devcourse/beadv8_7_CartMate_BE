@@ -43,4 +43,9 @@ public interface DeliveryClaimRepository extends JpaRepository<DeliveryClaim, Lo
             @Param("statuses") Collection<ClaimStatus> statuses,
             @Param("claimTypes") Collection<ClaimType> claimTypes,
             Pageable pageable);
+
+    // 회원 탈퇴 확인: 구매자·판매자의 처리 중인 클레임 수
+    long countByMemberIdAndStatusIn(Long memberId, Collection<ClaimStatus> statuses);
+
+    long countByDeliverySellerIdAndStatusIn(Long sellerId, Collection<ClaimStatus> statuses);
 }

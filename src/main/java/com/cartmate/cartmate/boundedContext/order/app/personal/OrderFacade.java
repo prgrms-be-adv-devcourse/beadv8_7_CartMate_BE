@@ -1,12 +1,9 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
-import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
-import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRequest;
-import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
-import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderDetailResponse;
-import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderSummaryResponse;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.*;
 import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -50,6 +47,15 @@ public class OrderFacade {
     @Transactional(readOnly = true)
     public OrderPaymentInfo getPaymentInfo(Long orderId, Long memberId, LocalDateTime now) {
         return orderPaymentUseCase.getPaymentInfo(orderId, memberId, now);
+    }
+
+    // 결제: 주문이 지휘한다 (주문 → 결제). 차감과 PAID 반영이 한 트랜잭션.
+    @Transactional
+    public PaymentResult payOrder(Long memberId, Long orderId) {
+        return orderPaymentUseCase.pay(orderId, memberId, LocalDateTime.now());
+    }
+    @Transactional(readOnly = true) public OrderPaymentPreviewResponse getPaymentPreview(Long memberId, Long orderId) {
+        return orderPaymentUseCase.preview(orderId, memberId, LocalDateTime.now());
     }
 
     @Transactional
@@ -97,5 +103,11 @@ public class OrderFacade {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
         orderCancelUseCase.cancelSellerItemsBySalesStopped(orderId, sellerId);
+    }
+
+    // 회원 탈퇴 확인: 결제 대기 중인 개인 주문 수
+    @Transactional(readOnly = true)
+    public long countPaymentPendingOfBuyer(Long buyerMemberId) {
+        return orderQueryUseCase.countPaymentPendingOfBuyer(buyerMemberId);
     }
 }

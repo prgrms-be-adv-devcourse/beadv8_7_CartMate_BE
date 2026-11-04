@@ -1,17 +1,18 @@
 package com.cartmate.cartmate.boundedContext.order.in.groupshared;
 
+import com.cartmate.cartmate.boundedContext.order.app.OrderPaymentRetryService;
 import com.cartmate.cartmate.boundedContext.order.app.groupshared.SharedGroupOrderFacade;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderSummaryResponse;
+import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupPaymentRequest;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
+import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -21,6 +22,7 @@ import java.util.List;
 public class SharedGroupOrderController {
 
     private final SharedGroupOrderFacade sharedGroupOrderFacade;
+    private final OrderPaymentRetryService orderPaymentRetryService;
 
     @GetMapping("/me")
     public RsData<List<SharedGroupOrderSummaryResponse>> getMyList(@AuthenticationPrincipal SecurityUser user) {
@@ -42,5 +44,15 @@ public class SharedGroupOrderController {
     ) {
         sharedGroupOrderFacade.cancelByCreator(user.memberId(), id);
         return new RsData<>("200-1", "공동 주문을 취소했습니다.");
+    }
+
+    // 분담금 결제 (예전 POST /api/payments/shared-group-orders/{id}). 개설자는 팀 배송지를 함께 보낸다.
+    @PostMapping("/{id}/payment")
+    @Operation(operationId = "paySharedGroupOrder", summary = "공동 주문 분담금 예치금 결제")
+    public RsData<PaymentResult> pay(@AuthenticationPrincipal SecurityUser user, @PathVariable Long id,
+                                     @RequestBody(required = false) SharedGroupPaymentRequest request) {
+        TeamDeliveryAddress address = request == null ? null : request.teamDeliveryAddress();
+        return new RsData<>("200-1", "분담금 결제가 완료되었습니다.",
+                orderPaymentRetryService.paySharedGroupOrder(user.memberId(), id, address));
     }
 }

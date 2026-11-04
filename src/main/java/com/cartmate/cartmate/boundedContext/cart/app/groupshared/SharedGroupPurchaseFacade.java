@@ -123,4 +123,10 @@ public class SharedGroupPurchaseFacade {
     public Map<Long, String> findTitles(Collection<Long> sharedGroupPurchaseIds) {
         return sharedGroupPurchaseQueryUseCase.findTitles(sharedGroupPurchaseIds);
     }
+
+    // 회원 탈퇴 확인: 참여 중인 모집 중 공용물품 공동구매 수
+    @Transactional(readOnly = true)
+    public long countActiveOfMember(Long memberId) {
+        return sharedGroupPurchaseQueryUseCase.countActiveOfMember(memberId);
+    }
 }

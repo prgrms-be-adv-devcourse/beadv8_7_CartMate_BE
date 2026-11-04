@@ -117,4 +117,8 @@ public class PayoutQueryUseCase {
         return sellerQuery.findSellerIdByMemberId(memberId)
                 .orElseThrow(() -> new ServiceException(PayoutErrorCode.PAYOUT_SELLER_ONLY));
     }
+
+    public long countPendingOfSeller(Long sellerId) {
+        return payoutRepository.countBySellerIdAndStatus(sellerId, PayoutStatus.PENDING);
+    }
 }

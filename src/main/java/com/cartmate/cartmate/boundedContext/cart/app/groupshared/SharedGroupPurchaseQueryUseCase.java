@@ -62,4 +62,8 @@ class SharedGroupPurchaseQueryUseCase {
         purchase.getItems().stream().map(SharedGroupPurchaseItem::getUpdatedMemberId).forEach(memberIds::add);
         return memberClient.findNicknames(memberIds);
     }
+
+    long countActiveOfMember(Long memberId) {
+        return sharedGroupPurchaseRepository.countActiveOfMember(memberId);
+    }
 }

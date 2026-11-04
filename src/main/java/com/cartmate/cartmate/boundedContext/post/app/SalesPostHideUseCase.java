@@ -99,4 +99,9 @@ public class SalesPostHideUseCase {
             default -> SalesPostHideType.SELLER_DELETED;
         };
     }
+
+    // 회원 탈퇴 신청: 판매자의 판매 중인 판매글 ID
+    public List<Long> findOnSalePostIdsOfSeller(Long sellerId) {
+        return salesPostRepository.findIdsBySellerIdAndStatus(sellerId, SalesPostSaleStatus.ON_SALE);
+    }
 }
