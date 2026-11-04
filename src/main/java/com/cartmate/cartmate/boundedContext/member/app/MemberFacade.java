@@ -26,6 +26,7 @@ public class MemberFacade {
     private final AdminMemberDetailUseCase adminMemberDetailUseCase;
     private final AdminMemberStatusUseCase adminMemberStatusUseCase;
     private final MemberSellerUseCase memberSellerUseCase;
+    private final MemberSellerAccountVerifyUseCase memberSellerAccountVerifyUseCase;
     private final MyPageDashboardUseCase myPageDashboardUseCase;
     private final MemberTokenUseCase memberTokenUseCase;
     private final MemberAddressUseCase memberAddressUseCase;
@@ -145,6 +146,11 @@ public class MemberFacade {
     @Transactional(readOnly = true)
     public boolean isBusinessNumberAvailable(String businessNumber) {
         return memberSellerUseCase.isBusinessNumberAvailable(businessNumber);
+    }
+
+    // 외부 호출이 나가므로 DB 트랜잭션 밖에서 실행한다.
+    public void verifySellerAccount(Long memberId, SellerAccountVerifyRequest request) {
+        memberSellerAccountVerifyUseCase.verify(memberId, request);
     }
 
     @Transactional
