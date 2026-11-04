@@ -9,6 +9,7 @@ import com.cartmate.cartmate.boundedContext.cart.out.FakeProductClient;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.event.DemandGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -44,7 +44,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     private IndividualGroupPurchaseRepository repository;
 
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private DomainEventPublisher eventPublisher;
 
     private IndividualGroupPurchaseDemandOpenUseCase useCase;
 
@@ -70,7 +70,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
 
         assertThat(response.id()).isEqualTo(77L);
         ArgumentCaptor<DemandGroupPurchaseOpenedEvent> event = ArgumentCaptor.forClass(DemandGroupPurchaseOpenedEvent.class);
-        then(eventPublisher).should().publishEvent(event.capture());
+        then(eventPublisher).should().publish(event.capture());
         assertThat(event.getValue().individualGroupPurchaseId()).isEqualTo(77L);
         assertThat(event.getValue().productId()).isEqualTo(BALL);
         assertThat(event.getValue().paybackMinBuyers()).isEqualTo(10);
@@ -116,7 +116,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
 
         assertThatThrownBy(() -> useCase.open(ADMIN, BALL, request(), NOW))
                 .hasMessageContaining(CartErrorCode.CART_DEMAND_ALREADY_OPEN.getMsg());
-        then(eventPublisher).should(never()).publishEvent(any());
+        then(eventPublisher).should(never()).publish(any());
     }
 
     @Test

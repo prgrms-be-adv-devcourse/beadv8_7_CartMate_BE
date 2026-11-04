@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.shared.cart.event;
 
+import com.cartmate.cartmate.shared.event.DomainEvent;
+
 import java.time.LocalDateTime;
 
 public record DemandGroupPurchaseOpenedEvent(
@@ -11,5 +13,15 @@ public record DemandGroupPurchaseOpenedEvent(
         int paybackMinBuyers,
         long paybackAmount,
         LocalDateTime openedAt
-) {
+) implements DomainEvent {
+
+    @Override
+    public String aggregateType() {
+        return "IndividualGroupPurchase";
+    }
+
+    @Override
+    public String aggregateId() {
+        return String.valueOf(individualGroupPurchaseId);
+    }
 }
