@@ -9,6 +9,8 @@ import com.cartmate.cartmate.boundedContext.cart.out.FakeProductClient;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.event.DemandGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,13 +48,16 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private DomainEventPublisher domainEventPublisher;
+
     private IndividualGroupPurchaseDemandOpenUseCase useCase;
 
     @BeforeEach
     void setUp() {
         useCase = new IndividualGroupPurchaseDemandOpenUseCase(
                 repository, new IndividualGroupPurchaseSupport(new FakeProductClient()),
-                new InviteCodeGenerator(), eventPublisher);
+                new InviteCodeGenerator(), eventPublisher, domainEventPublisher);
     }
 
     @Test
@@ -77,6 +82,12 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
         assertThat(event.getValue().paybackAmount()).isEqualTo(1_000L);
         assertThat(event.getValue().deadlineAt()).isEqualTo(NOW.plusHours(72));
         assertThat(event.getValue().inviteCode()).isEqualTo(response.inviteCode());
+        ArgumentCaptor<IndividualGroupPurchaseOpenedEvent> opened =
+                ArgumentCaptor.forClass(IndividualGroupPurchaseOpenedEvent.class);
+        then(domainEventPublisher).should().publish(opened.capture());
+        assertThat(opened.getValue().individualGroupPurchaseId()).isEqualTo(77L);
+        assertThat(opened.getValue().productIds()).containsExactly(BALL);
+        assertThat(opened.getValue().revision()).isZero();
     }
 
     @Test

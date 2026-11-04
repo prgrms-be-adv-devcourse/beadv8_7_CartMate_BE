@@ -3,7 +3,7 @@ package com.cartmate.cartmate.boundedContext.cart.app;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.cart.out.groupshared.SharedGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchaseCloseReason;
-import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseEvents;
 import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,11 +39,12 @@ public class GroupPurchaseSalesStopUseCase {
     public void removeFromIndividual(Long groupPurchaseId, List<Long> productIds) {
         individualGroupPurchaseRepository.findByIdForUpdate(groupPurchaseId).ifPresent(purchase -> {
             boolean changed = purchase.removeProductsBySalesStopped(new HashSet<>(productIds), LocalDateTime.now());
-            if (changed && purchase.isClosed()) {
-                eventPublisher.publish(new IndividualGroupPurchaseClosedEvent(purchase.getId(),
-                        purchase.getOrigin().name(), IndividualGroupPurchaseCloseReason.SALES_STOPPED.name(),
-                        purchase.getDeadlineAt(), purchase.getClosedAt()));
+            if (!changed) {
+                return;
             }
+            eventPublisher.publish(purchase.isClosed()
+                    ? IndividualGroupPurchaseEvents.closed(purchase, IndividualGroupPurchaseCloseReason.SALES_STOPPED)
+                    : IndividualGroupPurchaseEvents.updated(purchase, LocalDateTime.now()));
         });
     }
 

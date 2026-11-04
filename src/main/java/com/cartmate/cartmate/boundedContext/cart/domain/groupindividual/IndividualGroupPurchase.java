@@ -76,6 +76,10 @@ public class IndividualGroupPurchase {
 
     private Long paybackAmount;
 
+    // 판매 조건(상품 · 마감 시각 · 상태)이 바뀔 때마다 1씩 오른다. order 사본이 늦게 온 이벤트로 새 상태를 덮지 않게 한다
+    @Column(nullable = false, columnDefinition = "bigint not null default 0")
+    private long revision;
+
 
     @OrderBy("id")
     @OneToMany(mappedBy = "individualGroupPurchase", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -148,6 +152,7 @@ public class IndividualGroupPurchase {
             throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCT_ALREADY_ON_SALE);
         }
         products.add(IndividualGroupPurchaseProduct.create(this, productId));
+        revision++;
     }
 
 
@@ -165,6 +170,7 @@ public class IndividualGroupPurchase {
                 .findFirst()
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCT_NOT_ON_SALE));
         products.remove(product);
+        revision++;
     }
 
     // 판매글 판매 중지: 해당 상품을 제외한다. 남은 상품이 없으면 공동구매를 종료한다. 바뀐 게 있으면 true.
@@ -173,10 +179,19 @@ public class IndividualGroupPurchase {
                     return false;
                 }
                 boolean removed = products.removeIf(product -> productIds.contains(product.getProductId()));
-                if (removed && products.isEmpty()) {
-                    markClosed(now);
+                if (!removed) {
+                    return false;
                 }
-                return removed;
+                if (products.isEmpty()) {
+                    markClosed(now);
+                } else {
+                    revision++;
+                }
+                return true;
+    }
+
+    public List<Long> productIds() {
+        return products.stream().map(IndividualGroupPurchaseProduct::getProductId).toList();
     }
 
     public boolean hasProduct(Long productId) {
@@ -189,6 +204,7 @@ public class IndividualGroupPurchase {
         validateOpen(now);
         validateDeadline(newDeadlineAt, now);
         this.deadlineAt = newDeadlineAt;
+        revision++;
     }
 
     public void close(Long requesterId, LocalDateTime now) {
@@ -225,6 +241,7 @@ public class IndividualGroupPurchase {
         this.status = IndividualGroupPurchaseStatus.CLOSED;
         this.closedAt = now;
         this.demandProductKey = null;
+        revision++;
     }
 
     private void validateNotClosed() {

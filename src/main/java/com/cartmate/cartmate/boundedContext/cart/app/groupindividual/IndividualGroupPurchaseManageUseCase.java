@@ -6,7 +6,6 @@ import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderClient;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,19 +26,26 @@ class IndividualGroupPurchaseManageUseCase {
 
     void addProduct(Long memberId, Long individualGroupPurchaseId, Long productId) {
         individualGroupPurchaseSupport.validatePurchasableProducts(List.of(productId));
-        getPurchaseForUpdate(individualGroupPurchaseId)
-                .addProduct(memberId, productId, LocalDateTime.now());
+        IndividualGroupPurchase purchase = getPurchaseForUpdate(individualGroupPurchaseId);
+        LocalDateTime now = LocalDateTime.now();
+        purchase.addProduct(memberId, productId, now);
+        eventPublisher.publish(IndividualGroupPurchaseEvents.updated(purchase, now));
     }
 
     void removeProduct(Long memberId, Long individualGroupPurchaseId, Long productId) {
         IndividualGroupPurchase purchase = getPurchaseForUpdate(individualGroupPurchaseId);
+        // 주문 쪽 동기 조회(조회만). 이 조회와 주문 생성 사이의 틈으로 생긴 주문은 결제 때 사본으로 다시 걸러진다(ARCH-16)
         boolean hasOrders = orderClient.hasOrders(individualGroupPurchaseId, productId);
-        purchase.removeProduct(memberId, productId, hasOrders, LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        purchase.removeProduct(memberId, productId, hasOrders, now);
+        eventPublisher.publish(IndividualGroupPurchaseEvents.updated(purchase, now));
     }
 
     void changeDeadline(Long memberId, Long individualGroupPurchaseId, LocalDateTime deadlineAt) {
-        getPurchaseForUpdate(individualGroupPurchaseId)
-                .changeDeadline(memberId, deadlineAt, LocalDateTime.now());
+        IndividualGroupPurchase purchase = getPurchaseForUpdate(individualGroupPurchaseId);
+        LocalDateTime now = LocalDateTime.now();
+        purchase.changeDeadline(memberId, deadlineAt, now);
+        eventPublisher.publish(IndividualGroupPurchaseEvents.updated(purchase, now));
     }
 
     void close(Long memberId, Long individualGroupPurchaseId) {
@@ -68,9 +74,7 @@ class IndividualGroupPurchaseManageUseCase {
     }
 
     private void publishClosed(IndividualGroupPurchase purchase, IndividualGroupPurchaseCloseReason reason) {
-        eventPublisher.publish(new IndividualGroupPurchaseClosedEvent(
-                purchase.getId(), purchase.getOrigin().name(), reason.name(), purchase.getDeadlineAt(),
-                purchase.getClosedAt()));
+        eventPublisher.publish(IndividualGroupPurchaseEvents.closed(purchase, reason));
     }
 
     private IndividualGroupPurchase getPurchaseForUpdate(Long individualGroupPurchaseId) {

@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.event.DemandGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,6 +29,7 @@ class IndividualGroupPurchaseDemandOpenUseCase {
     private final IndividualGroupPurchaseSupport individualGroupPurchaseSupport;
     private final InviteCodeGenerator inviteCodeGenerator;
     private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher domainEventPublisher;
 
     IndividualGroupPurchaseCreateResponse open(Long adminMemberId, Long productId,
                                                DemandGroupPurchaseOpenRequest request, LocalDateTime now) {
@@ -46,6 +48,7 @@ class IndividualGroupPurchaseDemandOpenUseCase {
                 now);
 
         IndividualGroupPurchase saved = save(purchase);
+        domainEventPublisher.publish(IndividualGroupPurchaseEvents.opened(saved, now));
         eventPublisher.publishEvent(new DemandGroupPurchaseOpenedEvent(
                 saved.getId(), productId, saved.getTitle(), saved.getInviteCode(), saved.getDeadlineAt(),
                 saved.getPaybackMinBuyers(), saved.getPaybackAmount(), now));
