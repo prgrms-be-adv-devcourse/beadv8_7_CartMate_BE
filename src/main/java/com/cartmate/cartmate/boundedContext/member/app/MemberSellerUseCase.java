@@ -14,11 +14,15 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.security.JwtProvider;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberSellerUseCase {
@@ -92,7 +96,7 @@ public class MemberSellerUseCase {
         }
 
         // 등록이 성공했을 때만 통과 표시를 지운다. 실패하면 남겨 두어 입력을 고쳐 다시 제출할 수 있다.
-        accountVerificationStore.remove(memberId);
+        removeVerificationAfterCommit(memberId);
 
         eventPublisher.publish(
                 new SellerRegisteredEvent(
@@ -115,6 +119,25 @@ public class MemberSellerUseCase {
                 member.getId(), member.getEmail(), member.getRole().name(), seller.getId());
 
         return new RegisterResult(SellerResponse.from(seller), accessToken);
+    }
+
+    // 통과 표시는 DB 커밋이 끝난 뒤에 지운다. 커밋 전에 지우면 동기 이벤트 처리나 커밋이 실패해 롤백돼도 표시만 사라진다.
+    private void removeVerificationAfterCommit(Long memberId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            accountVerificationStore.remove(memberId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    accountVerificationStore.remove(memberId);
+                } catch (RuntimeException e) {
+                    // 등록은 이미 끝났다. 통과 표시는 유효시간이 지나면 사라지므로 경고만 남긴다.
+                    log.warn("[계좌 확인] 통과 표시 삭제에 실패했습니다. memberId={}", memberId, e);
+                }
+            }
+        });
     }
 
     private String trimToNull(String value) {
