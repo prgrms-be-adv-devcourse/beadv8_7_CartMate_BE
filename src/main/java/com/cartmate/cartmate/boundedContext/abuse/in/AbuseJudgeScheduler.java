@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.abuse.in;
 import com.cartmate.cartmate.boundedContext.abuse.app.AbuseFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -18,12 +19,16 @@ public class AbuseJudgeScheduler {
 
     static final int BATCH_SIZE = 100;
     static final Duration TIME_BUDGET = Duration.ofSeconds(10);
+    static final String LOCK_NAME = "abuse.judgePending";
+    static final String LOCK_AT_MOST = "PT5M";
+    static final String LOCK_AT_LEAST = "PT5S";
     private static final long INTERVAL_MILLIS = 60_000L;
 
     private final AbuseFacade abuseFacade;
     private final AbuseJudgeRunner abuseJudgeRunner;
 
     @Scheduled(fixedDelay = INTERVAL_MILLIS, initialDelay = INTERVAL_MILLIS)
+    @SchedulerLock(name = LOCK_NAME, lockAtMostFor = LOCK_AT_MOST, lockAtLeastFor = LOCK_AT_LEAST)
     public void judgePendingSignals() {
         retryPending(System.nanoTime() + TIME_BUDGET.toNanos());
     }
