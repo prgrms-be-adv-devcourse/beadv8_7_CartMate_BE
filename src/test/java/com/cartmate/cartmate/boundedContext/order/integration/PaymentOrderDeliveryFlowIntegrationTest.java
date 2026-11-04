@@ -36,13 +36,17 @@ import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
+import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -53,8 +57,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
+@SpringBootTest(properties = {"cartmate.scheduling.enabled=false", "custom.outbox.relay.initial-delay=PT1H"})
 @ActiveProfiles("test")
+@Import(ManualOutboxRelayConfig.class)
 class PaymentOrderDeliveryFlowIntegrationTest {
 
     private static final DeliveryAddressRequest ADDRESS =
@@ -116,6 +121,12 @@ class PaymentOrderDeliveryFlowIntegrationTest {
 
     @Autowired
     private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private OutboxRelay outboxRelay;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private final List<Long> memberIds = new ArrayList<>();
     private final List<Long> orderIds = new ArrayList<>();
@@ -230,6 +241,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         sharedGroupPurchaseFacade.join(member, purchase.inviteCode());
         sharedGroupPurchaseFacade.addItem(member, purchase.id(), 4L, 3);
         sharedGroupPurchaseFacade.close(creator, purchase.id());
+        relayUntilSharedGroupOrderCreated(member, purchase.id());
         Long orderId = sharedGroupOrderFacade.getMyList(member).stream()
                 .filter(order -> order.sharedGroupPurchaseId().equals(purchase.id()))
                 .map(SharedGroupOrderSummaryResponse::id)
@@ -364,5 +376,19 @@ class PaymentOrderDeliveryFlowIntegrationTest {
     }
 
     private record PaymentKey(PaymentType type, Long orderId, Long memberId) {
+    }
+
+    // 공동 주문은 마감 트랜잭션이 아니라 아웃박스 릴레이 뒤 order consumer가 만든다
+    private void relayUntilSharedGroupOrderCreated(long memberId, Long purchaseId) {
+        for (int i = 0; i < 20; i++) {
+            ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
+            outboxRelay.relay();
+            boolean created = sharedGroupOrderFacade.getMyList(memberId).stream()
+                    .anyMatch(order -> order.sharedGroupPurchaseId().equals(purchaseId));
+            if (created) {
+                return;
+            }
+        }
+        throw new AssertionError("공동 주문이 만들어지지 않았다: sharedGroupPurchaseId=" + purchaseId);
     }
 }

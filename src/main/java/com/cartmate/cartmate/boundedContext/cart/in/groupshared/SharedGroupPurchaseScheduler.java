@@ -42,6 +42,14 @@ public class SharedGroupPurchaseScheduler {
     }
 
 
+    // 마감했는데 공동 주문 생성 소식이 제한 시간(기본 10분) 안에 오지 않으면 마감 보류로 돌린다(보상). 사용자 알림은 아직 없다
+    @Scheduled(fixedDelay = INTERVAL_MILLIS, initialDelay = INTERVAL_MILLIS)
+    @SchedulerLock(name = "sharedGroupPurchase.revertOrderTimeout", lockAtMostFor = LOCK_AT_MOST, lockAtLeastFor = LOCK_AT_LEAST)
+    public void revertOrderTimeout() {
+        List<Long> ids = sharedGroupPurchaseFacade.findIdsAwaitingOrderTooLong(LocalDateTime.now());
+        processEach(ids, sharedGroupPurchaseFacade::revertByOrderCreationTimeout, "주문 생성 시간 초과 복귀");
+    }
+
     private void processEach(List<Long> ids, Consumer<Long> action, String taskName) {
         for (Long id : ids) {
             try {
