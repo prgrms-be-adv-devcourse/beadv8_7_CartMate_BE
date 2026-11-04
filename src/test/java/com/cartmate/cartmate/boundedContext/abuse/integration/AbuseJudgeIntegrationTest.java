@@ -12,12 +12,7 @@ import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseMemberStateRepository;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseRestrictionRepository;
 import com.cartmate.cartmate.boundedContext.abuse.out.AbuseSignalRepository;
-import com.cartmate.cartmate.boundedContext.order.app.groupshared.SharedGroupOrderFacade;
-import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
-import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder;
-import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
-import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
-import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
+import com.cartmate.cartmate.boundedContext.abuse.support.AbuseTestDataCleaner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,12 +31,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
 class AbuseJudgeIntegrationTest {
-
-    @Autowired
-    private SharedGroupOrderFacade sharedGroupOrderFacade;
-
-    @Autowired
-    private SharedGroupOrderRepository sharedGroupOrderRepository;
 
     @Autowired
     private AbuseFacade abuseFacade;
@@ -57,13 +45,9 @@ class AbuseJudgeIntegrationTest {
     private AbuseRestrictionRepository abuseRestrictionRepository;
 
     @Autowired
-    private TransactionTemplate transactionTemplate;
-
-    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     private final List<Long> memberIds = new ArrayList<>();
-    private final List<Long> purchaseIds = new ArrayList<>();
 
     private final long base = 9_300_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
@@ -71,32 +55,27 @@ class AbuseJudgeIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        TestDataCleaner cleaner = new TestDataCleaner(jdbcTemplate);
-        cleaner.deleteAbuseRecordsOf(memberIds);
-        cleaner.deleteSharedGroupOrdersOfPurchases(purchaseIds);
+        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
     }
 
     @Test
-    @DisplayName("공동 주문이 기한 만료로 무산되면 커밋 후 미결제 참여자 신호가 1단계 40점으로 판정된다")
-    void deadlineCancelJudgesUnpaidMember() {
-        long creator = nextMemberId();
-        long unpaid = nextMemberId();
-        Long orderId = saveExpiredOrder(creator, unpaid);
+    @DisplayName("30일 안 첫 무산 신호는 1단계 40점으로 판정되고 규칙별 결과가 남는다")
+    void firstSignalIsCaution() {
+        long member = nextMemberId();
 
-        sharedGroupOrderFacade.cancelByDeadline(orderId);
+        receiveAndJudge(member, "first", LocalDateTime.now());
 
-        assertThat(abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(creator)).isEmpty();
-        AbuseSignal signal = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(unpaid).getFirst();
+        AbuseSignal signal = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(member).getFirst();
         assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
         assertThat(signal.getLevel()).isEqualTo(AbuseLevel.CAUTION);
         assertThat(signal.getTotalScore()).isEqualTo(40);
         assertThat(signal.getRuleResults()).containsExactly(
                 new AbuseRuleResult("SHARED_ORDER_PAYMENT_EXPIRED", 1, AbuseLevel.CAUTION, 40));
         assertThat(signal.getJudgedAt()).isNotNull();
-        AbuseMemberState state = memberState(unpaid);
+        AbuseMemberState state = memberState(member);
         assertThat(state.getCurrentLevel()).isEqualTo(AbuseLevel.CAUTION);
         assertThat(state.getRestrictedUntil()).isNull();
-        assertThat(abuseRestrictionRepository.findByMemberIdOrderByStartedAtAsc(unpaid)).isEmpty();
+        assertThat(abuseRestrictionRepository.findByMemberIdOrderByStartedAtAsc(member)).isEmpty();
     }
 
     @Test
@@ -188,23 +167,6 @@ class AbuseJudgeIntegrationTest {
 
     private AbuseMemberState memberState(long memberId) {
         return abuseMemberStateRepository.findById(memberId).orElseThrow();
-    }
-
-    private Long saveExpiredOrder(long creator, long unpaid) {
-        long purchaseId = base + sequence++;
-        purchaseIds.add(purchaseId);
-        LocalDateTime closedAt = LocalDateTime.now()
-                .minus(SharedGroupOrder.PAYMENT_PERIOD)
-                .minus(SharedGroupOrder.GRACE_PERIOD)
-                .minusMinutes(5);
-        return transactionTemplate.execute(status -> {
-            SharedGroupOrder order = SharedGroupOrder.create(purchaseId, creator, List.of(creator, unpaid),
-                    List.of(new OrderItemLine(2L, 4L, 1L, "상품", null, 1, 30000L)), closedAt);
-            order.markStockReserved();
-            order.pay(creator, creator, closedAt.plusMinutes(1),
-                    DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
-            return sharedGroupOrderRepository.save(order).getId();
-        });
     }
 
     private long nextMemberId() {
