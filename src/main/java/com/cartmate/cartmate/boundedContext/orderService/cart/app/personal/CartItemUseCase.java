@@ -1,0 +1,88 @@
+package com.cartmate.cartmate.boundedContext.orderService.cart.app.personal;
+
+import com.cartmate.cartmate.boundedContext.orderService.cart.domain.personal.Cart;
+import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
+import com.cartmate.cartmate.boundedContext.orderService.cart.out.CartProductInfo;
+import com.cartmate.cartmate.boundedContext.orderService.cart.out.ProductClient;
+import com.cartmate.cartmate.boundedContext.orderService.cart.out.personal.CartRepository;
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderPaidEvent;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+class CartItemUseCase {
+
+    private static final String PERSONAL_ORDER_TYPE = "PERSONAL";
+
+    private final CartRepository cartRepository;
+    private final ProductClient productClient;
+
+    void addItem(Long memberId, Long inventoryId, int quantity) {
+        CartProductInfo product = getPurchasableProduct(inventoryId);
+
+        Cart cart = lockCart(memberId);
+        cart.addItem(product.productId(), inventoryId, quantity);
+    }
+
+    // 같은 회원의 담기를 장바구니 행 락으로 줄 세운다. 락 없이 읽고 쓰면 동시에 같은 상품을 담을 때 항목이 둘 insert돼
+    // uk_cart_item_cart_inventory 위반이 난다. 장바구니가 없으면 같은 트랜잭션에서 "없을 때만 insert"로 만든다
+    // (저장하다 unique 위반이 나면 영속성 컨텍스트가 망가지고, 별도 트랜잭션은 커넥션을 하나 더 잡아 풀이 마를 수 있다).
+    // 항목은 락을 잡은 뒤 지연 로딩으로 따로 읽는다. 락과 같은 문장에서 조인해 읽으면 MySQL이 항목을 이전 스냅샷으로 읽어
+    // 방금 커밋된 항목을 놓친다. 그래서 CartFacade.addItem은 READ_COMMITTED다 (문장마다 새 스냅샷)
+    private Cart lockCart(Long memberId) {
+        if (!cartRepository.existsByMemberId(memberId)) {
+            cartRepository.insertIfAbsent(memberId, LocalDateTime.now());
+        }
+        return cartRepository.findByMemberIdForUpdate(memberId)
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_NOT_FOUND));
+    }
+
+    void changeQuantity(Long memberId, Long cartItemId, int quantity) {
+        Cart cart = getCartWithItems(memberId);
+        cart.getItem(cartItemId).changeQuantity(quantity);
+    }
+
+    void removeItem(Long memberId, Long cartItemId) {
+        Cart cart = getCartWithItems(memberId);
+        cart.removeItem(cartItemId);
+    }
+
+    void clear(Long memberId) {
+        cartRepository.findWithItemsByMemberId(memberId)
+                .ifPresent(Cart::clear);
+    }
+
+    void removeOrderedItems(OrderPaidEvent event) {
+        if (!PERSONAL_ORDER_TYPE.equals(event.orderType())) {
+            return;
+        }
+        Map<Long, Integer> orderedQuantities = event.items().stream()
+                .collect(Collectors.toMap(
+                        OrderPaidEvent.Item::inventoryId,
+                        OrderPaidEvent.Item::quantity,
+                        Integer::sum
+                ));
+        cartRepository.findWithItemsByMemberId(event.memberId())
+                .ifPresent(cart -> cart.removeOrderedQuantities(orderedQuantities));
+    }
+
+    private Cart getCartWithItems(Long memberId) {
+        return cartRepository.findWithItemsByMemberId(memberId)
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_NOT_FOUND));
+    }
+
+    private CartProductInfo getPurchasableProduct(Long inventoryId) {
+        CartProductInfo product = productClient.findByInventoryId(inventoryId)
+                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_PRODUCT_OPTION_NOT_FOUND));
+        if (!product.purchasable()) {
+            throw new ServiceException(CartErrorCode.CART_PRODUCT_NOT_PURCHASABLE);
+        }
+        return product;
+    }
+}

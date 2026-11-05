@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.global.outbox;
 
-import com.cartmate.cartmate.shared.event.DomainEvent;
+import com.cartmate.cartmate.global.event.DomainEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
