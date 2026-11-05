@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.global.outbox;
 
-import com.cartmate.cartmate.shared.event.EventEnvelope;
+import com.cartmate.cartmate.global.event.EventEnvelope;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

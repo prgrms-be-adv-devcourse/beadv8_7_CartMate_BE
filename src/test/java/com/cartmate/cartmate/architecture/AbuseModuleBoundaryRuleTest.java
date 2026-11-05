@@ -1,12 +1,12 @@
 package com.cartmate.cartmate.architecture;
 
-import com.cartmate.cartmate.architecture.fixture.boundedContext.abuse.app.FixtureAbuseFacade;
-import com.cartmate.cartmate.architecture.fixture.boundedContext.abuse.app.FixtureAbuseUseCase;
-import com.cartmate.cartmate.architecture.fixture.boundedContext.abuse.domain.FixtureAbuseEntity;
-import com.cartmate.cartmate.architecture.fixture.boundedContext.abuse.in.FixtureSameTransactionListener;
-import com.cartmate.cartmate.architecture.fixture.boundedContext.cart.app.FixtureCartService;
-import com.cartmate.cartmate.architecture.fixture.boundedContext.cart.out.FixtureAbuseAdapter;
-import com.cartmate.cartmate.architecture.fixture.boundedContext.cart.out.FixtureEntityAdapter;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.etcService.abuse.app.FixtureAbuseFacade;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.etcService.abuse.app.FixtureAbuseUseCase;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.etcService.abuse.domain.FixtureAbuseEntity;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.etcService.abuse.in.FixtureSameTransactionListener;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.cart.app.FixtureCartService;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.cart.out.FixtureAbuseAdapter;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.cart.out.FixtureEntityAdapter;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import org.junit.jupiter.api.DisplayName;

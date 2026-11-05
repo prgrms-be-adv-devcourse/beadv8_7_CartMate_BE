@@ -25,7 +25,7 @@ import org.springframework.context.event.EventListener;
  * cart · order 모듈 경계 규칙 (ARCH-1 경계 규칙 1~3 · 6).
  *
  * <p>cart와 order는 한 앱 · 한 DB에 있지만 서로 다른 서비스처럼 다룬다.
- * 모듈 간 계약은 {@code com.cartmate.cartmate.shared} 패키지로만 드러낸다.
+ * 모듈 간 계약은 각 서비스의 {@code shared} 패키지({@code boundedContext.<서비스>.shared})로만 드러낸다.
  * 다른 모듈이 cart · order 안의 어떤 클래스도 참조하지 않고(R3), cart · order도 다른 모듈을 참조하지 않는다(R1 · R2).
  * 예외는 하나: cart · order의 {@code out} 어댑터는 다른 모듈의 {@code app} Facade를 불러도 된다.
  * 어댑터가 나중에 HTTP · Kafka 클라이언트로 바뀌는 교체 지점이기 때문이다(ARCH-15 결정).
@@ -45,8 +45,10 @@ import org.springframework.context.event.EventListener;
 class CartOrderModuleBoundaryTest {
 
     private static final String BOUNDED_CONTEXT = "..boundedContext..";
-    private static final String CART = "..boundedContext.cart..";
-    private static final String ORDER = "..boundedContext.order..";
+    // 각 서비스의 shared는 모듈 간 계약이라 다른 boundedContext 의존에서 뺀다 (서비스 간 통신으로 바뀌면 없어질 임시 자리)
+    private static final String SHARED = "..boundedContext.*.shared..";
+    private static final String CART = "..boundedContext.orderService.cart..";
+    private static final String ORDER = "..boundedContext.orderService.order..";
 
     // R1. cart ↔ order 직접 의존 금지 (규칙 1: 모듈 간 동기 호출은 포트 경유, 반환은 shared record만)
 
@@ -70,14 +72,14 @@ class CartOrderModuleBoundaryTest {
     @ArchTest
     static final ArchRule r2_cartMustNotDependOnOtherBoundedContexts = freeze(
             classes().that().resideInAPackage(CART)
-                    .should(notDependOnOtherBoundedContextsExceptAdapterFacades("cart"))
+                    .should(notDependOnOtherBoundedContextsExceptAdapterFacades("orderService.cart"))
                     .as("R2 cart must not depend on other bounded contexts, except cart.out adapters calling their app facades")
                     .because("contracts with other modules live in shared; an out adapter is the one swap point for a later HTTP or Kafka client (ARCH-1 rule 1, ARCH-15)"));
 
     @ArchTest
     static final ArchRule r2_orderMustNotDependOnOtherBoundedContexts = freeze(
             classes().that().resideInAPackage(ORDER)
-                    .should(notDependOnOtherBoundedContextsExceptAdapterFacades("order"))
+                    .should(notDependOnOtherBoundedContextsExceptAdapterFacades("orderService.order"))
                     .as("R2 order must not depend on other bounded contexts, except order.out adapters calling their app facades")
                     .because("contracts with other modules live in shared; an out adapter is the one swap point for a later HTTP or Kafka client (ARCH-1 rule 1, ARCH-15)"));
 
@@ -116,7 +118,7 @@ class CartOrderModuleBoundaryTest {
                     .because("another module's tables belong to its own schema; joins, FKs and locks across schemas are not allowed (team decision 2026-11-04, ARCH-15)"));
 
     private static DescribedPredicate<JavaClass> otherModulesDomainOrOut(String ownModule) {
-        return resideInAnyPackage("..boundedContext.*.domain..", "..boundedContext.*.out..")
+        return resideInAnyPackage("..boundedContext.*.*.domain..", "..boundedContext.*.*.out..")
                 .and(not(resideInAPackage(ownModule)));
     }
 
@@ -124,9 +126,10 @@ class CartOrderModuleBoundaryTest {
     // 위반 문구는 ArchUnit 기본 의존 설명을 그대로 써서 동결 저장소가 다른 규칙과 같은 형식이 된다
     private static ArchCondition<JavaClass> notDependOnOtherBoundedContextsExceptAdapterFacades(String module) {
         DescribedPredicate<JavaClass> otherBoundedContext = resideInAPackage(BOUNDED_CONTEXT)
-                .and(not(resideInAPackage("..boundedContext." + module + "..")));
+                .and(not(resideInAPackage("..boundedContext." + module + "..")))
+                .and(not(resideInAPackage(SHARED)));
         DescribedPredicate<JavaClass> adapter = resideInAPackage("..boundedContext." + module + ".out..");
-        DescribedPredicate<JavaClass> facadeOfOtherModule = resideInAPackage("..boundedContext.*.app..")
+        DescribedPredicate<JavaClass> facadeOfOtherModule = resideInAPackage("..boundedContext.*.*.app..")
                 .and(simpleNameEndingWith("Facade"));
         return new ArchCondition<>("not depend on other bounded contexts, except " + module
                 + ".out adapters calling their app facades") {

@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.global.jpa.entity;
 
 import com.cartmate.cartmate.global.global.GlobalConfig;
-import com.cartmate.cartmate.standard.modelType.HasModelTypeCode;
+import com.cartmate.cartmate.global.modelType.HasModelTypeCode;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 
