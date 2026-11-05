@@ -22,11 +22,13 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,6 +57,19 @@ class AbuseOrderEventConsumerTest {
         order.verify(abuseJudgeRunner).judge(2L);
         order.verify(abuseJudgeRunner).judge(3L);
         order.verifyNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("판정 중 일시 장애가 나면 남은 회원 판정을 멈추고 재판정 워커에 맡긴다")
+    void stopsJudgingOnTransientFailure() {
+        given(abuseJudgeRunner.judge(2L)).willReturn(AbuseJudgeOutcome.TRANSIENT_FAILURE);
+
+        consumer.handle(relayed(canceled("DEADLINE_EXPIRED", List.of(2L, 3L))));
+
+        then(abuseFacade).should().receive(command(2L));
+        then(abuseFacade).should().receive(command(3L));
+        then(abuseJudgeRunner).should().judge(2L);
+        then(abuseJudgeRunner).should(never()).judge(3L);
     }
 
     @Test

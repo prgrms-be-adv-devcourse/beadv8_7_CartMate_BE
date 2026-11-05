@@ -37,10 +37,14 @@ public class AbuseOrderEventConsumer {
                 .flatMap(Optional::stream)
                 .toList();
         commands.forEach(abuseFacade::receive);
-        commands.stream()
-                .map(AbuseSignalCommand::memberId)
-                .distinct()
-                .forEach(abuseJudgeRunner::judge);
+        List<Long> memberIds = commands.stream().map(AbuseSignalCommand::memberId).distinct().toList();
+        for (Long memberId : memberIds) {
+            if (abuseJudgeRunner.judge(memberId) == AbuseJudgeOutcome.TRANSIENT_FAILURE) {
+                log.warn("일시 장애로 판정을 멈춤, 남은 회원은 재판정 워커가 처리: sharedGroupOrderId={}",
+                        event.sharedGroupOrderId());
+                return;
+            }
+        }
     }
 
     private boolean isSignal(SharedGroupOrderCanceledEvent event) {

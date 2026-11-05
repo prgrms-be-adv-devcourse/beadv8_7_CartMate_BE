@@ -13,6 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,6 +24,9 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.BDDMockito.willThrow;
 
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
@@ -55,13 +59,13 @@ class AbuseJudgeFailureIntegrationTest {
     }
 
     @Test
-    @DisplayName("판정이 실패하면 판정은 롤백돼도 실패 기록은 남고, 10번째 실패에서 FAILED가 되어 재판정 대상에서 빠진다")
+    @DisplayName("판정이 실패하면 판정은 롤백돼도 실패 기록은 남고, 최대 시도 횟수째 실패에서 FAILED가 되어 재판정 대상에서 빠진다")
     void recordsFailureUntilFailed() {
         long member = nextMemberId();
         abuseFacade.receive(new AbuseSignalCommand(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
                 "fail-" + member, LocalDateTime.now()));
 
-        assertThat(abuseJudgeRunner.judge(member)).isFalse();
+        assertThat(abuseJudgeRunner.judge(member)).isEqualTo(AbuseJudgeOutcome.FAILURE);
 
         AbuseSignal afterFirst = onlySignal(member);
         assertThat(afterFirst.getStatus()).isEqualTo(AbuseSignalStatus.RECEIVED);
@@ -100,6 +104,26 @@ class AbuseJudgeFailureIntegrationTest {
         assertThat(signals.getFirst().getLastError()).isNull();
         assertThat(signals.getLast().getStatus()).isEqualTo(AbuseSignalStatus.RECEIVED);
         assertThat(signals.getLast().getAttemptCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("일시 장애로 판정이 실패하면 실패로 세지 않고 신호는 RECEIVED로 남아 다음 실행에서 재판정된다")
+    void transientFailureIsNotCounted() {
+        long member = nextMemberId();
+        abuseFacade.receive(new AbuseSignalCommand(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
+                "transient-" + member, LocalDateTime.now().minusMinutes(1)));
+        willThrow(new CannotAcquireLockException("lock wait timeout"))
+                .given(abuseMemberStateRepository).insertIfAbsent(anyLong(), any());
+
+        assertThat(abuseJudgeRunner.judge(member)).isEqualTo(AbuseJudgeOutcome.TRANSIENT_FAILURE);
+
+        AbuseSignal signal = onlySignal(member);
+        assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.RECEIVED);
+        assertThat(signal.getAttemptCount()).isZero();
+        assertThat(signal.getLastError()).isNull();
+        jdbcTemplate.update("UPDATE abuse_signal SET received_at = ? WHERE member_id = ?",
+                LocalDateTime.now().minusMinutes(1), member);
+        assertThat(abuseFacade.findPendingMemberIds(10_000)).contains(member);
     }
 
     private AbuseSignal onlySignal(long memberId) {

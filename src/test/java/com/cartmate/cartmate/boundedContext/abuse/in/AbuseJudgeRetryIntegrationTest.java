@@ -74,7 +74,7 @@ class AbuseJudgeRetryIntegrationTest {
 
         assertThat(pending).contains(stale).doesNotContain(fresh);
 
-        assertThat(abuseJudgeRunner.judge(stale)).isTrue();
+        assertThat(abuseJudgeRunner.judge(stale)).isEqualTo(AbuseJudgeOutcome.JUDGED);
 
         AbuseSignal signal = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(stale).getFirst();
         assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);

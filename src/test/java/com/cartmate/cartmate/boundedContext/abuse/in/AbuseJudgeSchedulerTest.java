@@ -53,6 +53,19 @@ class AbuseJudgeSchedulerTest {
     }
 
     @Test
+    @DisplayName("일시 장애가 나면 이번 실행의 남은 회원은 건드리지 않고 멈춘다")
+    void stopsOnTransientFailure() {
+        given(abuseFacade.findPendingMemberIds(AbuseJudgeScheduler.BATCH_SIZE)).willReturn(List.of(1L, 2L, 3L));
+        given(abuseJudgeRunner.judge(1L)).willReturn(AbuseJudgeOutcome.FAILURE);
+        given(abuseJudgeRunner.judge(2L)).willReturn(AbuseJudgeOutcome.TRANSIENT_FAILURE);
+
+        int processed = scheduler.retryPending(Long.MAX_VALUE);
+
+        assertThat(processed).isEqualTo(2);
+        then(abuseJudgeRunner).should(never()).judge(3L);
+    }
+
+    @Test
     @DisplayName("시간 예산이 지나면 남은 회원은 다음 실행으로 넘긴다")
     void stopsAfterTimeBudget() {
         given(abuseFacade.findPendingMemberIds(AbuseJudgeScheduler.BATCH_SIZE)).willReturn(List.of(1L, 2L));
