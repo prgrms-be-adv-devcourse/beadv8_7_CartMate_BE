@@ -3,11 +3,9 @@ package com.cartmate.cartmate.boundedContext.abuse.out;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseRestriction;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
 
 public interface AbuseRestrictionRepository extends JpaRepository<AbuseRestriction, Long> {
 
-    Optional<AbuseRestriction> findFirstByMemberIdAndReleasedAtIsNullAndEndsAtAfterOrderByEndsAtDesc(
-            Long memberId, LocalDateTime now);
+    List<AbuseRestriction> findByMemberIdOrderByStartedAtAsc(Long memberId);
 }

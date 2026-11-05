@@ -22,6 +22,7 @@ class SharedGroupPurchaseCreateUseCase {
     private final InviteCodeGenerator inviteCodeGenerator;
 
     SharedGroupPurchaseCreateResponse create(Long memberId, SharedGroupPurchaseCreateRequest request) {
+        sharedGroupPurchaseSupport.validateNotRestricted(memberId);
         String inviteCode = generateInviteCode();
         SharedGroupPurchase purchase = SharedGroupPurchase.create(
                 request.title(), memberId, request.maxParticipants(), inviteCode, LocalDateTime.now());
@@ -30,6 +31,7 @@ class SharedGroupPurchaseCreateUseCase {
     }
 
     SharedGroupPurchaseCreateResponse duplicate(Long memberId, Long sharedGroupPurchaseId) {
+        sharedGroupPurchaseSupport.validateNotRestricted(memberId);
         SharedGroupPurchase source = getPurchase(sharedGroupPurchaseId);
         Set<Long> unavailable = sharedGroupPurchaseSupport.findUnavailableInventoryIds(source);
         String inviteCode = generateInviteCode();

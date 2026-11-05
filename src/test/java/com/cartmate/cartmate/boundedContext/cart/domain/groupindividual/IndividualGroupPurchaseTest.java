@@ -118,6 +118,32 @@ class IndividualGroupPurchaseTest {
         assertThat(purchase.getDeadlineAt()).isEqualTo(now.plusHours(1));
     }
 
+    @Test
+    @DisplayName("판매 조건이 바뀔 때마다 revision이 1씩 오르고, 실패한 변경 · 바뀐 게 없는 판매 중지는 올리지 않는다 (order 사본 순서 판단용)")
+    void revisionIncreasesOnEveryChange() {
+        IndividualGroupPurchase purchase = purchase(List.of(UNIFORM, SOCKS));
+        LocalDateTime now = createdAt.plusHours(1);
+        assertThat(purchase.getRevision()).isZero();
+
+        purchase.addProduct(CREATOR, BALL, now);
+        purchase.removeProduct(CREATOR, BALL, false, now);
+        purchase.changeDeadline(CREATOR, now.plusHours(5), now);
+        assertThat(purchase.getRevision()).isEqualTo(3);
+
+        assertThatThrownBy(() -> purchase.addProduct(OTHER, BALL, now)).isInstanceOf(ServiceException.class);
+        assertThat(purchase.removeProductsBySalesStopped(java.util.Set.of(BALL), now)).isFalse();
+        assertThat(purchase.getRevision()).isEqualTo(3);
+
+        assertThat(purchase.removeProductsBySalesStopped(java.util.Set.of(SOCKS), now)).isTrue();
+        assertThat(purchase.getRevision()).isEqualTo(4);
+        assertThat(purchase.productIds()).containsExactly(UNIFORM);
+
+        // 마지막 상품까지 빠지면 닫히고 번호는 한 번만 오른다
+        assertThat(purchase.removeProductsBySalesStopped(java.util.Set.of(UNIFORM), now)).isTrue();
+        assertThat(purchase.isClosed()).isTrue();
+        assertThat(purchase.getRevision()).isEqualTo(5);
+    }
+
     private IndividualGroupPurchase purchase(List<Long> productIds) {
         return IndividualGroupPurchase.create("OO FC 2026 유니폼", CREATOR, "abcdefghijkl", productIds, createdAt);
     }

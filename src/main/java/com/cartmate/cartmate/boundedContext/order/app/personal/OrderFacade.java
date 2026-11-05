@@ -1,7 +1,15 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
-import com.cartmate.cartmate.boundedContext.order.dto.personal.*;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRequest;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderDetailResponse;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderPaymentPreviewResponse;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderSummaryResponse;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
 import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +29,7 @@ public class OrderFacade {
     private final OrderQueryUseCase orderQueryUseCase;
     private final OrderPaymentUseCase orderPaymentUseCase;
     private final OrderCancelUseCase orderCancelUseCase;
+    private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
 
     @Transactional
     public OrderCreateResponse createPersonal(Long memberId, OrderCreateRequest request) {
@@ -103,6 +112,34 @@ public class OrderFacade {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
         orderCancelUseCase.cancelSellerItemsBySalesStopped(orderId, sellerId);
+    }
+
+    // ===== 개인물품 공동구매 사본 (cart 이벤트 consumer가 부른다) =====
+    @Transactional
+    public void applyIndividualGroupPurchaseOpened(IndividualGroupPurchaseOpenedEvent event) {
+        individualGroupPurchaseReplicaUseCase.applyOpened(event);
+    }
+
+    @Transactional
+    public void applyIndividualGroupPurchaseUpdated(IndividualGroupPurchaseUpdatedEvent event) {
+        individualGroupPurchaseReplicaUseCase.applyUpdated(event);
+    }
+
+    @Transactional
+    public void applyIndividualGroupPurchaseClosed(IndividualGroupPurchaseClosedEvent event) {
+        individualGroupPurchaseReplicaUseCase.applyClosed(event);
+    }
+
+    // 공동구매가 닫힌 뒤 남은 결제 대기 주문 (사본을 닫는 트랜잭션이 커밋된 뒤 부른다)
+    @Transactional(readOnly = true)
+    public List<Long> findPendingIdsOfIndividualGroupPurchase(Long individualGroupPurchaseId) {
+        return orderCancelUseCase.findPendingIdsOfIndividualGroupPurchase(individualGroupPurchaseId);
+    }
+
+    // 주문 하나마다 새 트랜잭션 (하나가 실패해도 이미 취소한 주문은 남고, 릴레이 재시도가 나머지를 이어 간다)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void cancelByGroupPurchaseClosed(Long orderId) {
+        orderCancelUseCase.cancelByGroupPurchaseClosed(orderId);
     }
 
     // 회원 탈퇴 확인: 결제 대기 중인 개인 주문 수

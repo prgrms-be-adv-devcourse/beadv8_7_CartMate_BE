@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 @Getter
 @Entity
 @Table(
-        name = "abuse_restriction",
-        indexes = @Index(name = "idx_abuse_restriction_member_ends_at", columnList = "member_id, ends_at")
+        name = "abuse_restriction_history",
+        indexes = @Index(name = "idx_abuse_restriction_history_member_started", columnList = "member_id, started_at")
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AbuseRestriction {
@@ -29,7 +29,7 @@ public class AbuseRestriction {
     private Long memberId;
 
     @Column(nullable = false)
-    private Long judgmentId;
+    private Long lastSignalId;
 
     @Column(nullable = false)
     private LocalDateTime startedAt;
@@ -37,7 +37,8 @@ public class AbuseRestriction {
     @Column(nullable = false)
     private LocalDateTime endsAt;
 
-    private LocalDateTime releasedAt;
+    @Column(nullable = false)
+    private int extendedCount;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -47,28 +48,25 @@ public class AbuseRestriction {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    private AbuseRestriction(Long memberId, Long judgmentId, LocalDateTime startedAt) {
+    private AbuseRestriction(Long memberId, Long signalId, LocalDateTime startedAt) {
         this.memberId = memberId;
-        this.judgmentId = judgmentId;
+        this.lastSignalId = signalId;
         this.startedAt = startedAt;
         this.endsAt = startedAt.plus(RESTRICTION_PERIOD);
     }
 
-    public static AbuseRestriction start(Long memberId, Long judgmentId, LocalDateTime startedAt) {
-        return new AbuseRestriction(memberId, judgmentId, startedAt);
+    public static AbuseRestriction start(Long memberId, Long signalId, LocalDateTime startedAt) {
+        return new AbuseRestriction(memberId, signalId, startedAt);
     }
 
-    public boolean extend(Long judgmentId, LocalDateTime judgedAt) {
+    public boolean extend(Long signalId, LocalDateTime judgedAt) {
         LocalDateTime newEndsAt = judgedAt.plus(RESTRICTION_PERIOD);
         if (!newEndsAt.isAfter(endsAt)) {
             return false;
         }
         this.endsAt = newEndsAt;
-        this.judgmentId = judgmentId;
+        this.lastSignalId = signalId;
+        this.extendedCount++;
         return true;
-    }
-
-    public boolean isActive(LocalDateTime now) {
-        return releasedAt == null && now.isBefore(endsAt);
     }
 }

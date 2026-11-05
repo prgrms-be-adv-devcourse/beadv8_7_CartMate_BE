@@ -44,6 +44,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
 	testImplementation 'org.testcontainers:testcontainers-mysql'
+	testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.1'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.12.6'
@@ -57,6 +58,10 @@ dependencies {
 
 	// AOP (@DistributedLock)
 	implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+
+	// Outbox · ShedLock (릴레이 스케줄러 분산 락, 같은 DB의 shedlock 테이블 사용)
+	implementation 'net.javacrumbs.shedlock:shedlock-spring:7.10.1'
+	implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.10.1'
 }
 
 tasks.named('test') {

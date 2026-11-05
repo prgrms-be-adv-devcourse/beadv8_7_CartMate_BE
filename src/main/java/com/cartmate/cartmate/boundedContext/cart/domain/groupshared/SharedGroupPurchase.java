@@ -103,7 +103,8 @@ public class SharedGroupPurchase {
     public SharedGroupPurchase duplicate(Long requesterId, String inviteCode, Set<Long> unavailableInventoryIds,
                                          LocalDateTime now) {
         validateCreator(requesterId);
-        if (status != SharedGroupPurchaseStatus.CLOSED && status != SharedGroupPurchaseStatus.CANCELED) {
+        if (status != SharedGroupPurchaseStatus.CLOSED && status != SharedGroupPurchaseStatus.ORDER_CREATED
+                && status != SharedGroupPurchaseStatus.CANCELED) {
             throw new ServiceException(CartErrorCode.CART_SHARED_NOT_DUPLICABLE);
         }
         SharedGroupPurchase copy = new SharedGroupPurchase(title, creatorMemberId, maxParticipants, inviteCode, id, now);
@@ -258,6 +259,35 @@ public class SharedGroupPurchase {
         }
         items.removeIf(item -> unavailableInventoryIds.contains(item.getInventoryId()));
         finish(items.isEmpty() ? SharedGroupPurchaseStatus.CANCELED : SharedGroupPurchaseStatus.CLOSED, now);
+    }
+
+    // order가 공동 주문을 만들었다. 보통은 마감 대기(CLOSED)에서 넘어간다.
+    // 시간 초과로 FROZEN에 돌아간 뒤 늦게 온 생성도 받는다: 주문이 이미 있으니 주문 쪽이 기준이다. 바뀌었으면 true
+    public boolean markOrderCreated() {
+        if (status != SharedGroupPurchaseStatus.CLOSED && status != SharedGroupPurchaseStatus.FROZEN) {
+            return false;
+        }
+        this.status = SharedGroupPurchaseStatus.ORDER_CREATED;
+        return true;
+    }
+
+    // 공동 주문을 만들지 못했다(즉시 실패 · 시간 초과). 마감 대기에서만 마감 보류로 돌아가고,
+    // 생성자가 정리해 다시 마감하거나 보류 24시간 뒤 자동 마감이 다시 시도한다. 바뀌었으면 true
+    public boolean revertToFrozen(LocalDateTime now) {
+        if (status != SharedGroupPurchaseStatus.CLOSED) {
+            return false;
+        }
+        this.status = SharedGroupPurchaseStatus.FROZEN;
+        this.frozenAt = now;
+        return true;
+    }
+
+    public boolean isOrderCreated() {
+        return status == SharedGroupPurchaseStatus.ORDER_CREATED;
+    }
+
+    public boolean isOrderCreationOverdue(Duration timeout, LocalDateTime now) {
+        return status == SharedGroupPurchaseStatus.CLOSED && !now.isBefore(closedAt.plus(timeout));
     }
 
     // 판매글 판매 중지: 담긴 상품을 빼고 계속 모집한다. 남은 상품이 없으면 공동구매를 취소한다. 바뀐 게 있으면 true.

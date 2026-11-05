@@ -14,7 +14,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -29,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -50,6 +50,7 @@ class CartItemUseCaseTest {
     @Mock
     private ProductClient productClient;
 
+
     private CartItemUseCase cartItemUseCase;
 
     @BeforeEach
@@ -62,34 +63,34 @@ class CartItemUseCaseTest {
     class AddItem {
 
         @Test
-        @DisplayName("장바구니가 없으면 새로 만들어 저장하고 상품을 담는다")
+        @DisplayName("장바구니가 없으면 없을 때만 insert로 만든 뒤 잠가 읽고 상품을 담는다")
         void createCartWhenAbsent() {
+            Cart created = Cart.create(MEMBER_ID);
             given(productClient.findByInventoryId(1L)).willReturn(Optional.of(UNIFORM_M));
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
-            given(cartRepository.save(any(Cart.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(cartRepository.existsByMemberId(MEMBER_ID)).willReturn(false);
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(created));
 
             cartItemUseCase.addItem(MEMBER_ID, 1L, 2);
 
-            ArgumentCaptor<Cart> captor = ArgumentCaptor.forClass(Cart.class);
-            then(cartRepository).should().save(captor.capture());
-            Cart savedCart = captor.getValue();
-            assertThat(savedCart.getMemberId()).isEqualTo(MEMBER_ID);
-            assertThat(savedCart.getItems()).hasSize(1);
-            CartItem item = savedCart.getItems().get(0);
+            then(cartRepository).should().insertIfAbsent(eq(MEMBER_ID), any());
+            assertThat(created.getItems()).hasSize(1);
+            CartItem item = created.getItems().get(0);
             assertThat(item.getProductId()).isEqualTo(100L);
             assertThat(item.getInventoryId()).isEqualTo(1L);
             assertThat(item.getQuantity()).isEqualTo(2);
         }
 
         @Test
-        @DisplayName("장바구니가 있으면 기존 장바구니에 담고 새로 저장하지 않는다")
+        @DisplayName("장바구니가 있으면 잠가 읽은 기존 장바구니에 담고 새로 만들지 않는다")
         void useExistingCart() {
             Cart cart = Cart.create(MEMBER_ID);
             given(productClient.findByInventoryId(1L)).willReturn(Optional.of(UNIFORM_M));
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.existsByMemberId(MEMBER_ID)).willReturn(true);
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.addItem(MEMBER_ID, 1L, 2);
 
+            then(cartRepository).should(never()).insertIfAbsent(any(), any());
             then(cartRepository).should(never()).save(any());
             assertThat(cart.getItems()).hasSize(1);
         }
@@ -100,7 +101,8 @@ class CartItemUseCaseTest {
             Cart cart = Cart.create(MEMBER_ID);
             cart.addItem(100L, 1L, 2);
             given(productClient.findByInventoryId(1L)).willReturn(Optional.of(UNIFORM_M));
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.existsByMemberId(MEMBER_ID)).willReturn(true);
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.addItem(MEMBER_ID, 1L, 3);
 

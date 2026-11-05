@@ -13,10 +13,10 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
 import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
 import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -28,8 +28,9 @@ class OrderPaymentUseCase {
 
     private final OrderRepository orderRepository;
     private final OrderSupport orderSupport;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
     private final OrderProductClient orderProductClient;
+    private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
     private final OrderPaymentClient orderPaymentClient;
 
     OrderPaymentInfo getPaymentInfo(Long orderId, Long memberId, LocalDateTime now) {
@@ -41,7 +42,7 @@ class OrderPaymentUseCase {
                 memberId,
                 order.getOrderNumber(),
                 order.getTotalAmount(),
-                order.canAcceptPayment(now),
+                order.canAcceptPayment(now) && groupPurchaseAcceptsPayment(order, now, false),
                 order.getPaymentDeadlineAt()
         );
     }
@@ -50,8 +51,12 @@ class OrderPaymentUseCase {
         Order order = orderSupport.getOrderForUpdate(orderId);
         orderSupport.validateBuyer(order, memberId);
         validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
+        // 같은 결제의 재통보(이미 PAID)는 markPaid가 멱등으로 넘기므로 결제 대기일 때만 다시 본다
+        if (order.isPaymentPending() && !groupPurchaseAcceptsPayment(order, paidAt, true)) {
+            throw new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED);
+        }
         if (order.markPaid(paymentId, paidAt)) {
-            eventPublisher.publishEvent(toPaidEvent(order));
+            eventPublisher.publish(toPaidEvent(order));
         }
     }
 
@@ -83,6 +88,20 @@ class OrderPaymentUseCase {
                                 item.getUnitPrice()))
                         .toList()
         );
+    }
+
+    // 결제 마감 = 판매 마감(ARCH-17). 개인물품 주문은 order 쪽 공동구매 사본이 지금 열려 있고 주문 상품을 팔 때만 결제한다.
+    // 사본이 없으면 cart에 잠그지 않고 묻는다. 공동구매를 못 찾으면 결제하지 않는다
+    // 결제 반영(forUpdate)은 사본을 공유 락으로 다시 읽어 결제 트랜잭션의 옛 스냅샷을 쓰지 않는다
+    private boolean groupPurchaseAcceptsPayment(Order order, LocalDateTime now, boolean forPayment) {
+        if (!order.isIndividualGroup()) {
+            return true;
+        }
+        Long purchaseId = order.getIndividualGroupPurchaseId();
+        return (forPayment ? individualGroupPurchaseReplicaUseCase.findForPayment(purchaseId)
+                : individualGroupPurchaseReplicaUseCase.find(purchaseId))
+                .map(purchase -> purchase.canAcceptPayment(order.productIds(), now))
+                .orElse(false);
     }
 
     // 판매글 판매 중지 등으로 주문 상품 하나라도 판매 중이 아니면 결제 전체를 거절한다 (지갑 차감까지 롤백).

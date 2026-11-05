@@ -8,10 +8,13 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface SharedGroupOrderRepository extends JpaRepository<SharedGroupOrder, Long>, SharedGroupOrderRepositoryCustom {
 
     boolean existsBySharedGroupPurchaseId(Long sharedGroupPurchaseId);
+
+    Optional<SharedGroupOrder> findBySharedGroupPurchaseId(Long sharedGroupPurchaseId);
 
     // 판매글 판매 중지 대상: 해당 상품이 들어 있는, 특정 상태들의 공동 주문
     @Query("select distinct o.id from SharedGroupOrder o join o.items i " +
