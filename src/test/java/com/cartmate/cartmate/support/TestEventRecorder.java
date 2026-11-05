@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.support;
 
-import com.cartmate.cartmate.shared.event.DomainEvent;
+import com.cartmate.cartmate.global.event.DomainEvent;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;

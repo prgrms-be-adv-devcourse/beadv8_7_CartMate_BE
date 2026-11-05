@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.global.config;
 
+import com.cartmate.cartmate.global.global.RedisConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;

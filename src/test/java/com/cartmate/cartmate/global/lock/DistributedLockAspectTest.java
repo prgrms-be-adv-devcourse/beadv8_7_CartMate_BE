@@ -1,9 +1,9 @@
 package com.cartmate.cartmate.global.lock;
 
-import com.cartmate.cartmate.boundedContext.wallet.app.WalletChargeConfirmService;
-import com.cartmate.cartmate.boundedContext.wallet.app.WalletChargeSettlement;
-import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
-import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeGateway;
+import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.WalletChargeConfirmService;
+import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.WalletChargeSettlement;
+import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.WalletFacade;
+import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.WalletChargeGateway;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.support;
 
-import com.cartmate.cartmate.boundedContext.cart.app.matching.MatchingAppJpaSliceBeans;
-import com.cartmate.cartmate.boundedContext.cart.out.matching.MatchingOutJpaSliceBeans;
+import com.cartmate.cartmate.boundedContext.orderService.cart.app.matching.MatchingAppJpaSliceBeans;
+import com.cartmate.cartmate.boundedContext.orderService.cart.out.matching.MatchingOutJpaSliceBeans;
 import com.cartmate.cartmate.global.global.QuerydslConfig;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;

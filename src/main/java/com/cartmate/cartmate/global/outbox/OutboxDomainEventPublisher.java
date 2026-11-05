@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.global.outbox;
 
-import com.cartmate.cartmate.shared.event.DomainEvent;
-import com.cartmate.cartmate.shared.event.DomainEventPublisher;
+import com.cartmate.cartmate.global.event.DomainEvent;
+import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;

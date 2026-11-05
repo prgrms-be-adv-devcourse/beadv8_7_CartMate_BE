@@ -1,14 +1,14 @@
 package com.cartmate.cartmate.global.outbox;
 
-import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
-import com.cartmate.cartmate.shared.event.DomainEvent;
-import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
-import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
-import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
-import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.SharedGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.global.event.DomainEvent;
+import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.DeliveryAddressInfo;
+import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCanceledEvent;
+import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderConfirmedEvent;
+import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -111,7 +111,7 @@ class OutboxEventFactoryTest {
                 Arguments.of(new OrderCanceledEvent(100L, 1L, "PERSONAL", "BUYER_REQUEST", true, at)),
                 Arguments.of(new OrderSellerItemsCanceledEvent(100L, 1L, 7L, 12_000L, at)),
                 Arguments.of(new SharedGroupOrderConfirmedEvent(200L, 300L, 1L, at,
-                        new com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress(
+                        new com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.TeamDeliveryAddress(
                                 "홍길동", "010-1234-5678", "12345", "서울시", "101호"),
                         List.of(new SharedGroupOrderConfirmedEvent.Item(1L, 2L, 3L, 7L, "상품", null, 2, 5_000L)))),
                 Arguments.of(new SharedGroupOrderCanceledEvent(200L, 300L, "DEADLINE_EXPIRED", at, List.of(1L, 2L))),
