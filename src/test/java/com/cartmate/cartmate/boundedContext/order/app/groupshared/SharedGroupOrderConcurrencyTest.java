@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.app.groupshared;
 
+import com.cartmate.cartmate.support.TestEventRecorder;
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
@@ -17,20 +19,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,9 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
-@Import(SharedGroupOrderConcurrencyTest.OrderEventRecorder.class)
-@ActiveProfiles("test")
+@CartMateIntegrationTest
 class SharedGroupOrderConcurrencyTest {
 
     private static final int ROUNDS = 20;
@@ -59,7 +51,7 @@ class SharedGroupOrderConcurrencyTest {
     private TransactionTemplate transactionTemplate;
 
     @Autowired
-    private OrderEventRecorder eventRecorder;
+    private TestEventRecorder eventRecorder;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -119,8 +111,8 @@ class SharedGroupOrderConcurrencyTest {
             ));
 
             SharedGroupOrder order = findOrder(orderId);
-            long confirmedEvents = eventRecorder.confirmedCountFor(orderId);
-            long canceledEvents = eventRecorder.canceledCountFor(orderId);
+            long confirmedEvents = eventRecorder.count(SharedGroupOrderConfirmedEvent.class, e -> e.sharedGroupOrderId().equals(orderId));
+            long canceledEvents = eventRecorder.count(SharedGroupOrderCanceledEvent.class, e -> e.sharedGroupOrderId().equals(orderId));
             assertThat(cancelError.get()).isNull();
             if (order.getStatus() == SharedGroupOrderStatus.CONFIRMED) {
                 confirmedRounds++;
@@ -171,7 +163,7 @@ class SharedGroupOrderConcurrencyTest {
             assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CONFIRMED);
             assertThat(order.getParticipant(first).isPaid()).isTrue();
             assertThat(order.getParticipant(second).isPaid()).isTrue();
-            assertThat(eventRecorder.confirmedCountFor(orderId)).isEqualTo(1);
+            assertThat(eventRecorder.count(SharedGroupOrderConfirmedEvent.class, e -> e.sharedGroupOrderId().equals(orderId))).isEqualTo(1);
         }
     }
 
@@ -188,7 +180,7 @@ class SharedGroupOrderConcurrencyTest {
         }
         runConcurrently(tasks);
 
-        assertThat(eventRecorder.canceledCountFor(orderId)).isEqualTo(1);
+        assertThat(eventRecorder.count(SharedGroupOrderCanceledEvent.class, e -> e.sharedGroupOrderId().equals(orderId))).isEqualTo(1);
         assertThat(findOrder(orderId).getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
     }
 
@@ -253,36 +245,5 @@ class SharedGroupOrderConcurrencyTest {
         done.await(30, TimeUnit.SECONDS);
         executor.shutdown();
         executor.awaitTermination(30, TimeUnit.SECONDS);
-    }
-
-
-    @TestConfiguration
-    static class OrderEventRecorder {
-
-        private final Queue<Long> confirmedIds = new ConcurrentLinkedQueue<>();
-        private final Queue<Long> canceledIds = new ConcurrentLinkedQueue<>();
-
-        @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-        void on(SharedGroupOrderConfirmedEvent event) {
-            confirmedIds.add(event.sharedGroupOrderId());
-        }
-
-        @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-        void on(SharedGroupOrderCanceledEvent event) {
-            canceledIds.add(event.sharedGroupOrderId());
-        }
-
-        long confirmedCountFor(Long id) {
-            return confirmedIds.stream().filter(id::equals).count();
-        }
-
-        long canceledCountFor(Long id) {
-            return canceledIds.stream().filter(id::equals).count();
-        }
-
-        void clear() {
-            confirmedIds.clear();
-            canceledIds.clear();
-        }
     }
 }

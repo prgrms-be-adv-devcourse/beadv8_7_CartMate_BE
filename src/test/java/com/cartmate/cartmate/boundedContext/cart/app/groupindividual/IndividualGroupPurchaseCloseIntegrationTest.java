@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.app.groupindividual;
 
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.cart.app.GroupPurchaseSalesStopUseCase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
@@ -9,9 +10,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -24,8 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** 개인물품 공동구매가 닫히는 네 경로(개설자 · 어드민 · 마감 시각 · 판매 중지)가 상태 · 수요 키 · 종료 이벤트(아웃박스)를 같은 방식으로 남기는지 본다. */
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
-@ActiveProfiles("test")
+@CartMateIntegrationTest
 class IndividualGroupPurchaseCloseIntegrationTest {
 
     private static final Long ADMIN = 900_000_001L;

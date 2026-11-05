@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.abuse.integration;
 
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseLevel;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignal;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalStatus;
@@ -22,12 +23,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
@@ -40,9 +38,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = {"cartmate.scheduling.enabled=false", "custom.outbox.relay.initial-delay=PT1H"})
-@Import(ManualOutboxRelayConfig.class)
-@ActiveProfiles("test")
+@CartMateIntegrationTest
 class AbuseOrderEventConsumerIntegrationTest {
 
     @Autowired
