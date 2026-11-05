@@ -57,9 +57,9 @@ public class InternalApiClient {
         return call(body == null ? spec : spec.body(body), type);
     }
 
-    // 상대 서버가 "없음(404)"으로 답했는지
+    // 상대 서버가 "없음(404)"으로 답했는지 (메시지 문자열이 아니라 결과 코드의 상태 숫자로 판단)
     public static boolean isNotFound(ServiceException e) {
-        return e.getMessage() != null && e.getMessage().startsWith("404");
+        return e.getRsData().getStatusCode() == 404;
     }
 
     private <T> T call(RestClient.RequestHeadersSpec<?> spec, ParameterizedTypeReference<InternalResponse<T>> type) {
