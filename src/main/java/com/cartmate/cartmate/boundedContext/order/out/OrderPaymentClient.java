@@ -7,7 +7,9 @@ import java.util.Optional;
 
 /**
  * 주문이 결제를 부르는 창구. 결제 흐름은 주문이 지휘하고, 결제는 "키로 한 번만 차감"만 한다.
- * 지금은 같은 앱의 결제 Facade를 부르고, 결제 서버를 분리하면 구현만 HTTP로 바꾼다.
+ * 구현은 설정 cartmate.payment.client 로 고른다.
+ *   local (기본): 같은 앱의 결제 Facade 호출 — 차감과 주문 반영이 한 트랜잭션
+ *   http        : 결제 서버 내부 API 호출 — 차감과 주문 반영이 다른 트랜잭션 (서버 분리 후와 같음)
  */
 public interface OrderPaymentClient {
 
@@ -18,4 +20,8 @@ public interface OrderPaymentClient {
     Optional<PaymentResult> findPayment(PaymentOrderType orderType, Long orderId, Long memberId);
 
     long getWalletBalance(Long memberId);
+
+    // 차감은 됐는데 주문 반영이 거절됐을 때 되돌리기 (여러 번 불러도 한 번만).
+    // 같은 앱(local)에서는 차감과 반영이 한 트랜잭션이라 롤백으로 충분해 아무것도 안 한다.
+    void compensateCharge(PaymentOrderType orderType, Long orderId, Long memberId);
 }

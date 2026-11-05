@@ -41,6 +41,12 @@ public class PaymentFacade {
                 .map(PaymentFacade::toResult);
     }
 
+    // 차감 후 주문 반영이 실패했을 때 주문이 요청하는 되돌리기
+    @Transactional
+    public void compensateCharge(PaymentOrderType orderType, Long orderId, Long memberId) {
+        paymentRefundUseCase.compensateCharge(toPaymentType(orderType), orderId, memberId);
+    }
+
     @Transactional(readOnly = true)
     public long getWalletBalance(Long memberId) {
         return paymentWalletClient.getBalance(memberId);

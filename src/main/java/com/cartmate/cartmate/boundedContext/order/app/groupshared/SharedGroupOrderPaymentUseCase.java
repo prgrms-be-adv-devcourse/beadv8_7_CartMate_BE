@@ -127,11 +127,16 @@ class SharedGroupOrderPaymentUseCase {
     PaymentResult pay(Long sharedGroupOrderId, Long memberId, TeamDeliveryAddress teamDeliveryAddress, LocalDateTime now) {
         var existing = orderPaymentClient.findPayment(PaymentOrderType.SHARED_GROUP, sharedGroupOrderId, memberId);
         if (existing.isPresent() && existing.get().isPaid()) {
-            return existing.get();
+            // 이미 빠졌다 → 반영만 다시 시도 (이미 반영됐으면 아무것도 안 함)
+            return applyOrCompensate(sharedGroupOrderId, memberId, existing.get(), teamDeliveryAddress);
         }
         SharedGroupOrderPaymentInfo info = getPaymentInfo(sharedGroupOrderId, memberId, now); // 참여자가 아니면 예외
         if (!info.payable()) {
             throw new ServiceException(OrderErrorCode.ORDER_NOT_PAYABLE);
+        }
+        // 개설자 팀 배송지는 차감 전에 확인 (빠진 뒤 거절되면 되돌려야 하므로 미리 거른다)
+        if (info.teamAddressRequired() && teamDeliveryAddress == null) {
+            throw new ServiceException(OrderErrorCode.ORDER_TEAM_ADDRESS_REQUIRED);
         }
         SharedGroupOrder order = sharedGroupOrderRepository.findById(sharedGroupOrderId)
                 .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_FOUND));
@@ -143,8 +148,17 @@ class SharedGroupOrderPaymentUseCase {
         }
         PaymentResult payment = orderPaymentClient.charge(
                 PaymentOrderType.SHARED_GROUP, sharedGroupOrderId, memberId, info.shareAmount());
-        // 개설자가 팀 배송지를 안 보냈으면 여기서 예외 → 같은 트랜잭션이라 차감도 롤백
-        applyPayment(sharedGroupOrderId, memberId, payment.paymentId(), payment.paidAt(), teamDeliveryAddress);
-        return payment;
+        return applyOrCompensate(sharedGroupOrderId, memberId, payment, teamDeliveryAddress);
+    }
+
+    // 반영이 거절되면(그 사이 기한 만료 취소 등) 빠진 분담금을 되돌린다. 일시적 오류는 되돌리지 않고 재시도에 맡긴다.
+    private PaymentResult applyOrCompensate(Long sharedGroupOrderId, Long memberId, PaymentResult payment, TeamDeliveryAddress teamDeliveryAddress) {
+        try {
+            applyPayment(sharedGroupOrderId, memberId, payment.paymentId(), payment.paidAt(), teamDeliveryAddress);
+            return payment;
+        } catch (ServiceException e) {
+            orderPaymentClient.compensateCharge(PaymentOrderType.SHARED_GROUP, sharedGroupOrderId, memberId);
+            throw e;
+        }
     }
 }

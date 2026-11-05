@@ -2,6 +2,7 @@ package com.cartmate.cartmate.global.global;
 
 import com.cartmate.cartmate.global.security.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,6 +22,9 @@ import java.util.List;
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    @Value("${cartmate.internal.api-key}")
+    private String internalApiKey;
     private final JwtProvider jwtProvider;
     private final BlockedMemberRegistry blockedMemberRegistry;
     private final WithdrawalPendingRegistry withdrawalPendingRegistry;
@@ -35,6 +39,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/internal/**").permitAll() // 서버 간 호출: InternalApiKeyFilter가 키로 확인
                         .requestMatchers("/api/wallets/webhooks/toss").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/sellers/*/trust").permitAll() // 판매자 신뢰도는 로그인 없이 조회
                         .requestMatchers("/api/members/me", "/api/members/me/**").authenticated()
@@ -64,8 +69,8 @@ public class SecurityConfig {
                 .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, blockedMemberRegistry),
                         UsernamePasswordAuthenticationFilter.class)
                 // 인증 다음에 실행: 탈퇴 대기 회원의 변경 요청 차단
-                .addFilterAfter(new WithdrawalPendingFilter(withdrawalPendingRegistry), JwtAuthenticationFilter.class);
-
+                .addFilterAfter(new WithdrawalPendingFilter(withdrawalPendingRegistry), JwtAuthenticationFilter.class)
+                .addFilterBefore(new InternalApiKeyFilter(internalApiKey), JwtAuthenticationFilter.class);
         return http.build();
     }
 
