@@ -39,3 +39,12 @@ custom:
     core:
       host: ${REDIS_CORE_HOST:localhost}
       port: ${REDIS_CORE_PORT:6380}
+
+cartmate:
+  payment:
+    # 주문이 결제를 부르는 방식. local: 같은 앱 결제 Facade (차감·주문 반영 한 트랜잭션)
+    #                          http : 결제 서버 내부 API (서버 분리 후와 같음, 차감·반영이 다른 트랜잭션)
+    client: ${PAYMENT_CLIENT:local}
+    base-url: ${PAYMENT_BASE_URL:}   # http 모드에서 비우면 같은 앱 자신을 부른다
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-key}   # /internal/** 서버 간 호출 키. 운영은 반드시 환경 변수로

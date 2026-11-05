@@ -104,7 +104,8 @@ class OrderPaymentUseCase {
     PaymentResult pay(Long orderId, Long memberId, LocalDateTime now) {
         var existing = orderPaymentClient.findPayment(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
         if (existing.isPresent() && existing.get().isPaid()) {
-            return existing.get(); // 같은 요청이 다시 와도 한 번만
+            // 이미 빠졌다 → 주문 반영만 다시 시도 (이미 반영됐으면 아무것도 안 함). 재시도가 결국 같은 결과로 모인다.
+            return applyOrCompensate(orderId, memberId, existing.get());
         }
         OrderPaymentInfo info = getPaymentInfo(orderId, memberId, now); // 구매자가 아니면 예외
         if (!info.payable()) {
@@ -115,8 +116,21 @@ class OrderPaymentUseCase {
         validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList()); // 차감 전에 먼저 확인
         PaymentResult payment = orderPaymentClient.charge(
                 PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId, info.amount());
-        applyPayment(orderId, memberId, payment.paymentId(), payment.paidAt());
-        return payment;
+        // 이미 빠졌다 → 주문 반영만 다시 시도 (이미 반영됐으면 아무것도 안 함). 재시도가 결국 같은 결과로 모인다.
+        return applyOrCompensate(orderId, memberId, payment);
+    }
+
+    // 주문 반영이 거절되면(그 사이 기한 만료·취소, 판매 중지 등) 빠진 돈을 되돌린다.
+    // 같은 앱(local)에선 한 트랜잭션이라 롤백으로 충분하고, 서버가 나뉘면(http) 결제 서버에 되돌리기를 요청한다.
+    // 잠금 대기 같은 일시적 오류는 되돌리지 않고 그대로 던진다 → 재시도하면 위의 '이미 빠졌다' 경로로 반영된다.
+    private PaymentResult applyOrCompensate(Long orderId, Long memberId, PaymentResult payment) {
+        try {
+            applyPayment(orderId, memberId, payment.paymentId(), payment.paidAt());
+            return payment;
+        } catch (ServiceException e) {
+            orderPaymentClient.compensateCharge(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
+            throw e;
+        }
     }
     OrderPaymentPreviewResponse preview(Long orderId, Long memberId, LocalDateTime now) {
         OrderPaymentInfo info = getPaymentInfo(orderId, memberId, now);
