@@ -3,7 +3,7 @@ package com.cartmate.cartmate.boundedContext.memberService.member.in;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberStatus;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.MemberRepository;
 import com.cartmate.cartmate.global.security.BlockedMemberRegistry;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberStatusChangedEvent;
+import com.cartmate.cartmate.shared.member.event.MemberStatusChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;

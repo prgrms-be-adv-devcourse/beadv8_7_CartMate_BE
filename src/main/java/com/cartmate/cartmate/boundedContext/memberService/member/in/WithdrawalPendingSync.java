@@ -2,8 +2,8 @@ package com.cartmate.cartmate.boundedContext.memberService.member.in;
 
 import com.cartmate.cartmate.boundedContext.memberService.member.app.MemberFacade;
 import com.cartmate.cartmate.global.security.WithdrawalPendingRegistry;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberWithdrawalCanceledEvent;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberWithdrawalRequestedEvent;
+import com.cartmate.cartmate.shared.member.event.MemberWithdrawalCanceledEvent;
+import com.cartmate.cartmate.shared.member.event.MemberWithdrawalRequestedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;

@@ -5,11 +5,11 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividua
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.DeliveryAddressInfo;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCanceledEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCreatedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderPaidEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

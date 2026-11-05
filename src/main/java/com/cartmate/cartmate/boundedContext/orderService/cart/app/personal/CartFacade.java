@@ -1,8 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.personal.CartResponse;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.dto.CartOrderItem;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;

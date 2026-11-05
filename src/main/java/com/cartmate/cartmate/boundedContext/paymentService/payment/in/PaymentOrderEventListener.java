@@ -1,10 +1,10 @@
 package com.cartmate.cartmate.boundedContext.paymentService.payment.in;
 
 import com.cartmate.cartmate.boundedContext.paymentService.payment.app.PaymentFacade;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCanceledEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderSellerItemsCanceledEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCanceledEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

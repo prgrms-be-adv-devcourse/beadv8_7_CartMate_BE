@@ -7,7 +7,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryI
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryClaimItemRepository;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

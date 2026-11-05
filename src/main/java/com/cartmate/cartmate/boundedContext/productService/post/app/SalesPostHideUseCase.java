@@ -5,12 +5,12 @@ import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.event.SalesPostHiddenEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.event.SalesPostHideType;
+import com.cartmate.cartmate.shared.post.event.SalesPostHiddenEvent;
+import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

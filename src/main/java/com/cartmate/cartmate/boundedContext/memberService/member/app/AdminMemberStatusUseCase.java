@@ -12,7 +12,7 @@ import com.cartmate.cartmate.boundedContext.memberService.member.out.MemberRepos
 import com.cartmate.cartmate.boundedContext.memberService.member.out.MemberSuspensionRepository;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberStatusChangedEvent;
+import com.cartmate.cartmate.shared.member.event.MemberStatusChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

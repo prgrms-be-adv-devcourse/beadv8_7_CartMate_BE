@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.paymentService.wallet.app;
 
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletSettlementPort;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.dto.SettleAndDepositRequest;
+import com.cartmate.cartmate.shared.wallet.WalletSettlementPort;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

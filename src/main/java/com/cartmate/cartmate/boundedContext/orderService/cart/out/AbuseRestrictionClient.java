@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.out;
 
-import com.cartmate.cartmate.boundedContext.etcService.shared.abuse.dto.AbuseRestrictionStatus;
+import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 
 public interface AbuseRestrictionClient {
 

@@ -1,16 +1,16 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.global.GlobalConfig;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.DeleteProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.DeleteProductListRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.SyncProduct;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.event.ProductDeletedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.event.ProductListDeletedEvent;
+import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
+import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
+import com.cartmate.cartmate.shared.product.dto.SyncProduct;
+import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

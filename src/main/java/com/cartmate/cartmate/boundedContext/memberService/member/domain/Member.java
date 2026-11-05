@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.memberService.member.domain;
 
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.dto.MemberDto;
+import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

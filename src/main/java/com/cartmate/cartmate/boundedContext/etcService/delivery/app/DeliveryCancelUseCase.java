@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.app;
 
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

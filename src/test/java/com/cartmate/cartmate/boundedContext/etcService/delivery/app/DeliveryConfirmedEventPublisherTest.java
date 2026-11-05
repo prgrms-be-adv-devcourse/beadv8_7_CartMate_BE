@@ -4,12 +4,12 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimStat
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryItem;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryClaimItemRepository;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryClaimItemRepository.ClaimedQuantity;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

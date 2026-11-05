@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.etcService.delivery.out;
 
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryStatus;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;

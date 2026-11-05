@@ -2,10 +2,10 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividu
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchaseOrderReplica;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseOrderReplicaRepository;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCanceledEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCreatedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderPaidEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

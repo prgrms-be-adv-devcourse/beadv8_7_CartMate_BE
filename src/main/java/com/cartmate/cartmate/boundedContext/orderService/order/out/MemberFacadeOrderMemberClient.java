@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out;
 
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.MemberQuery;
+import com.cartmate.cartmate.shared.member.MemberQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

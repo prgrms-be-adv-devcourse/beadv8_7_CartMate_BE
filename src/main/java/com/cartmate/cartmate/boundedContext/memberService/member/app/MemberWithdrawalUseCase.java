@@ -12,8 +12,8 @@ import com.cartmate.cartmate.boundedContext.memberService.member.out.WithdrawalT
 import com.cartmate.cartmate.boundedContext.memberService.member.out.WithdrawalTradeClient.BuyerTrades;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.WithdrawalTradeClient.SellerTrades;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberWithdrawalCanceledEvent;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberWithdrawalRequestedEvent;
+import com.cartmate.cartmate.shared.member.event.MemberWithdrawalCanceledEvent;
+import com.cartmate.cartmate.shared.member.event.MemberWithdrawalRequestedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;

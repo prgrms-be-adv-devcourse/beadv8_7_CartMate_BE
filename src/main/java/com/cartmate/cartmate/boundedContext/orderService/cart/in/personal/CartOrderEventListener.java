@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.in.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.personal.CartFacade;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

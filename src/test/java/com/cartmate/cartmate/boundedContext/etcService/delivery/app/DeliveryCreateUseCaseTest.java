@@ -6,7 +6,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.Delivery
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryItem;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryItemOption;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryItemOptionRepository;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryRepository;

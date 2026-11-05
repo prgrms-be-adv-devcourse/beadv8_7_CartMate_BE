@@ -2,8 +2,8 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCreatedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCreationFailedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreationFailedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

@@ -8,16 +8,18 @@ import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostPro
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.shared.product.dto.SyncProduct;
+import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.global.GlobalConfig;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.DeleteProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.ProductSyncUpdateRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.productSyncCompletedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.*;
+import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
+import com.cartmate.cartmate.shared.post.dto.ProductSyncUpdateRequest;
+import com.cartmate.cartmate.shared.post.dto.productSyncCompletedEvent;
+import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
+import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
+import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +63,7 @@ public class SalesPostSyncProductUseCase {
             List<SyncProductImage> imageList = product.getProductImageList();
             if (imageList != null) {
                 imageList.forEach(image -> {
-                    SalesPostProductImage newImage = image.getNewImage(newProduct);
+                    SalesPostProductImage newImage = SalesPostProductImage.from(image, newProduct);
                     salesPostProductImageRepository.save(newImage);
                 });
             }
@@ -69,7 +71,7 @@ public class SalesPostSyncProductUseCase {
             List<SyncProductOption> optionList = product.getProductOptionList();
             if (optionList != null) {
                 optionList.forEach(option -> {
-                    SalesPostProductOption newOption = option.getNewOption(newProduct);
+                    SalesPostProductOption newOption = SalesPostProductOption.from(option, newProduct);
                     salesPostProductOptionRepository.save(newOption);
                 });
             }

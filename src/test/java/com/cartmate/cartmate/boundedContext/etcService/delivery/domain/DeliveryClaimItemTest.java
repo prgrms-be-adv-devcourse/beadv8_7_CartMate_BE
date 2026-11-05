@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.domain;
 
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

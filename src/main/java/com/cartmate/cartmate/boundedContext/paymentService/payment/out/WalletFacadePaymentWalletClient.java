@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.paymentService.payment.out;
 
 import com.cartmate.cartmate.boundedContext.paymentService.payment.domain.PaymentType;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.WalletFacade;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

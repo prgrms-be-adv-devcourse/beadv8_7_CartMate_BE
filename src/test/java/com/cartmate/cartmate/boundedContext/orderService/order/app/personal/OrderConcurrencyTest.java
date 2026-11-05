@@ -17,8 +17,8 @@ import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderEr
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataCleaner;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCanceledEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

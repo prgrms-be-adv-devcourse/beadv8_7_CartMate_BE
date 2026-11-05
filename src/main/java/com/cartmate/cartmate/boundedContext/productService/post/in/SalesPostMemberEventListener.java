@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.post.in;
 
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostFacade;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberWithdrawalRequestedEvent;
+import com.cartmate.cartmate.shared.member.event.MemberWithdrawalRequestedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;

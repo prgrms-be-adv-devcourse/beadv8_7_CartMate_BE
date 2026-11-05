@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.paymentService.wallet.out;
 
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.Holding;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.HoldingStatus;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

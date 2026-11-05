@@ -8,8 +8,8 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErro
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.FakeProductClient;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.DemandGroupPurchaseOpenedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.DemandGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;

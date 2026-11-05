@@ -6,11 +6,11 @@ import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectProduc
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.ProductForPurchase;
+import com.cartmate.cartmate.shared.product.dto.ProductForPurchase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

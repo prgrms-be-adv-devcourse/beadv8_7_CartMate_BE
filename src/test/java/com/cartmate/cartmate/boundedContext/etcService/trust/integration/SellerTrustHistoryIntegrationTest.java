@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.Delivery
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryCreateCommand;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimReason;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimType;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.in.DeliveryScheduler;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Seller;

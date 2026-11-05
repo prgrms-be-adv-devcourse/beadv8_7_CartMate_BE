@@ -9,7 +9,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.out.ProductClient;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.personal.CartRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.dto.CartOrderItem;
+import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -1,9 +1,9 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.in.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseClosedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

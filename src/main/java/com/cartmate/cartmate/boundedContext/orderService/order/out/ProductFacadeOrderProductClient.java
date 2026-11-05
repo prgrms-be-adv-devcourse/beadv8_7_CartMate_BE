@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out;
 
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.ProductForPurchase;
+import com.cartmate.cartmate.shared.product.dto.ProductForPurchase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

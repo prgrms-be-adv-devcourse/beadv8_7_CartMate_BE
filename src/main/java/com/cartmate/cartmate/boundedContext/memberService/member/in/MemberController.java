@@ -8,7 +8,7 @@ import com.cartmate.cartmate.boundedContext.memberService.member.dto.UpdateProfi
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.dto.MemberDto;
+import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

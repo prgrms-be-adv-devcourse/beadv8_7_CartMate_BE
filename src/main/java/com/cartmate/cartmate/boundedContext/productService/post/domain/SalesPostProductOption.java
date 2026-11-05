@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.post.domain;
 
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectSalesPostProductOption;
+import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -35,6 +36,17 @@ public class SalesPostProductOption extends BaseManualIdAndTime {
         this.salesPostProduct = salesPostProduct;
         this.productTypeId = productTypeId;
         this.productOptionId = productOptionId;
+    }
+
+    public static SalesPostProductOption from(SyncProductOption option, SalesPostProduct salesPostProduct) {
+        return new SalesPostProductOption(
+                option.getId(),
+                salesPostProduct,
+                option.getProductTypeId(),
+                option.getProductOptionId(),
+                option.getCreateDate(),
+                option.getModifyDate()
+        );
     }
 
 }

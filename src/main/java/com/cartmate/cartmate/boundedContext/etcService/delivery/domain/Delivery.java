@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.domain;
 
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.exception.DeliveryErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import jakarta.persistence.*;

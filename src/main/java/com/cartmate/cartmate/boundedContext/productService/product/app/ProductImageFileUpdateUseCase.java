@@ -7,7 +7,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedI
 import com.cartmate.cartmate.boundedContext.productService.product.out.ImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.UpdateProductsRequest;
+import com.cartmate.cartmate.shared.product.dto.UpdateProductsRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 

@@ -1,8 +1,8 @@
 package com.cartmate.cartmate.boundedContext.productService.post.dto;
 
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProduct;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProductImage;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProductOption;
+import com.cartmate.cartmate.shared.product.dto.CreateProduct;
+import com.cartmate.cartmate.shared.product.dto.CreateProductImage;
+import com.cartmate.cartmate.shared.product.dto.CreateProductOption;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

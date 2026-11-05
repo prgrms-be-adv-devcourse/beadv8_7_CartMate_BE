@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.productService.post.app;
 
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSeller;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostSellerRepository;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.SellerRegisteredEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.paymentService.wallet.in;
 
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.WalletFacade;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberSignedUpEvent;
+import com.cartmate.cartmate.shared.member.event.MemberSignedUpEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

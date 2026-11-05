@@ -10,12 +10,12 @@ import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductC
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.DeliveryAddressInfo;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.OrderPaymentInfo;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
+import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentOrderType;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

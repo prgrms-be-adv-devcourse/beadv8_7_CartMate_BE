@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.etcService.abuse.app;
 
 import com.cartmate.cartmate.boundedContext.etcService.abuse.domain.AbuseMemberState;
 import com.cartmate.cartmate.boundedContext.etcService.abuse.out.AbuseMemberStateRepository;
-import com.cartmate.cartmate.boundedContext.etcService.shared.abuse.dto.AbuseRestrictionStatus;
+import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out;
 
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.dto.CartOrderItem;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.dto.IndividualGroupPurchaseSnapshot;
+import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseSnapshot;
 
 import java.util.List;
 import java.util.Optional;

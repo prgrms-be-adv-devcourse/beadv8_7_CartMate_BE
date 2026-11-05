@@ -1,9 +1,8 @@
 package com.cartmate.cartmate.boundedContext.productService.product.in;
 
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.productSyncCompletedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.event.PostApiCallFailedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.event.ProductDeletedEvent;
+import com.cartmate.cartmate.shared.post.dto.productSyncCompletedEvent;
+import com.cartmate.cartmate.shared.post.event.PostApiCallFailedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

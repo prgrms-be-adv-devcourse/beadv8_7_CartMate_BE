@@ -1,8 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.in.matching;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.matching.CartMatchingFacade;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
