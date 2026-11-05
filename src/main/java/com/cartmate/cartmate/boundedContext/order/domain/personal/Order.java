@@ -191,6 +191,15 @@ public class Order {
         return true;
     }
 
+    // 개인물품 공동구매가 닫힘: 결제 대기 주문만 취소. 이미 결제 · 취소된 주문은 그대로(종료 전 결제는 결제 완료로 남는다)
+    public boolean cancelByGroupPurchaseClosed(LocalDateTime now) {
+        if (status != OrderStatus.PAYMENT_PENDING) {
+            return false;
+        }
+        cancel(OrderCancelReason.GROUP_PURCHASE_CLOSED, now);
+        return true;
+    }
+
     // 판매글 판매 중지: 결제 완료 주문에서 한 판매자 항목만 취소하고 취소 금액을 돌려준다 (0이면 이미 처리됨).
     // 남은 항목이 없으면 주문도 취소 상태가 된다.
     public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {

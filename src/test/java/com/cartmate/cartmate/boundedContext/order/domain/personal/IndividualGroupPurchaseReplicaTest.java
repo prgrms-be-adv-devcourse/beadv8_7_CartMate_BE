@@ -66,30 +66,19 @@ class IndividualGroupPurchaseReplicaTest {
     }
 
     @Test
-    @DisplayName("결제 재검사: 닫히기 전 · 마감 전에 만든 주문만 '팔고 있었다'이고, 지금 목록에 없는 상품이 든 주문은 아니다")
-    void wasSellingAt() {
+    @DisplayName("결제 마감 = 판매 마감: 닫혔거나 마감 시각이 지났으면 언제 만든 주문이든 결제 불가, 열려 있어도 빠진 상품이면 결제 불가")
+    void canAcceptPayment() {
         IndividualGroupPurchaseReplica replica = open(List.of(1L, 2L), 0);
+        assertThat(replica.canAcceptPayment(List.of(1L, 2L), NOW)).isTrue();
+        assertThat(replica.canAcceptPayment(List.of(3L), NOW)).isFalse();
+        assertThat(replica.canAcceptPayment(List.of(1L), NOW.plusDays(1))).isFalse();
+
         replica.applyClosed(NOW.plusDays(1), NOW, 3);
+        assertThat(replica.canAcceptPayment(List.of(1L), NOW.plusSeconds(1))).isFalse();
 
-        assertThat(replica.wasSellingAt(List.of(1L), NOW.minusSeconds(1))).isTrue();
-        assertThat(replica.wasSellingAt(List.of(1L), NOW)).isFalse();
-
-        IndividualGroupPurchaseReplica openReplica = open(List.of(1L, 2L), 0);
-        assertThat(openReplica.wasSellingAt(List.of(3L), NOW.minusMinutes(5))).isFalse();
-
-        IndividualGroupPurchaseReplica memberPurchase = open(List.of(1L), 0);
-        assertThat(memberPurchase.wasSellingAt(List.of(1L), NOW.plusDays(1).minusSeconds(1))).isTrue();
-        assertThat(memberPurchase.wasSellingAt(List.of(1L), NOW.plusDays(1))).isFalse();
-    }
-
-    @Test
-    @DisplayName("닫힌 사본은 상품 목록을 믿지 않는다: 종료가 먼저 와 빈 목록이거나 판매 중지로 목록이 비어도 종료 전 주문은 결제할 수 있다")
-    void closedReplicaIgnoresProductList() {
         IndividualGroupPurchaseReplica closedFirst = IndividualGroupPurchaseReplica.of(
                 ID, NOW.plusDays(1), true, NOW, List.of(), 4);
-
-        assertThat(closedFirst.wasSellingAt(List.of(1L), NOW.minusMinutes(1))).isTrue();
-        assertThat(closedFirst.wasSellingAt(List.of(1L), NOW.plusSeconds(1))).isFalse();
+        assertThat(closedFirst.canAcceptPayment(List.of(1L), NOW.minusMinutes(1))).isFalse();
     }
 
     private static IndividualGroupPurchaseReplica open(List<Long> productIds, long revision) {

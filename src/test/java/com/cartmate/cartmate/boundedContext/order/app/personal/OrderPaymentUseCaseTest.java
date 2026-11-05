@@ -135,12 +135,12 @@ class OrderPaymentUseCaseTest {
     }
 
     @Test
-    @DisplayName("공동구매가 닫히기 전에 만든 개인물품 주문은 닫힌 뒤에도 결제 기한 안이면 결제할 수 있다")
-    void payIndividualGroupOrderedBeforeClose() {
+    @DisplayName("열려 있는 공동구매의 개인물품 주문은 결제할 수 있다")
+    void payIndividualGroupWhileOpen() {
         Order order = individualGroupOrder(CREATED_AT);
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
-        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(IndividualGroupPurchaseReplica.of(
-                PURCHASE_ID, CREATED_AT.plusDays(1), true, CREATED_AT.plusMinutes(1), List.of(2L), 3)));
+        given(replicaUseCase.findForPayment(PURCHASE_ID)).willReturn(Optional.of(IndividualGroupPurchaseReplica.of(
+                PURCHASE_ID, CREATED_AT.plusDays(1), false, null, List.of(2L), 1)));
 
         paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, CREATED_AT.plusMinutes(5));
 
@@ -148,18 +148,20 @@ class OrderPaymentUseCaseTest {
     }
 
     @Test
-    @DisplayName("사본이 늦어 공동구매가 닫힌 뒤에 만들어진 개인물품 주문은 결제 정보에서 결제 불가이고 결제 반영도 거절한다")
-    void rejectIndividualGroupOrderedAfterClose() {
+    @DisplayName("공동구매가 닫히면 닫히기 전에 만든 주문도 결제 정보에서 결제 불가이고 결제 반영도 거절한다 (결제 마감 = 판매 마감)")
+    void rejectIndividualGroupAfterClose() {
         Order order = individualGroupOrder(CREATED_AT);
         given(orderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
-        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(IndividualGroupPurchaseReplica.of(
-                PURCHASE_ID, CREATED_AT.plusDays(1), true, CREATED_AT.minusSeconds(1), List.of(2L), 3)));
+        IndividualGroupPurchaseReplica closed = IndividualGroupPurchaseReplica.of(
+                PURCHASE_ID, CREATED_AT.plusDays(1), true, CREATED_AT.plusMinutes(1), List.of(2L), 3);
+        given(replicaUseCase.find(PURCHASE_ID)).willReturn(Optional.of(closed));
+        given(replicaUseCase.findForPayment(PURCHASE_ID)).willReturn(Optional.of(closed));
 
-        assertThat(paymentUseCase.getPaymentInfo(ORDER_ID, BUYER, CREATED_AT.plusMinutes(1)).payable()).isFalse();
-        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, CREATED_AT.plusMinutes(1)))
+        assertThat(paymentUseCase.getPaymentInfo(ORDER_ID, BUYER, CREATED_AT.plusMinutes(2)).payable()).isFalse();
+        assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, CREATED_AT.plusMinutes(2)))
                 .isInstanceOf(ServiceException.class)
-                .hasMessageContaining(OrderErrorCode.ORDER_GROUP_PURCHASE_NOT_SOLD_AT_ORDER.getMsg());
+                .hasMessageContaining(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED.getMsg());
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
     }
 
@@ -168,7 +170,7 @@ class OrderPaymentUseCaseTest {
     void rejectIndividualGroupProductRemovedOrUnknown() {
         Order order = individualGroupOrder(CREATED_AT);
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
-        given(replicaUseCase.find(PURCHASE_ID))
+        given(replicaUseCase.findForPayment(PURCHASE_ID))
                 .willReturn(Optional.of(IndividualGroupPurchaseReplica.of(
                         PURCHASE_ID, CREATED_AT.plusDays(1), false, null, List.of(3L), 2)))
                 .willReturn(Optional.empty());
@@ -176,7 +178,7 @@ class OrderPaymentUseCaseTest {
         for (int i = 0; i < 2; i++) {
             assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, CREATED_AT.plusMinutes(1)))
                     .isInstanceOf(ServiceException.class)
-                    .hasMessageContaining(OrderErrorCode.ORDER_GROUP_PURCHASE_NOT_SOLD_AT_ORDER.getMsg());
+                    .hasMessageContaining(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED.getMsg());
         }
     }
 

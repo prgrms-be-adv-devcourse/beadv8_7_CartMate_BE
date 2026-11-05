@@ -37,7 +37,7 @@ class OrderPaymentUseCase {
                 memberId,
                 order.getOrderNumber(),
                 order.getTotalAmount(),
-                order.canAcceptPayment(now) && soldByGroupPurchaseAtOrder(order),
+                order.canAcceptPayment(now) && groupPurchaseAcceptsPayment(order, now, false),
                 order.getPaymentDeadlineAt()
         );
     }
@@ -47,8 +47,8 @@ class OrderPaymentUseCase {
         orderSupport.validateBuyer(order, memberId);
         validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
         // 같은 결제의 재통보(이미 PAID)는 markPaid가 멱등으로 넘기므로 결제 대기일 때만 다시 본다
-        if (order.isPaymentPending() && !soldByGroupPurchaseAtOrder(order)) {
-            throw new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_NOT_SOLD_AT_ORDER);
+        if (order.isPaymentPending() && !groupPurchaseAcceptsPayment(order, paidAt, true)) {
+            throw new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED);
         }
         if (order.markPaid(paymentId, paidAt)) {
             eventPublisher.publish(toPaidEvent(order));
@@ -85,15 +85,17 @@ class OrderPaymentUseCase {
         );
     }
 
-    // 개인물품 주문은 cart 공동구매를 잠그지 않고 order 사본으로 만들어진다. 사본이 늦었던 1~2초 사이에
-    // 종료 · 마감 · 상품 제거 뒤의 주문이 생길 수 있어, 결제 전에 "주문 순간 팔고 있었나"를 다시 본다(ARCH-16).
-    // 결제까지는 보통 수 초 이상 걸려 그사이 사본이 따라잡는다. 사본이 없으면 cart에 잠그지 않고 묻는다
-    private boolean soldByGroupPurchaseAtOrder(Order order) {
+    // 결제 마감 = 판매 마감(ARCH-17). 개인물품 주문은 order 쪽 공동구매 사본이 지금 열려 있고 주문 상품을 팔 때만 결제한다.
+    // 사본이 없으면 cart에 잠그지 않고 묻는다. 공동구매를 못 찾으면 결제하지 않는다
+    // 결제 반영(forUpdate)은 사본을 공유 락으로 다시 읽어 결제 트랜잭션의 옛 스냅샷을 쓰지 않는다
+    private boolean groupPurchaseAcceptsPayment(Order order, LocalDateTime now, boolean forPayment) {
         if (!order.isIndividualGroup()) {
             return true;
         }
-        return individualGroupPurchaseReplicaUseCase.find(order.getIndividualGroupPurchaseId())
-                .map(purchase -> purchase.wasSellingAt(order.productIds(), order.getCreatedAt()))
+        Long purchaseId = order.getIndividualGroupPurchaseId();
+        return (forPayment ? individualGroupPurchaseReplicaUseCase.findForPayment(purchaseId)
+                : individualGroupPurchaseReplicaUseCase.find(purchaseId))
+                .map(purchase -> purchase.canAcceptPayment(order.productIds(), now))
                 .orElse(false);
     }
 

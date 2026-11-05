@@ -119,6 +119,18 @@ public class OrderFacade {
         individualGroupPurchaseReplicaUseCase.applyClosed(event);
     }
 
+    // 공동구매가 닫힌 뒤 남은 결제 대기 주문 (사본을 닫는 트랜잭션이 커밋된 뒤 부른다)
+    @Transactional(readOnly = true)
+    public List<Long> findPendingIdsOfIndividualGroupPurchase(Long individualGroupPurchaseId) {
+        return orderCancelUseCase.findPendingIdsOfIndividualGroupPurchase(individualGroupPurchaseId);
+    }
+
+    // 주문 하나마다 새 트랜잭션 (하나가 실패해도 이미 취소한 주문은 남고, 릴레이 재시도가 나머지를 이어 간다)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void cancelByGroupPurchaseClosed(Long orderId) {
+        orderCancelUseCase.cancelByGroupPurchaseClosed(orderId);
+    }
+
     // 회원 탈퇴 확인: 결제 대기 중인 개인 주문 수
     @Transactional(readOnly = true)
     public long countPaymentPendingOfBuyer(Long buyerMemberId) {
