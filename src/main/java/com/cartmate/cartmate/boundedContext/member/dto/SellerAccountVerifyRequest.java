@@ -15,6 +15,9 @@ public record SellerAccountVerifyRequest(
         @Size(max = 100, message = "상호명은 100자 이하로 입력해주세요.")
         String businessName,
 
+        @Size(max = 50, message = "대표자명은 50자 이하로 입력해주세요.")
+        String representativeName,
+
         @Pattern(regexp = MemberPolicy.BUSINESS_NUMBER_REGEX, message = MemberPolicy.BUSINESS_NUMBER_MESSAGE)
         String businessNumber, // 개인이면 null
 

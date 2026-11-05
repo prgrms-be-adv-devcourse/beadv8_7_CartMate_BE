@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -31,9 +32,10 @@ public class MemberSellerAccountVerifyUseCase {
 
         boolean business = req.sellerType() == SellerType.BUSINESS;
         String businessName = trimToNull(req.businessName());
+        String representativeName = trimToNull(req.representativeName());
         String businessNumber = trimToNull(req.businessNumber());
-        if (business && (businessName == null || businessNumber == null)) {
-            throw new ServiceException("400-SELLER_BUSINESS_INFO_REQUIRED", "사업자는 상호명과 사업자등록번호를 입력해야 합니다.");
+        if (business && (businessName == null || representativeName == null || businessNumber == null)) {
+            throw new ServiceException("400-SELLER_BUSINESS_INFO_REQUIRED", "사업자는 상호명, 대표자명, 사업자등록번호를 모두 입력해야 합니다.");
         }
 
         String bankName = req.bankName().trim();
@@ -48,17 +50,18 @@ public class MemberSellerAccountVerifyUseCase {
         }
 
         // 개인은 회원 생년월일, 사업자는 사업자등록번호가 실명번호다. 비교할 이름도 유형에 따라 다르다.
+        // 사업자는 법인명 계좌와 대표자 명의 개인사업자 계좌를 모두 받기 위해 상호명 또는 대표자명이면 통과한다.
         String realNumber = business ? businessNumber.replace("-", "") : member.getBirthDate().format(BIRTH);
-        String expectedHolder = business ? businessName : accountHolder;
+        List<String> acceptableHolders = business ? List.of(businessName, representativeName) : List.of(accountHolder);
 
         // 불일치의 원인(실명번호, 이름, 없는 계좌)은 구분하지 않고 하나로 응답한다.
-        if (!accountVerifier.isHolderMatched(bank, accountNumber, realNumber, expectedHolder)) {
+        if (!accountVerifier.isHolderMatched(bank, accountNumber, realNumber, acceptableHolders)) {
             throw new ServiceException("400-SELLER_ACCOUNT_MISMATCH",
                     "예금주 정보가 일치하지 않습니다. 은행에 등록된 이름과 똑같이 입력해 주세요.");
         }
 
         String fingerprint = SellerAccountFingerprint.of(req.sellerType(), bankName, accountNumber,
-                accountHolder, businessName, businessNumber);
+                accountHolder, businessName, representativeName, businessNumber);
         accountVerificationStore.saveVerified(memberId, fingerprint, properties.verifiedTtl());
     }
 

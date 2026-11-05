@@ -76,7 +76,7 @@ public class MemberSellerUseCase {
 
         // 계좌 확인을 통과한 입력값과 같아야 한다. member를 바꾸기 전에 거절한다.
         String fingerprint = SellerAccountFingerprint.of(req.sellerType(), bankName, accountNumber,
-                accountHolder, businessName, businessNumber);
+                accountHolder, businessName, representativeName, businessNumber);
         if (!accountVerificationStore.isVerified(memberId, fingerprint)) {
             throw new ServiceException("400-SELLER_ACCOUNT_NOT_VERIFIED", "계좌 확인이 필요합니다. 정산 계좌를 먼저 확인해주세요.");
         }

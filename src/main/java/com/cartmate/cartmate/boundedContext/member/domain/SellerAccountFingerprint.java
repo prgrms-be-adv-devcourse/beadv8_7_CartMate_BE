@@ -11,14 +11,15 @@ public final class SellerAccountFingerprint {
     private SellerAccountFingerprint() {
     }
 
-    public static String of(SellerType sellerType, String bankName, String accountNumber,
-                            String accountHolder, String businessName, String businessNumber) {
+    public static String of(SellerType sellerType, String bankName, String accountNumber, String accountHolder,
+                            String businessName, String representativeName, String businessNumber) {
         boolean business = sellerType == SellerType.BUSINESS;
         StringBuilder raw = new StringBuilder();
         // 길이를 앞에 붙여 필드 경계가 섞여도 같은 문자열이 되지 않게 한다. 개인은 사업자 정보를 쓰지 않는다.
         for (String field : new String[]{
                 sellerType.name(), bankName, accountNumber, accountHolder,
                 business ? nullToEmpty(businessName) : "",
+                business ? nullToEmpty(representativeName) : "",
                 business ? nullToEmpty(businessNumber) : ""}) {
             raw.append(field.length()).append(':').append(field);
         }
