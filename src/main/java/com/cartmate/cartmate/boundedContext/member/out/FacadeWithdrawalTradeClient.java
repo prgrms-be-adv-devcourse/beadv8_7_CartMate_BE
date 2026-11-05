@@ -5,7 +5,6 @@ import com.cartmate.cartmate.boundedContext.cart.app.groupshared.SharedGroupPurc
 import com.cartmate.cartmate.boundedContext.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.order.app.groupshared.SharedGroupOrderFacade;
 import com.cartmate.cartmate.boundedContext.order.app.personal.OrderFacade;
-import com.cartmate.cartmate.boundedContext.payout.app.PayoutFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +20,7 @@ public class FacadeWithdrawalTradeClient implements WithdrawalTradeClient {
     private final DeliveryFacade deliveryFacade;
     private final SharedGroupPurchaseFacade sharedGroupPurchaseFacade;
     private final IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
-    private final PayoutFacade payoutFacade;
+    private final MemberPaymentServerClient paymentServerClient; // 정산은 결제 서버
 
     @Override
     public BuyerTrades getBuyerTrades(Long memberId) {
@@ -44,6 +43,6 @@ public class FacadeWithdrawalTradeClient implements WithdrawalTradeClient {
         return new SellerTrades(
                 deliveryFacade.countUnfinishedOfSeller(sellerId),
                 deliveryFacade.countClaimsInProgressOfSeller(sellerId),
-                payoutFacade.countPendingOfSeller(sellerId));
+                paymentServerClient.countPendingPayouts(sellerId));
     }
 }

@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.payment.in.internal;
 
 import com.cartmate.cartmate.boundedContext.payment.app.PaymentFacade;
+import com.cartmate.cartmate.boundedContext.payment.dto.PaymentDailySummary;
 import com.cartmate.cartmate.boundedContext.payment.exception.PaymentErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.rsData.RsData;
@@ -9,7 +10,10 @@ import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
 import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 /**
  * 결제 서버 내부 API. 다른 서버(주문)만 부른다 — 외부 요청은 Gateway가 막고, 앱은 내부 API 키로 한 번 더 확인한다.
@@ -47,6 +51,12 @@ public class PaymentInternalController {
                                    @RequestParam Long memberId) {
         paymentFacade.compensateCharge(orderType, orderId, memberId);
         return new RsData<>("200-1", "결제 되돌림");
+    }
+
+    // 관리자 대시보드: 하루 결제·환불 집계
+    @GetMapping("/daily-summary")
+    public RsData<PaymentDailySummary> dailySummary(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return new RsData<>("200-1", "일별 결제 집계", paymentFacade.getDailySummary(date));
     }
 
     @GetMapping("/wallet-balance")
