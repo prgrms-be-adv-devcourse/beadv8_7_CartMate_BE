@@ -49,7 +49,7 @@ class MemberSellerUseCaseTest {
     private final SellerRegisterRequest request = new SellerRegisterRequest(
             SellerType.INDIVIDUAL, null, null, null, "010-1234-5678", "신한은행", "홍길동", "110123456789", true);
     private final String fingerprint =
-            SellerAccountFingerprint.of(SellerType.INDIVIDUAL, "신한은행", "110123456789", "홍길동", null, null);
+            SellerAccountFingerprint.of(SellerType.INDIVIDUAL, "신한은행", "110123456789", "홍길동", null, null, null);
 
     @BeforeEach
     void setUp() {
@@ -108,6 +108,35 @@ class MemberSellerUseCaseTest {
         assertThat(result.accessToken()).isEqualTo("token");
         verify(sellerRepository).saveAndFlush(any(Seller.class));
         verify(store).remove(MEMBER_ID);
+    }
+
+    private SellerRegisterRequest businessRequest(String representativeName) {
+        return new SellerRegisterRequest(SellerType.BUSINESS, "팀바이", representativeName, "123-45-67890",
+                "010-1234-5678", "신한은행", "홍길동", "110123456789", true);
+    }
+
+    @Test
+    @DisplayName("사업자는 상호명과 대표자명이 확인한 값과 같으면 등록된다")
+    void businessRegistered() {
+        String businessFingerprint = SellerAccountFingerprint.of(SellerType.BUSINESS, "신한은행", "110123456789",
+                "홍길동", "팀바이", "김대표", "123-45-67890");
+        when(store.isVerified(MEMBER_ID, businessFingerprint)).thenReturn(true);
+
+        useCase.register(MEMBER_ID, businessRequest("김대표"));
+
+        verify(sellerRepository).saveAndFlush(any(Seller.class));
+    }
+
+    @Test
+    @DisplayName("사업자는 확인한 뒤 대표자명을 바꿔 등록하면 400으로 거절한다")
+    void businessRepresentativeChangedAfterVerification() {
+        String businessFingerprint = SellerAccountFingerprint.of(SellerType.BUSINESS, "신한은행", "110123456789",
+                "홍길동", "팀바이", "김대표", "123-45-67890");
+        when(store.isVerified(MEMBER_ID, businessFingerprint)).thenReturn(true);
+
+        assertThatThrownBy(() -> useCase.register(MEMBER_ID, businessRequest("박대표")))
+                .satisfies(e -> assertThat(resultCode(e)).isEqualTo("400-SELLER_ACCOUNT_NOT_VERIFIED"));
+        verify(sellerRepository, never()).saveAndFlush(any());
     }
 
     // 커밋과 롤백만 흉내 내는 트랜잭션 매니저. 스프링의 트랜잭션 동기화 흐름을 그대로 쓴다.
