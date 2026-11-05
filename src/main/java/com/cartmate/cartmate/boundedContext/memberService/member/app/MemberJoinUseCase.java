@@ -4,7 +4,7 @@ import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.SignupRequest;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.MemberRepository;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.PhoneVerificationStore;
-import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
+import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.memberService.shared.member.dto.MemberDto;
 import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberSignedUpEvent;
@@ -21,7 +21,8 @@ public class MemberJoinUseCase {
     private final MemberSupport memberSupport;
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EventPublisher eventPublisher;
+    // 가입과 같은 트랜잭션에 Outbox 행을 남기고, 이행 기간 동안 기존 리스너(지갑 생성)용 Spring 이벤트도 함께 발행한다
+    private final DomainEventPublisher eventPublisher;
     private final PhoneVerificationStore phoneVerificationStore;
 
     public MemberDto join(SignupRequest request) {
