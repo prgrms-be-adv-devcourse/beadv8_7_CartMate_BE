@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.abuse.integration;
 
 import com.cartmate.cartmate.boundedContext.abuse.app.AbuseFacade;
-import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
+import com.cartmate.cartmate.boundedContext.abuse.support.AbuseTestDataCleaner;
 import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -30,6 +31,9 @@ class AbuseRestrictionQueryIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
     private final List<Long> memberIds = new ArrayList<>();
 
     private final long base = 9_700_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
@@ -38,7 +42,7 @@ class AbuseRestrictionQueryIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        new TestDataCleaner(jdbcTemplate).deleteAbuseRecordsOf(memberIds);
+        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
     }
 
     @Test
@@ -80,6 +84,20 @@ class AbuseRestrictionQueryIntegrationTest {
         assertThat(statuses.get(restricted)).isEqualTo(AbuseRestrictionStatus.restrictedUntil(restricted, until));
         assertThat(statuses.get(expired).restricted()).isFalse();
         assertThat(statuses.get(unknown).restricted()).isFalse();
+    }
+
+    @Test
+    @DisplayName("제한 조회는 호출한 쪽 트랜잭션에 합류하지 않아, 그 트랜잭션의 커밋 안 된 변경을 보지 않는다")
+    void doesNotJoinCallerTransaction() {
+        long member = nextMemberId();
+
+        AbuseRestrictionStatus seenInsideCaller = transactionTemplate.execute(status -> {
+            saveState(member, LocalDateTime.now().plusHours(1));
+            status.setRollbackOnly();
+            return abuseFacade.getRestriction(member);
+        });
+
+        assertThat(seenInsideCaller).isEqualTo(AbuseRestrictionStatus.none(member));
     }
 
     private void saveState(long memberId, LocalDateTime restrictedUntil) {

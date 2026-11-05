@@ -4,7 +4,7 @@ import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurc
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateResponse;
 import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.cart.out.groupshared.SharedGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
+import com.cartmate.cartmate.boundedContext.abuse.support.AbuseTestDataCleaner;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,8 +48,7 @@ class SharedGroupPurchaseRestrictionTest {
 
     @AfterEach
     void tearDown() {
-        TestDataCleaner cleaner = new TestDataCleaner(jdbcTemplate);
-        cleaner.deleteAbuseRecordsOf(memberIds);
+        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
         transactionTemplate.executeWithoutResult(status -> createdIds.forEach(repository::deleteById));
     }
 

@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
+import com.cartmate.cartmate.boundedContext.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderItem;
@@ -13,7 +14,6 @@ import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
-import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
 import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +37,7 @@ class OrderCreateUseCase {
     private final OrderNumberGenerator orderNumberGenerator;
     private final OrderCartClient orderCartClient;
     private final DomainEventPublisher eventPublisher;
+    private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
 
     OrderCreateResponse createPersonal(Long memberId, List<Long> cartItemIds, DeliveryAddress deliveryAddress,
                                        LocalDateTime now) {
@@ -54,7 +55,7 @@ class OrderCreateUseCase {
                 .map(item -> toLine(products, item.inventoryId(), item.quantity()))
                 .toList();
         Order order = Order.createPersonal(generateOrderNumber(now), memberId, lines, deliveryAddress, now);
-        Order saved = savePersonal(order);
+        Order saved = saveNew(order);
         eventPublisher.publish(toCreatedEvent(saved));
         return OrderCreateResponse.from(saved);
     }
@@ -71,14 +72,16 @@ class OrderCreateUseCase {
                 .map(item -> toLine(products, item.inventoryId(), item.quantity()))
                 .toList();
         List<Long> productIds = lines.stream().map(OrderLine::productId).distinct().toList();
-        IndividualGroupPurchaseOrderable orderable =
-                orderCartClient.getIndividualGroupPurchaseOrderable(individualGroupPurchaseId, productIds, now);
-        if (orderRepository.findPendingIndividualGroupOrderId(memberId, orderable.individualGroupPurchaseId()).isPresent()) {
+        // cart 공동구매 행을 잠그지 않고 order 쪽 사본으로 판단한다(ARCH-16). 사본이 늦어 생긴 주문은 결제 때 다시 걸러진다
+        IndividualGroupPurchaseReplica purchase = individualGroupPurchaseReplicaUseCase.find(individualGroupPurchaseId)
+                .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_NOT_FOUND));
+        purchase.validateOrderable(productIds, now);
+        if (orderRepository.findPendingIndividualGroupOrderId(memberId, individualGroupPurchaseId).isPresent()) {
             throw new ServiceException(OrderErrorCode.ORDER_ALREADY_PENDING);
         }
         Order order = Order.createIndividualGroup(generateOrderNumber(now), memberId,
-                orderable.individualGroupPurchaseId(), orderable.saleDeadlineAt(), lines, deliveryAddress, now);
-        Order saved = orderRepository.save(order);
+                individualGroupPurchaseId, purchase.getDeadlineAt(), lines, deliveryAddress, now);
+        Order saved = saveNew(order);
         eventPublisher.publish(toCreatedEvent(saved));
         return OrderCreateResponse.from(saved);
     }
@@ -103,9 +106,10 @@ class OrderCreateUseCase {
         );
     }
 
-    // 위 조회와 저장 사이에 같은 상품의 결제 대기 주문이 먼저 들어오면 order_item의 unique가 막는다.
-    // cart 쪽 장바구니 조회는 잠그지 않으므로(모듈을 넘는 락 금지, ARCH-15) 같은 회원의 동시 주문은 이 unique만 막는다.
-    private Order savePersonal(Order order) {
+    // 위 조회와 저장 사이에 결제 대기 주문이 먼저 들어오면 DB unique가 막는다. 개인 주문은 order_item(같은 회원 · 같은 상품),
+    // 개인물품 주문은 orders(같은 회원 · 같은 공동구매). cart 쪽은 잠그지 않으므로(모듈을 넘는 락 금지, ARCH-15 · 16)
+    // 같은 회원의 동시 주문은 이 unique만 막는다.
+    private Order saveNew(Order order) {
         try {
             return orderRepository.saveAndFlush(order);
         } catch (DataIntegrityViolationException e) {
@@ -120,11 +124,16 @@ class OrderCreateUseCase {
     private static boolean isPendingItemConflict(DataIntegrityViolationException e) {
         for (Throwable cause = e; cause != null; cause = cause.getCause()) {
             if (cause instanceof ConstraintViolationException violation && violation.getConstraintName() != null) {
-                return violation.getConstraintName().contains(OrderItem.PENDING_BUYER_INVENTORY_UNIQUE);
+                return isPendingConstraint(violation.getConstraintName());
             }
         }
         String message = e.getMostSpecificCause().getMessage();
-        return message != null && message.contains(OrderItem.PENDING_BUYER_INVENTORY_UNIQUE);
+        return message != null && isPendingConstraint(message);
+    }
+
+    private static boolean isPendingConstraint(String text) {
+        return text.contains(OrderItem.PENDING_BUYER_INVENTORY_UNIQUE)
+                || text.contains(Order.PENDING_BUYER_INDIVIDUAL_GROUP_UNIQUE);
     }
 
     private String generateOrderNumber(LocalDateTime now) {

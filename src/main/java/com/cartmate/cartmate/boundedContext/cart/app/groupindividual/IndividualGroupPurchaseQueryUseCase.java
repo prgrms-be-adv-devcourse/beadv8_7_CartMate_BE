@@ -13,12 +13,13 @@ import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualG
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderReplicaRepository;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -74,13 +75,10 @@ class IndividualGroupPurchaseQueryUseCase {
                 .toList();
     }
 
-    IndividualGroupPurchaseOrderable getOrderable(Long individualGroupPurchaseId, List<Long> productIds, LocalDateTime now) {
-        IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findByIdForUpdate(individualGroupPurchaseId)
-                .orElseThrow(() -> new ServiceException(CartErrorCode.CART_GROUP_PURCHASE_NOT_FOUND));
-        productIds.stream()
-                .distinct()
-                .forEach(productId -> purchase.validateOrderable(productId, now));
-        return new IndividualGroupPurchaseOrderable(purchase.getId(), purchase.getDeadlineAt());
+    // order가 이벤트 사본이 아직 없을 때만 부른다. 잠그지 않는다(모듈을 넘는 락 금지, ARCH-16)
+    Optional<IndividualGroupPurchaseSnapshot> findSnapshot(Long individualGroupPurchaseId) {
+        return individualGroupPurchaseRepository.findWithProductsById(individualGroupPurchaseId)
+                .map(IndividualGroupPurchaseEvents::snapshot);
     }
 
     private IndividualGroupPurchase getWithProductsForCreator(Long memberId, Long individualGroupPurchaseId) {

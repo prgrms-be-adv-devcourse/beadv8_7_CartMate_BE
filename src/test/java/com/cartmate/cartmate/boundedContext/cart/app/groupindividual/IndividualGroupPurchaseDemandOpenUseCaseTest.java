@@ -9,6 +9,8 @@ import com.cartmate.cartmate.boundedContext.cart.out.FakeProductClient;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.event.DemandGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.event.DomainEvent;
 import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class IndividualGroupPurchaseDemandOpenUseCaseTest {
@@ -69,14 +72,19 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
                 useCase.open(ADMIN, BALL, new DemandGroupPurchaseOpenRequest("축구공 공동구매", null, null, null), NOW);
 
         assertThat(response.id()).isEqualTo(77L);
-        ArgumentCaptor<DemandGroupPurchaseOpenedEvent> event = ArgumentCaptor.forClass(DemandGroupPurchaseOpenedEvent.class);
-        then(eventPublisher).should().publish(event.capture());
-        assertThat(event.getValue().individualGroupPurchaseId()).isEqualTo(77L);
-        assertThat(event.getValue().productId()).isEqualTo(BALL);
-        assertThat(event.getValue().paybackMinBuyers()).isEqualTo(10);
-        assertThat(event.getValue().paybackAmount()).isEqualTo(1_000L);
-        assertThat(event.getValue().deadlineAt()).isEqualTo(NOW.plusHours(72));
-        assertThat(event.getValue().inviteCode()).isEqualTo(response.inviteCode());
+        ArgumentCaptor<DomainEvent> published = ArgumentCaptor.forClass(DomainEvent.class);
+        then(eventPublisher).should(times(2)).publish(published.capture());
+        IndividualGroupPurchaseOpenedEvent opened = (IndividualGroupPurchaseOpenedEvent) published.getAllValues().get(0);
+        assertThat(opened.individualGroupPurchaseId()).isEqualTo(77L);
+        assertThat(opened.productIds()).containsExactly(BALL);
+        assertThat(opened.revision()).isZero();
+        DemandGroupPurchaseOpenedEvent event = (DemandGroupPurchaseOpenedEvent) published.getAllValues().get(1);
+        assertThat(event.individualGroupPurchaseId()).isEqualTo(77L);
+        assertThat(event.productId()).isEqualTo(BALL);
+        assertThat(event.paybackMinBuyers()).isEqualTo(10);
+        assertThat(event.paybackAmount()).isEqualTo(1_000L);
+        assertThat(event.deadlineAt()).isEqualTo(NOW.plusHours(72));
+        assertThat(event.inviteCode()).isEqualTo(response.inviteCode());
     }
 
     @Test

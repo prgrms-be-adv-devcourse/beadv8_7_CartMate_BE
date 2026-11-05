@@ -15,13 +15,15 @@ import java.time.LocalDateTime;
  * @param origin      MEMBER(회원이 만든 공동구매) · ADMIN_DEMAND(어드민이 수요로 연 공동구매)
  * @param closeReason CREATOR(개설자 마감) · ADMIN(다른 어드민 마감) · DEADLINE(마감 시각 지나 시스템 마감) · SALES_STOPPED(판매 중지로 상품이 모두 빠짐)
  * @param deadlineAt  판매 마감 시각
+ * @param revision    공동구매 변경 번호. 닫힘은 끝 상태라 받는 쪽은 이보다 작은 번호의 열림 · 갱신 이벤트를 버린다
  */
 public record IndividualGroupPurchaseClosedEvent(
         Long individualGroupPurchaseId,
         String origin,
         String closeReason,
         LocalDateTime deadlineAt,
-        LocalDateTime closedAt
+        LocalDateTime closedAt,
+        long revision
 ) implements DomainEvent {
 
     @Override

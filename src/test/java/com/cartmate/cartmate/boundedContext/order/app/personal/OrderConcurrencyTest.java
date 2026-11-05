@@ -31,6 +31,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -75,6 +76,9 @@ class OrderConcurrencyTest {
     @Autowired
     private IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
 
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
     private final List<Long> createdIds = new ArrayList<>();
     private final List<Long> buyerIds = new ArrayList<>();
     private final List<Long> purchaseIds = new ArrayList<>();
@@ -97,6 +101,7 @@ class OrderConcurrencyTest {
         });
         createdIds.forEach(repository::deleteById);
         purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);
+        new TestDataCleaner(jdbcTemplate).deleteIndividualGroupPurchaseReplicas(purchaseIds);
     }
 
     @Test
@@ -216,6 +221,46 @@ class OrderConcurrencyTest {
 
             assertThat(created).hasSize(1);
             assertThat(rejected).containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
+        }
+    }
+
+    @Test
+    @DisplayName("개설자가 공동구매 행을 잠그고 있어도(상품 제거 중) 개인물품 주문 생성은 기다리지 않는다 (cart 행 락 없음)")
+    void individualGroupOrderDoesNotWaitForCartRowLock() throws Exception {
+        long creator = nextId();
+        long buyer = nextId();
+        buyerIds.add(buyer);
+        Long purchaseId = individualGroupPurchaseFacade.create(creator,
+                new IndividualGroupPurchaseCreateRequest("행 락 없음", List.of(1L, 2L))).id();
+        purchaseIds.add(purchaseId);
+        IndividualGroupOrderCreateRequest request = new IndividualGroupOrderCreateRequest(purchaseId,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)),
+                new DeliveryAddressRequest("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService holder = Executors.newSingleThreadExecutor();
+        holder.submit(() -> transactionTemplate.executeWithoutResult(status -> {
+            individualGroupPurchaseRepository.findByIdForUpdate(purchaseId).orElseThrow();
+            locked.countDown();
+            try {
+                release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }));
+        try {
+            assertThat(locked.await(5, TimeUnit.SECONDS)).isTrue();
+            long started = System.nanoTime();
+
+            OrderCreateResponse created = facade.createIndividualGroup(buyer, request);
+
+            createdIds.add(created.orderId());
+            assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)).isLessThan(3_000);
+        } finally {
+            release.countDown();
+            holder.shutdown();
+            holder.awaitTermination(10, TimeUnit.SECONDS);
         }
     }
 

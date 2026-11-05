@@ -5,14 +5,14 @@ import com.cartmate.cartmate.boundedContext.cart.app.groupshared.SharedGroupPurc
 import com.cartmate.cartmate.boundedContext.cart.app.personal.CartFacade;
 import com.cartmate.cartmate.shared.cart.CartOrderQuery;
 import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
-import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseOrderable;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -28,9 +28,8 @@ public class CartOrderQueryAdapter implements CartOrderQuery {
     }
 
     @Override
-    public IndividualGroupPurchaseOrderable getIndividualGroupPurchaseOrderable(Long individualGroupPurchaseId,
-                                                                               List<Long> productIds, LocalDateTime now) {
-        return individualGroupPurchaseFacade.getOrderable(individualGroupPurchaseId, productIds, now);
+    public Optional<IndividualGroupPurchaseSnapshot> findIndividualGroupPurchaseSnapshot(Long individualGroupPurchaseId) {
+        return individualGroupPurchaseFacade.findSnapshot(individualGroupPurchaseId);
     }
 
     @Override

@@ -32,16 +32,6 @@ public class TestDataCleaner {
         jdbc.update("DELETE FROM delivery WHERE id IN (:deliveryIds)", params);
     }
 
-    public void deleteAbuseRecordsOf(Collection<Long> memberIds) {
-        if (memberIds.isEmpty()) {
-            return;
-        }
-        Map<String, Object> params = Map.of("memberIds", memberIds);
-        jdbc.update("DELETE FROM abuse_restriction_history WHERE member_id IN (:memberIds)", params);
-        jdbc.update("DELETE FROM abuse_signal WHERE member_id IN (:memberIds)", params);
-        jdbc.update("DELETE FROM abuse_member_state WHERE member_id IN (:memberIds)", params);
-    }
-
     public void deleteSharedGroupOrdersOfPurchases(Collection<Long> purchaseIds) {
         if (purchaseIds.isEmpty()) {
             return;
@@ -56,5 +46,16 @@ public class TestDataCleaner {
         jdbc.update("DELETE FROM shared_group_order_item WHERE shared_group_order_id IN (:orderIds)", params);
         jdbc.update("DELETE FROM shared_group_order_participant WHERE shared_group_order_id IN (:orderIds)", params);
         jdbc.update("DELETE FROM shared_group_order WHERE id IN (:orderIds)", params);
+    }
+
+    // order 쪽 개인물품 공동구매 사본(ARCH-16). 이벤트 consumer가 만든 행만 지운다
+    public void deleteIndividualGroupPurchaseReplicas(Collection<Long> purchaseIds) {
+        if (purchaseIds.isEmpty()) {
+            return;
+        }
+        Map<String, Object> params = Map.of("purchaseIds", purchaseIds);
+        jdbc.update("DELETE FROM individual_group_purchase_replica_product WHERE individual_group_purchase_id IN (:purchaseIds)",
+                params);
+        jdbc.update("DELETE FROM individual_group_purchase_replica WHERE individual_group_purchase_id IN (:purchaseIds)", params);
     }
 }

@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.abuse.in;
 
 import com.cartmate.cartmate.boundedContext.abuse.app.AbuseFacade;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,17 @@ class AbuseJudgeSchedulerTest {
 
     @InjectMocks
     private AbuseJudgeScheduler scheduler;
+
+    @Test
+    @DisplayName("재판정 스케줄러는 cart · order 스케줄러와 같은 시간으로 ShedLock을 잡아 한 인스턴스에서만 돈다")
+    void runsUnderSchedulerLock() throws NoSuchMethodException {
+        SchedulerLock lock = AbuseJudgeScheduler.class.getMethod("judgePendingSignals").getAnnotation(SchedulerLock.class);
+
+        assertThat(lock).isNotNull();
+        assertThat(lock.name()).isEqualTo("abuse.judgePending");
+        assertThat(lock.lockAtMostFor()).isEqualTo("PT5M");
+        assertThat(lock.lockAtLeastFor()).isEqualTo("PT5S");
+    }
 
     @Test
     @DisplayName("미판정 신호가 있는 회원을 배치 크기만큼 골라 회원마다 판정한다")

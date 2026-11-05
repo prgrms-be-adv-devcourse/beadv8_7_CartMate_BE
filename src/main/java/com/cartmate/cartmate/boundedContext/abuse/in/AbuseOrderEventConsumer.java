@@ -4,42 +4,41 @@ import com.cartmate.cartmate.boundedContext.abuse.app.AbuseFacade;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.event.OutboxMessageRelayed;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.util.Objects;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AbuseOrderEventListener {
+public class AbuseOrderEventConsumer {
 
     private static final String DEADLINE_EXPIRED = "DEADLINE_EXPIRED";
 
     private final AbuseFacade abuseFacade;
     private final AbuseJudgeRunner abuseJudgeRunner;
 
-    @EventListener
-    public void receive(SharedGroupOrderCanceledEvent event) {
-        if (!isSignal(event)) {
-            return;
+    @TransactionalEventListener(fallbackExecution = true)
+    public void handle(OutboxMessageRelayed message) {
+        if (message.event() instanceof SharedGroupOrderCanceledEvent event && isSignal(event)) {
+            consume(event);
         }
-        event.unpaidMemberIds().forEach(memberId -> toCommand(event, memberId).ifPresent(abuseFacade::receive));
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void judge(SharedGroupOrderCanceledEvent event) {
-        if (!isSignal(event)) {
-            return;
-        }
-        event.unpaidMemberIds().stream()
-                .filter(Objects::nonNull)
+    private void consume(SharedGroupOrderCanceledEvent event) {
+        List<AbuseSignalCommand> commands = event.unpaidMemberIds().stream()
+                .map(memberId -> toCommand(event, memberId))
+                .flatMap(Optional::stream)
+                .toList();
+        commands.forEach(abuseFacade::receive);
+        commands.stream()
+                .map(AbuseSignalCommand::memberId)
                 .distinct()
                 .forEach(abuseJudgeRunner::judge);
     }

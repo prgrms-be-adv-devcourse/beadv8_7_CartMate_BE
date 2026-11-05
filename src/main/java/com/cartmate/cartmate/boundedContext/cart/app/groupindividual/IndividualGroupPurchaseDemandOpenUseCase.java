@@ -46,6 +46,7 @@ class IndividualGroupPurchaseDemandOpenUseCase {
                 now);
 
         IndividualGroupPurchase saved = save(purchase);
+        eventPublisher.publish(IndividualGroupPurchaseEvents.opened(saved, now));
         eventPublisher.publish(new DemandGroupPurchaseOpenedEvent(
                 saved.getId(), productId, saved.getTitle(), saved.getInviteCode(), saved.getDeadlineAt(),
                 saved.getPaybackMinBuyers(), saved.getPaybackAmount(), now));
