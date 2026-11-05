@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroup
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
+import com.cartmate.cartmate.boundedContext.order.out.OrderPaymentClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
@@ -58,6 +59,9 @@ class SharedGroupOrderPaymentUseCaseTest {
 
     @Mock
     private OrderProductClient orderProductClient;
+
+    @Mock
+    private OrderPaymentClient orderPaymentClient;
 
     @InjectMocks
     private SharedGroupOrderPaymentUseCase paymentUseCase;

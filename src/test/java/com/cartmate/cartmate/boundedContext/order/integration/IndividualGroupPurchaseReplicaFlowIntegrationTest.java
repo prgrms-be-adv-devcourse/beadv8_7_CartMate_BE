@@ -170,6 +170,21 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
     }
 
     @Test
+    @DisplayName("주문이 지휘하는 결제(payOrder)는 닫힌 공동구매 주문을 지갑 차감 전에 결제 불가로 거절한다")
+    void payOrderRejectsBeforeChargeWhenClosed() {
+        Long purchaseId = openPurchase(List.of(1L, 2L));
+        relayUntil(() -> replicaRevision(purchaseId) == 0);
+        Long orderId = createOrder(buyer, purchaseId);
+        orderFacade.applyIndividualGroupPurchaseClosed(new IndividualGroupPurchaseClosedEvent(
+                purchaseId, "MEMBER", "CREATOR", LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1));
+
+        assertThatThrownBy(() -> orderFacade.payOrder(buyer, orderId))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_NOT_PAYABLE.getMsg());
+        assertThat(orderStatus(orderId)).isEqualTo("PAYMENT_PENDING");
+    }
+
+    @Test
     @DisplayName("결제 트랜잭션이 사본을 '열림'으로 읽은 뒤 사본이 닫혀 커밋되면, 같은 트랜잭션의 결제 반영은 옛 스냅샷이 아니라 최신 사본을 보고 거절한다")
     void applyPaymentRereadsReplicaWithLock() {
         Long purchaseId = openPurchase(List.of(1L, 2L));

@@ -201,7 +201,7 @@ class SellerTrustHistoryIntegrationTest {
         Member buyer = newMember("buyer");
         Member sellerMember = newMember("seller");
         Seller seller = sellerRepository.saveAndFlush(Seller.create(sellerMember, SellerType.INDIVIDUAL,
-                null, null, null, "01012345678", "테스트은행", "판매자", "123456"));
+                null, null, null, "01012345678", "테스트은행", "판매자", UUID.randomUUID().toString()));
         sellerIds.add(seller.getId());
 
         String idempotencyKey = UUID.randomUUID().toString();
