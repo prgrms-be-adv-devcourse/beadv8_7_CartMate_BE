@@ -4,8 +4,8 @@ import com.cartmate.cartmate.boundedContext.member.dto.AdminDashboardResponse;
 import com.cartmate.cartmate.boundedContext.member.dto.AdminDashboardResponse.AdminMemberStats;
 import com.cartmate.cartmate.boundedContext.member.dto.AdminDashboardResponse.AdminPaymentStats;
 import com.cartmate.cartmate.boundedContext.member.dto.AdminDashboardResponse.AdminRecentMember;
-import com.cartmate.cartmate.boundedContext.member.out.AdminDashboardPaymentClient;
 import com.cartmate.cartmate.boundedContext.member.out.MemberCounts;
+import com.cartmate.cartmate.boundedContext.member.out.MemberPaymentServerClient;
 import com.cartmate.cartmate.boundedContext.member.out.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AdminDashboardUseCase {
     private final MemberRepository memberRepository;
-    private final AdminDashboardPaymentClient paymentClient;
+    private final MemberPaymentServerClient paymentServerClient;
 
     public AdminDashboardResponse getDashboard() {
         LocalDate today = LocalDate.now();
@@ -27,7 +27,7 @@ public class AdminDashboardUseCase {
         AdminMemberStats members = new AdminMemberStats(
                 counts.total(), counts.joinedToday(), counts.buyers(), counts.sellers(), counts.suspended());
 
-        AdminDashboardPaymentClient.PaymentStats paymentStats = paymentClient.getDailyStats(today);
+        MemberPaymentServerClient.PaymentStats paymentStats = paymentServerClient.getDailyPaymentStats(today);
         AdminPaymentStats payments = new AdminPaymentStats(
                 paymentStats.paidCount(), paymentStats.paidAmount(), paymentStats.refundCount(), paymentStats.refundAmount());
 

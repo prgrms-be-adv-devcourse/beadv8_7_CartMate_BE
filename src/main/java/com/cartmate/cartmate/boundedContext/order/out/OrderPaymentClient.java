@@ -22,6 +22,7 @@ public interface OrderPaymentClient {
     long getWalletBalance(Long memberId);
 
     // 차감은 됐는데 주문 반영이 거절됐을 때 되돌리기 (여러 번 불러도 한 번만).
+    // 실패해도 예외를 던지지 않는다 — 호출하는 쪽의 원래 오류(왜 거절됐는지)를 가리지 않기 위해. 실패는 구현이 로그로 남긴다.
     // 같은 앱(local)에서는 차감과 반영이 한 트랜잭션이라 롤백으로 충분해 아무것도 안 한다.
     void compensateCharge(PaymentOrderType orderType, Long orderId, Long memberId);
 }
