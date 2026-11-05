@@ -4,15 +4,12 @@ import com.cartmate.cartmate.boundedContext.payout.app.dto.PendingPayoutResponse
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementDetailResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
-import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
-import com.cartmate.cartmate.boundedContext.payout.domain.PayoutPolicy;
-import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
-import com.cartmate.cartmate.boundedContext.payout.domain.SettlementKey;
+import com.cartmate.cartmate.boundedContext.payout.domain.*;
 import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository.SettlementSummary;
+import com.cartmate.cartmate.boundedContext.payout.out.PayoutSellerRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.member.SellerQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +29,8 @@ public class PayoutQueryUseCase {
     private static final LocalDate MAX_DATE = LocalDate.of(2999, 12, 31);
 
     private final PayoutRepository payoutRepository;
-    private final SellerQuery sellerQuery;
+    // 회원 → 판매자 ID는 정산이 가진 판매자 복제본으로 찾는다 (결제 서버가 회원 서버를 부르지 않게)
+    private final PayoutSellerRepository payoutSellerRepository;
 
     // 로그인한 판매자의 정산 내역을 지급 예정일과 상태별로 묶어 최신 지급일부터 반환한다.
     // 시작일과 종료일은 지급 예정일 기준이며 둘 다 포함한다. 주지 않으면 그 방향은 제한하지 않는다.
@@ -114,7 +112,8 @@ public class PayoutQueryUseCase {
             throw new ServiceException(PayoutErrorCode.PAYOUT_MEMBER_ID_REQUIRED);
         }
 
-        return sellerQuery.findSellerIdByMemberId(memberId)
+        return payoutSellerRepository.findByMemberId(memberId)
+                .map(PayoutSeller::getSellerId)
                 .orElseThrow(() -> new ServiceException(PayoutErrorCode.PAYOUT_SELLER_ONLY));
     }
 

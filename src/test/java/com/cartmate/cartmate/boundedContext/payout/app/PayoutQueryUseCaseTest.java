@@ -6,12 +6,13 @@ import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementInfoRespons
 import com.cartmate.cartmate.boundedContext.payout.app.dto.SettlementResponse;
 import com.cartmate.cartmate.boundedContext.payout.domain.Payout;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutPurchaseType;
+import com.cartmate.cartmate.boundedContext.payout.domain.PayoutSeller;
 import com.cartmate.cartmate.boundedContext.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.payout.exception.PayoutErrorCode;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository;
 import com.cartmate.cartmate.boundedContext.payout.out.PayoutRepository.SettlementSummary;
+import com.cartmate.cartmate.boundedContext.payout.out.PayoutSellerRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.member.SellerQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,13 +38,13 @@ class PayoutQueryUseCaseTest {
     private static final List<PayoutStatus> LISTED = List.of(PayoutStatus.PENDING, PayoutStatus.COMPLETED);
 
     private final PayoutRepository payoutRepository = mock(PayoutRepository.class);
-    private final SellerQuery sellerQuery = mock(SellerQuery.class);
+    private final PayoutSellerRepository payoutSellerRepository = mock(PayoutSellerRepository.class);
     private PayoutQueryUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new PayoutQueryUseCase(payoutRepository, sellerQuery);
-        when(sellerQuery.findSellerIdByMemberId(MEMBER_ID)).thenReturn(Optional.of(SELLER_ID));
+        useCase = new PayoutQueryUseCase(payoutRepository, payoutSellerRepository);
+        when(payoutSellerRepository.findByMemberId(MEMBER_ID)).thenReturn(Optional.of(PayoutSeller.create(SELLER_ID, MEMBER_ID)));
     }
 
     private SettlementSummary summary(LocalDateTime scheduledAt, PayoutStatus status, long count,
@@ -113,7 +114,7 @@ class PayoutQueryUseCaseTest {
     @Test
     @DisplayName("판매자가 아니면 PAYOUT_SELLER_ONLY 예외가 발생하고 조회하지 않는다")
     void sellerOnly() {
-        when(sellerQuery.findSellerIdByMemberId(99L)).thenReturn(Optional.empty());
+        when(payoutSellerRepository.findByMemberId(99L)).thenReturn(Optional.empty());
 
         assertError(() -> useCase.getMySettlements(99L, null, null), PayoutErrorCode.PAYOUT_SELLER_ONLY);
         verify(payoutRepository, never()).summarizeBySchedule(any(), any(), any(), any());
@@ -172,7 +173,7 @@ class PayoutQueryUseCaseTest {
     @Test
     @DisplayName("정산 정보도 판매자만 조회할 수 있다")
     void getMySettlementInfoSellerOnly() {
-        when(sellerQuery.findSellerIdByMemberId(99L)).thenReturn(Optional.empty());
+        when(payoutSellerRepository.findByMemberId(99L)).thenReturn(Optional.empty());
 
         assertError(() -> useCase.getMySettlementInfo(99L, LocalDate.of(2026, 10, 1)), PayoutErrorCode.PAYOUT_SELLER_ONLY);
         assertError(() -> useCase.getMySettlementInfo(null, LocalDate.of(2026, 10, 1)), PayoutErrorCode.PAYOUT_MEMBER_ID_REQUIRED);
@@ -271,7 +272,7 @@ class PayoutQueryUseCaseTest {
     @Test
     @DisplayName("지급 대기 정산도 판매자만 조회할 수 있다")
     void getMyPendingPayoutsSellerOnly() {
-        when(sellerQuery.findSellerIdByMemberId(99L)).thenReturn(Optional.empty());
+        when(payoutSellerRepository.findByMemberId(99L)).thenReturn(Optional.empty());
 
         assertError(() -> useCase.getMyPendingPayouts(99L), PayoutErrorCode.PAYOUT_SELLER_ONLY);
         assertError(() -> useCase.getMyPendingPayouts(null), PayoutErrorCode.PAYOUT_MEMBER_ID_REQUIRED);
@@ -280,7 +281,7 @@ class PayoutQueryUseCaseTest {
     @Test
     @DisplayName("정산 상세도 판매자만 조회할 수 있다")
     void getMySettlementDetailSellerOnly() {
-        when(sellerQuery.findSellerIdByMemberId(99L)).thenReturn(Optional.empty());
+        when(payoutSellerRepository.findByMemberId(99L)).thenReturn(Optional.empty());
 
         assertError(() -> useCase.getMySettlementDetail(99L, "20261115-PENDING"), PayoutErrorCode.PAYOUT_SELLER_ONLY);
         assertError(() -> useCase.getMySettlementDetail(null, "20261115-PENDING"), PayoutErrorCode.PAYOUT_MEMBER_ID_REQUIRED);
