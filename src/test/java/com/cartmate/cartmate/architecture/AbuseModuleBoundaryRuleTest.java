@@ -1,9 +1,9 @@
 package com.cartmate.cartmate.architecture;
 
-import com.cartmate.cartmate.architecture.fixture.boundedContext.etcService.abuse.app.FixtureAbuseFacade;
-import com.cartmate.cartmate.architecture.fixture.boundedContext.etcService.abuse.app.FixtureAbuseUseCase;
-import com.cartmate.cartmate.architecture.fixture.boundedContext.etcService.abuse.domain.FixtureAbuseEntity;
-import com.cartmate.cartmate.architecture.fixture.boundedContext.etcService.abuse.in.FixtureSameTransactionListener;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.abuse.app.FixtureAbuseFacade;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.abuse.app.FixtureAbuseUseCase;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.abuse.domain.FixtureAbuseEntity;
+import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.abuse.in.FixtureSameTransactionListener;
 import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.cart.app.FixtureCartService;
 import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.cart.out.FixtureAbuseAdapter;
 import com.cartmate.cartmate.architecture.fixture.boundedContext.orderService.cart.out.FixtureEntityAdapter;

@@ -4,7 +4,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.Sh
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.SharedGroupPurchaseCreateResponse;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.etcService.abuse.support.AbuseTestDataCleaner;
+import com.cartmate.cartmate.boundedContext.orderService.abuse.support.AbuseTestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.AfterEach;
