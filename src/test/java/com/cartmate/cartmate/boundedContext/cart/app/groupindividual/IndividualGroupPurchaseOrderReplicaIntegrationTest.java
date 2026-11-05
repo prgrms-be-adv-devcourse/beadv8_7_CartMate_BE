@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.app.groupindividual;
 
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderLine;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseOrderReplicaRepository;
 import com.cartmate.cartmate.shared.event.DomainEvent;
@@ -14,10 +15,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,8 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 /** 아웃박스 릴레이가 넘기는 래퍼 이벤트(트랜잭션 밖)를 받아 cart 주문 읽기 모델과 현황판 조회가 맞게 바뀌는지 본다. */
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
-@ActiveProfiles("test")
+@CartMateIntegrationTest
 class IndividualGroupPurchaseOrderReplicaIntegrationTest {
 
     private static final LocalDateTime CREATED_AT = LocalDateTime.of(2026, 11, 2, 12, 0, 0);

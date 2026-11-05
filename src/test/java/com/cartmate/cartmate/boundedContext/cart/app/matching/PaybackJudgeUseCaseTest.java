@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.app.matching;
 
+import com.cartmate.cartmate.support.CartMateJpaTest;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupindividual.IndividualGroupPurchaseOrderReplica;
 import com.cartmate.cartmate.boundedContext.cart.domain.matching.PaybackJudgment;
@@ -8,25 +9,17 @@ import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualG
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.cart.out.matching.PaybackJudgmentRepository;
 import com.cartmate.cartmate.boundedContext.cart.out.matching.PaybackOrderOutcomeRepository;
-import com.cartmate.cartmate.global.global.QuerydslConfig;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(showSql = false)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("test")
-@Import({PaybackJudgeUseCase.class, QuerydslConfig.class})
+@CartMateJpaTest
 class PaybackJudgeUseCaseTest {
 
     private static final Long ADMIN = 9_300_000_001L;

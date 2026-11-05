@@ -1,17 +1,13 @@
 package com.cartmate.cartmate.boundedContext.cart.out.matching;
 
+import com.cartmate.cartmate.support.CartMateJpaTest;
 import com.cartmate.cartmate.boundedContext.cart.domain.matching.ProductDemand;
 import com.cartmate.cartmate.boundedContext.cart.domain.personal.Cart;
 import com.cartmate.cartmate.boundedContext.cart.out.personal.CartRepository;
-import com.cartmate.cartmate.global.global.QuerydslConfig;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,10 +17,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(showSql = false)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("test")
-@Import({CartDemandQueryDslReader.class, QuerydslConfig.class})
+@CartMateJpaTest
 class CartDemandQueryDslReaderTest {
 
     private static final long MEMBER_BASE = 9_100_000_000L;

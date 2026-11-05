@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.app.groupshared;
 
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.cart.app.groupshared.SharedGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.out.groupshared.SharedGroupPurchaseRepository;
@@ -12,10 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
@@ -24,9 +22,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = {"cartmate.scheduling.enabled=false", "custom.outbox.relay.initial-delay=PT1H"})
-@ActiveProfiles("test")
-@Import(ManualOutboxRelayConfig.class)
+@CartMateIntegrationTest
 class SharedGroupOrderCreateIntegrationTest {
 
     @Autowired

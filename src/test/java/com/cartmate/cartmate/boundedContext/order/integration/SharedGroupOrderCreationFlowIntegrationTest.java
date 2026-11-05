@@ -1,11 +1,12 @@
 package com.cartmate.cartmate.boundedContext.order.integration;
 
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.cart.app.groupshared.SharedGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.out.groupshared.SharedGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
+import com.cartmate.cartmate.boundedContext.order.out.FakeOrderProductClient;
 import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
@@ -13,12 +14,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
@@ -30,18 +27,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.reset;
 
 /**
  * 공동구매 마감(cart 트랜잭션: CLOSED + 아웃박스)과 공동 주문 생성(order consumer 트랜잭션)이 분리된 흐름.
  * 릴레이를 직접 돌려 마감 이벤트 → 공동 주문 → 생성 소식 → ORDER_CREATED 순서로 넘어가는지 본다.
  */
-@SpringBootTest(properties = {"cartmate.scheduling.enabled=false", "custom.outbox.relay.initial-delay=PT1H"})
-@ActiveProfiles("test")
-@Import(ManualOutboxRelayConfig.class)
+@CartMateIntegrationTest
 class SharedGroupOrderCreationFlowIntegrationTest {
 
     private static final String CLOSED_EVENT = "SharedGroupPurchaseClosedEvent";
@@ -63,8 +54,8 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    @MockitoSpyBean
-    private OrderProductClient orderProductClient;
+    @Autowired
+    private FakeOrderProductClient fakeOrderProductClient;
 
     private final List<Long> purchaseIds = new ArrayList<>();
 
@@ -74,6 +65,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
 
     @AfterEach
     void cleanUp() {
+        fakeOrderProductClient.clearOverride();
         transactionTemplate.executeWithoutResult(status -> {
             purchaseIds.forEach(id -> {
                 // 다른 테스트의 릴레이가 남은 행을 집어 지운 공동구매로 주문을 만들지 않게 이 공동구매의 이벤트를 모두 지운다
@@ -133,7 +125,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     void immediateFailureRevertsToFrozen() {
         Long purchaseId = readyPurchase("즉시 실패");
         sharedGroupPurchaseFacade.close(creator, purchaseId);
-        doReturn(List.of()).when(orderProductClient).findAllByInventoryIds(anyCollection());
+        fakeOrderProductClient.overrideFindAll(inventoryIds -> List.of());
 
         relayUntil(() -> statusOf(purchaseId) == SharedGroupPurchaseStatus.FROZEN);
 
@@ -143,7 +135,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
         SharedGroupPurchase frozen = sharedGroupPurchaseRepository.findById(purchaseId).orElseThrow();
         assertThat(frozen.getFrozenAt()).isNotNull();
 
-        reset(orderProductClient);
+        fakeOrderProductClient.clearOverride();
         sharedGroupPurchaseFacade.close(creator, purchaseId);
         relayUntil(() -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
         assertThat(orderCountOf(purchaseId)).isEqualTo(1);
@@ -154,7 +146,9 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     void transientFailureKeepsClosedAndRetries() {
         Long purchaseId = readyPurchase("재시도 실패");
         sharedGroupPurchaseFacade.close(creator, purchaseId);
-        doThrow(new QueryTimeoutException("순단")).when(orderProductClient).findAllByInventoryIds(anyCollection());
+        fakeOrderProductClient.overrideFindAll(inventoryIds -> {
+            throw new QueryTimeoutException("순단");
+        });
 
         relayUntil(() -> attemptsOf(purchaseId, CLOSED_EVENT) >= 1);
 

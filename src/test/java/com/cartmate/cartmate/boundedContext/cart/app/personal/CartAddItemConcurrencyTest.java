@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.cart.app.personal;
 
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.cart.domain.personal.Cart;
 import com.cartmate.cartmate.boundedContext.cart.domain.personal.CartItem;
 import com.cartmate.cartmate.boundedContext.cart.out.personal.CartRepository;
@@ -7,9 +8,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
@@ -24,8 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
-@ActiveProfiles("test")
+@CartMateIntegrationTest
 class CartAddItemConcurrencyTest {
 
     // 커넥션 풀(기본 10)보다 많이 띄워 요청당 커넥션 하나로 끝나는지도 본다

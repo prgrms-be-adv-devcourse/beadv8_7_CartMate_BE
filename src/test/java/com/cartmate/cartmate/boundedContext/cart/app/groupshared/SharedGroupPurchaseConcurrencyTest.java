@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.cart.app.groupshared;
 
+import com.cartmate.cartmate.support.TestEventRecorder;
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
@@ -13,20 +15,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,9 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
-@Import(SharedGroupPurchaseConcurrencyTest.ClosedEventRecorder.class)
-@ActiveProfiles("test")
+@CartMateIntegrationTest
 class SharedGroupPurchaseConcurrencyTest {
 
     private static final int THREADS = 8;
@@ -53,7 +45,7 @@ class SharedGroupPurchaseConcurrencyTest {
     private TransactionTemplate transactionTemplate;
 
     @Autowired
-    private ClosedEventRecorder eventRecorder;
+    private TestEventRecorder eventRecorder;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -134,7 +126,7 @@ class SharedGroupPurchaseConcurrencyTest {
         });
 
         assertThat(success.get()).isEqualTo(1);
-        assertThat(eventRecorder.countFor(created.id())).isEqualTo(1);
+        assertThat(eventRecorder.count(SharedGroupPurchaseClosedEvent.class, e -> e.sharedGroupPurchaseId().equals(created.id()))).isEqualTo(1);
         assertThat(statusOf(created.id())).isEqualTo(SharedGroupPurchaseStatus.CLOSED);
     }
 
@@ -151,7 +143,7 @@ class SharedGroupPurchaseConcurrencyTest {
 
         runConcurrently(index -> facade.closeByDeadline(id));
 
-        assertThat(eventRecorder.countFor(id)).isEqualTo(1);
+        assertThat(eventRecorder.count(SharedGroupPurchaseClosedEvent.class, e -> e.sharedGroupPurchaseId().equals(id))).isEqualTo(1);
         assertThat(statusOf(id)).isEqualTo(SharedGroupPurchaseStatus.CLOSED);
     }
 
@@ -189,25 +181,5 @@ class SharedGroupPurchaseConcurrencyTest {
     @FunctionalInterface
     private interface IndexedTask {
         void run(int index);
-    }
-
-
-    @TestConfiguration
-    static class ClosedEventRecorder {
-
-        private final Queue<Long> closedIds = new ConcurrentLinkedQueue<>();
-
-        @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-        void on(SharedGroupPurchaseClosedEvent event) {
-            closedIds.add(event.sharedGroupPurchaseId());
-        }
-
-        long countFor(Long id) {
-            return closedIds.stream().filter(id::equals).count();
-        }
-
-        void clear() {
-            closedIds.clear();
-        }
     }
 }

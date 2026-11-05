@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
+import com.cartmate.cartmate.support.TestEventRecorder;
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.cart.app.personal.CartFacade;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
@@ -24,13 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
@@ -48,9 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
-@Import(OrderConcurrencyTest.OrderEventRecorder.class)
-@ActiveProfiles("test")
+@CartMateIntegrationTest
 class OrderConcurrencyTest {
 
     private static final int ROUNDS = 20;
@@ -62,7 +56,7 @@ class OrderConcurrencyTest {
     private OrderRepository repository;
 
     @Autowired
-    private OrderEventRecorder eventRecorder;
+    private TestEventRecorder eventRecorder;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -136,8 +130,8 @@ class OrderConcurrencyTest {
             ));
 
             Order order = repository.findById(orderId).orElseThrow();
-            long paidEvents = eventRecorder.paidCountFor(orderId);
-            long canceledEvents = eventRecorder.canceledCountFor(orderId);
+            long paidEvents = eventRecorder.count(OrderPaidEvent.class, e -> e.orderId().equals(orderId));
+            long canceledEvents = eventRecorder.count(OrderCanceledEvent.class, e -> e.orderId().equals(orderId));
             assertThat(cancelError.get()).isNull();
             if (order.getStatus() == OrderStatus.PAID) {
                 paidRounds++;
@@ -301,35 +295,5 @@ class OrderConcurrencyTest {
         done.await(30, TimeUnit.SECONDS);
         executor.shutdown();
         executor.awaitTermination(30, TimeUnit.SECONDS);
-    }
-
-    @TestConfiguration
-    static class OrderEventRecorder {
-
-        private final Queue<Long> paidIds = new ConcurrentLinkedQueue<>();
-        private final Queue<Long> canceledIds = new ConcurrentLinkedQueue<>();
-
-        @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-        void on(OrderPaidEvent event) {
-            paidIds.add(event.orderId());
-        }
-
-        @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-        void on(OrderCanceledEvent event) {
-            canceledIds.add(event.orderId());
-        }
-
-        long paidCountFor(Long id) {
-            return paidIds.stream().filter(id::equals).count();
-        }
-
-        long canceledCountFor(Long id) {
-            return canceledIds.stream().filter(id::equals).count();
-        }
-
-        void clear() {
-            paidIds.clear();
-            canceledIds.clear();
-        }
     }
 }

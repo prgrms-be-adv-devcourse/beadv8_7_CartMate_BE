@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.order.integration;
 
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
@@ -17,10 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
@@ -40,9 +38,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * cart 개인물품 공동구매 열림 · 갱신 · 종료 → 아웃박스 → order 사본 → 주문 생성 · 결제 판단 흐름(ARCH-16).
  * 릴레이를 직접 돌려 사본이 늦는 순간을 만든다.
  */
-@SpringBootTest(properties = {"cartmate.scheduling.enabled=false", "custom.outbox.relay.initial-delay=PT1H"})
-@ActiveProfiles("test")
-@Import(ManualOutboxRelayConfig.class)
+@CartMateIntegrationTest
 class IndividualGroupPurchaseReplicaFlowIntegrationTest {
 
     @Autowired
