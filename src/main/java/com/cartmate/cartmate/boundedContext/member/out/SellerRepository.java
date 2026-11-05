@@ -12,4 +12,6 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
     boolean existsByMemberId(Long memberId);
 
     boolean existsByBusinessNumber(String businessNumber);
+
+    boolean existsByBankNameAndAccountNumber(String bankName, String accountNumber);
 }

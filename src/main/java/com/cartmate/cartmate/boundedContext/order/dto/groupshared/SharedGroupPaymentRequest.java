@@ -1,8 +1,8 @@
-package com.cartmate.cartmate.boundedContext.payment.dto;
+package com.cartmate.cartmate.boundedContext.order.dto.groupshared;
 
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 
-// 개설자는 팀 배송지를 함께 보내야 한다. 참여자는 비워도 됨
+// 분담금 결제 요청. 만든 사람(개설자)은 팀 배송지를 함께 보낸다.
 public record SharedGroupPaymentRequest(
         TeamDeliveryAddress teamDeliveryAddress
 ) {

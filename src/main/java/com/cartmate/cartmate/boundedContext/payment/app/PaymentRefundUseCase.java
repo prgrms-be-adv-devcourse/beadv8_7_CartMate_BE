@@ -125,6 +125,16 @@ public class PaymentRefundUseCase {
         return PaymentResponse.from(payment);
     }
 
+    // 차감 후 주문 반영이 실패했을 때 되돌린다 (서버가 나뉘어 차감과 주문 반영이 다른 트랜잭션일 때).
+    // 결제가 없거나 이미 되돌렸으면 아무것도 안 한다 (주문이 같은 보상을 여러 번 요청해도 안전).
+    public void compensateCharge(PaymentType type, Long orderId, Long memberId) {
+        paymentRepository.findByTypeAndOrderIdAndMemberId(type, orderId, memberId)
+                .filter(payment -> payment.refundableAmount() > 0)
+                .ifPresent(payment -> refund(payment, payment.refundableAmount(),
+                        RefundKey.chargeCompensation(payment.getId()), PaymentRefundReason.CHARGE_COMPENSATION,
+                        "주문 반영 실패로 결제 자동 취소 (주문 #" + orderId + ")"));
+    }
+
     private void refund(Payment payment, Long amount, String refundKey, PaymentRefundReason reason, String memo) {
         // 같은 원인으로 이미 환불했으면 다시 하지 않음 (이벤트 중복, 재시도 대비)
         if (paymentRefundRepository.existsByRefundKey(refundKey)) {

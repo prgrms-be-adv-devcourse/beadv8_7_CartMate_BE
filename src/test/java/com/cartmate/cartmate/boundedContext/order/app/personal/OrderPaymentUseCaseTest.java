@@ -62,8 +62,9 @@ class OrderPaymentUseCaseTest {
                 OrderProductClient allOnSale = inventoryIds -> inventoryIds.stream().distinct()
                         .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
                         .toList();
+        // 결제 반영(applyPayment) 테스트라 결제 포트는 쓰지 않는다. 결제 흐름(pay)은 통합 테스트에서 확인
                 paymentUseCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher, allOnSale,
-                        replicaUseCase);
+                        replicaUseCase, org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.order.out.OrderPaymentClient.class));
     }
 
     @Test

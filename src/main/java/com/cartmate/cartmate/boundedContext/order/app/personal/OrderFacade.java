@@ -5,11 +5,13 @@ import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOr
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderDetailResponse;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderPaymentPreviewResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderSummaryResponse;
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
 import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -54,6 +56,15 @@ public class OrderFacade {
     @Transactional(readOnly = true)
     public OrderPaymentInfo getPaymentInfo(Long orderId, Long memberId, LocalDateTime now) {
         return orderPaymentUseCase.getPaymentInfo(orderId, memberId, now);
+    }
+
+    // 결제: 주문이 지휘한다 (주문 → 결제). 차감과 PAID 반영이 한 트랜잭션.
+    @Transactional
+    public PaymentResult payOrder(Long memberId, Long orderId) {
+        return orderPaymentUseCase.pay(orderId, memberId, LocalDateTime.now());
+    }
+    @Transactional(readOnly = true) public OrderPaymentPreviewResponse getPaymentPreview(Long memberId, Long orderId) {
+        return orderPaymentUseCase.preview(orderId, memberId, LocalDateTime.now());
     }
 
     @Transactional
