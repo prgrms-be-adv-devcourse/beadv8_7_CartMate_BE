@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.paymentService.wallet.domain;
 
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.exception.WalletErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

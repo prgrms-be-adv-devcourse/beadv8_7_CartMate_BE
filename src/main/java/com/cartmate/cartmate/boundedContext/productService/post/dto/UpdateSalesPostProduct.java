@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.dto;
 
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.UpdateProductOption;
+import com.cartmate.cartmate.shared.product.dto.UpdateProductOption;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

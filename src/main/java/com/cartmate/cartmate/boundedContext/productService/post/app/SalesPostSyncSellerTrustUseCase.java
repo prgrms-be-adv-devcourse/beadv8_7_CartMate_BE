@@ -3,7 +3,7 @@ package com.cartmate.cartmate.boundedContext.productService.post.app;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSellerTrust;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SellerTrustLevel;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostSellerTrustRepository;
-import com.cartmate.cartmate.boundedContext.etcService.shared.trust.event.SellerTrustScoreChangedEvent;
+import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

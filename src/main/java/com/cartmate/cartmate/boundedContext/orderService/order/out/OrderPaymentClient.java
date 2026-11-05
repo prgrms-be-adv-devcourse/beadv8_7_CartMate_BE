@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out;
 
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentOrderType;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 
 import java.util.Optional;
 

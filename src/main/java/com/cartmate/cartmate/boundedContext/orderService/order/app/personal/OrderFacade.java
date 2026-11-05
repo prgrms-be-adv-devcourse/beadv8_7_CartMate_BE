@@ -7,11 +7,11 @@ import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.Orde
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderPaymentPreviewResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderSummaryResponse;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseClosedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.OrderPaymentInfo;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
+import com.cartmate.cartmate.shared.order.dto.OrderPaymentInfo;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;

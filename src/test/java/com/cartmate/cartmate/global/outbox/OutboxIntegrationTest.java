@@ -3,7 +3,7 @@ package com.cartmate.cartmate.global.outbox;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
-import com.cartmate.cartmate.boundedContext.etcService.shared.test.event.OutboxProbeEvent;
+import com.cartmate.cartmate.shared.test.event.OutboxProbeEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -9,8 +9,8 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryClai
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryClaimRepository;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryClaimApprovedEvent;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.SellerQuery;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimApprovedEvent;
+import com.cartmate.cartmate.shared.member.SellerQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

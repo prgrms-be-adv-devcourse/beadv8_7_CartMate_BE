@@ -4,7 +4,6 @@ import com.cartmate.cartmate.boundedContext.productService.post.domain.*;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.*;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostSellerTrustRepository;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;

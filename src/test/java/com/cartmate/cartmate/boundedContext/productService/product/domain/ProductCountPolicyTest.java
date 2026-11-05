@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.product.domain;
 
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProduct;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProductImage;
+import com.cartmate.cartmate.shared.product.dto.CreateProduct;
+import com.cartmate.cartmate.shared.product.dto.CreateProductImage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

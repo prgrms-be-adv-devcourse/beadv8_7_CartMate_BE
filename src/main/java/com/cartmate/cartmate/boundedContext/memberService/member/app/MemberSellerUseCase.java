@@ -12,7 +12,7 @@ import com.cartmate.cartmate.boundedContext.memberService.member.out.SellerRepos
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.security.JwtProvider;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.SellerRegisteredEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;

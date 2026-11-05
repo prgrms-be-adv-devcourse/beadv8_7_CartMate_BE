@@ -4,8 +4,8 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.ImageT
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductCountPolicy;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ImageUploadTask;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
+import com.cartmate.cartmate.shared.product.dto.*;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;

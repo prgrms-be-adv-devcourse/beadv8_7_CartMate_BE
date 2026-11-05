@@ -1,16 +1,15 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectProductResponse;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.shared.product.dto.*;
+import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.DeleteProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.ProductSyncUpdateRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.RollbackProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.*;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.event.ProductCreatedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.event.ProductUpdatedEvent;
+import com.cartmate.cartmate.shared.post.dto.ProductSyncUpdateRequest;
+import com.cartmate.cartmate.shared.post.dto.RollbackProductRequest;
+import com.cartmate.cartmate.shared.product.event.ProductCreatedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor

@@ -6,8 +6,8 @@ import com.cartmate.cartmate.boundedContext.memberService.member.out.MemberRepos
 import com.cartmate.cartmate.boundedContext.memberService.member.out.PhoneVerificationStore;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.dto.MemberDto;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberSignedUpEvent;
+import com.cartmate.cartmate.shared.member.dto.MemberDto;
+import com.cartmate.cartmate.shared.member.event.MemberSignedUpEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;

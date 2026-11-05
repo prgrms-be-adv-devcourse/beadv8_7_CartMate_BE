@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.paymentService.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.Holding;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.ReferenceType;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.Wallet;

@@ -4,7 +4,7 @@ import com.cartmate.cartmate.boundedContext.paymentService.payment.app.PaymentFa
 import com.cartmate.cartmate.boundedContext.paymentService.payment.domain.PaymentType;
 import com.cartmate.cartmate.boundedContext.paymentService.payment.exception.PaymentErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryClaimApprovedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimApprovedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

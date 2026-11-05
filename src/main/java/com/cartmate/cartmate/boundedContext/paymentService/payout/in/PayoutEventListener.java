@@ -1,8 +1,8 @@
 package com.cartmate.cartmate.boundedContext.paymentService.payout.in;
 
 import com.cartmate.cartmate.boundedContext.paymentService.payout.app.PayoutFacade;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryConfirmedEvent;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.SellerRegisteredEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

@@ -8,9 +8,9 @@ import com.cartmate.cartmate.boundedContext.paymentService.payout.exception.Payo
 import com.cartmate.cartmate.boundedContext.paymentService.payout.out.PayoutRepository;
 import com.cartmate.cartmate.boundedContext.paymentService.payout.out.PayoutSellerRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletPurchaseType;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletSettlementPort;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.dto.SettleAndDepositRequest;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletSettlementPort;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

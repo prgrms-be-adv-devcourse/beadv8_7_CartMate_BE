@@ -2,8 +2,11 @@ package com.cartmate.cartmate.boundedContext.etcService.delivery.in;
 
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryCreateCommand;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.*;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.Ordered;
@@ -24,8 +27,8 @@ public class DeliveryOrderEventListener {
 
     // 결제 완료 이벤트를 받아 판매자별 배송을 생성한다. 생성 실패 시 결제 반영도 함께 롤백된다.
     @EventListener
-    public void handle(OrderPaidEvent event) {
-        Map<Long, List<OrderPaidEvent.Item>> bySeller = groupBySeller(event.items(), OrderPaidEvent.Item::sellerId);
+    public void handle(com.cartmate.cartmate.shared.order.event.OrderPaidEvent event) {
+        Map<Long, List<com.cartmate.cartmate.shared.order.event.OrderPaidEvent.Item>> bySeller = groupBySeller(event.items(), com.cartmate.cartmate.shared.order.event.OrderPaidEvent.Item::sellerId);
         bySeller.forEach((sellerId, items) -> deliveryFacade.createDelivery(new DeliveryCreateCommand(
                 event.memberId(),
                 sellerId,
@@ -83,9 +86,9 @@ public class DeliveryOrderEventListener {
 
     // 공동물품 확정 이벤트를 받아 판매자별 배송을 생성한다. 생성 실패 시 마지막 결제도 함께 롤백된다.
     @EventListener
-    public void handle(SharedGroupOrderConfirmedEvent event) {
-        Map<Long, List<SharedGroupOrderConfirmedEvent.Item>> bySeller =
-                groupBySeller(event.items(), SharedGroupOrderConfirmedEvent.Item::sellerId);
+    public void handle(com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent event) {
+        Map<Long, List<com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent.Item>> bySeller =
+                groupBySeller(event.items(), com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent.Item::sellerId);
         bySeller.forEach((sellerId, items) -> deliveryFacade.createDelivery(new DeliveryCreateCommand(
                 event.creatorMemberId(),
                 sellerId,

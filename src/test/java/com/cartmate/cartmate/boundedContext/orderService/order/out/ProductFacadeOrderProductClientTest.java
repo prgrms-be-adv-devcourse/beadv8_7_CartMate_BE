@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out;
 
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.ProductForPurchase;
+import com.cartmate.cartmate.shared.product.dto.ProductForPurchase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

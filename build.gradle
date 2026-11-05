@@ -18,6 +18,8 @@ repositories {
 }
 
 dependencies {
+	implementation project(':common')
+
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-batch-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -71,5 +73,34 @@ tasks.named('test') {
 tasks.named('test') {
 	testLogging {
 		exceptionFormat = 'full'
+	}
+}
+
+subprojects {
+	apply plugin: 'java'
+	apply plugin: 'io.spring.dependency-management'
+
+	group = 'com.cartmate'
+	version = '0.0.1-SNAPSHOT'
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(25)
+		}
+	}
+
+	repositories {
+		mavenCentral()
+	}
+
+	dependencyManagement {
+		imports {
+			mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+		}
+	}
+
+	dependencies {
+		compileOnly 'org.projectlombok:lombok'
+		annotationProcessor 'org.projectlombok:lombok'
 	}
 }

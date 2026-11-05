@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.out;
 
 import com.cartmate.cartmate.boundedContext.etcService.abuse.app.AbuseFacade;
-import com.cartmate.cartmate.boundedContext.etcService.shared.abuse.dto.AbuseRestrictionStatus;
+import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

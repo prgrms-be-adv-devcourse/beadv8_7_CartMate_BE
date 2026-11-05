@@ -1,12 +1,12 @@
 package com.cartmate.cartmate.boundedContext.productService.post.in;
 
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostFacade;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.event.ProductCreatedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.event.ProductDeletedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.event.ProductListDeletedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.event.ProductUpdatedEvent;
-import com.cartmate.cartmate.boundedContext.etcService.shared.trust.event.SellerTrustScoreChangedEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
+import com.cartmate.cartmate.shared.product.event.ProductCreatedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductUpdatedEvent;
+import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

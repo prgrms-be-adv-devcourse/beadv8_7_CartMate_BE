@@ -7,8 +7,8 @@ import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.S
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupPaymentRequest;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.TeamDeliveryAddress;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

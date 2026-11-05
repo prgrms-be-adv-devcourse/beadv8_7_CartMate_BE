@@ -1,18 +1,16 @@
 package com.cartmate.cartmate.boundedContext.productService.post.out;
 
-import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSnapshot;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostRequest;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.RestoreProduct;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.RestoreProductImage;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.RestoreProductOption;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.RestoreProductsRequest;
+import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.shared.product.dto.RestoreProduct;
+import com.cartmate.cartmate.shared.product.dto.RestoreProductImage;
+import com.cartmate.cartmate.shared.product.dto.RestoreProductOption;
+import com.cartmate.cartmate.shared.product.dto.RestoreProductsRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
@@ -24,8 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.ProductStatusChangeRequest;
+import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.shared.product.dto.ProductStatusChangeRequest;
 
 import java.net.http.HttpClient;
 import java.time.Duration;

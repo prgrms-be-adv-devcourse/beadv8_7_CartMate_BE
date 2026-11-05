@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto;
 
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 
 import java.util.List;
 

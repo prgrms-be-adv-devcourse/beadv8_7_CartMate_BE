@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.paymentService.payout.app;
 
 import com.cartmate.cartmate.boundedContext.paymentService.payout.domain.PayoutSeller;
 import com.cartmate.cartmate.boundedContext.paymentService.payout.out.PayoutSellerRepository;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.SellerRegisteredEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

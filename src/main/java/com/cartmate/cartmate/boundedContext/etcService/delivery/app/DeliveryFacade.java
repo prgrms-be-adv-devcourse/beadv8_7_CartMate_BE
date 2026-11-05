@@ -10,7 +10,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.SellerDe
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimStatus;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryStatus;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

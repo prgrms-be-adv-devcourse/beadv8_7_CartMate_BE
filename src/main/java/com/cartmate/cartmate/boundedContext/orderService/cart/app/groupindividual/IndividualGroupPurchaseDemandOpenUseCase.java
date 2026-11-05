@@ -7,7 +7,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.dto.matching.Deman
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.DemandGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.DemandGroupPurchaseOpenedEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;

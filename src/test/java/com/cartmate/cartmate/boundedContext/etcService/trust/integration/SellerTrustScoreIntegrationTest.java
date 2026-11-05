@@ -9,7 +9,7 @@ import com.cartmate.cartmate.boundedContext.etcService.trust.out.SellerTrustHist
 import com.cartmate.cartmate.boundedContext.etcService.trust.out.SellerTrustMetricsRow;
 import com.cartmate.cartmate.boundedContext.etcService.trust.out.SellerTrustScoreRepository;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
-import com.cartmate.cartmate.boundedContext.etcService.shared.trust.event.SellerTrustScoreChangedEvent;
+import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

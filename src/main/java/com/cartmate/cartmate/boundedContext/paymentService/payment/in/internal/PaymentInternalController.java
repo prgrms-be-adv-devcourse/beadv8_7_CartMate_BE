@@ -5,9 +5,9 @@ import com.cartmate.cartmate.boundedContext.paymentService.payment.dto.PaymentDa
 import com.cartmate.cartmate.boundedContext.paymentService.payment.exception.PaymentErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentChargeRequest;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentOrderType;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.payment.dto.PaymentChargeRequest;
+import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;

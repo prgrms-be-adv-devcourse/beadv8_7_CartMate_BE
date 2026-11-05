@@ -9,9 +9,9 @@ import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductC
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.SharedGroupOrderPaymentInfo;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.TeamDeliveryAddress;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderConfirmedEvent;
+import com.cartmate.cartmate.shared.order.dto.SharedGroupOrderPaymentInfo;
+import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;

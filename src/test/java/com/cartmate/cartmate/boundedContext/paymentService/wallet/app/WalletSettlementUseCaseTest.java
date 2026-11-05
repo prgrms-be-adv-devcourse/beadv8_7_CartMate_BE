@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.paymentService.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.Holding;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.HoldingSettlement;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.HoldingStatus;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.ReferenceType;
@@ -12,7 +12,7 @@ import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.HoldingRep
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.HoldingSettlementRepository;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.WalletRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.dto.SettleAndDepositRequest;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

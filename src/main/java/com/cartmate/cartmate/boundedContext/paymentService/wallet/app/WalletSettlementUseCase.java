@@ -12,7 +12,7 @@ import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.HoldingRep
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.HoldingSettlementRepository;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.WalletRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.dto.SettleAndDepositRequest;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

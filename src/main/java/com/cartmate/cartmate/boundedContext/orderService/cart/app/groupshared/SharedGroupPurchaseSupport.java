@@ -7,7 +7,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.out.AbuseRestricti
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.ProductClient;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.etcService.shared.abuse.dto.AbuseRestrictionStatus;
+import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
 import com.cartmate.cartmate.boundedContext.memberService.member.out.SellerRepository;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.SellerQuery;
+import com.cartmate.cartmate.shared.member.SellerQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

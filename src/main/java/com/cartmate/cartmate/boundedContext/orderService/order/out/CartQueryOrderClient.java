@@ -1,8 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out;
 
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.CartOrderQuery;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.dto.CartOrderItem;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.dto.IndividualGroupPurchaseSnapshot;
+import com.cartmate.cartmate.shared.cart.CartOrderQuery;
+import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.memberService.member.dto.*;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.AuthCookieManager;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.dto.MemberDto;
+import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

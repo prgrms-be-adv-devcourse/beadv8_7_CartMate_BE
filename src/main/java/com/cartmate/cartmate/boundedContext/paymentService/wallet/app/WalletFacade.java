@@ -2,12 +2,12 @@ package com.cartmate.cartmate.boundedContext.paymentService.wallet.app;
 
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.dto.WalletBalanceResponse;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.dto.WalletChargeOrderInfo;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.WalletChargeOrder;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.dto.WalletTransactionResponse;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.dto.WalletTransactionSummaryResponse;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.WalletWithdrawOrder;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.dto.SettleAndDepositRequest;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

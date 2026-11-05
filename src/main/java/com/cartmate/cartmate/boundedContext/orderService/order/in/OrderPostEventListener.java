@@ -3,7 +3,7 @@ package com.cartmate.cartmate.boundedContext.orderService.order.in;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.event.SalesPostHiddenEvent;
+import com.cartmate.cartmate.shared.post.event.SalesPostHiddenEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;

@@ -4,8 +4,8 @@ import com.cartmate.cartmate.boundedContext.paymentService.payout.app.dto.Pendin
 import com.cartmate.cartmate.boundedContext.paymentService.payout.app.dto.SettlementDetailResponse;
 import com.cartmate.cartmate.boundedContext.paymentService.payout.app.dto.SettlementInfoResponse;
 import com.cartmate.cartmate.boundedContext.paymentService.payout.app.dto.SettlementResponse;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryConfirmedEvent;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.SellerRegisteredEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

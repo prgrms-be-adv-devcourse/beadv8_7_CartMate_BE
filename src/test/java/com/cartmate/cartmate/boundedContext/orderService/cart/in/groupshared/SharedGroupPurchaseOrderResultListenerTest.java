@@ -1,12 +1,12 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.in.groupshared;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared.SharedGroupPurchaseFacade;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.SharedGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCreatedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCreationFailedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreationFailedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

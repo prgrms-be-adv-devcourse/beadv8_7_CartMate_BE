@@ -3,19 +3,18 @@ package com.cartmate.cartmate.boundedContext.productService.post.app;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.*;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.*;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
-import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.DeleteProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.RollbackProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.event.PostApiCallFailedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.DeleteProductListRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.SyncProductRequest;
-import com.cartmate.cartmate.boundedContext.etcService.shared.trust.event.SellerTrustScoreChangedEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
+import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
+import com.cartmate.cartmate.shared.post.dto.RollbackProductRequest;
+import com.cartmate.cartmate.shared.post.event.PostApiCallFailedEvent;
+import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
+import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
+import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,9 +26,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminS
 import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminSalesPostDetailResponse;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminSalesPostSummaryResponse;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.event.SalesPostHideType;
-import org.springframework.data.domain.Pageable;
-import java.util.List;
+import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
 
 import java.util.List;
 

@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.Delivery
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryResponse;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.SellerDeliveryResponse;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryStatus;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.exception.DeliveryErrorCode;
 import com.cartmate.cartmate.global.exception.GlobalExceptionHandler;
 import com.cartmate.cartmate.global.exception.ServiceException;

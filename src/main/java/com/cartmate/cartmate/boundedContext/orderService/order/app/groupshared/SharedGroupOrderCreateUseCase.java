@@ -7,10 +7,10 @@ import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductC
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.SharedGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCreatedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCreationFailedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreationFailedEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 

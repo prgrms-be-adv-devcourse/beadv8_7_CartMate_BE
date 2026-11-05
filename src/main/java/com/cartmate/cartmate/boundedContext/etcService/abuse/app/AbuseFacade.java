@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.etcService.abuse.app;
 
 import com.cartmate.cartmate.boundedContext.etcService.abuse.domain.AbuseSignalCommand;
-import com.cartmate.cartmate.boundedContext.etcService.shared.abuse.dto.AbuseRestrictionStatus;
+import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;

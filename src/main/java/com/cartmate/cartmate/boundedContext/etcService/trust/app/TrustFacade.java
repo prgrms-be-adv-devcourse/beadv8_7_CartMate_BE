@@ -2,8 +2,8 @@ package com.cartmate.cartmate.boundedContext.etcService.trust.app;
 
 import com.cartmate.cartmate.boundedContext.etcService.trust.domain.TrustMetrics;
 import com.cartmate.cartmate.boundedContext.etcService.trust.dto.SellerTrustResponse;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryClaimCompletedEvent;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimCompletedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
