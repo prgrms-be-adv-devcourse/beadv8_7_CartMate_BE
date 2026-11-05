@@ -36,7 +36,7 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AbuseSignal {
 
-    public static final int MAX_JUDGE_ATTEMPTS = 10;
+    public static final int MAX_JUDGE_ATTEMPTS = 3;
     public static final int LAST_ERROR_LENGTH = 500;
 
     @Id

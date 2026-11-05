@@ -42,8 +42,13 @@ public class AbuseJudgeScheduler {
                         processed, memberIds.size());
                 break;
             }
-            abuseJudgeRunner.judge(memberId);
+            AbuseJudgeOutcome outcome = abuseJudgeRunner.judge(memberId);
             processed++;
+            if (outcome == AbuseJudgeOutcome.TRANSIENT_FAILURE) {
+                log.warn("일시 장애로 어뷰징 재판정 중단, 남은 회원은 다음 실행에서 처리: processed={}, total={}",
+                        processed, memberIds.size());
+                break;
+            }
         }
         return processed;
     }
