@@ -17,7 +17,7 @@ public final class IndividualGroupPurchaseEvents {
 
     public static IndividualGroupPurchaseOpenedEvent opened(IndividualGroupPurchase purchase, LocalDateTime now) {
         return new IndividualGroupPurchaseOpenedEvent(purchase.getId(), purchase.getDeadlineAt(), purchase.productIds(),
-                purchase.getRevision(), now);
+                purchase.getRevision(), now, purchase.getPaybackMinBuyers(), purchase.getPaybackAmount());
     }
 
     public static IndividualGroupPurchaseUpdatedEvent updated(IndividualGroupPurchase purchase, LocalDateTime now) {
@@ -28,7 +28,8 @@ public final class IndividualGroupPurchaseEvents {
     public static IndividualGroupPurchaseClosedEvent closed(IndividualGroupPurchase purchase,
                                                             IndividualGroupPurchaseCloseReason reason) {
         return new IndividualGroupPurchaseClosedEvent(purchase.getId(), purchase.getOrigin().name(), reason.name(),
-                purchase.getDeadlineAt(), purchase.getClosedAt(), purchase.getRevision());
+                purchase.getDeadlineAt(), purchase.getClosedAt(), purchase.getRevision(),
+                purchase.getPaybackMinBuyers(), purchase.getPaybackAmount());
     }
 
     static IndividualGroupPurchaseSnapshot snapshot(IndividualGroupPurchase purchase) {

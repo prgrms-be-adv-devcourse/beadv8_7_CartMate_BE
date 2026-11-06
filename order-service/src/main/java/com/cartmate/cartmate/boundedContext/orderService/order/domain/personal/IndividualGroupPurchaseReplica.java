@@ -55,6 +55,10 @@ public class IndividualGroupPurchaseReplica implements Persistable<Long> {
     @Column(nullable = false)
     private long revision;
 
+    private Integer paybackMinBuyers;
+
+    private Long paybackAmount;
+
     @ElementCollection
     @CollectionTable(name = "individual_group_purchase_replica_product",
             joinColumns = @JoinColumn(name = "individual_group_purchase_id"))
@@ -111,6 +115,18 @@ public class IndividualGroupPurchaseReplica implements Persistable<Long> {
         this.deadlineAt = deadlineAt;
         this.revision = Math.max(this.revision, revision);
         return true;
+    }
+
+    public void fillPaybackCondition(Integer paybackMinBuyers, Long paybackAmount) {
+        if (this.paybackMinBuyers != null || paybackMinBuyers == null || paybackAmount == null) {
+            return;
+        }
+        this.paybackMinBuyers = paybackMinBuyers;
+        this.paybackAmount = paybackAmount;
+    }
+
+    public boolean hasPaybackCondition() {
+        return paybackMinBuyers != null && paybackAmount != null;
     }
 
     public boolean isOpen(LocalDateTime now) {

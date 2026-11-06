@@ -155,7 +155,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
         individualGroupPurchaseFacade.close(creator, purchaseId);
         // 사본만 닫고(취소 consumer가 돌기 전 상태) 결제를 넣는다
         orderFacade.applyIndividualGroupPurchaseClosed(new IndividualGroupPurchaseClosedEvent(
-                purchaseId, "MEMBER", "CREATOR", LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1));
+                purchaseId, "MEMBER", "CREATOR", LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null));
 
         assertThat(orderFacade.getPaymentInfo(orderId, buyer, LocalDateTime.now()).payable()).isFalse();
         assertThatThrownBy(() -> orderFacade.applyPayment(orderId, buyer, orderId, LocalDateTime.now()))
@@ -171,7 +171,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
         relayUntil(() -> replicaRevision(purchaseId) == 0);
         Long orderId = createOrder(buyer, purchaseId);
         orderFacade.applyIndividualGroupPurchaseClosed(new IndividualGroupPurchaseClosedEvent(
-                purchaseId, "MEMBER", "CREATOR", LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1));
+                purchaseId, "MEMBER", "CREATOR", LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null));
 
         assertThatThrownBy(() -> orderFacade.payOrder(buyer, orderId))
                 .isInstanceOf(ServiceException.class)
@@ -192,7 +192,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
             assertThat(orderFacade.getPaymentInfo(orderId, buyer, LocalDateTime.now()).payable()).isTrue();
             CompletableFuture.runAsync(() -> orderFacade.applyIndividualGroupPurchaseClosed(
                     new IndividualGroupPurchaseClosedEvent(purchaseId, "MEMBER", "CREATOR",
-                            LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1))).join();
+                            LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null))).join();
             try {
                 orderFacade.applyPayment(orderId, buyer, orderId, LocalDateTime.now());
             } catch (RuntimeException e) {
