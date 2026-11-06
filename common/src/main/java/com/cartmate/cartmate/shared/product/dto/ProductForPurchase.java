@@ -6,6 +6,7 @@ public record ProductForPurchase(
         String name,
         Long basePrice,
         boolean purchasable,
-        String imageUrl
+        String imageUrl,
+        Long categoryId
 ) {
 }

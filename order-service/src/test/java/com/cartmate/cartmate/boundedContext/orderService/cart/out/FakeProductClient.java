@@ -56,4 +56,11 @@ public class FakeProductClient implements ProductClient {
                                 .toList()))
                 .toList();
     }
+
+    @Override
+    public List<CartProductProfile> findAllProductProfiles(Collection<Long> productIds) {
+        return findAllProductOptions(productIds).stream()
+                .map(options -> new CartProductProfile(options.productId(), options.productName(), null))
+                .toList();
+    }
 }

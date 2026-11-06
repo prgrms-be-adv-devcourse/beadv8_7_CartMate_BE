@@ -78,4 +78,9 @@ class RuleBasedEmbeddingTextBuilder implements EmbeddingTextBuilder {
     private static void synonym(String word, String replacement) {
         SYNONYMS.put(Pattern.compile(words(List.of(word))), replacement);
     }
+
+    @Override
+    public String version() {
+        return VERSION;
+    }
 }
