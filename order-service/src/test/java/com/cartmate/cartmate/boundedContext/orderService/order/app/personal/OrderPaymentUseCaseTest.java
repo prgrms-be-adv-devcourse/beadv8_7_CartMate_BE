@@ -1,10 +1,12 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.shared.order.OrderType;
+
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductClient;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductInfo;
@@ -81,7 +83,7 @@ class OrderPaymentUseCaseTest {
         OrderPaidEvent event = captor.getValue();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
         assertThat(event.memberId()).isEqualTo(BUYER);
-        assertThat(event.orderType()).isEqualTo("PERSONAL");
+        assertThat(event.orderType()).isEqualTo(OrderType.PERSONAL);
         assertThat(event.paidAt()).isEqualTo(paidAt);
         assertThat(event.orderNumber()).isEqualTo("20261019-ABCDEFGH");
         assertThat(event.deliveryAddress())

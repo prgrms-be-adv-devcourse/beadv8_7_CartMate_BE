@@ -3,6 +3,8 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.in.internal;
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared.SharedGroupPurchaseFacade;
 import com.cartmate.cartmate.global.rsData.RsData;
+import com.cartmate.cartmate.shared.cart.dto.SharedGroupPurchaseActivity;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseActivity;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -28,9 +29,9 @@ public class GroupPurchaseInternalController {
 
     // 회원이 참여한 공동물품 공동구매
     @GetMapping("/shared")
-    public RsData<List<SharedPurchaseItem>> getShared(@RequestParam Long memberId) {
-        List<SharedPurchaseItem> items = sharedGroupPurchaseFacade.getMyList(memberId).stream()
-                .map(p -> new SharedPurchaseItem(p.id(), p.title(), p.status().name(),
+    public RsData<List<SharedGroupPurchaseActivity>> getShared(@RequestParam Long memberId) {
+        List<SharedGroupPurchaseActivity> items = sharedGroupPurchaseFacade.getMyList(memberId).stream()
+                .map(p -> new SharedGroupPurchaseActivity(p.id(), p.title(), p.status(),
                         p.participantCount(), p.maxParticipants(), p.editDeadlineAt()))
                 .toList();
         return new RsData<>("200-1", "참여한 공동물품 공동구매", items);
@@ -38,9 +39,9 @@ public class GroupPurchaseInternalController {
 
     // 회원이 연 개인물품 공동구매
     @GetMapping("/individual")
-    public RsData<List<IndividualPurchaseItem>> getIndividual(@RequestParam Long memberId) {
-        List<IndividualPurchaseItem> items = individualGroupPurchaseFacade.getMyList(memberId).stream()
-                .map(p -> new IndividualPurchaseItem(p.id(), p.title(), p.open(), p.productCount(), p.deadlineAt()))
+    public RsData<List<IndividualGroupPurchaseActivity>> getIndividual(@RequestParam Long memberId) {
+        List<IndividualGroupPurchaseActivity> items = individualGroupPurchaseFacade.getMyList(memberId).stream()
+                .map(p -> new IndividualGroupPurchaseActivity(p.id(), p.title(), p.open(), p.productCount(), p.deadlineAt()))
                 .toList();
         return new RsData<>("200-1", "개설한 개인물품 공동구매", items);
     }
@@ -51,13 +52,5 @@ public class GroupPurchaseInternalController {
         long count = sharedGroupPurchaseFacade.countActiveOfMember(memberId)
                 + individualGroupPurchaseFacade.countOpenOfCreator(memberId);
         return new RsData<>("200-1", "모집 중인 공동구매 수", count);
-    }
-
-    public record SharedPurchaseItem(Long id, String title, String status, int participantCount, int maxParticipants,
-                                     LocalDateTime editDeadlineAt) {
-    }
-
-    public record IndividualPurchaseItem(Long id, String title, boolean open, int productCount,
-                                         LocalDateTime deadlineAt) {
     }
 }

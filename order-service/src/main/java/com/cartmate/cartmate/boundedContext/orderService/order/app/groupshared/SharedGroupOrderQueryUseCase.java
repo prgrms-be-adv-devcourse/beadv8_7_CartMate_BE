@@ -3,7 +3,7 @@ package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderItem;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderParticipant;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;

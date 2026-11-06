@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
@@ -72,7 +72,7 @@ class SharedGroupOrderCancelUseCase {
         return new SharedGroupOrderCanceledEvent(
                 order.getId(),
                 order.getSharedGroupPurchaseId(),
-                order.getCancelReason().name(),
+                order.getCancelReason(),
                 order.getCanceledAt(),
                 order.getUnpaidMemberIds()
         );

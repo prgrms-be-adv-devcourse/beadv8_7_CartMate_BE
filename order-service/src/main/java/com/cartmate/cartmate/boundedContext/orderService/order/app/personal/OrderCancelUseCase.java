@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
@@ -90,8 +90,8 @@ class OrderCancelUseCase {
         return new OrderCanceledEvent(
                 order.getId(),
                 order.getBuyerMemberId(),
-                order.getOrderType().name(),
-                order.getCancelReason().name(),
+                order.getOrderType(),
+                order.getCancelReason(),
                 paid,
                 order.getCanceledAt()
         );

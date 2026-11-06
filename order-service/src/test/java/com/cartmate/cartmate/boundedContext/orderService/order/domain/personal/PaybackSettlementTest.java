@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

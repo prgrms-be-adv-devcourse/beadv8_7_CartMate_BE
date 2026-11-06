@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared;
 
+import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;

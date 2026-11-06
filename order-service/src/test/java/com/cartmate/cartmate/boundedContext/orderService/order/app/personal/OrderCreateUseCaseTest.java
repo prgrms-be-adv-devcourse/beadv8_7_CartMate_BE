@@ -4,8 +4,8 @@ import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAd
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderItem;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderType;
+import com.cartmate.cartmate.shared.order.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderType;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
@@ -100,7 +100,7 @@ class OrderCreateUseCaseTest {
         assertThat(response.paymentDeadlineAt()).isEqualTo(NOW.plus(Order.PAYMENT_PERIOD));
         ArgumentCaptor<OrderCreatedEvent> event = ArgumentCaptor.forClass(OrderCreatedEvent.class);
         then(eventPublisher).should().publish(event.capture());
-        assertThat(event.getValue().orderType()).isEqualTo("PERSONAL");
+        assertThat(event.getValue().orderType()).isEqualTo(OrderType.PERSONAL);
         assertThat(event.getValue().memberId()).isEqualTo(MEMBER_ID);
         assertThat(event.getValue().items()).extracting(OrderCreatedEvent.Item::inventoryId).containsExactly(1L, 4L);
     }
@@ -141,7 +141,7 @@ class OrderCreateUseCaseTest {
         assertThat(response.paymentDeadlineAt()).isEqualTo(saleDeadlineAt);
         ArgumentCaptor<OrderCreatedEvent> event = ArgumentCaptor.forClass(OrderCreatedEvent.class);
         then(eventPublisher).should().publish(event.capture());
-        assertThat(event.getValue().orderType()).isEqualTo("INDIVIDUAL_GROUP");
+        assertThat(event.getValue().orderType()).isEqualTo(OrderType.INDIVIDUAL_GROUP);
         assertThat(event.getValue().individualGroupPurchaseId()).isEqualTo(PURCHASE_ID);
         assertThat(event.getValue().items()).extracting(OrderCreatedEvent.Item::productId, OrderCreatedEvent.Item::quantity)
                 .containsExactly(tuple(2L, 3));

@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

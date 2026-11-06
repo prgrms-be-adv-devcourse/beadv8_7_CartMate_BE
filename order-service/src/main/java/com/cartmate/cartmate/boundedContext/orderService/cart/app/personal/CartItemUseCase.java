@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.personal;
 
+import com.cartmate.cartmate.shared.order.OrderType;
+
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.personal.Cart;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.CartProductInfo;
@@ -18,7 +20,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 class CartItemUseCase {
 
-    private static final String PERSONAL_ORDER_TYPE = "PERSONAL";
 
     private final CartRepository cartRepository;
     private final ProductClient productClient;
@@ -59,7 +60,7 @@ class CartItemUseCase {
     }
 
     void removeOrderedItems(OrderPaidEvent event) {
-        if (!PERSONAL_ORDER_TYPE.equals(event.orderType())) {
+        if (event.orderType() != OrderType.PERSONAL) {
             return;
         }
         Map<Long, Integer> orderedQuantities = event.items().stream()

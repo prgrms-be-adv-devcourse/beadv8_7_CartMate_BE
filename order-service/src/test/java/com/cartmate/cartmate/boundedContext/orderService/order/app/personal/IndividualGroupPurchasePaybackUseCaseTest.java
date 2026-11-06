@@ -4,7 +4,7 @@ import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.I
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderPurchaseConfirmation;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.IndividualGroupPurchasePaybackRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.IndividualGroupPurchaseReplicaRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderPurchaseConfirmationRepository;
@@ -45,11 +45,14 @@ class IndividualGroupPurchasePaybackUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        given(confirmationRepository.existsById(any())).willAnswer(invocation ->
-                confirmations.stream().anyMatch(c -> c.getOrderId().equals(invocation.getArgument(0))));
-        given(confirmationRepository.save(any())).willAnswer(invocation -> {
-            confirmations.add(invocation.getArgument(0));
-            return invocation.getArgument(0);
+        // DB의 insert-if-absent처럼: 이미 있으면 바꾸지 않는다
+        given(confirmationRepository.insertIfAbsent(any(), any())).willAnswer(invocation -> {
+            Long orderId = invocation.getArgument(0);
+            if (confirmations.stream().anyMatch(c -> c.getOrderId().equals(orderId))) {
+                return 0;
+            }
+            confirmations.add(OrderPurchaseConfirmation.of(orderId, invocation.getArgument(1)));
+            return 1;
         });
         given(confirmationRepository.findAllById(anyCollection())).willAnswer(invocation -> {
             Collection<Long> ids = invocation.getArgument(0);

@@ -7,8 +7,8 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividua
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderCancelReason;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderCancelReason;
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.DeliveryAddressRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;

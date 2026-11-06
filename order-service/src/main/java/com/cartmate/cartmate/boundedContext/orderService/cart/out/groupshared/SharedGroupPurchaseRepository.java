@@ -15,8 +15,8 @@ public interface SharedGroupPurchaseRepository extends JpaRepository<SharedGroup
 
     // 판매글 판매 중지 대상: 해당 상품이 담긴 모집 중(편집 가능·보류) 공동구매
     @Query("select distinct g.id from SharedGroupPurchase g join g.items i " +
-            "where g.status in (com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus.OPEN, " +
-            "com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus.FROZEN) " +
+            "where g.status in (com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus.OPEN, " +
+            "com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus.FROZEN) " +
             "and i.productId in :productIds")
     List<Long> findEditableIdsByProductIds(@Param("productIds") Collection<Long> productIds);
 
@@ -24,8 +24,8 @@ public interface SharedGroupPurchaseRepository extends JpaRepository<SharedGroup
     // 주문이 만들어진 뒤(ORDER_CREATED)는 order 쪽 결제 중 공동 주문 확인이 맡는다
     @Query("select count(distinct g.id) from SharedGroupPurchase g join g.members m " +
             "where m.memberId = :memberId and g.status in (" +
-            "com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus.OPEN, " +
-            "com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus.FROZEN, " +
-            "com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus.CLOSED)")
+            "com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus.OPEN, " +
+            "com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus.FROZEN, " +
+            "com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus.CLOSED)")
     long countActiveOfMember(@Param("memberId") Long memberId);
 }
