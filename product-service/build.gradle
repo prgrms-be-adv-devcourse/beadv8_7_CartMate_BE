@@ -8,6 +8,8 @@ dependencies {
     // global(예외 · RsData · 보안 · outbox · 내부 API 클라이언트 · Redis · S3) + shared(서비스 간 이벤트 · DTO 계약)
     implementation project(':common')
 
+    // 공동구매 · 주문 · 구매확정 · wallet 결과 이벤트를 Kafka로 받는다(cartmate.kafka.enabled=true일 때만 연결)
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'com.mysql:mysql-connector-j'
