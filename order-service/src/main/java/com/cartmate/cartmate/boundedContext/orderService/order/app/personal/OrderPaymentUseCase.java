@@ -21,11 +21,13 @@ import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
 import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 class OrderPaymentUseCase {
@@ -156,10 +158,23 @@ class OrderPaymentUseCase {
             applyPayment(orderId, memberId, payment.paymentId(), payment.paidAt(), memberCouponId, payment.amount());
             return payment;
         } catch (InternalServerUnavailableException e) {
+            releaseCoupon(orderId, memberId, memberCouponId);
             throw e;
         } catch (ServiceException e) {
             orderPaymentClient.compensateCharge(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
+            releaseCoupon(orderId, memberId, memberCouponId);
             throw e;
+        }
+    }
+
+    private void releaseCoupon(Long orderId, Long memberId, Long memberCouponId) {
+        if (memberCouponId == null) {
+            return;
+        }
+        try {
+            orderCouponClient.restore(memberId, memberCouponId, orderId);
+        } catch (RuntimeException e) {
+            log.error("결제 반영 실패 후 쿠폰 복구 실패 — 확인 필요: 주문 #{} 회원 #{} 쿠폰 #{}", orderId, memberId, memberCouponId, e);
         }
     }
 

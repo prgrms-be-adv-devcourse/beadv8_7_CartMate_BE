@@ -12,6 +12,7 @@ import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 
 import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderPaymentClient;
 
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
@@ -60,13 +61,15 @@ class OrderCancelUseCaseTest {
     @Mock
     private OrderPaymentClient paymentClient;
 
+    @Mock
+    private OrderCouponClient couponClient;
+
     private OrderCancelUseCase cancelUseCase;
 
     @BeforeEach
     void setUp() {
         cancelUseCase = new OrderCancelUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher,
-                org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class),
-                paymentClient, CLOCK);
+                couponClient, paymentClient, CLOCK);
     }
 
     @Test
@@ -166,5 +169,39 @@ class OrderCancelUseCaseTest {
 
     private Order order() {
         return personalOrder(BUYER, ballLine(null, 1), LocalDateTime.now(CLOCK));
+    }
+
+    @Test
+    @DisplayName("쿠폰을 쓴 결제 완료 주문을 주문자가 전체 취소하면 취소 이벤트를 낸 뒤 그 주문의 쿠폰을 상품 서버에 복구 요청한다")
+    void cancelPaidCouponOrderRestoresCoupon() {
+        Order order = couponPaidOrder();
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+
+        cancelUseCase.cancelByBuyer(BUYER, ORDER_ID);
+
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(eventPublisher, couponClient);
+        inOrder.verify(eventPublisher).publish(any(OrderCanceledEvent.class));
+        inOrder.verify(couponClient).restore(BUYER, 5L, ORDER_ID);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+    }
+
+    @Test
+    @DisplayName("쿠폰 복구 요청에 상품 서버가 응답하지 않으면 예외를 그대로 던져 취소 전체를 롤백한다 (다시 취소하면 복구도 다시 시도)")
+    void cancelFailsWhenCouponRestoreUnavailable() {
+        Order order = couponPaidOrder();
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        org.mockito.BDDMockito.willThrow(new InternalServerUnavailableException("PRODUCT", "상품", new RuntimeException("timeout")))
+                .given(couponClient).restore(BUYER, 5L, ORDER_ID);
+
+        assertThatThrownBy(() -> cancelUseCase.cancelByBuyer(BUYER, ORDER_ID))
+                .isInstanceOf(InternalServerUnavailableException.class);
+    }
+
+    private Order couponPaidOrder() {
+        Order order = personalOrder(BUYER, ballLine(null, 1), LocalDateTime.now(CLOCK));
+        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.applyCoupon(5L, 1_000L, true, null);
+        order.markPaid(1L, LocalDateTime.now(CLOCK));
+        return order;
     }
 }
