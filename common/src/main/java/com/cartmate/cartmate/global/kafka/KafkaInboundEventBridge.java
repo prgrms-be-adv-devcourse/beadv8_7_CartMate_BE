@@ -8,6 +8,11 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.listener.MessageListener;
+import org.springframework.kafka.listener.CommonErrorHandler;
+import java.time.Duration;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.function.Function;
 
 
 @Slf4j
@@ -18,16 +23,25 @@ public class KafkaInboundEventBridge implements SmartLifecycle {
     private final EventEnvelopeReader envelopeReader;
     private final InboxWriter inboxWriter;
 
-    private volatile ConcurrentMessageListenerContainer<String, String> container;
+    private final List<InboundEventBinding> bindings;
+    private final Function<Duration, CommonErrorHandler> errorHandlerFactory;
+    private final Duration defaultRetryTimeout;
+    private volatile List<ConcurrentMessageListenerContainer<String, String>> containers = List.of();
 
     public KafkaInboundEventBridge(ConcurrentKafkaListenerContainerFactory<String, String> containerFactory,
                                    InboundEventTypes inboundEventTypes,
                                    EventEnvelopeReader envelopeReader,
-                                   InboxWriter inboxWriter) {
+                                   InboxWriter inboxWriter,
+                                   List<InboundEventBinding> bindings,
+                                   Function<Duration, CommonErrorHandler> errorHandlerFactory,
+                                   Duration defaultRetryTimeout) {
         this.containerFactory = containerFactory;
         this.inboundEventTypes = inboundEventTypes;
         this.envelopeReader = envelopeReader;
         this.inboxWriter = inboxWriter;
+        this.bindings = List.copyOf(bindings);
+        this.errorHandlerFactory = errorHandlerFactory;
+        this.defaultRetryTimeout = defaultRetryTimeout;
     }
 
     void onMessage(ConsumerRecord<String, String> record) {
@@ -41,29 +55,31 @@ public class KafkaInboundEventBridge implements SmartLifecycle {
     }
 
     @Override
-    public void start() {
-        if (inboundEventTypes.topics().isEmpty() || container != null) {
+    public synchronized void start() {
+        if (bindings.isEmpty() || !containers.isEmpty()) {
             return;
         }
-        ConcurrentMessageListenerContainer<String, String> created =
-                containerFactory.createContainer(inboundEventTypes.topics().toArray(String[]::new));
-        created.setupMessageListener((MessageListener<String, String>) this::onMessage);
-        created.start();
-        container = created;
+        List<ConcurrentMessageListenerContainer<String, String>> created = new ArrayList<>();
+        for (InboundEventBinding binding : bindings) {
+            Duration timeout = binding.retryTimeout() != null ? binding.retryTimeout() : defaultRetryTimeout;
+            ConcurrentMessageListenerContainer<String, String> container = containerFactory.createContainer(binding.topic());
+            container.setCommonErrorHandler(errorHandlerFactory.apply(timeout));
+            container.setupMessageListener((MessageListener<String, String>) this::onMessage);
+            container.start();
+            created.add(container);
+        }
+        containers = List.copyOf(created);
         log.info("Kafka 수신 시작: topics={}", inboundEventTypes.topics());
     }
 
     @Override
-    public void stop() {
-        ConcurrentMessageListenerContainer<String, String> current = container;
-        if (current != null) {
-            current.stop();
-            container = null;
-        }
+    public synchronized void stop() {
+        containers.forEach(ConcurrentMessageListenerContainer::stop);
+        containers = List.of();
     }
 
     @Override
     public boolean isRunning() {
-        return container != null && container.isRunning();
+        return !containers.isEmpty() && containers.stream().allMatch(ConcurrentMessageListenerContainer::isRunning);
     }
 }

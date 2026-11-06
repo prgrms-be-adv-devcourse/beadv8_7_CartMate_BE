@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.shared.delivery.event;
 
+import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 
 // 판매자가 교환·환불 요청을 승인할 때 발행. payment가 받아서 환불한다.
@@ -12,5 +13,15 @@ public record DeliveryClaimApprovedEvent(
         Long sellerId,
         String claimType,          // EXCHANGE, REFUND
         Long refundAmount          // 승인된 상품의 단가 × 요청 수량 합계. 교환이면 0
-) {
+) implements DomainEvent {
+
+    @Override
+    public String aggregateType() {
+        return "DeliveryClaim";
+    }
+
+    @Override
+    public String aggregateId() {
+        return String.valueOf(claimId);
+    }
 }
