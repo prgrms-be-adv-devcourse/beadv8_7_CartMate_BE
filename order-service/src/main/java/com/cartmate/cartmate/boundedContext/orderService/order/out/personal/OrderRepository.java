@@ -24,6 +24,8 @@ public interface OrderRepository extends JpaRepository<Order, Long>, OrderReposi
     List<Long> findIdsByIndividualGroupPurchaseIdAndStatus(@Param("purchaseId") Long individualGroupPurchaseId,
                                                           @Param("status") OrderStatus status);
 
+    List<Order> findAllByIndividualGroupPurchaseId(Long individualGroupPurchaseId);
+
     // 회원 탈퇴 확인: 구매자의 특정 상태 주문 수
     long countByBuyerMemberIdAndStatus(Long buyerMemberId, OrderStatus status);
 }
