@@ -25,11 +25,12 @@ class IndividualGroupPurchaseReplicaUseCase {
 
     void applyOpened(IndividualGroupPurchaseOpenedEvent event) {
         applyOpenState(event.individualGroupPurchaseId(), event.deadlineAt(), event.productIds(), event.revision())
-                .fillPaybackCondition(event.paybackMinBuyers(), event.paybackAmount());
+                .fillPaybackConditions(event.paybackOverlapPolicy(), event.paybackConditions());
     }
 
     void applyUpdated(IndividualGroupPurchaseUpdatedEvent event) {
-        applyOpenState(event.individualGroupPurchaseId(), event.deadlineAt(), event.productIds(), event.revision());
+        applyOpenState(event.individualGroupPurchaseId(), event.deadlineAt(), event.productIds(), event.revision())
+                .fillPaybackConditions(event.paybackOverlapPolicy(), event.paybackConditions());
     }
 
     void applyClosed(IndividualGroupPurchaseClosedEvent event) {
@@ -40,7 +41,7 @@ class IndividualGroupPurchaseReplicaUseCase {
                 })
                 .orElseGet(() -> replicaRepository.save(IndividualGroupPurchaseReplica.of(event.individualGroupPurchaseId(),
                         event.deadlineAt(), true, event.closedAt(), List.of(), event.revision())));
-        replica.fillPaybackCondition(event.paybackMinBuyers(), event.paybackAmount());
+        replica.fillPaybackConditions(event.paybackOverlapPolicy(), event.paybackConditions());
     }
 
     Optional<IndividualGroupPurchaseReplica> find(Long individualGroupPurchaseId) {

@@ -145,8 +145,8 @@ class IndividualGroupPurchasePaybackFlowIntegrationTest {
         assertThat(eventStatus(purchaseId, "IndividualGroupPurchaseOpenedEvent")).isEqualTo("NEW");
         Map<String, Object> closedReplica = replica(purchaseId);
         assertThat(closedReplica.get("closed")).isEqualTo(true);
-        assertThat(((Number) closedReplica.get("payback_min_buyers")).intValue()).isEqualTo(2);
-        assertThat(((Number) closedReplica.get("payback_amount")).longValue()).isEqualTo(5_000L);
+        assertThat(((Number) closedReplica.get("min_quantity")).intValue()).isEqualTo(2);
+        assertThat(((Number) closedReplica.get("amount_per_unit")).longValue()).isEqualTo(5_000L);
         assertThat(paybackCount(purchaseId)).isZero();
 
         releaseOpenedEvent(purchaseId);
@@ -156,8 +156,8 @@ class IndividualGroupPurchasePaybackFlowIntegrationTest {
 
         Map<String, Object> afterOpened = replica(purchaseId);
         assertThat(afterOpened.get("closed")).isEqualTo(true);
-        assertThat(((Number) afterOpened.get("payback_min_buyers")).intValue()).isEqualTo(2);
-        assertThat(((Number) afterOpened.get("payback_amount")).longValue()).isEqualTo(5_000L);
+        assertThat(((Number) afterOpened.get("min_quantity")).intValue()).isEqualTo(2);
+        assertThat(((Number) afterOpened.get("amount_per_unit")).longValue()).isEqualTo(5_000L);
 
         orderFacade.recordPurchaseConfirmed(orderA, LocalDateTime.now());
         orderFacade.recordPurchaseConfirmed(orderB, LocalDateTime.now());
@@ -173,7 +173,7 @@ class IndividualGroupPurchasePaybackFlowIntegrationTest {
 
     private Long openByAdmin(int paybackMinBuyers, long paybackAmount) {
         return individualGroupPurchaseFacade.openFromDemand(admin, PRODUCT_ID, new DemandGroupPurchaseOpenRequest(
-                "페이백 판정 흐름", LocalDateTime.now().plusDays(1), paybackMinBuyers, paybackAmount)).id();
+                "페이백 판정 흐름", LocalDateTime.now().plusDays(1), paybackMinBuyers, paybackAmount, null)).id();
     }
 
     private Long nextBuyer() {
@@ -228,14 +228,17 @@ class IndividualGroupPurchasePaybackFlowIntegrationTest {
     }
 
     private boolean replicaHasPaybackCondition(Long purchaseId) {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM individual_group_purchase_replica "
-                + "WHERE individual_group_purchase_id = ? AND payback_min_buyers IS NOT NULL AND payback_amount IS NOT NULL",
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM individual_group_purchase_replica_payback_condition "
+                + "WHERE individual_group_purchase_id = ? AND funder = 'ADMIN'",
                 Integer.class, purchaseId) == 1;
     }
 
     private Map<String, Object> replica(Long purchaseId) {
-        return jdbcTemplate.queryForMap("SELECT closed, payback_min_buyers, payback_amount "
-                + "FROM individual_group_purchase_replica WHERE individual_group_purchase_id = ?", purchaseId);
+        return jdbcTemplate.queryForMap("SELECT r.closed, c.min_quantity, c.amount_per_unit "
+                + "FROM individual_group_purchase_replica r "
+                + "JOIN individual_group_purchase_replica_payback_condition c "
+                + "ON c.individual_group_purchase_id = r.individual_group_purchase_id AND c.funder = 'ADMIN' "
+                + "WHERE r.individual_group_purchase_id = ?", purchaseId);
     }
 
     private int paybackCount(Long purchaseId) {
