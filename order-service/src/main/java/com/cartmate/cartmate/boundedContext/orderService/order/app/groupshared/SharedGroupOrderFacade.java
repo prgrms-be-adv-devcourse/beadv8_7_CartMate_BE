@@ -103,6 +103,11 @@ public class SharedGroupOrderFacade {
     }
 
     @Transactional(readOnly = true)
+    public SharedGroupOrderDetailResponse getDetailByPurchase(Long memberId, Long sharedGroupPurchaseId) {
+        return sharedGroupOrderQueryUseCase.getDetailByPurchase(memberId, sharedGroupPurchaseId);
+    }
+
+    @Transactional(readOnly = true)
     public List<Long> findPayingIdsOfParticipant(Long memberId) {
         return sharedGroupOrderQueryUseCase.findIdsOfParticipant(memberId, List.of(SharedGroupOrderStatus.PAYING));
     }

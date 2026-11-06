@@ -53,6 +53,12 @@ class SharedGroupOrderQueryUseCase {
         return SharedGroupOrderDetailResponse.of(order, productsOf(order), nicknamesOf(order), memberId, LocalDateTime.now(clock));
     }
 
+    SharedGroupOrderDetailResponse getDetailByPurchase(Long memberId, Long sharedGroupPurchaseId) {
+        SharedGroupOrder order = sharedGroupOrderRepository.findBySharedGroupPurchaseId(sharedGroupPurchaseId)
+                .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_FOUND));
+        return getDetail(memberId, order.getId());
+    }
+
     private Map<Long, String> nicknamesOf(SharedGroupOrder order) {
         return orderMemberClient.findNicknames(order.getParticipants().stream()
                 .map(SharedGroupOrderParticipant::getMemberId)

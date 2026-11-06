@@ -29,6 +29,15 @@ public class SharedGroupOrderController {
         return new RsData<>("200-1", "내 공동 주문 목록 조회 성공했습니다.", sharedGroupOrderFacade.getMyList(user.memberId()));
     }
 
+    @GetMapping(params = "purchaseId")
+    @Operation(operationId = "getSharedGroupOrderByPurchase", summary = "공동구매 id로 내 공동 주문 상세 조회")
+    public RsData<SharedGroupOrderDetailResponse> getDetailByPurchase(
+            @AuthenticationPrincipal SecurityUser user,
+            @RequestParam Long purchaseId
+    ) {
+        return new RsData<>("200-1", "공동 주문 조회 성공했습니다.", sharedGroupOrderFacade.getDetailByPurchase(user.memberId(), purchaseId));
+    }
+
     @GetMapping("/{id}")
     public RsData<SharedGroupOrderDetailResponse> getDetail(
             @AuthenticationPrincipal SecurityUser user,
