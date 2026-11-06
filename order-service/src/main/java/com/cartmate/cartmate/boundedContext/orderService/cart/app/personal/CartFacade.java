@@ -53,8 +53,6 @@ public class CartFacade {
         cartItemUseCase.clear(memberId);
     }
 
-    // 결제된 개인 주문의 수량을 장바구니에서 뺀다. 릴레이는 같은 이벤트를 다시 보낼 수 있고 차감은 두 번 하면 두 번 빠지므로,
-    // 같은 트랜잭션에서 eventId를 먼저 기록해 처음 온 것만 처리한다
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void removeOrderedItems(String eventId, OrderPaidEvent event) {
         if (!processedEvents.markFirst(ORDER_PAID_CONSUMER, eventId)) {

@@ -44,14 +44,11 @@ public class OrderScheduler {
             try {
                 action.accept(id);
             } catch (InternalServerUnavailableException e) {
-                // 결제 서버 등 다른 서버가 응답하지 않으면 남은 주문도 같은 이유로 실패한다. 주문마다 기다리며 락을 쥐고
-                // 오류를 쌓지 않게 이번 회차를 멈추고 다음 주기에 다시 한다
                 log.warn("주문 {} 중단: 다른 서버 응답 없음 ({}), 다음 주기에 다시 시도. 남은 {}건", taskName, e.getMessage(),
                         ids.size() - ids.indexOf(id));
                 return;
             } catch (ServiceException e) {
                 if (e.getResultCode().contains(OrderErrorCode.ORDER_PAYMENT_RELEASE_PENDING.getCode())) {
-                    // 남은 차감 되돌리기가 아직 확인되지 않음 → 이 주문만 다음 주기에 다시
                     log.warn("주문 {} 보류: id={} ({})", taskName, id, e.getMessage());
                 } else {
                     log.error("주문 {} 실패: id={}", taskName, id, e);

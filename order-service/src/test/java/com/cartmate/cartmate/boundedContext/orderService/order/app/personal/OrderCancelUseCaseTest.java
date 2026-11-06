@@ -101,7 +101,7 @@ class OrderCancelUseCaseTest {
     @DisplayName("결제 대기 주문을 취소할 때 차감됐지만 반영 안 된 결제가 있으면 되돌린 뒤 취소한다 (ISS-27)")
     void releaseUnappliedChargeOnCancel() {
         Order order = order();
-        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID); // 저장 전이라 id가 없다
+        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
         given(paymentClient.findPayment(PaymentOrderType.INDIVIDUAL_GROUP, ORDER_ID, BUYER))
                 .willReturn(Optional.of(paid())).willReturn(Optional.empty());
@@ -119,7 +119,7 @@ class OrderCancelUseCaseTest {
     @DisplayName("되돌린 뒤에도 결제가 남아 있으면 취소를 롤백하도록 예외를 던지고 이벤트를 내지 않는다 (돈이 빠진 채 취소 금지)")
     void rejectCancelWhenChargeStillPaid() {
         Order order = order();
-        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID); // 저장 전이라 id가 없다
+        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
         given(paymentClient.findPayment(PaymentOrderType.INDIVIDUAL_GROUP, ORDER_ID, BUYER)).willReturn(Optional.of(paid()));
 

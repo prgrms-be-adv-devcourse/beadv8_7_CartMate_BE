@@ -26,6 +26,51 @@ class OrderTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 19, 12, 0);
 
     @Test
+    @DisplayName("판매 중지: 한 판매자의 상품이 여러 개면 그 금액을 모두 합쳐 환불 금액으로 돌려주고, 다른 판매자 상품은 남는다")
+    void cancelSellerItemsRefundsSellerTotalAndKeepsOtherSellerItems() {
+        Order order = Order.createPersonal("ORD-3", BUYER, List.of(
+                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1),
+                new OrderLine(20L, 21L, 7L, "양말", null, 2_500L, 2),
+                new OrderLine(30L, 31L, 8L, "축구공", null, 20_000L, 1)
+        ), addressWithoutDetail(), NOW);
+        order.markPaid(99L, NOW.plusMinutes(1));
+
+        long refund = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));
+
+        assertThat(refund).isEqualTo(30_000L + 2_500L * 2);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.getItems()).filteredOn(OrderItem::isCanceled).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("판매 중지: 모든 상품이 취소되면 주문도 판매 중지로 취소되고, 같은 판매자를 다시 취소하면 0원")
+    void cancelSellerItemsCancelsOrderWhenAllItemsCanceled() {
+        Order order = Order.createPersonal("ORD-4", BUYER, List.of(
+                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1),
+                new OrderLine(20L, 21L, 7L, "양말", null, 2_500L, 2)
+        ), addressWithoutDetail(), NOW);
+        order.markPaid(99L, NOW.plusMinutes(1));
+
+        assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2))).isEqualTo(35_000L);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.SALES_STOPPED);
+        assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3))).isZero();
+    }
+
+    @Test
+    @DisplayName("판매 중지: 결제 전 주문이나 판매자 상품이 없으면 0원 (판매자 없는 상품이 섞여 있어도 오류 없이)")
+    void cancelSellerItemsReturnsZero() {
+        Order pending = personalOrder();
+        assertThat(pending.cancelSellerItemsBySalesStopped(12L, NOW)).isZero();
+
+        Order paid = personalOrder(); // 상품B는 판매자가 비어 있다
+        paid.markPaid(99L, NOW.plusMinutes(1));
+        assertThat(paid.cancelSellerItemsBySalesStopped(999L, NOW.plusMinutes(2))).isZero();
+        assertThat(paid.getStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+
+    @Test
     @DisplayName("개인 주문은 결제 대기 상태로 생성되고 총액은 단가 x 수량의 합이다")
     void createPersonal() {
         Order order = personalOrder();

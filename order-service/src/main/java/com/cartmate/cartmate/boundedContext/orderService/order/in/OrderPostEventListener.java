@@ -68,7 +68,6 @@ public class OrderPostEventListener {
         try {
             task.run();
         } catch (InternalServerUnavailableException e) {
-            // 일시 장애(다른 서버 503)라 정책 거절이 아니다. 결제 대기 주문이면 결제 기한 만료 스케줄러가 정리한다
             log.warn("판매글 #{} 숨김: {} #{} 일시 장애로 지금 취소 못 함 ({})", event.postId(), label, orderId, e.getMessage());
         } catch (ServiceException e) {
             if (e.getResultCode().contains(OrderErrorCode.ORDER_PAYMENT_RELEASE_PENDING.getCode())) {

@@ -52,8 +52,6 @@ class OrderPaymentUseCase {
     void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         orderSupport.validateBuyer(order, memberId);
-        // 주문 상태를 먼저 본다. 이미 취소된 주문이면 상품 서버를 부르지 않고 markPaid의 업무 거절(→ 보상)로 끝낸다.
-        // 상품 서버를 먼저 부르면, 취소와 겹친 결제가 그 호출의 503(보상 안 함)으로 끝나 돈이 빠진 채 남을 수 있다(ISS-27 리뷰).
         // 같은 결제의 재통보(이미 PAID)는 markPaid가 멱등으로 넘기므로 결제 대기일 때만 다시 본다
         if (order.isPaymentPending()) {
             validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
@@ -123,8 +121,6 @@ class OrderPaymentUseCase {
 
     // ===== 결제 (주문이 지휘) =====
     // ① 이미 결제했는지 → ② 결제 가능 확인 (잠금 없이) → ③ 결제에 차감 요청 → ④ 잠그고 PAID 반영
-    // ③은 결제 서버(HTTP)가 자기 트랜잭션에서 하고 ④는 이 주문 트랜잭션이라, ④가 거절되면 ③을 보상(compensateCharge)으로 되돌린다.
-    // ③ 동안 주문을 잠그지 않는다 (네트워크 대기 중 잠금을 잡지 않음).
     PaymentResult pay(Long orderId, Long memberId, LocalDateTime now) {
         var existing = orderPaymentClient.findPayment(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
         if (existing.isPresent() && existing.get().isPaid()) {
@@ -145,10 +141,6 @@ class OrderPaymentUseCase {
     }
 
     // 주문 반영이 거절되면(그 사이 기한 만료·취소, 판매 중지 등) 빠진 돈을 되돌린다.
-    // 결제 서버(HTTP)에 되돌리기를 요청한다. 일시적 장애는 되돌리지 않고 그대로 던진다 → 다시 결제하면 위의 '이미 빠졌다'
-    // 경로로 반영된다. 일시적 장애: 잠금 대기 같은 ServiceException이 아닌 예외, 그리고 다른 서버의 503
-    // (InternalServerUnavailableException — ServiceException을 상속하므로 먼저 거른다, ISS-27).
-    // 다시 결제하지 않고 주문이 취소되면 남은 차감은 취소 쪽(OrderCancelUseCase)이 되돌린다.
     private PaymentResult applyOrCompensate(Long orderId, Long memberId, PaymentResult payment) {
         try {
             applyPayment(orderId, memberId, payment.paymentId(), payment.paidAt());
