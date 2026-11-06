@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
+import com.cartmate.cartmate.shared.cart.PaybackFunder;
+import com.cartmate.cartmate.shared.order.GroupPurchaseType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,9 +20,9 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "individual_group_purchase_payback_payout",
-        uniqueConstraints = @UniqueConstraint(name = "uk_payback_payout_purchase_member",
-                columnNames = {"individual_group_purchase_id", "member_id"}),
+@Table(name = "payback_payout",
+        uniqueConstraints = @UniqueConstraint(name = "uk_payback_payout_purchase_member_product_funder",
+                columnNames = {"group_purchase_type", "group_purchase_id", "member_id", "product_id", "funder"}),
         indexes = @Index(name = "idx_payback_payout_status", columnList = "status, id"))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PaybackPayout {
@@ -31,11 +33,30 @@ public class PaybackPayout {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "individual_group_purchase_id", nullable = false)
-    private Long individualGroupPurchaseId;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "group_purchase_type", nullable = false, length = 20)
+    private GroupPurchaseType groupPurchaseType;
+
+    @Column(name = "group_purchase_id", nullable = false)
+    private Long groupPurchaseId;
 
     @Column(name = "member_id", nullable = false)
     private Long memberId;
+
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private PaybackFunder funder;
+
+    private Long sellerId;
+
+    @Column(nullable = false)
+    private int quantity;
+
+    @Column(nullable = false)
+    private long amountPerUnit;
 
     @Column(nullable = false)
     private long amount;
@@ -55,21 +76,28 @@ public class PaybackPayout {
 
     private LocalDateTime completedAt;
 
-    private PaybackPayout(Long individualGroupPurchaseId, Long memberId, long amount, LocalDateTime requestedAt) {
-        this.individualGroupPurchaseId = individualGroupPurchaseId;
-        this.memberId = memberId;
-        this.amount = amount;
+    private PaybackPayout(GroupPurchaseType groupPurchaseType, Long groupPurchaseId,
+                          PaybackSettlement.PayoutLine line, LocalDateTime requestedAt) {
+        this.groupPurchaseType = groupPurchaseType;
+        this.groupPurchaseId = groupPurchaseId;
+        this.memberId = line.memberId();
+        this.productId = line.productId();
+        this.funder = line.funder();
+        this.sellerId = line.sellerId();
+        this.quantity = line.quantity();
+        this.amountPerUnit = line.amountPerUnit();
+        this.amount = line.amount();
         this.status = PaybackPayoutStatus.REQUESTED;
         this.attempt = 1;
         this.requestedAt = requestedAt;
     }
 
-    public static PaybackPayout request(Long individualGroupPurchaseId, Long memberId, long amount,
-                                        LocalDateTime requestedAt) {
-        if (amount <= 0) {
+    public static PaybackPayout request(GroupPurchaseType groupPurchaseType, Long groupPurchaseId,
+                                        PaybackSettlement.PayoutLine line, LocalDateTime requestedAt) {
+        if (line.quantity() <= 0 || line.amountPerUnit() <= 0) {
             throw new IllegalArgumentException("payback amount must be positive");
         }
-        return new PaybackPayout(individualGroupPurchaseId, memberId, amount, requestedAt);
+        return new PaybackPayout(groupPurchaseType, groupPurchaseId, line, requestedAt);
     }
 
     public boolean markPaid(LocalDateTime depositedAt) {

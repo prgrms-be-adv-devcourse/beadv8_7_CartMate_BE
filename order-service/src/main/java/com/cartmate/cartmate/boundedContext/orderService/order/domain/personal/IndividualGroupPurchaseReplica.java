@@ -26,7 +26,6 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Entity
@@ -121,12 +120,6 @@ public class IndividualGroupPurchaseReplica implements Persistable<Long> {
 
     public boolean hasPaybackCondition() {
         return !paybackConditions.isEmpty();
-    }
-
-    public Optional<ReplicaPaybackCondition> findAdminPaybackCondition() {
-        return paybackConditions.stream()
-                .filter(ReplicaPaybackCondition::isAdmin)
-                .findFirst();
     }
 
     public boolean isOpen(LocalDateTime now) {

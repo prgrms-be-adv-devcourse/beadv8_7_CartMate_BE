@@ -55,7 +55,7 @@ class IndividualGroupPurchaseReplicaPaybackConditionTest {
         assertThat(replica.isClosed()).isTrue();
         assertThat(replica.hasPaybackCondition()).isTrue();
         assertThat(replica.getPaybackOverlapPolicy()).isEqualTo(PaybackOverlapPolicy.LARGER);
-        assertThat(replica.findAdminPaybackCondition()).get()
+        assertThat(replica.getPaybackConditions()).singleElement()
                 .extracting(ReplicaPaybackCondition::getMinQuantity, ReplicaPaybackCondition::getAmountPerUnit)
                 .containsExactly(10, 1_000L);
     }
@@ -74,7 +74,8 @@ class IndividualGroupPurchaseReplicaPaybackConditionTest {
 
         IndividualGroupPurchaseReplica replica = saved.getFirst();
         assertThat(replica.getPaybackConditions()).hasSize(2);
-        assertThat(replica.findAdminPaybackCondition()).get()
+        assertThat(replica.getPaybackConditions())
+                .filteredOn(ReplicaPaybackCondition::isAdmin).singleElement()
                 .extracting(ReplicaPaybackCondition::getMinQuantity).isEqualTo(10);
         assertThat(replica.getPaybackConditions())
                 .anySatisfy(condition -> {

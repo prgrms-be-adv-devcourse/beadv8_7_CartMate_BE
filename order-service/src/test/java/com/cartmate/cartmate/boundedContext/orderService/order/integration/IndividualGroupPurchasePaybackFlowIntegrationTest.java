@@ -66,10 +66,10 @@ class IndividualGroupPurchasePaybackFlowIntegrationTest {
 
         assertThat(paybackCount(purchaseId)).isEqualTo(1);
         Map<String, Object> payback = payback(purchaseId);
-        assertThat(((Number) payback.get("min_buyers")).intValue()).isEqualTo(2);
-        assertThat(((Number) payback.get("payback_amount")).longValue()).isEqualTo(3_000L);
-        assertThat(((Number) payback.get("buyer_count")).intValue()).isEqualTo(3);
-        assertThat(payback.get("reached")).isEqualTo(true);
+        assertThat(((Number) payback.get("min_quantity")).intValue()).isEqualTo(2);
+        assertThat(((Number) payback.get("amount_per_unit")).longValue()).isEqualTo(3_000L);
+        assertThat(((Number) payback.get("confirmed_quantity")).intValue()).isEqualTo(3);
+        assertThat(payback.get("paid")).isEqualTo(true);
         assertThat(payoutCount(purchaseId)).isEqualTo(3);
         assertThat(confirmationCount(orderIds)).isEqualTo(3);
     }
@@ -95,9 +95,9 @@ class IndividualGroupPurchasePaybackFlowIntegrationTest {
 
         assertThat(paybackCount(purchaseId)).isEqualTo(1);
         Map<String, Object> payback = payback(purchaseId);
-        assertThat(((Number) payback.get("min_buyers")).intValue()).isEqualTo(5);
-        assertThat(((Number) payback.get("buyer_count")).intValue()).isEqualTo(2);
-        assertThat(payback.get("reached")).isEqualTo(false);
+        assertThat(((Number) payback.get("min_quantity")).intValue()).isEqualTo(5);
+        assertThat(((Number) payback.get("confirmed_quantity")).intValue()).isEqualTo(2);
+        assertThat(payback.get("paid")).isEqualTo(false);
         assertThat(payoutCount(purchaseId)).isZero();
         assertThat(orderStatus(canceled)).isEqualTo("CANCELED");
     }
@@ -123,8 +123,8 @@ class IndividualGroupPurchasePaybackFlowIntegrationTest {
 
             assertThat(paybackCount(purchaseId)).as("라운드 %d 판정 행 수", round).isEqualTo(1);
             Map<String, Object> payback = payback(purchaseId);
-            assertThat(((Number) payback.get("buyer_count")).intValue()).as("라운드 %d 구매자 수", round).isEqualTo(3);
-            assertThat(payback.get("reached")).isEqualTo(true);
+            assertThat(((Number) payback.get("confirmed_quantity")).intValue()).as("라운드 %d 확정 수량", round).isEqualTo(3);
+            assertThat(payback.get("paid")).isEqualTo(true);
             assertThat(payoutCount(purchaseId)).as("라운드 %d 지급 요청 수", round).isEqualTo(3);
             assertThat(confirmationCount(List.of(first, lastA, lastB))).isEqualTo(3);
         }
@@ -164,16 +164,16 @@ class IndividualGroupPurchasePaybackFlowIntegrationTest {
 
         assertThat(paybackCount(purchaseId)).isEqualTo(1);
         Map<String, Object> payback = payback(purchaseId);
-        assertThat(((Number) payback.get("min_buyers")).intValue()).isEqualTo(2);
-        assertThat(((Number) payback.get("payback_amount")).longValue()).isEqualTo(5_000L);
-        assertThat(((Number) payback.get("buyer_count")).intValue()).isEqualTo(2);
-        assertThat(payback.get("reached")).isEqualTo(true);
+        assertThat(((Number) payback.get("min_quantity")).intValue()).isEqualTo(2);
+        assertThat(((Number) payback.get("amount_per_unit")).longValue()).isEqualTo(5_000L);
+        assertThat(((Number) payback.get("confirmed_quantity")).intValue()).isEqualTo(2);
+        assertThat(payback.get("paid")).isEqualTo(true);
         assertThat(payoutCount(purchaseId)).isEqualTo(2);
     }
 
-    private Long openByAdmin(int paybackMinBuyers, long paybackAmount) {
+    private Long openByAdmin(int paybackMinQuantity, long paybackAmountPerUnit) {
         return individualGroupPurchaseFacade.openFromDemand(admin, PRODUCT_ID, new DemandGroupPurchaseOpenRequest(
-                "페이백 판정 흐름", LocalDateTime.now().plusDays(1), paybackMinBuyers, paybackAmount, null)).id();
+                "페이백 판정 흐름", LocalDateTime.now().plusDays(1), paybackMinQuantity, paybackAmountPerUnit, null)).id();
     }
 
     private Long nextBuyer() {
@@ -248,13 +248,16 @@ class IndividualGroupPurchasePaybackFlowIntegrationTest {
     }
 
     private Map<String, Object> payback(Long purchaseId) {
-        return jdbcTemplate.queryForMap("SELECT min_buyers, payback_amount, buyer_count, reached "
-                + "FROM individual_group_purchase_payback WHERE individual_group_purchase_id = ?", purchaseId);
+        return jdbcTemplate.queryForMap("SELECT p.paid, j.min_quantity, j.amount_per_unit, j.confirmed_quantity "
+                + "FROM individual_group_purchase_payback p "
+                + "JOIN individual_group_purchase_payback_condition_judgment j "
+                + "ON j.individual_group_purchase_id = p.individual_group_purchase_id AND j.funder = 'ADMIN' "
+                + "WHERE p.individual_group_purchase_id = ?", purchaseId);
     }
 
     private int payoutCount(Long purchaseId) {
         return jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM individual_group_purchase_payback_payout WHERE individual_group_purchase_id = ?",
+                "SELECT COUNT(*) FROM payback_payout WHERE group_purchase_type = 'INDIVIDUAL' AND group_purchase_id = ?",
                 Integer.class, purchaseId);
     }
 

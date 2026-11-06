@@ -4,11 +4,11 @@ import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.I
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackSettlement;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.ReplicaPaybackCondition;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.IndividualGroupPurchasePaybackRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.IndividualGroupPurchaseReplicaRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderPurchaseConfirmationRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
+import com.cartmate.cartmate.shared.order.GroupPurchaseType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -61,22 +60,20 @@ class IndividualGroupPurchasePaybackUseCase {
 
     private void judgeLocked(IndividualGroupPurchaseReplica replica, LocalDateTime now) {
         Long purchaseId = replica.getIndividualGroupPurchaseId();
-        Optional<ReplicaPaybackCondition> adminCondition = replica.findAdminPaybackCondition();
-        if (adminCondition.isEmpty() || replica.isOpen(now) || paybackRepository.existsById(purchaseId)) {
+        if (!replica.hasPaybackCondition() || replica.isOpen(now) || paybackRepository.existsById(purchaseId)) {
             return;
         }
-        int minBuyers = adminCondition.get().getMinQuantity();
-        long amountPerBuyer = adminCondition.get().getAmountPerUnit();
         List<Order> orders = orderRepository.findAllByIndividualGroupPurchaseId(purchaseId);
         Set<Long> confirmedOrderIds = new HashSet<>();
         confirmationRepository.findAllById(orders.stream().map(Order::getId).toList())
                 .forEach(confirmation -> confirmedOrderIds.add(confirmation.getOrderId()));
 
-        PaybackSettlement.confirmedBuyers(orders, confirmedOrderIds).ifPresent(buyers -> {
-            IndividualGroupPurchasePayback judged = paybackRepository.save(IndividualGroupPurchasePayback.judge(
-                    purchaseId, minBuyers, amountPerBuyer, buyers.size(), now));
-            if (judged.isReached()) {
-                paybackPayoutUseCase.requestAll(purchaseId, buyers, judged.getPaybackAmount(), now);
+        PaybackSettlement.confirmedLines(orders, confirmedOrderIds).ifPresent(lines -> {
+            PaybackSettlement.Result result = PaybackSettlement.settle(
+                    lines, replica.getPaybackConditions(), replica.getPaybackOverlapPolicy());
+            paybackRepository.save(IndividualGroupPurchasePayback.judge(purchaseId, result, now));
+            if (result.paid()) {
+                paybackPayoutUseCase.requestAll(GroupPurchaseType.INDIVIDUAL, purchaseId, result.payouts(), now);
             }
         });
     }

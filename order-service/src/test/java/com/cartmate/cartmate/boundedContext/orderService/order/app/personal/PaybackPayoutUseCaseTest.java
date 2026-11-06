@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackSettlement;
+import com.cartmate.cartmate.shared.order.GroupPurchaseType;
+import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackPayout;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackPayoutStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
@@ -38,7 +41,7 @@ class PaybackPayoutUseCaseTest {
     private final PaybackPayoutUseCase useCase = new PaybackPayoutUseCase(repository, publisher);
 
     @Test
-    @DisplayName("구매자마다 지급 행을 만들고 그 id를 paybackId로 요청 이벤트를 발행한다")
+    @DisplayName("지급 줄마다(회원 · 상품 · 부담 주체 순) 지급 행을 만들고 그 id를 paybackId로 공동구매 종류 · id와 함께 요청 이벤트를 발행한다")
     void requestAll() {
         AtomicLong ids = new AtomicLong(100);
         given(repository.save(any())).willAnswer(invocation -> {
@@ -47,12 +50,18 @@ class PaybackPayoutUseCaseTest {
             return payout;
         });
 
-        useCase.requestAll(7L, Set.of(20L, 10L), 1_000L, NOW);
+        useCase.requestAll(GroupPurchaseType.INDIVIDUAL, 7L, List.of(
+                new PaybackSettlement.PayoutLine(20L, 1L, PaybackFunder.ADMIN, null, 2, 500L),
+                new PaybackSettlement.PayoutLine(10L, 1L, PaybackFunder.SELLER, 77L, 3, 300L),
+                new PaybackSettlement.PayoutLine(10L, 1L, PaybackFunder.ADMIN, null, 3, 500L)), NOW);
 
         assertThat(published).map(PaybackRequestedEvent.class::cast)
                 .extracting(PaybackRequestedEvent::paybackId, PaybackRequestedEvent::memberId,
-                        PaybackRequestedEvent::amount, PaybackRequestedEvent::attempt)
-                .containsExactly(tuple(101L, 10L, 1_000L, 1), tuple(102L, 20L, 1_000L, 1));
+                        PaybackRequestedEvent::amount, PaybackRequestedEvent::groupPurchaseType,
+                        PaybackRequestedEvent::groupPurchaseId, PaybackRequestedEvent::attempt)
+                .containsExactly(tuple(101L, 10L, 1_500L, GroupPurchaseType.INDIVIDUAL, 7L, 1),
+                        tuple(102L, 10L, 900L, GroupPurchaseType.INDIVIDUAL, 7L, 1),
+                        tuple(103L, 20L, 1_000L, GroupPurchaseType.INDIVIDUAL, 7L, 1));
         assertThat(published.getFirst().aggregateId()).isEqualTo("10");
     }
 
@@ -141,9 +150,13 @@ class PaybackPayoutUseCaseTest {
     }
 
     private PaybackPayout payout(Long id) {
-        PaybackPayout payout = PaybackPayout.request(7L, id * 10, 1_000L, NOW);
+        PaybackPayout payout = PaybackPayout.request(GroupPurchaseType.INDIVIDUAL, 7L, adminLine(id * 10, 1_000L), NOW);
         ReflectionTestUtils.setField(payout, "id", id);
         given(repository.findByIdForUpdate(id)).willReturn(Optional.of(payout));
         return payout;
+    }
+
+    private static PaybackSettlement.PayoutLine adminLine(Long memberId, long amount) {
+        return new PaybackSettlement.PayoutLine(memberId, 1L, PaybackFunder.ADMIN, null, 1, amount);
     }
 }
