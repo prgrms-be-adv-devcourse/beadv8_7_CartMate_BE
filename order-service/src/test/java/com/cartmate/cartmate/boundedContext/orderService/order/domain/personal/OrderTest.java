@@ -231,6 +231,22 @@ class OrderTest {
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
     }
 
+    @Test
+    @DisplayName("판매 중지로 판매자 항목을 취소하면 그 판매자 항목 금액을 모두 더해 돌려주고, 다른 판매자 항목은 남는다 (ISS-26)")
+    void cancelSellerItemsSumsAllItemsOfSeller() {
+        Order order = Order.createPersonal("ORD-3", BUYER, List.of(
+                new OrderLine(10L, 11L, 12L, "상품A", null, 10_000L, 2),
+                new OrderLine(30L, 31L, 12L, "상품C", null, 3_000L, 1),
+                new OrderLine(20L, 21L, 99L, "상품B", null, 5_000L, 1)), addressWithoutDetail(), NOW);
+        order.markPaid(1L, NOW);
+
+        long amount = order.cancelSellerItemsBySalesStopped(12L, NOW);
+
+        assertThat(amount).isEqualTo(23_000L);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.cancelSellerItemsBySalesStopped(12L, NOW)).isZero();
+    }
+
     private Order personalOrder() {
         return Order.createPersonal("ORD-1", BUYER, lines(), addressWithoutDetail(), NOW);
     }

@@ -10,7 +10,6 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.listener.MessageListener;
 import org.springframework.transaction.support.TransactionTemplate;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -36,7 +35,7 @@ public class KafkaInboundEventBridge implements SmartLifecycle {
 
     private final ConcurrentKafkaListenerContainerFactory<String, String> containerFactory;
     private final Map<String, Class<?>> eventTypeByTopic;
-    private final ObjectMapper objectMapper;
+    private final EventEnvelopeReader envelopeReader;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final TransactionTemplate transactionTemplate;
     private final ProcessedEvents processedEvents;
@@ -45,22 +44,22 @@ public class KafkaInboundEventBridge implements SmartLifecycle {
 
     public KafkaInboundEventBridge(ConcurrentKafkaListenerContainerFactory<String, String> containerFactory,
                                    List<InboundEventBinding> bindings,
-                                   ObjectMapper objectMapper,
+                                   EventEnvelopeReader envelopeReader,
                                    ApplicationEventPublisher applicationEventPublisher,
                                    TransactionTemplate transactionTemplate,
                                    ProcessedEvents processedEvents) {
         this.containerFactory = containerFactory;
         this.eventTypeByTopic = bindings.stream()
                 .collect(Collectors.toMap(InboundEventBinding::topic, InboundEventBinding::eventType));
-        this.objectMapper = objectMapper;
+        this.envelopeReader = envelopeReader;
         this.applicationEventPublisher = applicationEventPublisher;
         this.transactionTemplate = transactionTemplate;
         this.processedEvents = processedEvents;
     }
 
     void onMessage(ConsumerRecord<String, String> record) {
-        EventEnvelope envelope = objectMapper.readValue(record.value(), EventEnvelope.class);
-        Object event = objectMapper.readValue(envelope.payload(), eventTypeByTopic.get(record.topic()));
+        EventEnvelope envelope = envelopeReader.envelope(record.value());
+        Object event = envelopeReader.payload(envelope, eventTypeByTopic.get(record.topic()));
         transactionTemplate.executeWithoutResult(status -> {
             if (!processedEvents.markFirst(consumerName(record.topic()), envelope.eventId())) {
                 log.info("이미 처리한 이벤트 건너뜀: topic={}, eventId={}", record.topic(), envelope.eventId());

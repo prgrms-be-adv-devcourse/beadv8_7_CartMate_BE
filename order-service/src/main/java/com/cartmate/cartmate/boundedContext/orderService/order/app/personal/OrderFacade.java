@@ -61,7 +61,8 @@ public class OrderFacade {
         return orderPaymentUseCase.getPaymentInfo(orderId, memberId, now);
     }
 
-    // 결제: 주문이 지휘한다 (주문 → 결제). 차감과 PAID 반영이 한 트랜잭션.
+    // 결제: 주문이 지휘한다 (주문 → 결제). 차감은 결제 서버가 자기 트랜잭션에서 하고(HTTP), PAID 반영은 이 트랜잭션이다.
+    // 반영이 거절되면 차감을 결제 서버에 되돌리기 요청한다(compensateCharge).
     @Transactional
     public PaymentResult payOrder(Long memberId, Long orderId) {
         return orderPaymentUseCase.pay(orderId, memberId, LocalDateTime.now(clock));
