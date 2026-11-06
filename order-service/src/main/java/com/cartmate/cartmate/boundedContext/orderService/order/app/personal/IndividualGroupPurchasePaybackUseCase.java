@@ -3,13 +3,13 @@ package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchasePayback;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderPurchaseConfirmation;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackSettlement;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.IndividualGroupPurchasePaybackRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.IndividualGroupPurchaseReplicaRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderPurchaseConfirmationRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 class IndividualGroupPurchasePaybackUseCase {
@@ -33,18 +34,22 @@ class IndividualGroupPurchasePaybackUseCase {
         IndividualGroupPurchaseReplica lockedReplica = purchaseId == null
                 ? null
                 : replicaRepository.findByIdForUpdate(purchaseId).orElse(null);
-        if (!confirmationRepository.existsById(orderId)) {
-            confirmationRepository.save(OrderPurchaseConfirmation.of(orderId, confirmedAt));
-        }
+        confirmationRepository.insertIfAbsent(orderId, confirmedAt);
         if (lockedReplica != null) {
             judgeLocked(lockedReplica, now);
         }
     }
 
     void judgeOfOrder(Long orderId, LocalDateTime now) {
-        orderRepository.findById(orderId)
-                .map(Order::getIndividualGroupPurchaseId)
-                .ifPresent(purchaseId -> judge(purchaseId, now));
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) {
+            // 취소 · 판매자 항목 취소 이벤트는 order가 직접 낸 것이라 주문이 없으면 데이터가 어긋난 것이다. 추적할 수 있게 남긴다
+            log.warn("페이백 판정 대상 주문을 찾을 수 없음: orderId={}", orderId);
+            return;
+        }
+        if (order.getIndividualGroupPurchaseId() != null) {
+            judge(order.getIndividualGroupPurchaseId(), now);
+        }
     }
 
     void judge(Long individualGroupPurchaseId, LocalDateTime now) {
