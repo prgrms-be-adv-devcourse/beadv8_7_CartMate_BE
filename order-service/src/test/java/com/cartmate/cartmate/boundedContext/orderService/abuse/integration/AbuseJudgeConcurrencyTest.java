@@ -101,6 +101,7 @@ class AbuseJudgeConcurrencyTest {
 
             abuseFacade.receive(new AbuseSignalCommand(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
                     "late", LocalDateTime.now()));
+            release.countDown();
 
             holder.get(10, TimeUnit.SECONDS);
             assertThat(judging.get(10, TimeUnit.SECONDS)).isEqualTo(1);
