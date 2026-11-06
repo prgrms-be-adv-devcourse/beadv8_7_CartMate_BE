@@ -43,8 +43,8 @@ class OrderCancelUseCase {
         Order order = orderSupport.getOrderForUpdate(orderId);
         boolean paid = isPaid(order);
         boolean canceled = order.cancelByBuyer(memberId, LocalDateTime.now(clock));
-        restoreCouponIf(canceled, order);
         publishCanceledEventIf(canceled, order, paid);
+        restoreCouponIf(canceled, order);
     }
 
     void cancelByDeadline(Long orderId) {
@@ -78,11 +78,11 @@ class OrderCancelUseCase {
         Order order = orderSupport.getOrderForUpdate(orderId);
         LocalDateTime now = LocalDateTime.now(clock);
         long amount = order.cancelSellerItemsBySalesStopped(sellerId, now);
-        restoreCouponIf(amount > 0, order);
         if (amount > 0) {
             eventPublisher.publish(new OrderSellerItemsCanceledEvent(
                     orderId, order.getBuyerMemberId(), sellerId, amount, now));
         }
+        restoreCouponIf(amount > 0, order);
     }
 
     List<Long> findIdsByStatusAndProductIds(OrderStatus status, Collection<Long> productIds) {

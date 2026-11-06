@@ -14,7 +14,7 @@ public class OrderPurchaseConfirmationListener {
 
     private final OrderFacade orderFacade;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = true)
     public void handle(DeliveryConfirmedEvent event) {
         if (event.purchaseType() == PurchaseType.INDIVIDUAL_GROUP) {
             orderFacade.recordPurchaseConfirmed(event.orderId(), event.confirmedAt());
