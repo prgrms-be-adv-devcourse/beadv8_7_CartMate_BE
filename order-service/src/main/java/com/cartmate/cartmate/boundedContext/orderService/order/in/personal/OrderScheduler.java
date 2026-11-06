@@ -7,6 +7,7 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
@@ -23,11 +24,12 @@ public class OrderScheduler {
     private static final String LOCK_AT_LEAST = "PT5S";
 
     private final OrderFacade orderFacade;
+    private final Clock clock;
 
     @Scheduled(fixedDelay = INTERVAL_MILLIS, initialDelay = INTERVAL_MILLIS)
     @SchedulerLock(name = "order.cancelExpired", lockAtMostFor = LOCK_AT_MOST, lockAtLeastFor = LOCK_AT_LEAST)
     public void cancelExpired() {
-        List<Long> ids = orderFacade.findIdsToCancelByDeadline(LocalDateTime.now());
+        List<Long> ids = orderFacade.findIdsToCancelByDeadline(LocalDateTime.now(clock));
         processEach(ids, orderFacade::cancelByDeadline, "결제 기한 만료 취소");
     }
 

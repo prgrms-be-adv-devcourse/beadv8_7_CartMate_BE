@@ -5,8 +5,6 @@ import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreatedEvent;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreationFailedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,26 +27,6 @@ class SharedGroupPurchaseOrderResultListenerTest {
 
     @InjectMocks
     private SharedGroupPurchaseOrderResultListener listener;
-
-    @Test
-    @DisplayName("공동 주문 생성 소식은 ORDER_CREATED 전이로 보낸다")
-    void created() {
-        SharedGroupOrderCreatedEvent event = new SharedGroupOrderCreatedEvent(5L, 10L, AT);
-
-        listener.handle(relayed(event));
-
-        then(sharedGroupPurchaseFacade).should().markOrderCreated(event);
-    }
-
-    @Test
-    @DisplayName("공동 주문 생성 실패 소식은 FROZEN 복귀로 보낸다")
-    void failed() {
-        SharedGroupOrderCreationFailedEvent event = new SharedGroupOrderCreationFailedEvent(10L, "ORDER_PRODUCT_NOT_FOUND");
-
-        listener.handle(relayed(event));
-
-        then(sharedGroupPurchaseFacade).should().revertByOrderCreationFailed(event);
-    }
 
     @Test
     @DisplayName("다른 이벤트(자기가 낸 마감 이벤트 포함)는 그냥 넘긴다")

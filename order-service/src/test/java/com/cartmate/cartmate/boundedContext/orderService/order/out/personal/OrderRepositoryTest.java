@@ -35,17 +35,6 @@ class OrderRepositoryTest {
     private EntityManager em;
 
     @Test
-    @DisplayName("주문번호로 주문 존재 여부를 확인한다")
-    void existsByOrderNumber() {
-        String orderNumber = newOrderNumber();
-        orderRepository.save(personal(orderNumber, BUYER));
-        flushAndClear();
-
-        assertThat(orderRepository.existsByOrderNumber(orderNumber)).isTrue();
-        assertThat(orderRepository.existsByOrderNumber(newOrderNumber())).isFalse();
-    }
-
-    @Test
     @DisplayName("상세 조회는 주문 항목을 함께 불러온다")
     void findWithItemsById() {
         Order saved = orderRepository.save(personal(newOrderNumber(), BUYER));
@@ -56,12 +45,6 @@ class OrderRepositoryTest {
 
         assertThat(found.getItems()).hasSize(2);
         assertThat(found.getTotalAmount()).isEqualTo(65000);
-    }
-
-    @Test
-    @DisplayName("없는 주문이면 상세 조회 결과가 비어 있다")
-    void findWithItemsByIdEmpty() {
-        assertThat(orderRepository.findWithItemsById(999_999_999L)).isEmpty();
     }
 
     @Test

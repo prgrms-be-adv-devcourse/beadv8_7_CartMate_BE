@@ -5,8 +5,10 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared
 import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
+import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderDetailResponse;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.FakeOrderProductClient;
-import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
@@ -19,7 +21,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +47,9 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     private SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
 
     @Autowired
+    private SharedGroupOrderFacade sharedGroupOrderFacade;
+
+    @Autowired
     private OutboxRelay outboxRelay;
 
     @Autowired
@@ -57,8 +61,6 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     @Autowired
     private FakeOrderProductClient fakeOrderProductClient;
 
-    private final List<Long> purchaseIds = new ArrayList<>();
-
     private final long base = 8_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
     private final Long creator = base;
     private final Long member = base + 1;
@@ -66,22 +68,10 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     @AfterEach
     void cleanUp() {
         fakeOrderProductClient.clearOverride();
-        transactionTemplate.executeWithoutResult(status -> {
-            purchaseIds.forEach(id -> {
-                // 다른 테스트의 릴레이가 남은 행을 집어 지운 공동구매로 주문을 만들지 않게 이 공동구매의 이벤트를 모두 지운다
-                jdbcTemplate.update("DELETE FROM outbox_event WHERE aggregate_type = 'SharedGroupPurchase' AND aggregate_id = ?",
-                        String.valueOf(id));
-                orderIdOf(id).ifPresent(orderId -> jdbcTemplate.update(
-                        "DELETE FROM outbox_event WHERE aggregate_type = 'SharedGroupOrder' AND aggregate_id = ?",
-                        String.valueOf(orderId)));
-            });
-            new TestDataCleaner(jdbcTemplate).deleteSharedGroupOrdersOfPurchases(purchaseIds);
-            purchaseIds.forEach(sharedGroupPurchaseRepository::deleteById);
-        });
     }
 
     @Test
-    @DisplayName("마감이 커밋되면 공동구매는 CLOSED, 마감 이벤트는 아웃박스에만 있고 공동 주문은 아직 없다. 릴레이 뒤 공동 주문 1건과 ORDER_CREATED")
+    @DisplayName("마감이 커밋되면 공동구매는 CLOSED, 마감 이벤트는 아웃박스에만 있고 공동 주문은 아직 없다. 릴레이 뒤 공동 주문 1건과 ORDER_CREATED, 참여자는 자기 부담 금액과 상세를 조회한다")
     void closeThenRelayCreatesOrder() {
         Long purchaseId = readyPurchase("마감 분리");
 
@@ -95,9 +85,20 @@ class SharedGroupOrderCreationFlowIntegrationTest {
 
         assertThat(orderCountOf(purchaseId)).isEqualTo(1);
         Long orderId = orderIdOf(purchaseId).orElseThrow();
-        assertThat(jdbcTemplate.queryForObject("SELECT total_amount FROM shared_group_order WHERE id = ?", Long.class, orderId))
-                .isEqualTo(75000L);
         assertThat(createdEventCount(orderId)).isEqualTo(1);
+
+        SharedGroupOrderSummaryResponse summary = sharedGroupOrderFacade.getMyList(member).stream()
+                .filter(order -> order.id().equals(orderId))
+                .findFirst()
+                .orElseThrow();
+        assertThat(summary.totalAmount()).isEqualTo(75000L);
+        assertThat(summary.myShareAmount()).isEqualTo(37500L);
+        assertThat(summary.participantCount()).isEqualTo(2);
+
+        SharedGroupOrderDetailResponse detail = sharedGroupOrderFacade.getDetail(creator, orderId);
+        assertThat(detail.creator()).isTrue();
+        assertThat(detail.items()).singleElement()
+                .satisfies(item -> assertThat(item.unitPrice()).isEqualTo(25000L));
     }
 
     @Test
@@ -210,13 +211,12 @@ class SharedGroupOrderCreationFlowIntegrationTest {
 
     private Long readyPurchase(String title) {
         var created = sharedGroupPurchaseFacade.create(creator, new SharedGroupPurchaseCreateRequest(title, 5));
-        purchaseIds.add(created.id());
         sharedGroupPurchaseFacade.join(member, created.inviteCode());
         sharedGroupPurchaseFacade.addItem(member, created.id(), 4L, 3);
         return created.id();
     }
 
-    // 같은 DB를 쓰는 다른 테스트가 남긴 NEW 행이 앞에 있을 수 있어 조건이 맞을 때까지 돌린다
+    // 조건이 맞을 때까지 릴레이를 돌린다
     private void relayUntil(BooleanSupplier condition) {
         for (int i = 0; i < 20; i++) {
             ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);

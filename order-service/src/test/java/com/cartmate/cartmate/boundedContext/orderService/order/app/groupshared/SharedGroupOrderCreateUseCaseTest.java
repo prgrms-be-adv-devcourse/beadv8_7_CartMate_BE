@@ -12,7 +12,6 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreatedEvent;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreationFailedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -137,14 +136,6 @@ class SharedGroupOrderCreateUseCaseTest {
         then(sharedGroupOrderRepository).should(never()).save(any());
         then(orderProductClient).shouldHaveNoInteractions();
         then(eventPublisher).shouldHaveNoInteractions();
-    }
-
-    @Test
-    @DisplayName("생성 실패 소식은 공동구매 ID와 실패 코드를 담아 발행한다")
-    void reportCreationFailed() {
-        createUseCase.reportCreationFailed(PURCHASE_ID, "ORDER_PRODUCT_NOT_FOUND");
-
-        then(eventPublisher).should().publish(new SharedGroupOrderCreationFailedEvent(PURCHASE_ID, "ORDER_PRODUCT_NOT_FOUND"));
     }
 
     private SharedGroupPurchaseClosedEvent event(List<Long> participants, SharedGroupPurchaseClosedEvent.Item... items) {

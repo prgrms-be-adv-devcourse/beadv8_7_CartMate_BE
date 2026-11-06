@@ -12,6 +12,7 @@ import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ class CartItemUseCase {
 
     private final CartRepository cartRepository;
     private final ProductClient productClient;
+    private final Clock clock;
 
     void addItem(Long memberId, Long inventoryId, int quantity) {
         CartProductInfo product = getPurchasableProduct(inventoryId);
@@ -38,24 +40,27 @@ class CartItemUseCase {
     // 방금 커밋된 항목을 놓친다. 그래서 CartFacade.addItem은 READ_COMMITTED다 (문장마다 새 스냅샷)
     private Cart lockCart(Long memberId) {
         if (!cartRepository.existsByMemberId(memberId)) {
-            cartRepository.insertIfAbsent(memberId, LocalDateTime.now());
+            cartRepository.insertIfAbsent(memberId, LocalDateTime.now(clock));
         }
         return cartRepository.findByMemberIdForUpdate(memberId)
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_NOT_FOUND));
     }
 
+    // 아래 항목 변경(수량 변경 · 삭제 · 비우기 · 결제 후 차감)도 담기와 같은 장바구니 행 락으로 줄 세운다(ARCH-10#1).
+    // 락 없이 읽으면 담기가 수량을 올리려는 항목을 다른 쪽이 먼저 지워 UPDATE 0건 → StaleStateException(500)이 나거나,
+    // 서로 다른 스냅샷으로 같은 항목을 고쳐 한쪽 변경이 사라진다. 항목은 락 뒤에 따로 읽으므로 Facade는 READ_COMMITTED다
     void changeQuantity(Long memberId, Long cartItemId, int quantity) {
-        Cart cart = getCartWithItems(memberId);
+        Cart cart = getLockedCart(memberId);
         cart.getItem(cartItemId).changeQuantity(quantity);
     }
 
     void removeItem(Long memberId, Long cartItemId) {
-        Cart cart = getCartWithItems(memberId);
+        Cart cart = getLockedCart(memberId);
         cart.removeItem(cartItemId);
     }
 
     void clear(Long memberId) {
-        cartRepository.findWithItemsByMemberId(memberId)
+        cartRepository.findByMemberIdForUpdate(memberId)
                 .ifPresent(Cart::clear);
     }
 
@@ -69,12 +74,12 @@ class CartItemUseCase {
                         OrderPaidEvent.Item::quantity,
                         Integer::sum
                 ));
-        cartRepository.findWithItemsByMemberId(event.memberId())
+        cartRepository.findByMemberIdForUpdate(event.memberId())
                 .ifPresent(cart -> cart.removeOrderedQuantities(orderedQuantities));
     }
 
-    private Cart getCartWithItems(Long memberId) {
-        return cartRepository.findWithItemsByMemberId(memberId)
+    private Cart getLockedCart(Long memberId) {
+        return cartRepository.findByMemberIdForUpdate(memberId)
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_NOT_FOUND));
     }
 

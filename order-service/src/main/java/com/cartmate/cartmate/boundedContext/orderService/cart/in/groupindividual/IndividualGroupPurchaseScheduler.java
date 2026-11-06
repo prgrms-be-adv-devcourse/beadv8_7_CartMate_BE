@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,11 +26,12 @@ public class IndividualGroupPurchaseScheduler {
     private static final String LOCK_AT_LEAST = "PT5S";
 
     private final IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
+    private final Clock clock;
 
     @Scheduled(fixedDelay = INTERVAL_MILLIS, initialDelay = INTERVAL_MILLIS)
     @SchedulerLock(name = "individualGroupPurchase.closeExpiredDemand", lockAtMostFor = LOCK_AT_MOST, lockAtLeastFor = LOCK_AT_LEAST)
     public void closeExpiredDemand() {
-        List<Long> ids = individualGroupPurchaseFacade.findDemandIdsToCloseByDeadline(LocalDateTime.now());
+        List<Long> ids = individualGroupPurchaseFacade.findDemandIdsToCloseByDeadline(LocalDateTime.now(clock));
         for (Long id : ids) {
             try {
                 individualGroupPurchaseFacade.closeByDeadline(id);

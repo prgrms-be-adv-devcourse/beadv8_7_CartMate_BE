@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,7 @@ public class IndividualGroupPurchaseFacade {
     private final IndividualGroupPurchaseManageUseCase individualGroupPurchaseManageUseCase;
     private final IndividualGroupPurchaseQueryUseCase individualGroupPurchaseQueryUseCase;
     private final IndividualGroupPurchaseOrderReplicaUseCase individualGroupPurchaseOrderReplicaUseCase;
+    private final Clock clock;
 
     @Transactional
     public IndividualGroupPurchaseCreateResponse create(Long memberId, IndividualGroupPurchaseCreateRequest request) {
@@ -37,7 +39,7 @@ public class IndividualGroupPurchaseFacade {
     @Transactional
     public IndividualGroupPurchaseCreateResponse openFromDemand(Long adminMemberId, Long productId,
                                                                 DemandGroupPurchaseOpenRequest request) {
-        return individualGroupPurchaseDemandOpenUseCase.open(adminMemberId, productId, request, LocalDateTime.now());
+        return individualGroupPurchaseDemandOpenUseCase.open(adminMemberId, productId, request, LocalDateTime.now(clock));
     }
 
     @Transactional

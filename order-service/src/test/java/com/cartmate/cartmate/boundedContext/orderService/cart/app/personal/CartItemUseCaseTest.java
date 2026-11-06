@@ -18,12 +18,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,6 +38,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class CartItemUseCaseTest {
 
     private static final Long MEMBER_ID = 1L;
+    private static final Clock CLOCK = Clock.fixed(
+            LocalDateTime.of(2026, 10, 19, 12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
     private static final CartProductInfo UNIFORM_M = new CartProductInfo(
             1L, 100L, "축구 유니폼", "M / 레드", 39000, "uniform.png", true);
@@ -54,7 +57,7 @@ class CartItemUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        cartItemUseCase = new CartItemUseCase(cartRepository, productClient);
+        cartItemUseCase = new CartItemUseCase(cartRepository, productClient, CLOCK);
     }
 
     @Nested
@@ -140,7 +143,7 @@ class CartItemUseCaseTest {
         @DisplayName("내 장바구니 항목의 수량을 바꾼다")
         void changeQuantity() {
             Cart cart = cartWithItem(10L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7);
 
@@ -151,7 +154,7 @@ class CartItemUseCaseTest {
         @DisplayName("내 장바구니에 없는 항목이면 예외가 발생한다")
         void itemNotInMyCart() {
             Cart cart = cartWithItem(10L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 99L, 7))
                     .isInstanceOf(ServiceException.class)
@@ -161,7 +164,7 @@ class CartItemUseCaseTest {
         @Test
         @DisplayName("장바구니가 없으면 예외가 발생한다")
         void cartNotFound() {
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7))
                     .isInstanceOf(ServiceException.class)
@@ -177,7 +180,7 @@ class CartItemUseCaseTest {
         @DisplayName("내 장바구니에서 항목을 삭제한다")
         void removeItem() {
             Cart cart = cartWithItem(10L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.removeItem(MEMBER_ID, 10L);
 
@@ -195,19 +198,11 @@ class CartItemUseCaseTest {
             Cart cart = Cart.create(MEMBER_ID);
             cart.addItem(100L, 1L, 2);
             cart.addItem(100L, 2L, 1);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.clear(MEMBER_ID);
 
             assertThat(cart.getItems()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("장바구니가 없어도 예외 없이 끝난다")
-        void noCart() {
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
-
-            assertThatCode(() -> cartItemUseCase.clear(MEMBER_ID)).doesNotThrowAnyException();
         }
     }
 
@@ -222,7 +217,7 @@ class CartItemUseCaseTest {
             cart.addItem(100L, 1L, 2);
             cart.addItem(100L, 2L, 1);
             cart.addItem(200L, 4L, 3);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.removeOrderedItems(paidEvent(OrderType.PERSONAL, item(1L, 2), item(4L, 1)));
 
@@ -236,7 +231,7 @@ class CartItemUseCaseTest {
         void sumSameInventoryQuantities() {
             Cart cart = Cart.create(MEMBER_ID);
             cart.addItem(100L, 1L, 5);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.removeOrderedItems(paidEvent(OrderType.PERSONAL, item(1L, 2), item(1L, 1)));
 

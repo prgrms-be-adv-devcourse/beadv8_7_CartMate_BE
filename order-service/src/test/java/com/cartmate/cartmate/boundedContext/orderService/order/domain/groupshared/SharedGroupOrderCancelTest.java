@@ -60,23 +60,14 @@ class SharedGroupOrderCancelTest {
     }
 
     @Test
-    @DisplayName("결제 기한에 유예 시간을 더한 시각 전에는 기한 만료로 취소하지 않는다")
-    void cancelByDeadlineBeforeGrace() {
-        SharedGroupOrder order = order();
-        LocalDateTime justBefore = order.getPaymentDeadlineAt().plus(SharedGroupOrder.GRACE_PERIOD).minusSeconds(1);
-
-        boolean canceled = order.cancelByDeadline(justBefore);
-
-        assertThat(canceled).isFalse();
-        assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.PAYING);
-        assertThat(order.getCancelReason()).isNull();
-    }
-
-    @Test
-    @DisplayName("결제 기한에 유예 시간을 더한 시각이 되면 기한 만료로 취소한다")
-    void cancelByDeadlineAtGrace() {
+    @DisplayName("결제 기한에 유예 시간을 더한 시각 1초 전에는 기한 만료로 취소하지 않고, 그 시각이 되면 취소한다")
+    void cancelByDeadlineGraceBoundary() {
         SharedGroupOrder order = order();
         LocalDateTime graceEnd = order.getPaymentDeadlineAt().plus(SharedGroupOrder.GRACE_PERIOD);
+
+        assertThat(order.cancelByDeadline(graceEnd.minusSeconds(1))).isFalse();
+        assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.PAYING);
+        assertThat(order.getCancelReason()).isNull();
 
         boolean canceled = order.cancelByDeadline(graceEnd);
 

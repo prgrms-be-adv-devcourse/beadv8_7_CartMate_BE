@@ -18,7 +18,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +35,8 @@ class OrderCancelUseCaseTest {
 
     private static final Long ORDER_ID = 100L;
     private static final Long BUYER = 1L;
+    private static final Clock CLOCK = Clock.fixed(
+            LocalDateTime.of(2026, 10, 19, 12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
     @Mock
     private OrderRepository orderRepository;
@@ -44,14 +48,14 @@ class OrderCancelUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        cancelUseCase = new OrderCancelUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher);
+        cancelUseCase = new OrderCancelUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher, CLOCK);
     }
 
     @Test
     @DisplayName("결제한 주문을 주문자가 취소하면 환불이 필요하다고 알리는 취소 이벤트를 발행한다")
     void cancelPaidOrderByBuyer() {
         Order order = order();
-        order.markPaid(1L, LocalDateTime.now());
+        order.markPaid(1L, LocalDateTime.now(CLOCK));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
 
         cancelUseCase.cancelByBuyer(BUYER, ORDER_ID);
@@ -80,6 +84,6 @@ class OrderCancelUseCaseTest {
     private Order order() {
         return Order.createPersonal("20261019-ABCDEFGH", BUYER,
                 List.of(new OrderLine(2L, 4L, null, "축구공", "5호", 25000, 1)),
-                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", null), LocalDateTime.now());
+                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", null), LocalDateTime.now(CLOCK));
     }
 }

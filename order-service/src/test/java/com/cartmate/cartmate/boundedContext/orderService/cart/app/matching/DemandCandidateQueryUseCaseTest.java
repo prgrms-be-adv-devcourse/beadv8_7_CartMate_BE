@@ -9,6 +9,8 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.out.matching.CartD
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -84,27 +86,21 @@ class DemandCandidateQueryUseCaseTest {
                 .containsExactly(1L);
     }
 
-    @Test
-    @DisplayName("상품 정보를 찾지 못한 후보는 이름 없이 구매 불가로 표시한다")
-    void unknownProduct() {
+    @ParameterizedTest(name = "{1}", quoteTextArguments = false)
+    @CsvSource({
+            "999, '상품 정보를 찾지 못하면 이름 없이 구매 불가', ",
+            "3, '판매 불가 상품이면 이름은 그대로 두고 구매 불가', 정강이 보호대"
+    })
+    @DisplayName("상품 정보가 없거나 판매 불가인 후보는 구매 불가로 표시한다")
+    void notPurchasableCandidate(Long productId, String situation, String expectedName) {
         DemandCandidateQueryUseCase useCase = useCaseWith(List.of(
-                new ProductDemand(999L, Set.of(1L, 2L))
+                new ProductDemand(productId, Set.of(1L, 2L))
         ));
 
         DemandCandidateResponse candidate = useCase.getCandidates(2, 2, 30, 20, 14, NOW).getFirst();
 
-        assertThat(candidate.productName()).isNull();
+        assertThat(candidate.productName()).isEqualTo(expectedName);
         assertThat(candidate.purchasable()).isFalse();
-    }
-
-    @Test
-    @DisplayName("판매 불가 상품은 구매 불가로 표시한다")
-    void notPurchasable() {
-        DemandCandidateQueryUseCase useCase = useCaseWith(List.of(
-                new ProductDemand(3L, Set.of(1L, 2L))
-        ));
-
-        assertThat(useCase.getCandidates(2, 2, 30, 20, 14, NOW).getFirst().purchasable()).isFalse();
     }
 
     @Test

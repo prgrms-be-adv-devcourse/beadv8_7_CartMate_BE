@@ -10,6 +10,7 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -20,12 +21,13 @@ class SharedGroupPurchaseCreateUseCase {
     private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
     private final InviteCodeGenerator inviteCodeGenerator;
+    private final Clock clock;
 
     SharedGroupPurchaseCreateResponse create(Long memberId, SharedGroupPurchaseCreateRequest request) {
         sharedGroupPurchaseSupport.validateNotRestricted(memberId);
         String inviteCode = generateInviteCode();
         SharedGroupPurchase purchase = SharedGroupPurchase.create(
-                request.title(), memberId, request.maxParticipants(), inviteCode, LocalDateTime.now());
+                request.title(), memberId, request.maxParticipants(), inviteCode, LocalDateTime.now(clock));
         SharedGroupPurchase saved = sharedGroupPurchaseRepository.save(purchase);
         return SharedGroupPurchaseCreateResponse.from(saved);
     }
@@ -35,7 +37,7 @@ class SharedGroupPurchaseCreateUseCase {
         SharedGroupPurchase source = getPurchase(sharedGroupPurchaseId);
         Set<Long> unavailable = sharedGroupPurchaseSupport.findUnavailableInventoryIds(source);
         String inviteCode = generateInviteCode();
-        SharedGroupPurchase copy = source.duplicate(memberId, inviteCode, unavailable, LocalDateTime.now());
+        SharedGroupPurchase copy = source.duplicate(memberId, inviteCode, unavailable, LocalDateTime.now(clock));
         SharedGroupPurchase saved = sharedGroupPurchaseRepository.save(copy);
         return SharedGroupPurchaseCreateResponse.duplicated(saved, unavailable);
     }

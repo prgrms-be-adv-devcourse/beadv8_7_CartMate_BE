@@ -14,6 +14,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.Sh
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
@@ -31,6 +32,7 @@ class SharedGroupPurchaseQueryUseCase {
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
     private final ProductClient productClient;
     private final MemberClient memberClient;
+    private final Clock clock;
 
     Map<Long, String> findTitles(Collection<Long> sharedGroupPurchaseIds) {
         return sharedGroupPurchaseRepository.findTitlesByIds(sharedGroupPurchaseIds);
@@ -45,11 +47,11 @@ class SharedGroupPurchaseQueryUseCase {
         Map<Long, CartProductInfo> products = productClient
                 .findAllByInventoryIds(sharedGroupPurchaseSupport.inventoryIdsOf(purchase)).stream()
                 .collect(Collectors.toMap(CartProductInfo::inventoryId, Function.identity()));
-        return SharedGroupPurchaseDetailResponse.of(purchase, products, nicknamesOf(purchase), memberId, LocalDateTime.now());
+        return SharedGroupPurchaseDetailResponse.of(purchase, products, nicknamesOf(purchase), memberId, LocalDateTime.now(clock));
     }
 
     List<SharedGroupPurchaseSummaryResponse> getMyList(Long memberId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         return sharedGroupPurchaseRepository.findAllByParticipant(memberId).stream()
                 .map(purchase -> SharedGroupPurchaseSummaryResponse.of(purchase, memberId, now))
                 .toList();

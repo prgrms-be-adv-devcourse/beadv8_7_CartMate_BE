@@ -7,10 +7,12 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberStateRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
-import com.cartmate.cartmate.boundedContext.orderService.abuse.support.AbuseTestDataCleaner;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import com.cartmate.cartmate.support.CartMateTestContainers;
+import com.cartmate.cartmate.support.DatabaseCleaner;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.CannotAcquireLockException;
@@ -19,7 +21,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -30,6 +31,8 @@ import static org.mockito.BDDMockito.willThrow;
 
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
+@ImportTestcontainers(CartMateTestContainers.class)
+@ExtendWith(DatabaseCleaner.class)
 class AbuseJudgeFailureIntegrationTest {
 
     @MockitoBean
@@ -47,16 +50,9 @@ class AbuseJudgeFailureIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private final List<Long> memberIds = new ArrayList<>();
-
     private final long base = 9_600_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
-
-    @AfterEach
-    void tearDown() {
-        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
-    }
 
     @Test
     @DisplayName("판정이 실패하면 판정은 롤백돼도 실패 기록은 남고, 최대 시도 횟수째 실패에서 FAILED가 되어 재판정 대상에서 빠진다")
@@ -133,8 +129,6 @@ class AbuseJudgeFailureIntegrationTest {
     }
 
     private long nextMemberId() {
-        long memberId = base + sequence++;
-        memberIds.add(memberId);
-        return memberId;
+        return base + sequence++;
     }
 }
