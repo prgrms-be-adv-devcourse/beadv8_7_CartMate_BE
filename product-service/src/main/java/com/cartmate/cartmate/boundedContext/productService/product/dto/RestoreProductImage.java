@@ -1,15 +1,13 @@
-package com.cartmate.cartmate.shared.product.dto;
+package com.cartmate.cartmate.boundedContext.productService.product.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class UpdateProductsRequest {
+public class RestoreProductImage {
     private Long id;
-    private List<UpdateProduct> productList;
+    private int imageSeq;
 }

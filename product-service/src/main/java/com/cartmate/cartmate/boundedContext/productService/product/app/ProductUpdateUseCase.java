@@ -5,7 +5,10 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.Produc
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
-import com.cartmate.cartmate.shared.product.dto.*;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProduct;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductOption;
 import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;

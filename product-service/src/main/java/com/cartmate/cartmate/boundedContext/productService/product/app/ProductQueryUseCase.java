@@ -1,8 +1,8 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectProductImage;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectProductOption;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectProductResponse;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;

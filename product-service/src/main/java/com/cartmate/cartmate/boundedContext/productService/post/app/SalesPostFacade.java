@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
+import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.*;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.*;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
@@ -163,7 +164,7 @@ public class SalesPostFacade {
         try {
             salesPostApiClient.updateProducts(request, images);
         } catch (ServiceException e) {
-            if (e.getResultCode().equals("PRODUCT_UPDATE_INVALID")) {
+            if (e.getResultCode().equals(ProductErrorCode.PRODUCT_UPDATE_INVALID.resultCode())) {
                 // 명확한 실패(상품 쪽 rollback 완료)
                 transactionTemplate.executeWithoutResult(s -> {
                     salesPostRecoveryUseCase.delete(postId);
