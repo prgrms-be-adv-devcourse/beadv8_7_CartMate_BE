@@ -8,9 +8,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -44,10 +42,5 @@ public class AbuseFacade {
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public AbuseRestrictionStatus getRestriction(Long memberId) {
         return abuseRestrictionQueryUseCase.getRestriction(memberId, LocalDateTime.now());
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
-    public Map<Long, AbuseRestrictionStatus> getRestrictions(Collection<Long> memberIds) {
-        return abuseRestrictionQueryUseCase.getRestrictions(memberIds, LocalDateTime.now());
     }
 }

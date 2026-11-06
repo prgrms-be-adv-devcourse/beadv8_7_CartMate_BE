@@ -25,18 +25,6 @@ class CartRepositoryTest {
     private EntityManager em;
 
     @Test
-    @DisplayName("회원 ID로 장바구니를 조회한다")
-    void findByMemberId() {
-        Cart saved = cartRepository.save(Cart.create(MEMBER_ID));
-        flushAndClear();
-
-        Optional<Cart> found = cartRepository.findByMemberId(MEMBER_ID);
-
-        assertThat(found).isPresent();
-        assertThat(found.get().getId()).isEqualTo(saved.getId());
-    }
-
-    @Test
     @DisplayName("항목이 없는 장바구니도 조회된다 (left join)")
     void findWithItemsByMemberId_emptyCart() {
         cartRepository.save(Cart.create(MEMBER_ID));

@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,24 +55,6 @@ class AbuseRestrictionQueryIntegrationTest {
         assertThat(abuseFacade.getRestriction(restricted)).isEqualTo(AbuseRestrictionStatus.restrictedUntil(restricted, until));
         assertThat(abuseFacade.getRestriction(expired)).isEqualTo(AbuseRestrictionStatus.none(expired));
         assertThat(abuseFacade.getRestriction(unknown)).isEqualTo(AbuseRestrictionStatus.none(unknown));
-    }
-
-    @Test
-    @DisplayName("여러 회원을 한 번에 조회하면 요청한 회원마다 결과가 있다")
-    void getsRestrictionsOfMembers() {
-        long restricted = nextMemberId();
-        long expired = nextMemberId();
-        long unknown = nextMemberId();
-        LocalDateTime until = LocalDateTime.now().plusHours(1).truncatedTo(ChronoUnit.SECONDS);
-        saveState(restricted, until);
-        saveState(expired, LocalDateTime.now().minusMinutes(1));
-
-        Map<Long, AbuseRestrictionStatus> statuses = abuseFacade.getRestrictions(List.of(restricted, expired, unknown));
-
-        assertThat(statuses).containsOnlyKeys(restricted, expired, unknown);
-        assertThat(statuses.get(restricted)).isEqualTo(AbuseRestrictionStatus.restrictedUntil(restricted, until));
-        assertThat(statuses.get(expired).restricted()).isFalse();
-        assertThat(statuses.get(unknown).restricted()).isFalse();
     }
 
     @Test

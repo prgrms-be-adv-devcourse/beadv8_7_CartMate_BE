@@ -78,7 +78,7 @@ class OrderFlowIntegrationTest {
             jdbcTemplate.update("DELETE FROM individual_group_purchase_order WHERE order_id = ?", orderId);
         });
         orderIds.forEach(orderRepository::deleteById);
-        memberIds.forEach(memberId -> cartRepository.findByMemberId(memberId).ifPresent(cartRepository::delete));
+        memberIds.forEach(memberId -> cartRepository.findWithItemsByMemberId(memberId).ifPresent(cartRepository::delete));
         purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);
     }
 
