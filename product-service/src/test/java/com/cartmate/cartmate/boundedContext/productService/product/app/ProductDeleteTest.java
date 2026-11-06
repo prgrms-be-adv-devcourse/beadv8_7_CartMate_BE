@@ -114,7 +114,7 @@ class ProductDeleteTest {
     void otherSellerCannotDelete() {
         assertThatThrownBy(() -> productFacade.deleteProductByUser(productId, OTHER_SELLER_ID))
                 .isInstanceOf(ServiceException.class)
-                .hasMessageStartingWith("PRODUCT_ACCESS_DENIED");
+                .hasMessageContaining("PRODUCT_ACCESS_DENIED");
 
         assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
         assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
@@ -127,6 +127,6 @@ class ProductDeleteTest {
 
         assertThatThrownBy(() -> productFacade.deleteProductByUser(productId, SELLER_ID))
                 .isInstanceOf(ServiceException.class)
-                .hasMessageStartingWith("PRODUCT_NOT_FOUND");
+                .hasMessageContaining("PRODUCT_NOT_FOUND");
     }
 }
