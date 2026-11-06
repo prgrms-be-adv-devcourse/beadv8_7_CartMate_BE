@@ -19,10 +19,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -38,13 +40,15 @@ class IndividualGroupPurchasePaybackUseCaseTest {
     private final IndividualGroupPurchaseReplicaRepository replicaRepository = mock(IndividualGroupPurchaseReplicaRepository.class);
     private final OrderPurchaseConfirmationRepository confirmationRepository = mock(OrderPurchaseConfirmationRepository.class);
     private final IndividualGroupPurchasePaybackRepository paybackRepository = mock(IndividualGroupPurchasePaybackRepository.class);
+    private final PaybackPayoutUseCase payoutUseCase = mock(PaybackPayoutUseCase.class);
     private final List<OrderPurchaseConfirmation> confirmations = new ArrayList<>();
 
     private final IndividualGroupPurchasePaybackUseCase useCase = new IndividualGroupPurchasePaybackUseCase(
-            orderRepository, replicaRepository, confirmationRepository, paybackRepository);
+            orderRepository, replicaRepository, confirmationRepository, paybackRepository, payoutUseCase);
 
     @BeforeEach
     void setUp() {
+        given(paybackRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
         // DB의 insert-if-absent처럼: 이미 있으면 바꾸지 않는다
         given(confirmationRepository.insertIfAbsent(any(), any())).willAnswer(invocation -> {
             Long orderId = invocation.getArgument(0);
@@ -76,6 +80,32 @@ class IndividualGroupPurchasePaybackUseCaseTest {
         assertThat(judged.getBuyerCount()).isEqualTo(2);
         assertThat(judged.isReached()).isTrue();
         assertThat(judged.getPaybackAmount()).isEqualTo(1_000L);
+    }
+
+    @Test
+    @DisplayName("달성하면 구매확정한 서로 다른 구매자에게 1명 1건 지급을 요청한다")
+    void requestPayoutWhenReached() {
+        givenReplica(closedWithPayback(2));
+        givenOrders(order(1L, 10L, OrderStatus.PAID), order(2L, 20L, OrderStatus.PAID), order(3L, 10L, OrderStatus.PAID));
+
+        useCase.recordConfirmed(1L, LATER, LATER);
+        useCase.recordConfirmed(2L, LATER, LATER);
+        useCase.recordConfirmed(3L, LATER, LATER);
+
+        verify(payoutUseCase).requestAll(PURCHASE, Set.of(10L, 20L), 1_000L, LATER);
+    }
+
+    @Test
+    @DisplayName("미달이면 판정만 남기고 지급을 요청하지 않는다")
+    void noPayoutWhenNotReached() {
+        givenReplica(closedWithPayback(3));
+        givenOrders(order(1L, 10L, OrderStatus.PAID), order(2L, 20L, OrderStatus.PAID));
+
+        useCase.recordConfirmed(1L, LATER, LATER);
+        useCase.recordConfirmed(2L, LATER, LATER);
+
+        assertThat(savedJudgment().isReached()).isFalse();
+        verify(payoutUseCase, never()).requestAll(any(), any(), anyLong(), any());
     }
 
     @Test
