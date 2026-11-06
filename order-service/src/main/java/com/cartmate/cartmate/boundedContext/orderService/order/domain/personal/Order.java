@@ -203,7 +203,7 @@ public class Order {
         return true;
     }
 
-    // 판매글 판매 중지: 결제 완료 주문에서 한 판매자 항목만 취소하고 취소 금액을 돌려준다 (0이면 이미 처리됨).
+    // 판매글 판매 중지: 결제 완료 주문에서 한 판매자 항목만 취소하고 취소 금액(그 판매자 항목 합계)을 돌려준다 (0이면 이미 처리됨).
     // 남은 항목이 없으면 주문도 취소 상태가 된다.
     public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
         if (status != OrderStatus.PAID) {
@@ -213,7 +213,7 @@ public class Order {
         for (OrderItem item : items) {
             if (item.getSellerId().equals(sellerId) && !item.isCanceled()) {
                 item.cancel(now);
-                amount = item.amount();
+                amount += item.amount();
             }
         }
         if (amount > 0 && items.stream().allMatch(OrderItem::isCanceled)) {
