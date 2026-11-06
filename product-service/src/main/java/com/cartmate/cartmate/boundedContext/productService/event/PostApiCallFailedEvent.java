@@ -1,6 +1,6 @@
-package com.cartmate.cartmate.shared.post.event;
+package com.cartmate.cartmate.boundedContext.productService.event;
 
-import com.cartmate.cartmate.shared.post.dto.RollbackProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
 
 public record PostApiCallFailedEvent(RollbackProductRequest rollbackProductRequest) {
 }

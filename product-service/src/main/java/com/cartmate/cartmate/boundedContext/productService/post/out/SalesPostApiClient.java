@@ -6,7 +6,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesP
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductRequest;
 import com.cartmate.cartmate.shared.product.dto.RestoreProduct;
 import com.cartmate.cartmate.shared.product.dto.RestoreProductImage;
 import com.cartmate.cartmate.shared.product.dto.RestoreProductOption;

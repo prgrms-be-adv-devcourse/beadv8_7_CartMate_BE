@@ -3,6 +3,8 @@ package com.cartmate.cartmate.boundedContext.productService.product.app;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
 import com.cartmate.cartmate.shared.product.dto.*;
 import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;

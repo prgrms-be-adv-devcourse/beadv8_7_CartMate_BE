@@ -1,6 +1,6 @@
-package com.cartmate.cartmate.shared.product.event;
+package com.cartmate.cartmate.boundedContext.productService.event;
 
-import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.DeleteProductListRequest;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

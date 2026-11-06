@@ -1,5 +1,6 @@
-package com.cartmate.cartmate.shared.post.dto;
+package com.cartmate.cartmate.boundedContext.productService.event;
 
+import com.cartmate.cartmate.boundedContext.productService.post.dto.ProductSyncUpdateRequest;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

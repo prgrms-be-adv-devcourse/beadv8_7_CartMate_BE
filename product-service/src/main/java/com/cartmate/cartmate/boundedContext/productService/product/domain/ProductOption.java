@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.product.domain;
 
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProductOption;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

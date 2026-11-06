@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.shared.product.event;
+package com.cartmate.cartmate.boundedContext.productService.event;
 
 import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
 import lombok.AllArgsConstructor;

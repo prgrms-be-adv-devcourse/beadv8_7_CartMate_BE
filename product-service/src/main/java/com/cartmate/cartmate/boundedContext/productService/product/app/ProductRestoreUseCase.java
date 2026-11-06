@@ -4,12 +4,12 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.Produc
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
 import com.cartmate.cartmate.shared.product.dto.RestoreProduct;
-import com.cartmate.cartmate.shared.product.dto.SyncProduct;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.shared.product.dto.ProductUpdateResult;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
 import com.cartmate.cartmate.shared.product.dto.RestoreProductImage;
 import com.cartmate.cartmate.shared.product.dto.RestoreProductOption;
 import com.cartmate.cartmate.shared.product.dto.RestoreProductsRequest;

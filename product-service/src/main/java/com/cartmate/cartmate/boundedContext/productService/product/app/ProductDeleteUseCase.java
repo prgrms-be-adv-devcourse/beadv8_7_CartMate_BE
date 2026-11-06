@@ -7,10 +7,10 @@ import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
-import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
-import com.cartmate.cartmate.shared.product.dto.SyncProduct;
-import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
-import com.cartmate.cartmate.shared.product.event.ProductListDeletedEvent;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.DeleteProductListRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
+import com.cartmate.cartmate.boundedContext.productService.event.ProductDeletedEvent;
+import com.cartmate.cartmate.boundedContext.productService.event.ProductListDeletedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
