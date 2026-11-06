@@ -27,9 +27,9 @@ class DemandAggregator {
 
     private final ProductSimilarityResolver productSimilarityResolver;
 
-    List<DemandCandidate> aggregate(Collection<ProductDemand> demands, int minMemberCount) {
-        if (minMemberCount < 1) {
-            throw new IllegalArgumentException("minMemberCount must be at least 1");
+    List<DemandCandidate> aggregate(Collection<ProductDemand> demands, int minExactMemberCount, int minMemberCount) {
+        if (minExactMemberCount < 1 || minMemberCount < minExactMemberCount) {
+            throw new IllegalArgumentException("minExactMemberCount must be at least 1 and at most minMemberCount");
         }
         Map<Long, Set<Long>> memberIdsByProductId = demands.stream()
                 .filter(demand -> !demand.memberIds().isEmpty())
@@ -39,10 +39,14 @@ class DemandAggregator {
                             return current;
                         }));
 
+        Set<Long> sourceProductIds = memberIdsByProductId.entrySet().stream()
+                .filter(entry -> entry.getValue().size() >= minExactMemberCount)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
         Map<Long, List<ProductSimilarity>> similaritiesByProductId =
-                productSimilarityResolver.resolveAll(memberIdsByProductId.keySet(), memberIdsByProductId.keySet());
+                productSimilarityResolver.resolveAll(sourceProductIds, memberIdsByProductId.keySet());
 
-        return memberIdsByProductId.keySet().stream()
+        return sourceProductIds.stream()
                 .map(productId -> toCandidate(productId,
                         similaritiesByProductId.getOrDefault(productId, List.of()), memberIdsByProductId))
                 .filter(candidate -> candidate.totalMemberCount() >= minMemberCount)

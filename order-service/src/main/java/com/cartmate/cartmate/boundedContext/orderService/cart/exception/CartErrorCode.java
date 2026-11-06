@@ -70,6 +70,7 @@ public enum CartErrorCode implements ErrorCode {
     CART_INDIVIDUAL_SALE_CLOSED("CART_INDIVIDUAL_SALE_CLOSED", "판매가 마감된 공동구매입니다.", HttpStatus.CONFLICT),
 
     CART_DEMAND_INVALID_MIN_MEMBERS("CART_DEMAND_INVALID_MIN_MEMBERS", "최소 인원은 1명 이상 1000명 이하여야 합니다.", HttpStatus.BAD_REQUEST),
+    CART_DEMAND_INVALID_MIN_EXACT_MEMBERS("CART_DEMAND_INVALID_MIN_EXACT_MEMBERS", "정확 매칭 최소 인원은 1명 이상, 전체 최소 인원 이하여야 합니다.", HttpStatus.BAD_REQUEST),
     CART_DEMAND_INVALID_DAYS("CART_DEMAND_INVALID_DAYS", "집계 기간은 1일 이상 90일 이하여야 합니다.", HttpStatus.BAD_REQUEST),
     CART_DEMAND_INVALID_SIZE("CART_DEMAND_INVALID_SIZE", "조회 개수는 1개 이상 100개 이하여야 합니다.", HttpStatus.BAD_REQUEST),
     CART_DEMAND_INVALID_COOLDOWN("CART_DEMAND_INVALID_COOLDOWN", "재개설 제한 기간은 0일 이상 90일 이하여야 합니다.", HttpStatus.BAD_REQUEST),

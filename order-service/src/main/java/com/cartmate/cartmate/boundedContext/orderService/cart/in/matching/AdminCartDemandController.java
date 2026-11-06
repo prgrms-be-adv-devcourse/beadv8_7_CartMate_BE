@@ -32,13 +32,14 @@ public class AdminCartDemandController {
 
     @GetMapping
     public RsData<List<DemandCandidateResponse>> getCandidates(
+            @RequestParam(defaultValue = "3") int minExactMembers,
             @RequestParam(defaultValue = "5") int minMembers,
             @RequestParam(defaultValue = "30") int days,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "14") int cooldownDays
     ) {
         return new RsData<>("200-1", "공동구매 후보를 조회했습니다.",
-                cartMatchingFacade.getDemandCandidates(minMembers, days, size, cooldownDays));
+                cartMatchingFacade.getDemandCandidates(minExactMembers, minMembers, days, size, cooldownDays));
     }
 
     @PostMapping("/{productId}/group-purchases")
