@@ -12,7 +12,6 @@ import java.util.Set;
 import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.sharedPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 
-// 마감(CLOSED) 뒤 공동 주문 생성 결과로 바뀌는 단계: CLOSED → ORDER_CREATED, CLOSED → FROZEN 복귀
 class SharedGroupPurchaseOrderStageTest {
 
     private static final Long CREATOR = 1L;

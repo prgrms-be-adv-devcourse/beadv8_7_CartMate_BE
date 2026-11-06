@@ -15,7 +15,6 @@ import static com.cartmate.cartmate.boundedContext.orderService.cart.support.Gro
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
-
 class IndividualGroupPurchaseDashboardResponseTest {
 
     private static final Long UNIFORM = 100L;
@@ -40,7 +39,6 @@ class IndividualGroupPurchaseDashboardResponseTest {
                         new CartProductOptions.Option(UNIFORM_XL, "XL", 41000, true))),
                 SOCKS, new CartProductOptions(SOCKS, "양말", null, true, List.of(
                         new CartProductOptions.Option(SOCKS_FREE, "FREE", 5000, true))));
-
 
         List<IndividualGroupPurchaseOrderLine> lines = List.of(
                 line(10L, 101L, UNIFORM, UNIFORM_M, 1, 39000),

@@ -46,7 +46,6 @@ public class SharedGroupOrderController {
         return new RsData<>("200-1", "공동 주문을 취소했습니다.");
     }
 
-    // 분담금 결제 (예전 POST /api/payments/shared-group-orders/{id}). 개설자는 팀 배송지를 함께 보낸다.
     @PostMapping("/{id}/payment")
     @Operation(operationId = "paySharedGroupOrder", summary = "공동 주문 분담금 예치금 결제")
     public RsData<PaymentResult> pay(@AuthenticationPrincipal SecurityUser user, @PathVariable Long id,

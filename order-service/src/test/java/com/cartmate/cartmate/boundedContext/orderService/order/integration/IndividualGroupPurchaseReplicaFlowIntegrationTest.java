@@ -32,10 +32,6 @@ import static com.cartmate.cartmate.support.OutboxRelayHelper.relayUntil;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * cart 개인물품 공동구매 열림 · 갱신 · 종료 → 아웃박스 → order 사본 → 주문 생성 · 결제 판단 흐름(ARCH-16).
- * 릴레이를 직접 돌려 사본이 늦는 순간을 만든다.
- */
 @CartMateIntegrationTest
 class IndividualGroupPurchaseReplicaFlowIntegrationTest {
 
@@ -104,7 +100,6 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
         Long paidInWindow = createOrder(buyer + 2, purchaseId);
 
         individualGroupPurchaseFacade.close(creator, purchaseId);
-        // 종료 이벤트가 아직 릴레이 전이라 사본은 열려 있다: 이 사이 결제는 통과하고(B안), 새 주문도 만들어진다
         orderFacade.applyPayment(paidInWindow, buyer + 2, paidInWindow, LocalDateTime.now());
         Long orderedInWindow = createOrder(buyer + 3, purchaseId);
 
@@ -126,7 +121,6 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
         relayUntil(jdbcTemplate, outboxRelay, () -> replicaRevision(purchaseId) == 0);
         Long orderId = createOrder(buyer, purchaseId);
         individualGroupPurchaseFacade.close(creator, purchaseId);
-        // 사본만 닫고(취소 consumer가 돌기 전 상태) 결제를 넣는다
         orderFacade.applyIndividualGroupPurchaseClosed(new IndividualGroupPurchaseClosedEvent(
                 purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR, LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null));
 
@@ -161,7 +155,6 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
 
         AtomicReference<Throwable> paymentError = new AtomicReference<>();
         transactionTemplate.executeWithoutResult(status -> {
-            // payment처럼 한 트랜잭션에서 결제 정보를 먼저 본다 → 스냅샷이 잡히고 사본은 열림
             assertThat(orderFacade.getPaymentInfo(orderId, buyer, LocalDateTime.now()).payable()).isTrue();
             CompletableFuture.runAsync(() -> orderFacade.applyIndividualGroupPurchaseClosed(
                     new IndividualGroupPurchaseClosedEvent(purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR,
@@ -206,7 +199,6 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
                 + "AND aggregate_id = ? AND event_type = 'OrderCanceledEvent'", Integer.class, String.valueOf(orderId));
     }
 
-    // 재고 4 = 상품 2(축구공)
     private static IndividualGroupOrderCreateRequest request(Long purchaseId) {
         return new IndividualGroupOrderCreateRequest(purchaseId,
                 List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)),

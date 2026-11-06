@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-// cart 모듈 호출은 모두 shared 조회 창구를 거친다. 물리 분리 시 이 클래스만 HTTP 클라이언트로 바꾼다
 @Component
 @RequiredArgsConstructor
 class CartQueryOrderClient implements OrderCartClient, OrderSharedGroupPurchaseClient {

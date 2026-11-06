@@ -49,7 +49,6 @@ class IndividualGroupPurchaseQueryUseCase {
         return toDashboard(getWithProductsForCreator(memberId, individualGroupPurchaseId));
     }
 
-    // 어드민 공동구매는 만든 어드민이 아니어도 어드민이면 현황판을 본다
     IndividualGroupPurchaseDashboardResponse getDashboardForAdmin(Long individualGroupPurchaseId) {
         IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findWithProductsById(individualGroupPurchaseId)
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_GROUP_PURCHASE_NOT_FOUND));
@@ -61,7 +60,6 @@ class IndividualGroupPurchaseQueryUseCase {
 
     private IndividualGroupPurchaseDashboardResponse toDashboard(IndividualGroupPurchase purchase) {
         Long individualGroupPurchaseId = purchase.getId();
-        // order 이벤트로 채운 읽기 모델이라 결제 직후 1~2초는 빠질 수 있다 (표시용이라 받아들임)
         List<IndividualGroupPurchaseOrderLine> lines = orderReplicaRepository.findPaidLines(individualGroupPurchaseId);
         Map<Long, String> nicknames = memberClient.findNicknames(lines.stream()
                 .map(IndividualGroupPurchaseOrderLine::buyerMemberId)
@@ -77,7 +75,6 @@ class IndividualGroupPurchaseQueryUseCase {
                 .toList();
     }
 
-    // order가 이벤트 사본이 아직 없을 때만 부른다. 잠그지 않는다(모듈을 넘는 락 금지, ARCH-16)
     Optional<IndividualGroupPurchaseSnapshot> findSnapshot(Long individualGroupPurchaseId) {
         return individualGroupPurchaseRepository.findWithProductsById(individualGroupPurchaseId)
                 .map(IndividualGroupPurchaseEvents::snapshot);

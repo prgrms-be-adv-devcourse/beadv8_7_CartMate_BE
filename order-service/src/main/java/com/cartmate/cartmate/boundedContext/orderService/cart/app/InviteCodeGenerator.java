@@ -14,12 +14,9 @@ public class InviteCodeGenerator {
 
     public static final int CODE_LENGTH = 12;
 
-
     private static final int MAX_ATTEMPTS = 5;
 
-
     private final SecureRandom random = new SecureRandom();
-
 
     public String generateUnique(Predicate<String> isTaken) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -30,7 +27,6 @@ public class InviteCodeGenerator {
         }
         throw new ServiceException(CartErrorCode.CART_INVITE_CODE_GENERATION_FAILED);
     }
-
 
     private String generate() {
         StringBuilder code = new StringBuilder(CODE_LENGTH);

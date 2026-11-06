@@ -22,7 +22,6 @@ import static com.cartmate.cartmate.boundedContext.orderService.cart.support.Gro
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** 개인물품 공동구매가 닫히는 네 경로(개설자 · 어드민 · 마감 시각 · 판매 중지)가 상태 · 수요 키 · 종료 이벤트(아웃박스)를 같은 방식으로 남기는지 본다. */
 @CartMateIntegrationTest
 class IndividualGroupPurchaseCloseIntegrationTest {
 

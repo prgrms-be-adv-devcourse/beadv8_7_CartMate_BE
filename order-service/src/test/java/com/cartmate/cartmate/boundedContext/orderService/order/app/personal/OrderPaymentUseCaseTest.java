@@ -67,11 +67,9 @@ class OrderPaymentUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        // 결제 반영 시 상품 재확인: 기본은 모든 상품이 판매 중
                 OrderProductClient allOnSale = inventoryIds -> inventoryIds.stream().distinct()
                         .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
                         .toList();
-        // 결제 반영(applyPayment) 테스트라 결제 포트는 쓰지 않는다. 결제 흐름(pay)은 통합 테스트에서 확인
                 paymentUseCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher, allOnSale,
                         replicaUseCase, org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderPaymentClient.class));
     }
@@ -243,7 +241,7 @@ class OrderPaymentUseCaseTest {
     private Order individualGroupOrder(LocalDateTime createdAt) {
         Order order = Order.createIndividualGroup("20261019-IGPORDER", BUYER, PURCHASE_ID, createdAt.plusDays(1),
                 List.of(ballLine(9L, 2)), addressWithoutDetail(), createdAt);
-        ReflectionTestUtils.setField(order, "createdAt", createdAt); // @CreationTimestamp는 저장할 때 채워진다
+        ReflectionTestUtils.setField(order, "createdAt", createdAt);
         return order;
     }
 }

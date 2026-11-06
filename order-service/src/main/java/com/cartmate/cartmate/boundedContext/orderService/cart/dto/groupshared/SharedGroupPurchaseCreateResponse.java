@@ -4,13 +4,11 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared
 
 import java.util.Set;
 
-
 public record SharedGroupPurchaseCreateResponse(
         Long id,
         String inviteCode,
         Set<Long> excludedInventoryIds
 ) {
-
 
     public static SharedGroupPurchaseCreateResponse from(SharedGroupPurchase purchase) {
         return new SharedGroupPurchaseCreateResponse(purchase.getId(), purchase.getInviteCode(), Set.of());

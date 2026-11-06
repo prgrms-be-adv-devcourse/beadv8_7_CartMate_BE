@@ -30,7 +30,6 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-/** cart · order 스케줄러 5개가 ShedLock으로 한 인스턴스에서만 돈다. 다른 인스턴스가 락을 잡고 있으면 건너뛴다. */
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
 @ImportTestcontainers(CartMateTestContainers.class)
@@ -60,8 +59,6 @@ class CartOrderSchedulerLockTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    // 락 행을 지우지 않고 만료시킨다. ShedLock은 한 번 만든 락 이름을 기억하고 그다음부터 UPDATE만 하므로,
-    // 행을 지우면 UPDATE가 0건이 되어 계속 "잠김"으로 보고 건너뛴다 (운영에서도 락을 풀 때는 lock_until만 과거로 돌린다)
     @BeforeEach
     void setUp() {
         jobs().map(arguments -> (String) arguments.get()[0]).forEach(name -> jdbcTemplate.update(

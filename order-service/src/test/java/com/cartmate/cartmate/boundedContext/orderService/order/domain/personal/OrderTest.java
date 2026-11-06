@@ -63,12 +63,11 @@ class OrderTest {
         Order pending = personalOrder();
         assertThat(pending.cancelSellerItemsBySalesStopped(12L, NOW)).isZero();
 
-        Order paid = personalOrder(); // 상품B는 판매자가 비어 있다
+        Order paid = personalOrder();
         paid.markPaid(99L, NOW.plusMinutes(1));
         assertThat(paid.cancelSellerItemsBySalesStopped(999L, NOW.plusMinutes(2))).isZero();
         assertThat(paid.getStatus()).isEqualTo(OrderStatus.PAID);
     }
-
 
     @Test
     @DisplayName("개인 주문은 결제 대기 상태로 생성되고 총액은 단가 x 수량의 합이다")

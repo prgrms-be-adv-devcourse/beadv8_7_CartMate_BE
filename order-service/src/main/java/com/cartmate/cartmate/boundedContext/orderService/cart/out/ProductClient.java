@@ -16,7 +16,6 @@ public interface ProductClient {
 
     List<CartProductOptions> findAllProductOptions(Collection<Long> productIds);
 
-
     default Set<Long> findUnavailableInventoryIds(Collection<Long> inventoryIds) {
         Map<Long, CartProductInfo> infos = findAllByInventoryIds(inventoryIds).stream()
                 .collect(Collectors.toMap(CartProductInfo::inventoryId, Function.identity()));

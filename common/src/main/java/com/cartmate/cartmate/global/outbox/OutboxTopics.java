@@ -2,12 +2,6 @@ package com.cartmate.cartmate.global.outbox;
 
 import java.util.Locale;
 
-/**
- * 토픽 이름 규칙: {@code cartmate.<발행 모듈>.<이벤트 kebab-case>}.
- * 모듈은 이벤트 클래스의 패키지 {@code com.cartmate.cartmate.shared.<모듈>.event}에서, 이름은 클래스 단순 이름에서
- * 끝의 {@code Event}를 뗀 뒤 kebab-case로 바꾼 것.
- * 예: {@code shared.order.event.OrderPaidEvent} → {@code cartmate.order.order-paid}.
- */
 public final class OutboxTopics {
 
     static final String PREFIX = "cartmate";

@@ -2,7 +2,6 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividu
 
 import jakarta.validation.constraints.NotNull;
 
-
 public record IndividualGroupPurchaseProductAddRequest(
 
         @NotNull

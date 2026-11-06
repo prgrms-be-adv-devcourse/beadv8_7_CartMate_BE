@@ -9,10 +9,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * ShedLock이 쓰는 {@code shedlock} 테이블. 코드에서 다루지 않고 ddl-auto가 만들게 하려고 엔티티로만 둔다.
- * 컬럼 이름 · 타입은 ShedLock JDBC 제공자의 기본 스키마를 따른다.
- */
 @Entity
 @Table(name = "shedlock")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

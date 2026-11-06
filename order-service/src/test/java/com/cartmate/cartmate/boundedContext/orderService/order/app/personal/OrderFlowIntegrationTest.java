@@ -27,7 +27,6 @@ import static com.cartmate.cartmate.support.OutboxRelayHelper.relayUntilPublishe
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-// 다른 스케줄러는 끈 채 아웃박스 릴레이 빈만 넣고, 자동 폴링은 1시간 뒤로 미뤄 테스트가 직접 돌린다
 @CartMateIntegrationTest
 class OrderFlowIntegrationTest {
 
@@ -101,7 +100,6 @@ class OrderFlowIntegrationTest {
         assertThat(individualGroupPurchaseFacade.getDashboard(creator, purchaseId).orderCount()).isZero();
 
         orderFacade.applyPayment(created.orderId(), buyer, created.orderId(), LocalDateTime.now());
-        // 현황판은 order 이벤트로 채우는 cart 읽기 모델이다. 결제 직후엔 아직 비어 있고, 릴레이가 돌면 나온다
         assertThat(individualGroupPurchaseFacade.getDashboard(creator, purchaseId).orderCount()).isZero();
         relayUntilPublished(jdbcTemplate, outboxRelay, "Order", created.orderId());
 

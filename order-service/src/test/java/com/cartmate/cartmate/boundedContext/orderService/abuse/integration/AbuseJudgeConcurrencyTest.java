@@ -97,8 +97,6 @@ class AbuseJudgeConcurrencyTest {
         try {
             assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
             Future<Integer> judging = executor.submit(() -> abuseFacade.judgePending(member));
-            // 판정 트랜잭션이 회원 상태 행 락에 막힐 때까지 기다린다(시간이 아니라 DB 상태로).
-            // 쥔 쪽은 조회를 끝내고 release를 기다리는 중이라, abuse_member_state를 건드리는 실행 중 쿼리는 판정 쪽뿐이다
             LockWaits.awaitBlockedOn(jdbcTemplate, "abuse_member_state", 1);
 
             abuseFacade.receive(new AbuseSignalCommand(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
@@ -107,7 +105,7 @@ class AbuseJudgeConcurrencyTest {
             holder.get(10, TimeUnit.SECONDS);
             assertThat(judging.get(10, TimeUnit.SECONDS)).isEqualTo(1);
         } finally {
-            release.countDown(); // 중간에 실패해도 락을 쥔 스레드가 남지 않게 푼다
+            release.countDown();
             executor.shutdown();
             assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
         }

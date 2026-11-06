@@ -22,7 +22,6 @@ public class CartFacade {
     private final CartQueryUseCase cartQueryUseCase;
     private final ProcessedEvents processedEvents;
 
-    // 장바구니 행 락을 잡은 뒤 읽는 항목이 방금 커밋된 다른 담기까지 보도록 문장마다 새 스냅샷을 쓴다
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void addItem(Long memberId, Long inventoryId, int quantity) {
         cartItemUseCase.addItem(memberId, inventoryId, quantity);

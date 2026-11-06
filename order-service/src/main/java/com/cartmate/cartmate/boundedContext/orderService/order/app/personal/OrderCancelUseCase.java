@@ -55,13 +55,11 @@ class OrderCancelUseCase {
         publishCanceledEventIf(order.cancelByOutOfStock(LocalDateTime.now(clock)), order, paid);
     }
 
-    // 판매글 판매 중지: 결제 대기 주문 전체 취소
     void cancelBySalesStopped(Long orderId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         publishCanceledEventIf(order.cancelBySalesStopped(LocalDateTime.now(clock)), order, false);
     }
 
-    // 개인물품 공동구매가 닫힘: 결제 대기 주문 취소 (결제 전이라 환불 · 배송 없음, OrderCanceledEvent는 나간다)
     void cancelByGroupPurchaseClosed(Long orderId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         publishCanceledEventIf(order.cancelByGroupPurchaseClosed(LocalDateTime.now(clock)), order, false);
@@ -72,8 +70,6 @@ class OrderCancelUseCase {
                 OrderStatus.PAYMENT_PENDING);
     }
 
-    // 판매글 판매 중지: 결제 완료 주문에서 한 판매자 항목만 취소 → delivery가 배송 취소, payment가 환불.
-    // 주문이 전부 취소 상태가 되더라도 OrderCanceledEvent는 발행하지 않는다 (전액 환불이 겹쳐 이중 환불됨).
     void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         LocalDateTime now = LocalDateTime.now(clock);
