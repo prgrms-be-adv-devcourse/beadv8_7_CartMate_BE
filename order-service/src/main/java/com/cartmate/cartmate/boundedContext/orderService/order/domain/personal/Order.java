@@ -89,12 +89,9 @@ public class Order {
 
     private LocalDateTime canceledAt;
 
-    // ===== 쿠폰 할인 (결제할 때 정해짐) =====
-    // 쓴 쿠폰 (회원 쿠폰 ID). 없으면 null
     @Column(name = "member_coupon_id")
     private Long memberCouponId;
 
-    // 할인액. 결제 금액 = totalAmount - discountAmount
     @Column(name = "discount_amount", nullable = false)
     private long discountAmount;
 
@@ -102,15 +99,12 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderDiscountBurden discountBurden;
 
-    // 판매자 쿠폰이면 그 판매자 (할인 대상 = 그 판매자 상품)
     @Column(name = "discount_seller_id")
     private Long discountSellerId;
 
-    // 판매자 상품 일부 취소로 지금까지 환불한 금액 (마지막 취소에서 남은 결제 금액을 정확히 돌려주려고)
     @Column(name = "item_refunded_amount", nullable = false)
     private long itemRefundedAmount;
 
-    // 일부 상품만 취소된 적이 있는지 (있으면 나중에 전부 취소돼도 쿠폰을 돌려주지 않는다)
     @Column(name = "partially_canceled", nullable = false)
     private boolean partiallyCanceled;
 
@@ -227,7 +221,6 @@ public class Order {
         return true;
     }
 
-
     public void applyCoupon(Long memberCouponId, long discountAmount, boolean platformBurden, Long sellerId) {
         if (this.memberCouponId != null) {
             if (this.memberCouponId.equals(memberCouponId) && this.discountAmount == discountAmount) {
@@ -297,7 +290,6 @@ public class Order {
         if (itemsAmount == 0) {
             return 0;
         }
-        // 환불 = 상품 금액 - 그 상품에 붙은 쿠폰 할인 몫. 이걸로 모든 상품이 취소되면 남은 결제 금액을 정확히 돌려준다 (나눗셈 끝전 포함)
         long refund = itemsAmount - discountShareOf(sellerId, itemsAmount);
         if (items.stream().allMatch(OrderItem::isCanceled)) {
             refund = payAmount() - itemRefundedAmount;

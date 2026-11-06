@@ -275,10 +275,7 @@ class OrderTest {
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
     }
 
-    // ===== 쿠폰 할인 =====
-
     private Order twoSellerOrder() {
-        // 판매자 7: 30,000 / 판매자 8: 20,000 → 50,000
         return Order.createPersonal("ORD-C", BUYER, List.of(
                 new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1),
                 new OrderLine(30L, 31L, 8L, "축구공", null, 20_000L, 1)
@@ -294,7 +291,7 @@ class OrderTest {
 
         assertThat(order.payAmount()).isEqualTo(40_000L);
         assertThat(order.getDiscountBurden()).isEqualTo(OrderDiscountBurden.PLATFORM);
-        order.applyCoupon(5L, 10_000L, true, null); // 재시도
+        order.applyCoupon(5L, 10_000L, true, null);
         assertThat(order.payAmount()).isEqualTo(40_000L);
         assertThatThrownBy(() -> order.applyCoupon(6L, 3_000L, true, null))
                 .isInstanceOf(ServiceException.class)
@@ -323,24 +320,24 @@ class OrderTest {
     @DisplayName("부분 취소 + 전체 쿠폰: 취소 상품 몫의 할인을 비율로 빼고 환불, 마지막 취소는 남은 결제 금액 전부 (합계 = 낸 돈)")
     void cancelSellerItemsWithPlatformCoupon() {
         Order order = twoSellerOrder();
-        order.applyCoupon(5L, 10_000L, true, null); // 50,000 → 40,000
+        order.applyCoupon(5L, 10_000L, true, null);
         order.markPaid(99L, NOW.plusMinutes(1));
 
-        long first = order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2));  // 20,000 - 4,000
-        long second = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3)); // 남은 24,000
+        long first = order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2));
+        long second = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3));
 
         assertThat(first).isEqualTo(16_000L);
         assertThat(second).isEqualTo(24_000L);
         assertThat(first + second).isEqualTo(order.payAmount());
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
-        assertThat(order.couponRestorable()).isFalse(); // 앞서 부분 취소가 있었으니 쿠폰은 돌려주지 않음
+        assertThat(order.couponRestorable()).isFalse();
     }
 
     @Test
     @DisplayName("부분 취소 + 판매자 쿠폰: 그 판매자 상품 취소에만 할인을 빼고, 다른 판매자 상품은 전액 환불")
     void cancelSellerItemsWithSellerCoupon() {
         Order order = twoSellerOrder();
-        order.applyCoupon(5L, 3_000L, false, 7L); // 판매자 7 쿠폰: 50,000 → 47,000
+        order.applyCoupon(5L, 3_000L, false, 7L);
         order.markPaid(99L, NOW.plusMinutes(1));
 
         assertThat(order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2))).isEqualTo(20_000L);
@@ -355,7 +352,7 @@ class OrderTest {
                 new OrderLine(20L, 21L, 8L, "B", null, 10_000L, 1),
                 new OrderLine(30L, 31L, 9L, "C", null, 10_000L, 1)
         ), addressWithoutDetail(), NOW);
-        order.applyCoupon(5L, 1_000L, true, null); // 30,000 → 29,000, 상품당 333.33원
+        order.applyCoupon(5L, 1_000L, true, null);
         order.markPaid(99L, NOW.plusMinutes(1));
 
         long a = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));

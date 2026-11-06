@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-// 같은 주문 서비스 안의 쿠폰 모듈을 Facade로 부른다. 쿠폰을 다른 서버로 나누면 이 어댑터만 HTTP로 바꾼다
 @Component
 @RequiredArgsConstructor
 public class CouponFacadeOrderCouponClient implements OrderCouponClient {

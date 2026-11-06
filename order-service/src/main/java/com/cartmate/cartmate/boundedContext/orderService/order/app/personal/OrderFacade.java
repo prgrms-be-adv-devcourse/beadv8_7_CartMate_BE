@@ -72,7 +72,6 @@ public class OrderFacade {
         return payOrder(memberId, orderId, null);
     }
 
-    // 쿠폰 사용은 이 트랜잭션에 함께 들어간다 (결제 반영이 롤백되면 쿠폰 사용도 롤백)
     @Transactional
     public PaymentResult payOrder(Long memberId, Long orderId, Long memberCouponId) {
         return orderPaymentUseCase.pay(orderId, memberId, memberCouponId, LocalDateTime.now(clock));

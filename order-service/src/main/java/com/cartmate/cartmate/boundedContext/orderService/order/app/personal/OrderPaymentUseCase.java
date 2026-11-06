@@ -56,7 +56,6 @@ class OrderPaymentUseCase {
         applyPayment(orderId, memberId, paymentId, paidAt, null, null);
     }
 
-    // memberCouponId: 결제에 쓴 쿠폰 (없으면 null). paidAmount: 실제로 빠진 금액 (모르면 null — 확인 생략)
     void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt,
                       Long memberCouponId, Long paidAmount) {
         Order order = orderSupport.getOrderForUpdate(orderId);
@@ -67,12 +66,10 @@ class OrderPaymentUseCase {
                 throw new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED);
             }
         }
-        // 쿠폰: 결제 반영과 같은 트랜잭션에서 사용 처리하고 할인을 기록한다 (반영이 롤백되면 쿠폰도 롤백)
         if (memberCouponId != null && order.isPaymentPending()) {
             CouponQuote quote = orderCouponClient.use(memberId, memberCouponId, orderId, order.couponTarget());
             order.applyCoupon(quote.memberCouponId(), quote.discountAmount(), quote.platformBurden(), quote.sellerId());
         }
-        // 빠진 금액과 주문 금액(할인 반영)이 다르면 반영하지 않는다 → 결제를 되돌린다 (재시도 때 다른 쿠폰을 고른 경우 등)
         if (paidAmount != null && order.isPaymentPending() && order.payAmount() != paidAmount) {
             throw new ServiceException(OrderErrorCode.ORDER_PAYMENT_AMOUNT_MISMATCH);
         }
@@ -135,7 +132,6 @@ class OrderPaymentUseCase {
         return pay(orderId, memberId, null, now);
     }
 
-    // memberCouponId: 결제에 쓸 쿠폰 (없으면 null). 쿠폰은 결제할 때 정한다 → 결제 전 취소·기한 만료면 쿠폰이 묶이지 않는다
     PaymentResult pay(Long orderId, Long memberId, Long memberCouponId, LocalDateTime now) {
         var existing = orderPaymentClient.findPayment(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
         if (existing.isPresent() && existing.get().isPaid()) {
@@ -167,7 +163,6 @@ class OrderPaymentUseCase {
         }
     }
 
-    // 결제 화면 쿠폰 목록 (구매자만)
     List<CouponOption> couponOptions(Long orderId, Long memberId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_FOUND));
@@ -179,7 +174,6 @@ class OrderPaymentUseCase {
         return preview(orderId, memberId, null, now);
     }
 
-    // memberCouponId를 주면 그 쿠폰의 할인을 반영한 결제 금액을 보여 준다 (쓸 수 없는 쿠폰이면 그 이유로 예외)
     OrderPaymentPreviewResponse preview(Long orderId, Long memberId, Long memberCouponId, LocalDateTime now) {
         OrderPaymentInfo info = getPaymentInfo(orderId, memberId, now);
         PaymentResult existing = orderPaymentClient
