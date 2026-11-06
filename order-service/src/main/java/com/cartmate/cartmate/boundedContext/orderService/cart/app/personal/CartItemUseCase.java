@@ -1,7 +1,5 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.personal;
 
-import com.cartmate.cartmate.shared.order.OrderType;
-
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.personal.Cart;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.CartProductInfo;
@@ -62,9 +60,6 @@ class CartItemUseCase {
     }
 
     void removeOrderedItems(OrderPaidEvent event) {
-        if (event.orderType() != OrderType.PERSONAL) {
-            return;
-        }
         Map<Long, Integer> orderedQuantities = event.items().stream()
                 .collect(Collectors.toMap(
                         OrderPaidEvent.Item::inventoryId,
