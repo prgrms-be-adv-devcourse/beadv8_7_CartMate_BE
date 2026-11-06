@@ -29,10 +29,10 @@ custom:
 cartmate:
   payment:
     client: http   # 주문 서버에는 결제 Facade가 없다. 결제 서버 내부 API만 쓴다
-    base-url: ${PAYMENT_BASE_URL:http://localhost:8985}
+    base-url: ${PAYMENT_BASE_URL:http://localhost:8983}   # payment-service
   product-service:
-    base-url: ${PRODUCT_SERVICE_BASE_URL:http://localhost:8985}
+    base-url: ${PRODUCT_SERVICE_BASE_URL:http://localhost:8982}   # product-service
   member-service:
-    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8985}
+    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8981}   # member-service
   internal:
     api-key: ${INTERNAL_API_KEY:local-internal-key}   # /internal/** 서버 간 호출 키. 운영은 반드시 환경 변수로
