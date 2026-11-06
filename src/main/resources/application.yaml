@@ -53,8 +53,12 @@ cartmate:
   payment:
     # 주문이 결제를 부르는 방식. local: 같은 앱 결제 Facade (차감·주문 반영 한 트랜잭션)
     #                          http : 결제 서버 내부 API (서버 분리 후와 같음, 차감·반영이 다른 트랜잭션)
-    client: ${PAYMENT_CLIENT:local}
+    client: ${PAYMENT_CLIENT:http}   # 회원의 결제 Facade 직접 호출(local)은 서버 분리로 없어졌다
     base-url: ${PAYMENT_BASE_URL:}   # http 모드에서 비우면 같은 앱 자신을 부른다
+  member-service:
+    base-url: ${MEMBER_SERVICE_BASE_URL:}   # 회원 서버 내부 API. 비우면 같은 앱 자신을 부른다
+  etc-service:
+    base-url: ${ETC_SERVICE_BASE_URL:}   # 배송 서버 내부 API. 비우면 같은 앱 자신을 부른다
   order-service:
     base-url: ${ORDER_SERVICE_BASE_URL:http://localhost:8986}   # 주문 서버(장바구니·공동구매·주문, order-service 모듈) 내부 API
   internal:

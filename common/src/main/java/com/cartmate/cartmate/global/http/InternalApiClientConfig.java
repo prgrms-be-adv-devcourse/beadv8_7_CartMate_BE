@@ -35,7 +35,15 @@ public class InternalApiClientConfig {
         return new InternalApiClient("PRODUCT", "상품", baseUrl, apiKey, environment);
     }
 
-    // 회원 서버. 주문 서버가 회원 닉네임을 묻는다.
+    // 배송 서버(etc-service: 배송 · 신뢰도 · 고객지원). 회원 서버가 회원별 배송 · 클레임 수를 묻는다.
+    @Bean
+    public InternalApiClient etcServerApiClient(@Value("${cartmate.etc-service.base-url:}") String baseUrl,
+                                                @Value("${cartmate.internal.api-key}") String apiKey,
+                                                Environment environment) {
+        return new InternalApiClient("ETC", "배송", baseUrl, apiKey, environment);
+    }
+
+    // 회원 서버. 주문 서버가 회원 닉네임을, 배송 서버가 판매자 ID를 묻는다.
     @Bean
     public InternalApiClient memberServerApiClient(@Value("${cartmate.member-service.base-url:}") String baseUrl,
                                                    @Value("${cartmate.internal.api-key}") String apiKey,
