@@ -147,6 +147,28 @@ class AbuseJudgeIntegrationTest {
         assertThat(memberState(member).getCurrentLevel()).isEqualTo(AbuseLevel.NONE);
     }
 
+    @Test
+    @DisplayName("받은 지 30초 지난 미판정 신호의 회원만 재판정 대상이고, 재판정하면 판정된다")
+    void judgesOnlyStaleReceivedSignals() {
+        long stale = nextMemberId();
+        long fresh = nextMemberId();
+        abuseFacade.receive(command(stale, "stale", LocalDateTime.now()));
+        abuseFacade.receive(command(fresh, "fresh", LocalDateTime.now()));
+        jdbcTemplate.update("UPDATE abuse_signal SET received_at = ? WHERE member_id = ?",
+                LocalDateTime.now().minusMinutes(1), stale);
+
+        List<Long> pending = abuseFacade.findPendingMemberIds(10_000);
+
+        assertThat(pending).contains(stale).doesNotContain(fresh);
+
+        assertThat(abuseFacade.judgePending(stale)).isEqualTo(1);
+
+        AbuseSignal signal = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(stale).getFirst();
+        assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
+        assertThat(signal.getLevel()).isEqualTo(AbuseLevel.CAUTION);
+        assertThat(abuseFacade.findPendingMemberIds(10_000)).doesNotContain(stale);
+    }
+
     private void receiveAndJudge(long memberId, String sourceKey, LocalDateTime occurredAt) {
         abuseFacade.receive(command(memberId, sourceKey, occurredAt));
         assertThat(abuseFacade.judgePending(memberId)).isEqualTo(1);

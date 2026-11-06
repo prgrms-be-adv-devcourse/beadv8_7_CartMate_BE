@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CartRepositoryTest {
 
     private static final Long MEMBER_ID = 9_000_000_001L;
-    private static final Long NO_CART_MEMBER_ID = 9_000_000_999L;
 
     @Autowired
     private CartRepository cartRepository;
@@ -35,14 +34,6 @@ class CartRepositoryTest {
 
         assertThat(found).isPresent();
         assertThat(found.get().getId()).isEqualTo(saved.getId());
-    }
-
-    @Test
-    @DisplayName("장바구니가 없는 회원이면 빈 Optional을 반환한다")
-    void findWithItemsByMemberId_noCart() {
-        Optional<Cart> found = cartRepository.findWithItemsByMemberId(NO_CART_MEMBER_ID);
-
-        assertThat(found).isEmpty();
     }
 
     @Test

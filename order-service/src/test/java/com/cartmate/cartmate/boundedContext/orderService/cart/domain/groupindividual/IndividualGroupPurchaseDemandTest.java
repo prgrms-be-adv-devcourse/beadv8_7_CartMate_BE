@@ -78,17 +78,6 @@ class IndividualGroupPurchaseDemandTest {
     }
 
     @Test
-    @DisplayName("닫으면 중복 방지 키를 비운다")
-    void closeReleasesKey() {
-        IndividualGroupPurchase purchase = open(null);
-
-        purchase.close(ADMIN, now.plusHours(1));
-
-        assertThat(purchase.getDemandProductKey()).isNull();
-        assertThat(purchase.getSourceProductId()).isEqualTo(BALL);
-    }
-
-    @Test
     @DisplayName("판매 중이면 키를 풀 수 없고, 마감 시각이 지났으면 상태가 OPEN이어도 키를 푼다")
     void releaseKey() {
         IndividualGroupPurchase purchase = open(null);

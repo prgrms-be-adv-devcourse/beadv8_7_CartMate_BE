@@ -14,22 +14,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AbuseThresholdTest {
 
-    private final AbuseRuleThreshold ruleThreshold = new AbuseRuleThreshold(Duration.ofDays(30), 1, 2, 3, 40);
     private final AbuseScoreThreshold scoreThreshold = new AbuseScoreThreshold(30, 60, 100);
-
-    @ParameterizedTest(name = "{0}회 → {1}")
-    @CsvSource({"0, NONE", "1, CAUTION", "2, SUSPICIOUS", "3, RESTRICTED", "5, RESTRICTED"})
-    @DisplayName("규칙 기준은 신호 수로 단계를 정한다")
-    void ruleLevelOf(long count, AbuseLevel expected) {
-        assertThat(ruleThreshold.levelOf(count)).isEqualTo(expected);
-    }
-
-    @Test
-    @DisplayName("규칙 점수는 신호 수 × 건당 점수다")
-    void ruleScoreOf() {
-        assertThat(ruleThreshold.scoreOf(0)).isZero();
-        assertThat(ruleThreshold.scoreOf(3)).isEqualTo(120);
-    }
 
     @ParameterizedTest(name = "{0}점 → {1}")
     @CsvSource({"0, NONE", "29, NONE", "30, CAUTION", "59, CAUTION", "60, SUSPICIOUS", "99, SUSPICIOUS", "100, RESTRICTED"})

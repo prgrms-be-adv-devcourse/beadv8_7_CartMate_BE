@@ -19,21 +19,13 @@ class OrderNumberGeneratorTest {
     private final OrderNumberGenerator generator = new OrderNumberGenerator();
 
     @Test
-    @DisplayName("주문 번호는 주문일자-8자리 랜덤 문자 형식이다")
-    void generateFormat() {
-        String orderNumber = generator.generateUnique(ORDER_DATE, number -> false);
-
-        assertThat(orderNumber).matches(FORMAT);
-        assertThat(orderNumber).startsWith("20261019-");
-        assertThat(orderNumber).hasSize(17);
-    }
-
-    @Test
-    @DisplayName("헷갈리는 문자(0, O, 1, I, L)는 사용하지 않는다")
+    @DisplayName("주문 번호는 주문일자-8자리 랜덤 문자 형식이고, 헷갈리는 문자(0, O, 1, I, L)는 사용하지 않는다")
     void generateWithoutAmbiguousCharacters() {
         for (int i = 0; i < 1000; i++) {
-            String randomPart = generator.generateUnique(ORDER_DATE, number -> false).substring(9);
+            String orderNumber = generator.generateUnique(ORDER_DATE, number -> false);
+            String randomPart = orderNumber.substring(9);
 
+            assertThat(orderNumber).startsWith("20261019-").hasSize(17);
             assertThat(randomPart).matches("[A-HJ-KM-NP-Z2-9]{8}");
             assertThat(randomPart).doesNotContain("0", "O", "1", "I", "L");
         }

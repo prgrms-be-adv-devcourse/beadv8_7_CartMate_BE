@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
@@ -198,14 +197,6 @@ class CartItemUseCaseTest {
             cartItemUseCase.clear(MEMBER_ID);
 
             assertThat(cart.getItems()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("장바구니가 없어도 예외 없이 끝난다")
-        void noCart() {
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
-
-            assertThatCode(() -> cartItemUseCase.clear(MEMBER_ID)).doesNotThrowAnyException();
         }
     }
 

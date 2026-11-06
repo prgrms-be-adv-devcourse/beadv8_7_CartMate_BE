@@ -3,11 +3,14 @@ package com.cartmate.cartmate.boundedContext.orderService.order.out.personal;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.support.CartMateJpaTest;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
@@ -44,33 +47,20 @@ class IndividualGroupPurchaseOrderQueryTest {
         productB = base + 11;
     }
 
-    @Test
-    @DisplayName("결제 대기 주문이 있으면 해당 상품의 주문이 존재한다")
-    void existsWhenPaymentPending() {
-        orderRepository.save(group(BUYER, purchaseId, lineA(2)));
+    @ParameterizedTest(name = "{0} 주문만 있으면 존재 여부 {1}", quoteTextArguments = false)
+    @CsvSource({"PAYMENT_PENDING, true", "PAID, true", "CANCELED, false"})
+    @DisplayName("결제 대기 · 결제 완료 주문은 해당 상품의 주문으로 세고, 취소된 주문은 세지 않는다")
+    void existsByStatus(OrderStatus status, boolean expected) {
+        Order order = group(BUYER, purchaseId, lineA(2));
+        if (status == OrderStatus.PAID) {
+            order.markPaid(1L, NOW);
+        } else if (status == OrderStatus.CANCELED) {
+            order.cancelByBuyer(BUYER, NOW);
+        }
+        orderRepository.save(order);
         flushAndClear();
 
-        assertThat(orderRepository.existsActiveOrderByIndividualGroupPurchaseAndProduct(purchaseId, productA)).isTrue();
-    }
-
-    @Test
-    @DisplayName("결제 완료 주문이 있으면 해당 상품의 주문이 존재한다")
-    void existsWhenPaid() {
-        orderRepository.save(paid(group(BUYER, purchaseId, lineA(2))));
-        flushAndClear();
-
-        assertThat(orderRepository.existsActiveOrderByIndividualGroupPurchaseAndProduct(purchaseId, productA)).isTrue();
-    }
-
-    @Test
-    @DisplayName("취소된 주문만 있으면 주문이 존재하지 않는다")
-    void notExistsWhenCanceled() {
-        Order canceled = group(BUYER, purchaseId, lineA(2));
-        canceled.cancelByBuyer(BUYER, NOW);
-        orderRepository.save(canceled);
-        flushAndClear();
-
-        assertThat(orderRepository.existsActiveOrderByIndividualGroupPurchaseAndProduct(purchaseId, productA)).isFalse();
+        assertThat(orderRepository.existsActiveOrderByIndividualGroupPurchaseAndProduct(purchaseId, productA)).isEqualTo(expected);
     }
 
     @Test
@@ -96,11 +86,6 @@ class IndividualGroupPurchaseOrderQueryTest {
     private Order group(Long buyerMemberId, Long individualGroupPurchaseId, OrderLine... lines) {
         return Order.createIndividualGroup(newOrderNumber(), buyerMemberId, individualGroupPurchaseId,
                 NOW.plusDays(1), List.of(lines), address(), NOW);
-    }
-
-    private Order paid(Order order) {
-        order.markPaid(1L, NOW);
-        return order;
     }
 
     private OrderLine lineA(int quantity) {

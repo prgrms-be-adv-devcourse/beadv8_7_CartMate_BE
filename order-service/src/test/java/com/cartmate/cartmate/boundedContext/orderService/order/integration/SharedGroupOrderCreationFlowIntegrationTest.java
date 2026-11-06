@@ -5,6 +5,9 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
+import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderDetailResponse;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.FakeOrderProductClient;
 import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
@@ -46,6 +49,9 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     private SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
 
     @Autowired
+    private SharedGroupOrderFacade sharedGroupOrderFacade;
+
+    @Autowired
     private OutboxRelay outboxRelay;
 
     @Autowired
@@ -81,7 +87,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     }
 
     @Test
-    @DisplayName("마감이 커밋되면 공동구매는 CLOSED, 마감 이벤트는 아웃박스에만 있고 공동 주문은 아직 없다. 릴레이 뒤 공동 주문 1건과 ORDER_CREATED")
+    @DisplayName("마감이 커밋되면 공동구매는 CLOSED, 마감 이벤트는 아웃박스에만 있고 공동 주문은 아직 없다. 릴레이 뒤 공동 주문 1건과 ORDER_CREATED, 참여자는 자기 부담 금액과 상세를 조회한다")
     void closeThenRelayCreatesOrder() {
         Long purchaseId = readyPurchase("마감 분리");
 
@@ -95,9 +101,20 @@ class SharedGroupOrderCreationFlowIntegrationTest {
 
         assertThat(orderCountOf(purchaseId)).isEqualTo(1);
         Long orderId = orderIdOf(purchaseId).orElseThrow();
-        assertThat(jdbcTemplate.queryForObject("SELECT total_amount FROM shared_group_order WHERE id = ?", Long.class, orderId))
-                .isEqualTo(75000L);
         assertThat(createdEventCount(orderId)).isEqualTo(1);
+
+        SharedGroupOrderSummaryResponse summary = sharedGroupOrderFacade.getMyList(member).stream()
+                .filter(order -> order.id().equals(orderId))
+                .findFirst()
+                .orElseThrow();
+        assertThat(summary.totalAmount()).isEqualTo(75000L);
+        assertThat(summary.myShareAmount()).isEqualTo(37500L);
+        assertThat(summary.participantCount()).isEqualTo(2);
+
+        SharedGroupOrderDetailResponse detail = sharedGroupOrderFacade.getDetail(creator, orderId);
+        assertThat(detail.creator()).isTrue();
+        assertThat(detail.items()).singleElement()
+                .satisfies(item -> assertThat(item.unitPrice()).isEqualTo(25000L));
     }
 
     @Test

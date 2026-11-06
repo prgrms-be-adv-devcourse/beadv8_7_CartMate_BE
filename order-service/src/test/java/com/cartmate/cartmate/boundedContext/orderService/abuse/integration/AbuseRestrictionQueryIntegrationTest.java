@@ -44,24 +44,16 @@ class AbuseRestrictionQueryIntegrationTest {
     }
 
     @Test
-    @DisplayName("제한 종료 시각 전이면 제한 중이고 종료 시각을 돌려준다")
-    void restrictedBeforeEndsAt() {
-        long member = nextMemberId();
-        LocalDateTime until = LocalDateTime.now().plusHours(3).truncatedTo(ChronoUnit.SECONDS);
-        saveState(member, until);
-
-        AbuseRestrictionStatus status = abuseFacade.getRestriction(member);
-
-        assertThat(status).isEqualTo(AbuseRestrictionStatus.restrictedUntil(member, until));
-    }
-
-    @Test
-    @DisplayName("제한 종료 시각이 지났거나 회원 상태가 없으면 제한이 아니다")
-    void notRestrictedWhenExpiredOrUnknown() {
+    @DisplayName("제한 종료 시각 전이면 제한 중이고 종료 시각을 돌려주며, 종료 시각이 지났거나 회원 상태가 없으면 제한이 아니다")
+    void restrictedOnlyBeforeEndsAt() {
+        long restricted = nextMemberId();
         long expired = nextMemberId();
         long unknown = nextMemberId();
+        LocalDateTime until = LocalDateTime.now().plusHours(3).truncatedTo(ChronoUnit.SECONDS);
+        saveState(restricted, until);
         saveState(expired, LocalDateTime.now().minusMinutes(1));
 
+        assertThat(abuseFacade.getRestriction(restricted)).isEqualTo(AbuseRestrictionStatus.restrictedUntil(restricted, until));
         assertThat(abuseFacade.getRestriction(expired)).isEqualTo(AbuseRestrictionStatus.none(expired));
         assertThat(abuseFacade.getRestriction(unknown)).isEqualTo(AbuseRestrictionStatus.none(unknown));
     }

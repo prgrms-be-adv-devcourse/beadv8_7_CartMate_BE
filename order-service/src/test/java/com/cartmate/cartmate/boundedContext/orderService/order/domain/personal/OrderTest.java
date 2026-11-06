@@ -6,6 +6,8 @@ import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderEr
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -135,30 +137,22 @@ class OrderTest {
         assertThat(order.getPaidAt()).isEqualTo(NOW);
     }
 
-    @Test
-    @DisplayName("구매자는 결제 대기 중인 주문을 취소할 수 있다")
-    void cancelByBuyerFromPending() {
+    @ParameterizedTest(name = "{0} 상태의 주문")
+    @EnumSource(value = OrderStatus.class, names = {"PAYMENT_PENDING", "PAID"})
+    @DisplayName("구매자는 결제 대기 · 결제 완료된 주문을 취소할 수 있다")
+    void cancelByBuyer(OrderStatus status) {
         Order order = personalOrder();
+        if (status == OrderStatus.PAID) {
+            order.markPaid(1L, NOW);
+        }
+        LocalDateTime canceledAt = NOW.plusMinutes(1);
 
-        boolean canceled = order.cancelByBuyer(BUYER, NOW);
+        boolean canceled = order.cancelByBuyer(BUYER, canceledAt);
 
         assertThat(canceled).isTrue();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
         assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.BUYER_CANCELED);
-        assertThat(order.getCanceledAt()).isEqualTo(NOW);
-    }
-
-    @Test
-    @DisplayName("구매자는 결제 완료된 주문을 취소할 수 있다")
-    void cancelByBuyerFromPaid() {
-        Order order = personalOrder();
-        order.markPaid(1L, NOW);
-
-        boolean canceled = order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
-
-        assertThat(canceled).isTrue();
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
-        assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.BUYER_CANCELED);
+        assertThat(order.getCanceledAt()).isEqualTo(canceledAt);
     }
 
     @Test
@@ -184,21 +178,13 @@ class OrderTest {
     }
 
     @Test
-    @DisplayName("결제 기한 전에는 기한 만료로 취소되지 않는다")
-    void cancelByDeadlineBeforeDeadline() {
-        Order order = personalOrder();
-
-        boolean canceled = order.cancelByDeadline(order.getPaymentDeadlineAt().minusSeconds(1));
-
-        assertThat(canceled).isFalse();
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
-    }
-
-    @Test
-    @DisplayName("결제 기한이 되면 기한 만료로 취소된다")
-    void cancelByDeadlineAtDeadline() {
+    @DisplayName("결제 기한 1초 전에는 기한 만료로 취소되지 않고, 기한이 되면 취소된다")
+    void cancelByDeadlineBoundary() {
         Order order = personalOrder();
         LocalDateTime deadline = order.getPaymentDeadlineAt();
+
+        assertThat(order.cancelByDeadline(deadline.minusSeconds(1))).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
 
         boolean canceled = order.cancelByDeadline(deadline);
 

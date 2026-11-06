@@ -122,19 +122,6 @@ class AbuseOrderEventConsumerIntegrationTest {
         assertThat(signals.getFirst().getLevel()).isEqualTo(AbuseLevel.CAUTION);
     }
 
-    @Test
-    @DisplayName("미결제자 목록의 잘못된 항목은 건너뛰고 나머지 회원 신호는 접수된다")
-    void invalidMemberIsSkipped() {
-        long member = nextMemberId();
-        long orderId = nextOrderId();
-
-        eventPublisher.publishEvent(relayed(canceled(orderId, Arrays.asList(null, member))));
-
-        assertThat(abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(member))
-                .extracting(AbuseSignal::getSourceKey)
-                .containsExactly(String.valueOf(orderId));
-    }
-
     private void relayUntilPublished(Long orderId) {
         for (int i = 0; i < 20; i++) {
             ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);

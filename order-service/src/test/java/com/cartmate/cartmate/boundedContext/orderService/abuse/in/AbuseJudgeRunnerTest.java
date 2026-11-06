@@ -62,20 +62,13 @@ class AbuseJudgeRunnerTest {
     }
 
     @Test
-    @DisplayName("일시 장애가 다른 예외에 감싸여 와도 원인을 따라가 일시 장애로 본다")
-    void findsTransientCause() {
-        willThrow(new IllegalStateException("wrapped", new SQLTransientConnectionException("pool exhausted")))
-                .given(abuseFacade).judgePending(1L);
-
-        assertThat(runner.judge(1L)).isEqualTo(AbuseJudgeOutcome.TRANSIENT_FAILURE);
-    }
-
-    @Test
-    @DisplayName("일시 장애와 영구 실패 분류")
+    @DisplayName("일시 장애와 영구 실패 분류 (일시 장애가 다른 예외에 감싸여 와도 원인을 따라가 일시 장애로 본다)")
     void classifiesFailures() {
         assertThat(AbuseJudgeRunner.isTransient(new CannotAcquireLockException("lock"))).isTrue();
         assertThat(AbuseJudgeRunner.isTransient(new DataAccessResourceFailureException("db down"))).isTrue();
         assertThat(AbuseJudgeRunner.isTransient(new CannotCreateTransactionException("no connection"))).isTrue();
+        assertThat(AbuseJudgeRunner.isTransient(
+                new IllegalStateException("wrapped", new SQLTransientConnectionException("pool exhausted")))).isTrue();
         assertThat(AbuseJudgeRunner.isTransient(new ServiceException(AbuseErrorCode.ABUSE_MEMBER_STATE_NOT_FOUND))).isFalse();
         assertThat(AbuseJudgeRunner.isTransient(new DataIntegrityViolationException("constraint"))).isFalse();
         assertThat(AbuseJudgeRunner.isTransient(new IllegalStateException("bug"))).isFalse();
