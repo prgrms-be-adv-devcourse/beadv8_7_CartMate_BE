@@ -10,8 +10,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FacadeWithdrawalTradeClient implements WithdrawalTradeClient {
 
-    private final MemberOrderServerClient orderServerClient; // 장바구니·공동구매·주문은 주문 서버
-    private final MemberDeliveryServerClient deliveryServerClient; // 배송은 배송 서버(etc-service)
+    private final MemberOrderServerClient orderServerClient;
+    private final MemberDeliveryServerClient deliveryServerClient;
     private final MemberPaymentServerClient paymentServerClient; // 정산은 결제 서버
 
     @Override

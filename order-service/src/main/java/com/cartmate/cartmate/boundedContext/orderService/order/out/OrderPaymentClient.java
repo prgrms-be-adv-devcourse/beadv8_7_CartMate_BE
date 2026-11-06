@@ -7,8 +7,6 @@ import java.util.Optional;
 
 /**
  * 주문이 결제를 부르는 창구. 결제 흐름은 주문이 지휘하고, 결제는 "키로 한 번만 차감"만 한다.
- * 주문 서버가 따로 떠 있어 구현은 결제 서버 내부 API 호출(HttpOrderPaymentClient) 하나다.
- * 차감과 주문 반영은 서로 다른 트랜잭션이다. 같은 앱 Facade를 부르던 local 구현은 서버 분리(MSA-3)로 없어졌다.
  */
 public interface OrderPaymentClient {
 

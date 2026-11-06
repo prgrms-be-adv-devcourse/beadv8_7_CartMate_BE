@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-// 주문 서버 내부 API를 HTTP로 부른다. 통신 공통 처리(시간 제한, 오류 변환, 연결 실패 503)는 InternalApiClient가 한다.
 @Component
 @RequiredArgsConstructor
 public class HttpMemberOrderServerClient implements MemberOrderServerClient {

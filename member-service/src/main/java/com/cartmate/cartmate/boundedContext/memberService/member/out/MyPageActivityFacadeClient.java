@@ -5,13 +5,12 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-// 마이페이지용 다른 모듈 조회는 여기서만 한다. 주문 서버는 분리되어 HTTP(MemberOrderServerClient)로 묻는다.
 @Component
 @RequiredArgsConstructor
 public class MyPageActivityFacadeClient implements MyPageActivityClient {
     private final MemberPaymentServerClient paymentServerClient; // 예치금은 결제 서버
-    private final MemberOrderServerClient orderServerClient; // 장바구니·공동구매·주문은 주문 서버
-    private final MemberDeliveryServerClient deliveryServerClient; // 배송은 배송 서버(etc-service)
+    private final MemberOrderServerClient orderServerClient;
+    private final MemberDeliveryServerClient deliveryServerClient;
 
     @Override
     public long getWalletBalance(Long memberId) {

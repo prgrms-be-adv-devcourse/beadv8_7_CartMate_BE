@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-// 회원 서버 내부 API(/internal/members/nicknames)를 HTTP로 부른다. 없는 회원은 값이 null로 온다.
 @Component
 @RequiredArgsConstructor
 class HttpOrderMemberClient implements OrderMemberClient {
