@@ -21,13 +21,19 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AbuseOrderEventConsumer {
 
-
     private final AbuseFacade abuseFacade;
     private final AbuseJudgeRunner abuseJudgeRunner;
 
-    @TransactionalEventListener(fallbackExecution = true)
+    @TransactionalEventListener(fallbackExecution = true,
+            condition = "@environment.getProperty('cartmate.kafka.enabled', 'false') != 'true'")
     public void handle(OutboxMessageRelayed message) {
-        if (message.event() instanceof SharedGroupOrderCanceledEvent event && isSignal(event)) {
+        if (message.event() instanceof SharedGroupOrderCanceledEvent event) {
+            accept(event);
+        }
+    }
+
+    public void accept(SharedGroupOrderCanceledEvent event) {
+        if (isSignal(event)) {
             consume(event);
         }
     }

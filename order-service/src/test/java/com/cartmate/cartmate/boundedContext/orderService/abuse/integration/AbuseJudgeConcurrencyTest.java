@@ -10,14 +10,15 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberSt
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseRestrictionRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
+import com.cartmate.cartmate.support.ConcurrentRunner;
+import com.cartmate.cartmate.support.LockWaits;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,6 +49,9 @@ class AbuseJudgeConcurrencyTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private final long base = 9_400_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
@@ -63,16 +67,8 @@ class AbuseJudgeConcurrencyTest {
         }
 
         AtomicInteger judged = new AtomicInteger();
-        Queue<Throwable> errors = new ConcurrentLinkedQueue<>();
-        runConcurrently(() -> {
-            try {
-                judged.addAndGet(abuseFacade.judgePending(member));
-            } catch (Throwable e) {
-                errors.add(e);
-            }
-        });
+        ConcurrentRunner.run(THREADS, i -> judged.addAndGet(abuseFacade.judgePending(member))).assertNoUnexpected();
 
-        assertThat(errors).isEmpty();
         assertThat(judged.get()).isEqualTo(3);
         assertThat(abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(member))
                 .extracting(AbuseSignal::getStatus)
@@ -98,21 +94,27 @@ class AbuseJudgeConcurrencyTest {
             locked.countDown();
             awaitQuietly(release);
         }));
-        assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
-        Future<Integer> judging = executor.submit(() -> abuseFacade.judgePending(member));
-        Thread.sleep(300);
+        try {
+            assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+            Future<Integer> judging = executor.submit(() -> abuseFacade.judgePending(member));
+            // 판정 트랜잭션이 회원 상태 행 락에 막힐 때까지 기다린다(시간이 아니라 DB 상태로).
+            // 쥔 쪽은 조회를 끝내고 release를 기다리는 중이라, abuse_member_state를 건드리는 실행 중 쿼리는 판정 쪽뿐이다
+            LockWaits.awaitBlockedOn(jdbcTemplate, "abuse_member_state", 1);
 
-        abuseFacade.receive(new AbuseSignalCommand(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
-                "late", LocalDateTime.now()));
-        release.countDown();
+            abuseFacade.receive(new AbuseSignalCommand(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
+                    "late", LocalDateTime.now()));
 
-        holder.get(10, TimeUnit.SECONDS);
-        assertThat(judging.get(10, TimeUnit.SECONDS)).isEqualTo(1);
-        executor.shutdown();
+            holder.get(10, TimeUnit.SECONDS);
+            assertThat(judging.get(10, TimeUnit.SECONDS)).isEqualTo(1);
+        } finally {
+            release.countDown(); // 중간에 실패해도 락을 쥔 스레드가 남지 않게 푼다
+            executor.shutdown();
+            assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+        }
         AbuseSignal late = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(member).getLast();
         assertThat(late.getSourceKey()).isEqualTo("late");
         assertThat(late.getLevel()).isEqualTo(AbuseLevel.CAUTION);
-        assertThat(late.getTotalScore()).isEqualTo(40);
+        assertThat(late.getTotalScore()).isEqualTo(34);
     }
 
     private void awaitQuietly(CountDownLatch latch) {
@@ -121,31 +123,6 @@ class AbuseJudgeConcurrencyTest {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    private void runConcurrently(Runnable task) throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(THREADS);
-        CountDownLatch ready = new CountDownLatch(THREADS);
-        CountDownLatch start = new CountDownLatch(1);
-        CountDownLatch done = new CountDownLatch(THREADS);
-        for (int i = 0; i < THREADS; i++) {
-            executor.submit(() -> {
-                ready.countDown();
-                try {
-                    start.await();
-                    task.run();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    done.countDown();
-                }
-            });
-        }
-        ready.await();
-        start.countDown();
-        assertThat(done.await(30, TimeUnit.SECONDS)).isTrue();
-        executor.shutdown();
-        executor.awaitTermination(30, TimeUnit.SECONDS);
     }
 
     private long nextMemberId() {

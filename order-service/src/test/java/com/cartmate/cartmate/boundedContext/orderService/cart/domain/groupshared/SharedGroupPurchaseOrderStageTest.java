@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Set;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.sharedPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 
 // 마감(CLOSED) 뒤 공동 주문 생성 결과로 바뀌는 단계: CLOSED → ORDER_CREATED, CLOSED → FROZEN 복귀
@@ -120,8 +121,7 @@ class SharedGroupPurchaseOrderStageTest {
     }
 
     private SharedGroupPurchase openPurchase() {
-        SharedGroupPurchase purchase = SharedGroupPurchase.create("FC 훈련용품", CREATOR, 5, "abcdefghijkl", createdAt);
-        purchase.join(PARTICIPANT, createdAt);
+        SharedGroupPurchase purchase = sharedPurchase(CREATOR, PARTICIPANT, createdAt);
         purchase.addItem(CREATOR, 100L, BALL_SKU, 2, createdAt);
         ReflectionTestUtils.setField(purchase, "id", 1L);
         return purchase;

@@ -127,12 +127,12 @@ public class SharedGroupPurchase {
         members.add(SharedGroupPurchaseMember.create(this, memberId));
     }
 
-    public void leave(Long memberId, LocalDateTime now) {
+    public LocalDateTime leave(Long memberId, LocalDateTime now) {
         validateEditable(now);
         if (isCreator(memberId)) {
             throw new ServiceException(CartErrorCode.CART_SHARED_CREATOR_CANNOT_LEAVE);
         }
-        removeMember(memberId);
+        return removeMember(memberId).getCreatedAt();
     }
 
     public void kick(Long requesterId, Long targetMemberId, LocalDateTime now) {
@@ -303,16 +303,21 @@ public class SharedGroupPurchase {
         return removed;
     }
 
+    public boolean isCanceled() {
+        return status == SharedGroupPurchaseStatus.CANCELED;
+    }
+
     public boolean isEditable(LocalDateTime now) {
         return status == SharedGroupPurchaseStatus.OPEN && now.isBefore(editDeadlineAt);
     }
 
-    private void removeMember(Long memberId) {
+    private SharedGroupPurchaseMember removeMember(Long memberId) {
         SharedGroupPurchaseMember member = members.stream()
                 .filter(m -> m.is(memberId))
                 .findFirst()
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_SHARED_MEMBER_NOT_FOUND));
         members.remove(member);
+        return member;
     }
 
     private Optional<SharedGroupPurchaseItem> findItemByInventoryId(Long inventoryId) {

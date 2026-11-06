@@ -7,15 +7,19 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      # create-drop이면 컨텍스트가 닫힐 때 공유 컨테이너의 테이블을 DROP해 아직 살아 있는 다른 컨텍스트가 테이블을 잃는다.
+      # 그래서 뜰 때 새로 만들기만 하고 닫을 때는 지우지 않는다. 데이터는 DatabaseCleaner가 비운다
+      ddl-auto: create
     properties:
       hibernate:
         format_sql: false
         use_sql_comments: false
 
+# SQL · 바인딩 값 로그는 끈다. 켜 두면 동시성 테스트 하나가 1MB씩 찍혀 결과 XML이 10MB가 됐다(TEST-1 진단).
+# 특정 테스트를 디버깅할 때만 아래 두 줄을 잠깐 켠다:
+#   org.hibernate.SQL: DEBUG
+#   org.hibernate.orm.jdbc.bind: TRACE
 logging:
   level:
-    com.cartmate: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
+    com.cartmate: INFO
     org.testcontainers: INFO

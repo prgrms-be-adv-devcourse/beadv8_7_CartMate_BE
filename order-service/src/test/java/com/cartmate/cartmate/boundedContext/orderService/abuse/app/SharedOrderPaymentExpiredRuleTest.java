@@ -14,16 +14,16 @@ class SharedOrderPaymentExpiredRuleTest {
 
     private final SharedOrderPaymentExpiredRule rule = new SharedOrderPaymentExpiredRule();
 
-    @ParameterizedTest(name = "30일 안 {0}회 → {1}, {2}점")
-    @CsvSource({"0, NONE, 0", "1, CAUTION, 40", "2, SUSPICIOUS, 80", "3, RESTRICTED, 120", "4, RESTRICTED, 160"})
-    @DisplayName("공동물품 결제 방해는 30일 안 1/2/3회에 1/2/3단계, 1회 40점이다")
-    void evaluate(long count, AbuseLevel level, int score) {
-        AbuseRuleResult result = rule.evaluate(count);
+    @ParameterizedTest(name = "30일 안 {0}회 → {1}점, 이 규칙만으로 {2}")
+    @CsvSource({"0, 0, NONE", "1, 34, CAUTION", "2, 68, SUSPICIOUS", "3, 102, RESTRICTED", "4, 136, RESTRICTED"})
+    @DisplayName("공동물품 결제 기한 만료는 30일 안 3회면 제한되도록 1회 34점(100 ÷ 3 올림)이다")
+    void evaluate(long count, int score, AbuseLevel levelAlone) {
+        AbuseRuleResult result = rule.evaluate(count, AbuseJudgeUseCase.SCORE_THRESHOLD);
 
         assertThat(result.ruleCode()).isEqualTo("SHARED_ORDER_PAYMENT_EXPIRED");
         assertThat(result.signalCount()).isEqualTo(count);
-        assertThat(result.level()).isEqualTo(level);
         assertThat(result.score()).isEqualTo(score);
-        assertThat(rule.threshold().window()).isEqualTo(Duration.ofDays(30));
+        assertThat(AbuseJudgeUseCase.SCORE_THRESHOLD.levelOf(score)).isEqualTo(levelAlone);
+        assertThat(rule.weight().window()).isEqualTo(Duration.ofDays(30));
     }
 }

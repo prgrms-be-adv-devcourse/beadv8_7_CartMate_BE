@@ -1,7 +1,5 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
@@ -26,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -37,6 +36,7 @@ class SharedGroupOrderQueryUseCaseTest {
     private static final Long CREATOR = 1L;
     private static final Long MEMBER = 2L;
     private static final Long OUTSIDER = 3L;
+    private static final LocalDateTime CLOSED_AT = LocalDateTime.of(2026, 10, 19, 12, 0);
     private static final Clock CLOCK = Clock.fixed(
             LocalDateTime.of(2026, 10, 19, 12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
@@ -63,7 +63,7 @@ class SharedGroupOrderQueryUseCaseTest {
     @Test
     @DisplayName("참여자는 내 부담 금액과 상품 정보가 담긴 상세를 본다")
     void getDetail() {
-        given(sharedGroupOrderRepository.findWithDetailsById(1L)).willReturn(Optional.of(order()));
+        given(sharedGroupOrderRepository.findWithDetailsById(1L)).willReturn(Optional.of(sharedOrder(CREATOR, MEMBER, CLOSED_AT)));
         given(orderProductClient.findAllByInventoryIds(anyCollection()))
                 .willReturn(List.of(new OrderProductInfo(4L, 2L, 1L, "축구공", "5호", 25000, "ball.png", true)));
         given(orderMemberClient.findNicknames(Set.of(CREATOR, MEMBER))).willReturn(Map.of(CREATOR, "방장", MEMBER, "철수"));
@@ -83,7 +83,7 @@ class SharedGroupOrderQueryUseCaseTest {
     @Test
     @DisplayName("내 공동 주문 목록에 공동구매 제목, 대표 상품명, 상품 수가 담긴다")
     void getMyList() {
-        given(sharedGroupOrderRepository.findAllByParticipant(MEMBER)).willReturn(List.of(order()));
+        given(sharedGroupOrderRepository.findAllByParticipant(MEMBER)).willReturn(List.of(sharedOrder(CREATOR, MEMBER, CLOSED_AT)));
         given(orderSharedGroupPurchaseClient.findTitles(Set.of(10L))).willReturn(Map.of(10L, "FC 훈련용품"));
 
         List<SharedGroupOrderSummaryResponse> response = queryUseCase.getMyList(MEMBER);
@@ -99,7 +99,7 @@ class SharedGroupOrderQueryUseCaseTest {
     @Test
     @DisplayName("공동구매 제목을 찾지 못해도 목록은 내려가고 제목만 비어 있다")
     void getMyListWithoutTitle() {
-        given(sharedGroupOrderRepository.findAllByParticipant(MEMBER)).willReturn(List.of(order()));
+        given(sharedGroupOrderRepository.findAllByParticipant(MEMBER)).willReturn(List.of(sharedOrder(CREATOR, MEMBER, CLOSED_AT)));
         given(orderSharedGroupPurchaseClient.findTitles(Set.of(10L))).willReturn(Map.of());
 
         assertThat(queryUseCase.getMyList(MEMBER)).singleElement()
@@ -109,7 +109,7 @@ class SharedGroupOrderQueryUseCaseTest {
     @Test
     @DisplayName("참여자가 아니면 볼 수 없다")
     void notParticipant() {
-        given(sharedGroupOrderRepository.findWithDetailsById(1L)).willReturn(Optional.of(order()));
+        given(sharedGroupOrderRepository.findWithDetailsById(1L)).willReturn(Optional.of(sharedOrder(CREATOR, MEMBER, CLOSED_AT)));
 
         assertThatThrownBy(() -> queryUseCase.getDetail(OUTSIDER, 1L))
                 .isInstanceOf(ServiceException.class)
@@ -124,10 +124,5 @@ class SharedGroupOrderQueryUseCaseTest {
         assertThatThrownBy(() -> queryUseCase.getDetail(MEMBER, 1L))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NOT_FOUND.getMsg());
-    }
-
-    private SharedGroupOrder order() {
-        return SharedGroupOrder.create(10L, CREATOR, List.of(CREATOR, MEMBER),
-                List.of(new OrderItemLine(2L, 4L, null, "상품", null, 2, 25000)), LocalDateTime.of(2026, 10, 19, 12, 0));
     }
 }
