@@ -26,4 +26,20 @@ public class InternalApiClientConfig {
                                                   Environment environment) {
         return new InternalApiClient("ORDER", "주문", baseUrl, apiKey, environment);
     }
+
+    // 상품 서버. 주문 서버가 구매용 상품 정보를 묻는다.
+    @Bean
+    public InternalApiClient productServerApiClient(@Value("${cartmate.product-service.base-url:}") String baseUrl,
+                                                    @Value("${cartmate.internal.api-key}") String apiKey,
+                                                    Environment environment) {
+        return new InternalApiClient("PRODUCT", "상품", baseUrl, apiKey, environment);
+    }
+
+    // 회원 서버. 주문 서버가 회원 닉네임을 묻는다.
+    @Bean
+    public InternalApiClient memberServerApiClient(@Value("${cartmate.member-service.base-url:}") String baseUrl,
+                                                   @Value("${cartmate.internal.api-key}") String apiKey,
+                                                   Environment environment) {
+        return new InternalApiClient("MEMBER", "회원", baseUrl, apiKey, environment);
+    }
 }
