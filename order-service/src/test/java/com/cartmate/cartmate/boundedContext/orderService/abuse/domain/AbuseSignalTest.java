@@ -17,7 +17,7 @@ class AbuseSignalTest {
     void recordsVerdict() {
         AbuseSignal signal = AbuseSignal.received(1L, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "100",
                 OCCURRED_AT, OCCURRED_AT.plusSeconds(1));
-        List<AbuseRuleResult> results = List.of(new AbuseRuleResult("A", 2, AbuseLevel.SUSPICIOUS, 80));
+        List<AbuseRuleResult> results = List.of(new AbuseRuleResult("A", 2, 80));
         LocalDateTime judgedAt = OCCURRED_AT.plusSeconds(2);
 
         signal.judge(new AbuseVerdict(AbuseLevel.SUSPICIOUS, 80, results), judgedAt);

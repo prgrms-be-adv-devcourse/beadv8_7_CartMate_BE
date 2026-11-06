@@ -112,7 +112,7 @@ class AbuseJudgeConcurrencyTest {
         AbuseSignal late = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(member).getLast();
         assertThat(late.getSourceKey()).isEqualTo("late");
         assertThat(late.getLevel()).isEqualTo(AbuseLevel.CAUTION);
-        assertThat(late.getTotalScore()).isEqualTo(40);
+        assertThat(late.getTotalScore()).isEqualTo(34);
     }
 
     private void awaitQuietly(CountDownLatch latch) {
