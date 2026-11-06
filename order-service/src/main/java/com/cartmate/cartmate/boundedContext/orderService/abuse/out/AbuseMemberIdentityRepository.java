@@ -23,4 +23,17 @@ public interface AbuseMemberIdentityRepository extends JpaRepository<AbuseMember
                         @Param("createdAt") LocalDateTime createdAt);
 
     List<AbuseMemberIdentity> findByMemberId(Long memberId);
+
+    @Query(value = """
+            SELECT a.identity_type
+            FROM abuse_member_identity a
+            JOIN abuse_member_identity b ON b.identity_type = a.identity_type AND b.identity_hash = a.identity_hash
+            WHERE a.member_id = :memberA AND b.member_id = :memberB
+              AND (SELECT COUNT(DISTINCT c.member_id) FROM abuse_member_identity c
+                   WHERE c.identity_type = a.identity_type AND c.identity_hash = a.identity_hash) <= :maxMembers
+            ORDER BY a.identity_type DESC
+            """, nativeQuery = true)
+    List<String> findSharedIdentityTypes(@Param("memberA") Long memberA,
+                                         @Param("memberB") Long memberB,
+                                         @Param("maxMembers") int maxMembers);
 }

@@ -21,6 +21,7 @@ public class AbuseFacade {
     private final AbuseJudgeUseCase abuseJudgeUseCase;
     private final AbuseJudgeRetryUseCase abuseJudgeRetryUseCase;
     private final AbuseRestrictionQueryUseCase abuseRestrictionQueryUseCase;
+    private final AbuseAccountRingSupport abuseAccountRingSupport;
     private final Clock clock;
 
     @Transactional
@@ -31,6 +32,11 @@ public class AbuseFacade {
     @Transactional
     public void recordIdentity(AbuseIdentityCommand command) {
         abuseIdentityUseCase.record(command, LocalDateTime.now(clock));
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void confirmLinks(Long memberId) {
+        abuseAccountRingSupport.confirmLinksOfPending(memberId, LocalDateTime.now(clock));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

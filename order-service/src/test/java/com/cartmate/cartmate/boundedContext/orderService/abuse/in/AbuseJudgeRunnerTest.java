@@ -6,6 +6,7 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,7 +40,9 @@ class AbuseJudgeRunnerTest {
     void succeeds() {
         assertThat(runner.judge(1L)).isEqualTo(AbuseJudgeOutcome.JUDGED);
 
-        then(abuseFacade).should().judgePending(1L);
+        InOrder order = inOrder(abuseFacade);
+        order.verify(abuseFacade).confirmLinks(1L);
+        order.verify(abuseFacade).judgePending(1L);
         then(abuseFacade).shouldHaveNoMoreInteractions();
     }
 
@@ -85,6 +89,17 @@ class AbuseJudgeRunnerTest {
                 .isEqualTo("DataIntegrityViolationException (원인: SQLIntegrityConstraintViolationException)");
         assertThat(AbuseJudgeRunner.classify(new IllegalStateException("x".repeat(1_000))))
                 .isEqualTo("IllegalStateException");
+    }
+
+    @Test
+    @DisplayName("계정 연결 확인이 실패해도 판정은 그대로 진행하고 실패로 세지 않는다")
+    void judgesEvenWhenLinkConfirmationFails() {
+        willThrow(new CannotAcquireLockException("deadlock")).given(abuseFacade).confirmLinks(1L);
+
+        assertThat(runner.judge(1L)).isEqualTo(AbuseJudgeOutcome.JUDGED);
+
+        then(abuseFacade).should().judgePending(1L);
+        then(abuseFacade).should(never()).recordJudgeFailure(anyLong(), anyString());
     }
 
     @Test
