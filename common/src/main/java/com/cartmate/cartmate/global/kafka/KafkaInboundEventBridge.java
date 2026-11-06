@@ -1,74 +1,56 @@
 package com.cartmate.cartmate.global.kafka;
 
 import com.cartmate.cartmate.global.event.EventEnvelope;
-import com.cartmate.cartmate.global.inbox.ProcessedEvents;
+import com.cartmate.cartmate.global.inbox.InboxWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.listener.MessageListener;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class KafkaInboundEventBridge implements SmartLifecycle {
 
     private final ConcurrentKafkaListenerContainerFactory<String, String> containerFactory;
-    private final Map<String, Class<?>> eventTypeByTopic;
+    private final InboundEventTypes inboundEventTypes;
     private final EventEnvelopeReader envelopeReader;
-    private final ApplicationEventPublisher applicationEventPublisher;
-    private final TransactionTemplate transactionTemplate;
-    private final ProcessedEvents processedEvents;
+    private final InboxWriter inboxWriter;
 
     private volatile ConcurrentMessageListenerContainer<String, String> container;
 
     public KafkaInboundEventBridge(ConcurrentKafkaListenerContainerFactory<String, String> containerFactory,
-                                   List<InboundEventBinding> bindings,
+                                   InboundEventTypes inboundEventTypes,
                                    EventEnvelopeReader envelopeReader,
-                                   ApplicationEventPublisher applicationEventPublisher,
-                                   TransactionTemplate transactionTemplate,
-                                   ProcessedEvents processedEvents) {
+                                   InboxWriter inboxWriter) {
         this.containerFactory = containerFactory;
-        this.eventTypeByTopic = bindings.stream()
-                .collect(Collectors.toMap(InboundEventBinding::topic, InboundEventBinding::eventType));
+        this.inboundEventTypes = inboundEventTypes;
         this.envelopeReader = envelopeReader;
-        this.applicationEventPublisher = applicationEventPublisher;
-        this.transactionTemplate = transactionTemplate;
-        this.processedEvents = processedEvents;
+        this.inboxWriter = inboxWriter;
     }
 
     void onMessage(ConsumerRecord<String, String> record) {
+        Class<?> type = inboundEventTypes.typeOf(record.topic())
+                .orElseThrow(() -> new IllegalStateException("받기로 선언하지 않은 토픽: " + record.topic()));
         EventEnvelope envelope = envelopeReader.envelope(record.value());
-        Object event = envelopeReader.payload(envelope, eventTypeByTopic.get(record.topic()));
-        transactionTemplate.executeWithoutResult(status -> {
-            if (!processedEvents.markFirst(consumerName(record.topic()), envelope.eventId())) {
-                log.info("이미 처리한 이벤트 건너뜀: topic={}, eventId={}", record.topic(), envelope.eventId());
-                return;
-            }
-            applicationEventPublisher.publishEvent(event);
-        });
-    }
-
-    static String consumerName(String topic) {
-        return "kafka:" + topic;
+        envelopeReader.payload(envelope, type);
+        if (!inboxWriter.save(record.topic(), envelope, record.value())) {
+            log.info("이미 받은 이벤트 건너뜀: topic={}, eventId={}", record.topic(), envelope.eventId());
+        }
     }
 
     @Override
     public void start() {
-        if (eventTypeByTopic.isEmpty() || container != null) {
+        if (inboundEventTypes.topics().isEmpty() || container != null) {
             return;
         }
         ConcurrentMessageListenerContainer<String, String> created =
-                containerFactory.createContainer(eventTypeByTopic.keySet().toArray(String[]::new));
+                containerFactory.createContainer(inboundEventTypes.topics().toArray(String[]::new));
         created.setupMessageListener((MessageListener<String, String>) this::onMessage);
         created.start();
         container = created;
-        log.info("Kafka 수신 시작: topics={}", eventTypeByTopic.keySet());
+        log.info("Kafka 수신 시작: topics={}", inboundEventTypes.topics());
     }
 
     @Override
