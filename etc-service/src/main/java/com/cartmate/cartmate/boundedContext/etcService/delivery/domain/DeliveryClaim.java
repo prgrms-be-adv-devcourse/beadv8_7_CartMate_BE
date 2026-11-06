@@ -56,6 +56,10 @@ public class DeliveryClaim {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;  //처리 완료 시각
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "refund_status", nullable = false, columnDefinition = "varchar(20) not null default 'NONE'")
+    private RefundStatus refundStatus = RefundStatus.NONE;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;    //접수 시각
@@ -82,7 +86,7 @@ public class DeliveryClaim {
     }
 
     // 판매자가 접수된 교환·환불을 수락한다. 이미 수락된 클레임이면 아무것도 하지 않아 재요청해도 안전하다.
-    public void approve() {
+    public void approve(boolean refundRequired) {
         if (this.status == ClaimStatus.APPROVED) {
             return;
         }
@@ -91,6 +95,7 @@ public class DeliveryClaim {
         }
 
         this.status = ClaimStatus.APPROVED;
+        this.refundStatus = refundRequired ? RefundStatus.PENDING : RefundStatus.NONE;
         this.processedAt = LocalDateTime.now();
     }
 
@@ -116,8 +121,31 @@ public class DeliveryClaim {
         if (this.status != ClaimStatus.APPROVED) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_INVALID_STATUS);
         }
+        if (this.refundStatus == RefundStatus.PENDING) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REFUND_PENDING);
+        }
+        if (this.refundStatus == RefundStatus.FAILED) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REFUND_FAILED);
+        }
 
         this.status = ClaimStatus.COMPLETED;
         this.completedAt = LocalDateTime.now();
+    }
+
+    public void completeRefund() {
+        if (this.refundStatus == RefundStatus.NONE) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REFUND_NOT_REQUIRED);
+        }
+        this.refundStatus = RefundStatus.COMPLETED;
+    }
+
+    public void failRefund() {
+        if (this.refundStatus == RefundStatus.NONE) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REFUND_NOT_REQUIRED);
+        }
+        if (this.refundStatus == RefundStatus.COMPLETED) {
+            return;
+        }
+        this.refundStatus = RefundStatus.FAILED;
     }
 }

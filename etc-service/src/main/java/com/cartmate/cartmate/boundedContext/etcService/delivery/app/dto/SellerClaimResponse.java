@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto;
 
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimReason;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimStatus;
+import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.RefundStatus;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryClaim;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryClaimItem;
@@ -20,6 +21,7 @@ public record SellerClaimResponse(
         String detail,
         String rejectReason,
         ClaimStatus status,
+        RefundStatus refundStatus,
         LocalDateTime createdAt,
         List<DeliveryClaimResponse.Item> items
 ) {
@@ -34,6 +36,7 @@ public record SellerClaimResponse(
                 claim.getDetail(),
                 claim.getRejectReason(),
                 claim.getStatus(),
+                claim.getRefundStatus(),
                 claim.getCreatedAt(),
                 claimItems.stream().map(DeliveryClaimResponse.Item::from).toList()
         );
