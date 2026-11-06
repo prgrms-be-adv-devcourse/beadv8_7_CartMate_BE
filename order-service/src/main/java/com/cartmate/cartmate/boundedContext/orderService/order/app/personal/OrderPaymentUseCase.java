@@ -172,6 +172,9 @@ class OrderPaymentUseCase {
             return;
         }
         try {
+            if (orderRepository.findById(orderId).filter(Order::isPaymentPending).isEmpty()) {
+                return;
+            }
             orderCouponClient.restore(memberId, memberCouponId, orderId);
         } catch (RuntimeException e) {
             log.error("결제 반영 실패 후 쿠폰 복구 실패 — 확인 필요: 주문 #{} 회원 #{} 쿠폰 #{}", orderId, memberId, memberCouponId, e);

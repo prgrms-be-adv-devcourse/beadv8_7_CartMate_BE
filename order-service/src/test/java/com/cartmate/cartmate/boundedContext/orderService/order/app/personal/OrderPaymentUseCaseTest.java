@@ -349,6 +349,20 @@ class OrderPaymentUseCaseTest {
         assertThatThrownBy(() -> f.useCase.pay(ORDER_ID, BUYER, 5L, CREATED_AT.plusMinutes(1))).isSameAs(expired);
     }
 
+    @Test
+    @DisplayName("이미 쿠폰으로 결제 완료된 주문은 반영이 실패해도 그 주문에 쓴 쿠폰을 복구하지 않는다")
+    void paidOrderFailureDoesNotRestoreCoupon() {
+        CouponFixture f = couponFixture();
+        f.order.applyCoupon(5L, 5_000L, true, null);
+        f.order.markPaid(999L, CREATED_AT.plusMinutes(1));
+        given(f.paymentClient.findPayment(any(), any(), any())).willReturn(Optional.of(charged(45_000L)));
+
+        assertThatThrownBy(() -> f.useCase.pay(ORDER_ID, BUYER, 5L, CREATED_AT.plusMinutes(2)))
+                .isInstanceOf(ServiceException.class);
+        then(f.couponClient).should(never()).use(any(), any(), any(), any());
+        then(f.couponClient).should(never()).restore(any(), any(), any());
+    }
+
     private static final CouponQuote QUOTE = new CouponQuote(5L, 10L, "전체 10%", 5_000L, true, null);
 
     private record CouponFixture(OrderPaymentUseCase useCase, OrderPaymentClient paymentClient,
