@@ -3,6 +3,8 @@ package com.cartmate.cartmate.support;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Duration;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -19,20 +21,29 @@ public final class LockWaits {
     public static final Duration TIMEOUT = Duration.ofSeconds(10);
     private static final long POLL_MILLIS = 20;
 
-    private static final String BLOCKED_SQL = "SELECT COUNT(*) FROM information_schema.processlist "
+    private static final String RUNNING_SQL = "SELECT CONCAT(id, ':', info) FROM information_schema.processlist "
             + "WHERE id <> CONNECTION_ID() AND command = 'Query' AND info LIKE ?";
 
     private LockWaits() {
     }
 
-    /** 다른 연결에서 {@code table}을 건드리는 쿼리가 {@code count}개 이상 실행 중(= 락 대기)일 때까지 기다린다. 시간을 넘기면 실패한다. */
+    /**
+     * 다른 연결에서 {@code table}을 건드리는 같은 쿼리가 연속 두 번의 확인(20ms 간격)에서 모두 실행 중으로 보일 때까지 기다린다.
+     * 한 번만 보이는 것은 막힘 없이 지나가는 짧은 쿼리일 수 있어서, 같은 연결 · 같은 문장이 그대로 남아 있어야 락 대기로 본다.
+     * {@code count}개 이상이 그렇게 되면 돌아오고, 시간을 넘기면 실패한다.
+     */
     public static void awaitBlockedOn(JdbcTemplate jdbcTemplate, String table, int count) throws InterruptedException {
         long deadline = System.nanoTime() + TIMEOUT.toNanos();
+        Set<String> previous = Set.of();
         while (true) {
-            Integer blocked = jdbcTemplate.queryForObject(BLOCKED_SQL, Integer.class, "%" + table + "%");
-            if (blocked != null && blocked >= count) {
+            Set<String> running = new HashSet<>(jdbcTemplate.queryForList(RUNNING_SQL, String.class, "%" + table + "%"));
+            Set<String> stillRunning = new HashSet<>(running);
+            stillRunning.retainAll(previous);
+            int blocked = stillRunning.size();
+            if (blocked >= count) {
                 return;
             }
+            previous = running;
             if (System.nanoTime() > deadline) {
                 throw new AssertionError(table + " 락을 기다리는 쿼리가 " + TIMEOUT.toSeconds() + "초 안에 " + count
                         + "개가 되지 않았다(현재 " + blocked + "개)");

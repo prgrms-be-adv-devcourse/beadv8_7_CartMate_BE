@@ -13,7 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 통합 테스트마다 시작 전에 테스트 DB의 모든 테이블을 비운다(TEST-2). {@link CartMateIntegrationTest}가 건다.
+ * 테스트마다 시작 전에 테스트 DB의 모든 테이블을 비운다(TEST-2). {@link CartMateIntegrationTest} · {@link CartMateJpaTest}가 건다.
+ * JPA 슬라이스는 테스트 트랜잭션과 다른 연결로 비우므로, 앞 통합 테스트가 커밋한 데이터가 슬라이스로 새지 않는다.
  *
  * <p>테이블 목록은 손으로 적지 않고 {@code information_schema}에서 읽는다. 엔티티 · outbox · shedlock 테이블이 늘어도
  * 정리 누락이 없고, 앞 테스트가 남긴 outbox 행이 릴레이를 막거나 다른 테스트 데이터와 섞이는 일이 없다.
@@ -57,9 +58,11 @@ public class DatabaseCleaner implements BeforeEachCallback {
     }
 
     private static void requireTestContainer(String url) {
-        String container = "//" + CartMateTestContainers.MYSQL.getHost() + ":"
+        String container = "jdbc:mysql://" + CartMateTestContainers.MYSQL.getHost() + ":"
                 + CartMateTestContainers.MYSQL.getMappedPort(3306) + "/" + CartMateTestContainers.MYSQL.getDatabaseName();
-        if (url == null || !url.contains(container)) {
+        boolean matches = url != null && url.startsWith(container)
+                && (url.length() == container.length() || url.charAt(container.length()) == '?');
+        if (!matches) {
             throw new IllegalStateException("테스트 컨테이너 DB가 아니라 데이터를 지우지 않는다: " + url
                     + " (기대: " + container + "). 로컬 DB를 비우지 않도록 막아 둔 안전장치다");
         }
