@@ -57,8 +57,6 @@ class CartMatchQueryUseCaseTest {
         assertThat(match.matchType()).isEqualTo(MatchType.EXACT);
         assertThat(match.similarity()).isEqualTo(1.0);
         assertThat(match.matchedCartProductIds()).containsExactly(BALL);
-        assertThat(match.paybackMinQuantity()).isEqualTo(10);
-        assertThat(match.paybackAmountPerUnit()).isEqualTo(1_000L);
     }
 
     @Test

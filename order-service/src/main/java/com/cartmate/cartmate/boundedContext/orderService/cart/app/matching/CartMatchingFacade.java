@@ -14,8 +14,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CartMatchingFacade {
 
+    private static final int VECTOR_WINDOW_DAYS = 30;
+
     private final DemandCandidateQueryUseCase demandCandidateQueryUseCase;
     private final CartMatchQueryUseCase cartMatchQueryUseCase;
+    private final ProductVectorIndexingUseCase productVectorIndexingUseCase;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -28,5 +31,9 @@ public class CartMatchingFacade {
     @Transactional(readOnly = true)
     public List<CartMatchResponse> getMyMatches(Long memberId) {
         return cartMatchQueryUseCase.getMatches(memberId, LocalDateTime.now(clock));
+    }
+
+    public int indexCartProductVectors() {
+        return productVectorIndexingUseCase.indexStaleCartProducts(LocalDateTime.now(clock).minusDays(VECTOR_WINDOW_DAYS));
     }
 }

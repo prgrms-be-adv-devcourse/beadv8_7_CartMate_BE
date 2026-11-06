@@ -1,8 +1,5 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
-import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
-import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
-import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
@@ -86,27 +83,5 @@ class IndividualGroupPurchaseReplicaTest {
 
     private static IndividualGroupPurchaseReplica open(List<Long> productIds, long revision) {
         return IndividualGroupPurchaseReplica.of(ID, NOW.plusDays(1), false, null, productIds, revision);
-    }
-
-    @Test
-    @DisplayName("페이백 조건은 비어 있을 때만 채우고, 닫힌 사본에도 채울 수 있다 (종료가 열림보다 먼저 와도 빠지지 않게)")
-    void fillPaybackCondition() {
-        IndividualGroupPurchaseReplica replica = IndividualGroupPurchaseReplica.of(
-                1L, LocalDateTime.of(2026, 11, 10, 12, 0), true, LocalDateTime.of(2026, 11, 9, 12, 0), List.of(), 3);
-        assertThat(replica.hasPaybackCondition()).isFalse();
-
-        replica.fillPaybackConditions(null, null);
-        assertThat(replica.hasPaybackCondition()).isFalse();
-
-        replica.fillPaybackConditions(PaybackOverlapPolicy.ADMIN_ONLY,
-                List.of(new PaybackConditionPayload(5L, PaybackFunder.ADMIN, null, 10, 1_000L)));
-        replica.fillPaybackConditions(PaybackOverlapPolicy.BOTH,
-                List.of(new PaybackConditionPayload(5L, PaybackFunder.ADMIN, null, 20, 2_000L)));
-
-        assertThat(replica.hasPaybackCondition()).isTrue();
-        assertThat(replica.getPaybackOverlapPolicy()).isEqualTo(PaybackOverlapPolicy.ADMIN_ONLY);
-        assertThat(replica.getPaybackConditions()).singleElement()
-                .extracting(ReplicaPaybackCondition::getMinQuantity, ReplicaPaybackCondition::getAmountPerUnit)
-                .containsExactly(10, 1_000L);
     }
 }

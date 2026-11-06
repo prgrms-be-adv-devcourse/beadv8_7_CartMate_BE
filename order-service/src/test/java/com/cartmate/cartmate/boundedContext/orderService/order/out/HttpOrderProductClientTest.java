@@ -32,7 +32,7 @@ class HttpOrderProductClientTest {
     @DisplayName("상품 정보를 재고 ID가 상품 ID와 같은 주문 상품으로 변환하고 없는 상품은 제외한다")
     void mapsProductsAndExcludesMissing() {
         given(productServerApiClient.get(eq(HttpOrderProductClient.PATH), eq(HttpOrderProductClient.PRODUCTS), eq("10,99")))
-                .willReturn(List.of(new ProductForPurchase(10L, 7L, "축구공", 25000L, true, "https://example.com/ball.png")));
+                .willReturn(List.of(new ProductForPurchase(10L, 7L, "축구공", 25000L, true, "https://example.com/ball.png", 3L)));
 
         assertThat(productClient.findAllByInventoryIds(List.of(10L, 99L))).containsExactly(
                 new OrderProductInfo(10L, 10L, 7L, "축구공", null, 25000L, "https://example.com/ball.png", true));

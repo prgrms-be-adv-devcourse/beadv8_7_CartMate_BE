@@ -47,10 +47,7 @@ public enum OrderErrorCode implements ErrorCode {
     ORDER_GROUP_PURCHASE_NOT_FOUND("ORDER_GROUP_PURCHASE_NOT_FOUND", "존재하지 않는 공동구매입니다.", HttpStatus.NOT_FOUND),
     ORDER_GROUP_PURCHASE_SALE_CLOSED("ORDER_GROUP_PURCHASE_SALE_CLOSED", "판매가 마감된 공동구매입니다.", HttpStatus.CONFLICT),
     ORDER_GROUP_PURCHASE_PRODUCT_NOT_SOLD("ORDER_GROUP_PURCHASE_PRODUCT_NOT_SOLD", "이 공동구매에서 판매하지 않는 상품입니다.", HttpStatus.BAD_REQUEST),
-    ORDER_GROUP_PURCHASE_PAYMENT_CLOSED("ORDER_GROUP_PURCHASE_PAYMENT_CLOSED", "판매가 끝난 공동구매이거나 더 이상 판매하지 않는 상품이 있어 결제할 수 없습니다.", HttpStatus.CONFLICT),
-
-    ORDER_PAYBACK_NOT_FOUND("ORDER_PAYBACK_NOT_FOUND", "존재하지 않는 페이백 지급입니다.", HttpStatus.NOT_FOUND),
-    ORDER_PAYBACK_NOT_FAILED("ORDER_PAYBACK_NOT_FAILED", "실패로 확정된 페이백만 다시 요청할 수 있습니다.", HttpStatus.CONFLICT);
+    ORDER_GROUP_PURCHASE_PAYMENT_CLOSED("ORDER_GROUP_PURCHASE_PAYMENT_CLOSED", "판매가 끝난 공동구매이거나 더 이상 판매하지 않는 상품이 있어 결제할 수 없습니다.", HttpStatus.CONFLICT);
 
     private final String code;
     private final String msg;

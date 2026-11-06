@@ -68,8 +68,7 @@ public enum CartErrorCode implements ErrorCode {
     CART_DEMAND_INVALID_SIZE("CART_DEMAND_INVALID_SIZE", "조회 개수는 1개 이상 100개 이하여야 합니다.", HttpStatus.BAD_REQUEST),
     CART_DEMAND_INVALID_COOLDOWN("CART_DEMAND_INVALID_COOLDOWN", "재개설 제한 기간은 0일 이상 90일 이하여야 합니다.", HttpStatus.BAD_REQUEST),
     CART_DEMAND_ALREADY_OPEN("CART_DEMAND_ALREADY_OPEN", "이 상품으로 이미 열린 공동구매가 있습니다.", HttpStatus.CONFLICT),
-    CART_DEMAND_DEADLINE_TOO_LATE("CART_DEMAND_DEADLINE_TOO_LATE", "판매 마감 시각은 지금으로부터 7일 이내여야 합니다.", HttpStatus.BAD_REQUEST),
-    CART_DEMAND_INVALID_PAYBACK("CART_DEMAND_INVALID_PAYBACK", "페이백 기준 수량은 2개 이상 100,000개 이하, 개당 금액은 1원 이상 100,000원 이하여야 합니다.", HttpStatus.BAD_REQUEST);
+    CART_DEMAND_DEADLINE_TOO_LATE("CART_DEMAND_DEADLINE_TOO_LATE", "판매 마감 시각은 지금으로부터 7일 이내여야 합니다.", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String msg;

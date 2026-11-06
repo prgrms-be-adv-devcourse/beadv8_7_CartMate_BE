@@ -1,9 +1,5 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackPayoutStatus;
-import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.PaybackPayoutResponse;
-import com.cartmate.cartmate.shared.wallet.event.PaybackDepositFailedEvent;
-import com.cartmate.cartmate.shared.wallet.event.PaybackDepositedEvent;
 import com.cartmate.cartmate.shared.coupon.dto.CouponOption;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
@@ -36,8 +32,7 @@ public class OrderFacade {
     private final OrderPaymentUseCase orderPaymentUseCase;
     private final OrderCancelUseCase orderCancelUseCase;
     private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
-    private final IndividualGroupPurchasePaybackUseCase individualGroupPurchasePaybackUseCase;
-    private final PaybackPayoutUseCase paybackPayoutUseCase;
+    private final OrderPurchaseConfirmationUseCase orderPurchaseConfirmationUseCase;
     private final Clock clock;
 
     @Transactional
@@ -152,49 +147,9 @@ public class OrderFacade {
         individualGroupPurchaseReplicaUseCase.applyClosed(event);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
-    public void recordPurchaseConfirmed(Long orderId, LocalDateTime confirmedAt) {
-        individualGroupPurchasePaybackUseCase.recordConfirmed(orderId, confirmedAt, LocalDateTime.now(clock));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
-    public void judgeIndividualGroupPurchasePayback(Long individualGroupPurchaseId) {
-        individualGroupPurchasePaybackUseCase.judge(individualGroupPurchaseId, LocalDateTime.now(clock));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
-    public void judgeIndividualGroupPurchasePaybackOfOrder(Long orderId) {
-        individualGroupPurchasePaybackUseCase.judgeOfOrder(orderId, LocalDateTime.now(clock));
-    }
-
-    @Transactional
-    public void applyPaybackDeposited(PaybackDepositedEvent event) {
-        paybackPayoutUseCase.applyDeposited(event);
-    }
-
-    @Transactional
-    public void applyPaybackDepositFailed(PaybackDepositFailedEvent event) {
-        paybackPayoutUseCase.applyDepositFailed(event);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Long> findRetryWaitingPaybackIds(int limit) {
-        return paybackPayoutUseCase.findRetryWaitingIds(limit);
-    }
-
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void retryWaitingPayback(Long paybackId) {
-        paybackPayoutUseCase.retryWaiting(paybackId, LocalDateTime.now(clock));
-    }
-
-    @Transactional
-    public void retryFailedPayback(Long paybackId) {
-        paybackPayoutUseCase.retryFailed(paybackId, LocalDateTime.now(clock));
-    }
-
-    @Transactional(readOnly = true)
-    public List<PaybackPayoutResponse> getPaybackPayouts(PaybackPayoutStatus status) {
-        return paybackPayoutUseCase.findAllByStatus(status);
+    public void recordPurchaseConfirmed(Long orderId, LocalDateTime confirmedAt) {
+        orderPurchaseConfirmationUseCase.record(orderId, confirmedAt);
     }
 
     @Transactional(readOnly = true)

@@ -48,8 +48,7 @@ class ExternalApiGuardTest extends ExternalApiTestSupport {
             "POST, /api/orders",
             "GET, /api/group-orders/shared/me",
             "GET, /api/admin/carts/demands",
-            "POST, /api/admin/carts/group-purchases/individual/1/close",
-            "GET, /api/admin/orders/paybacks"
+            "POST, /api/admin/carts/group-purchases/individual/1/close"
     })
     @DisplayName("로그인하지 않고 부르면 컨트롤러에 닿기 전에 401과 인증 필요 응답을 준다")
     void unauthenticated(String method, String path) throws Exception {
@@ -98,9 +97,7 @@ class ExternalApiGuardTest extends ExternalApiTestSupport {
             "BUYER, GET, /api/admin/carts/demands",
             "SELLER, POST, /api/admin/carts/demands/1/group-purchases",
             "BUYER, POST, /api/admin/carts/group-purchases/individual/1/close",
-            "SELLER, GET, /api/admin/carts/group-purchases/individual/1/dashboard",
-            "BUYER, GET, /api/admin/orders/paybacks",
-            "SELLER, POST, /api/admin/orders/paybacks/1/retry"
+            "SELLER, GET, /api/admin/carts/group-purchases/individual/1/dashboard"
     })
     @DisplayName("어드민 API를 구매자 · 판매자가 부르면 403과 권한 없음 응답을 준다")
     void adminOnly(String role, String method, String path) throws Exception {
@@ -136,7 +133,7 @@ class ExternalApiGuardTest extends ExternalApiTestSupport {
                 Arguments.of(false, "POST", "/api/group-purchases/individual", "{\"title\":\"모임\",\"productIds\":[]}", "productIds"),
                 Arguments.of(false, "POST", "/api/group-purchases/individual/1/products", "{}", "productId"),
                 Arguments.of(false, "PATCH", "/api/group-purchases/individual/1/deadline", "{\"deadlineAt\":\"2020-01-01T00:00:00\"}", "deadlineAt"),
-                Arguments.of(true, "POST", "/api/admin/carts/demands/1/group-purchases", "{\"title\":\"수요\",\"paybackMinQuantity\":1}", "paybackMinQuantity"),
+                Arguments.of(true, "POST", "/api/admin/carts/demands/1/group-purchases", "{\"title\":\"\"}", "title"),
                 Arguments.of(false, "POST", "/api/orders",
                         "{\"cartItemIds\":[1],\"deliveryAddress\":{\"receiverPhone\":\"010-1234-5678\",\"zipCode\":\"12345\",\"address\":\"서울시\"}}",
                         "deliveryAddress.receiverName"),

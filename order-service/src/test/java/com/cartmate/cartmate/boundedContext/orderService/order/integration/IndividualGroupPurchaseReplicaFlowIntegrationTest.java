@@ -122,7 +122,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
         Long orderId = createOrder(buyer, purchaseId);
         individualGroupPurchaseFacade.close(creator, purchaseId);
         orderFacade.applyIndividualGroupPurchaseClosed(new IndividualGroupPurchaseClosedEvent(
-                purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR, LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null));
+                purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR, LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1));
 
         assertThat(orderFacade.getPaymentInfo(orderId, buyer, LocalDateTime.now()).payable()).isFalse();
         assertThatThrownBy(() -> orderFacade.applyPayment(orderId, buyer, orderId, LocalDateTime.now()))
@@ -138,7 +138,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
         relayUntil(jdbcTemplate, outboxRelay, () -> replicaRevision(purchaseId) == 0);
         Long orderId = createOrder(buyer, purchaseId);
         orderFacade.applyIndividualGroupPurchaseClosed(new IndividualGroupPurchaseClosedEvent(
-                purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR, LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null));
+                purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR, LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1));
 
         assertThatThrownBy(() -> orderFacade.payOrder(buyer, orderId))
                 .isInstanceOf(ServiceException.class)
@@ -158,7 +158,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
             assertThat(orderFacade.getPaymentInfo(orderId, buyer, LocalDateTime.now()).payable()).isTrue();
             CompletableFuture.runAsync(() -> orderFacade.applyIndividualGroupPurchaseClosed(
                     new IndividualGroupPurchaseClosedEvent(purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR,
-                            LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null))).join();
+                            LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1))).join();
             try {
                 orderFacade.applyPayment(orderId, buyer, orderId, LocalDateTime.now());
             } catch (RuntimeException e) {

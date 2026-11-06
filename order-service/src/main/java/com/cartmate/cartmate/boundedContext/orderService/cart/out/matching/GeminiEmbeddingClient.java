@@ -81,4 +81,9 @@ class GeminiEmbeddingClient implements ProductEmbeddingClient {
         }
         return vectors;
     }
+
+    @Override
+    public String primaryModel() {
+        return models.getFirst();
+    }
 }

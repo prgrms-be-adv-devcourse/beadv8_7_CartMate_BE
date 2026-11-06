@@ -7,6 +7,18 @@ spring:
     name: product-service
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  kafka:
+    # cartmate.kafka.enabled=true일 때만 실제로 연결한다(기본 꺼짐 → 브로커 없이도 지금처럼 동작)
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    consumer:
+      group-id: product-service   # order-service와 다른 그룹이어야 같은 공동구매 · 주문 이벤트를 둘 다 받는다
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   batch:
     job:
       enabled: false # Job은 스케줄러가 실행하므로 애플리케이션 시작 시 자동 실행하지 않는다
@@ -52,6 +64,8 @@ custom:
       port: ${REDIS_CORE_PORT:6380}
 
 cartmate:
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}   # 켜면 outbox 이벤트(페이백 요청)를 Kafka로도 내보내고, 공동구매 · 주문 · 구매확정 · wallet 결과를 Kafka로 받는다
   payment:
     # 주문이 결제를 부르는 방식. local: 같은 앱 결제 Facade (차감·주문 반영 한 트랜잭션)
     #                          http : 결제 서버 내부 API (서버 분리 후와 같음, 차감·반영이 다른 트랜잭션)
