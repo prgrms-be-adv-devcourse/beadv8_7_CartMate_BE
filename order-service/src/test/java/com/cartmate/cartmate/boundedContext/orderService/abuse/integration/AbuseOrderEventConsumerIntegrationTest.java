@@ -105,7 +105,7 @@ class AbuseOrderEventConsumerIntegrationTest {
     }
 
     private SharedGroupOrderCanceledEvent canceled(long orderId, List<Long> unpaidMemberIds) {
-        return new SharedGroupOrderCanceledEvent(orderId, orderId, SharedGroupOrderCancelReason.DEADLINE_EXPIRED, LocalDateTime.now(), unpaidMemberIds);
+        return new SharedGroupOrderCanceledEvent(orderId, orderId, SharedGroupOrderCancelReason.DEADLINE_EXPIRED, LocalDateTime.now(), unpaidMemberIds, null);
     }
 
     private OutboxMessageRelayed relayed(SharedGroupOrderCanceledEvent event) {
