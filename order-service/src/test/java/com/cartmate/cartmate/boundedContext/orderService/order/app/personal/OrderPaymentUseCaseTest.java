@@ -238,6 +238,37 @@ class OrderPaymentUseCaseTest {
         then(paymentClient).should().compensateCharge(any(), any(), any());
     }
 
+    @Test
+    @DisplayName("차감에 응답이 없고 재조회로도 결제를 확인하지 못하면 주문을 결제 대기로 두고 되돌리기 · 이벤트 없이 503을 그대로 던진다")
+    void chargeUnavailableKeepsOrderPending() {
+        assertChargeFailureLeavesOrderPending(new InternalServerUnavailableException("PAYMENT", "결제", null));
+    }
+
+    @Test
+    @DisplayName("결제 서버가 차감을 업무 거절하면 주문을 결제 대기로 두고 되돌리기 · 이벤트 없이 그 예외를 그대로 던진다")
+    void chargeRejectedKeepsOrderPending() {
+        assertChargeFailureLeavesOrderPending(new ServiceException("400-INSUFFICIENT_BALANCE", "예치금이 부족합니다."));
+    }
+
+    private void assertChargeFailureLeavesOrderPending(ServiceException failure) {
+        OrderPaymentClient paymentClient = org.mockito.Mockito.mock(OrderPaymentClient.class);
+        OrderProductClient allOnSale = inventoryIds -> inventoryIds.stream().distinct()
+                .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
+                .toList();
+        OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
+                eventPublisher, allOnSale, replicaUseCase, paymentClient);
+        Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
+        given(orderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
+        given(paymentClient.findPayment(any(), any(), any())).willReturn(Optional.empty());
+        given(paymentClient.charge(any(), any(), any(), org.mockito.ArgumentMatchers.anyLong())).willThrow(failure);
+
+        assertThatThrownBy(() -> useCase.pay(ORDER_ID, BUYER, CREATED_AT.plusMinutes(1))).isSameAs(failure);
+        then(paymentClient).should(never()).compensateCharge(any(), any(), any());
+        then(orderRepository).should(never()).findByIdForUpdate(any());
+        then(eventPublisher).should(never()).publish(any());
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
+    }
+
     private Order individualGroupOrder(LocalDateTime createdAt) {
         Order order = Order.createIndividualGroup("20261019-IGPORDER", BUYER, PURCHASE_ID, createdAt.plusDays(1),
                 List.of(ballLine(9L, 2)), addressWithoutDetail(), createdAt);
