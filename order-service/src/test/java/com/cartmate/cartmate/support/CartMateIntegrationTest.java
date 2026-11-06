@@ -25,9 +25,6 @@ import java.lang.annotation.Target;
  *   <li>아웃박스 릴레이는 수동: {@link ManualOutboxRelayConfig}가 릴레이 빈을 만들고 자동 폴링은 1시간 뒤로 미룬다.
  *       테스트가 {@code outboxRelay.relay()}를 직접 부른다. 이벤트 기록기({@link TestEventRecorder})도 여기서 들어온다</li>
  * </ul>
- *
- * <p>속성 · @Import 구성은 {@code PaymentOrderDeliveryFlowIntegrationTest}(팀원 공동 파일)와 글자까지 같게 둬서 그 테스트도 같은 컨텍스트를 쓴다.
- * 바꾸면 그 테스트가 따로 뜬다.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
