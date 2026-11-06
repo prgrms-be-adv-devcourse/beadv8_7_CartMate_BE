@@ -27,11 +27,15 @@ public class InboundEvents {
         EventEnvelope envelope = envelopeReader.envelope(record.value());
         T event = envelopeReader.payload(envelope, eventType);
         transactionTemplate.executeWithoutResult(status -> {
-            if (!processedEvents.markFirst(KafkaInboundEventBridge.consumerName(record.topic()), envelope.eventId())) {
+            if (!processedEvents.markFirst(consumerName(record.topic()), envelope.eventId())) {
                 log.info("이미 처리한 이벤트 건너뜀: topic={}, eventId={}", record.topic(), envelope.eventId());
                 return;
             }
             handler.accept(event);
         });
+    }
+
+    private static String consumerName(String topic) {
+        return "kafka:" + topic;
     }
 }

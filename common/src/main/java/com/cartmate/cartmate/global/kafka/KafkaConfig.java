@@ -54,6 +54,10 @@ public class KafkaConfig {
     @Bean
     public CommonErrorHandler kafkaErrorHandler(KafkaTemplate<String, String> kafkaTemplate,
             @Value("${cartmate.kafka.retry-timeout:1m}") Duration retryTimeout) {
+        return errorHandler(kafkaTemplate, retryTimeout);
+    }
+
+    static DefaultErrorHandler errorHandler(KafkaTemplate<String, String> kafkaTemplate, Duration retryTimeout) {
         DeadLetterPublishingRecoverer toDeadLetter = new DeadLetterPublishingRecoverer(kafkaTemplate);
         ExponentialBackOff backOff = new ExponentialBackOff(1_000L, 2.0);
         backOff.setMaxInterval(30_000L);
@@ -84,12 +88,16 @@ public class KafkaConfig {
     public KafkaInboundEventBridge kafkaInboundEventBridge(ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory,
                                                            InboundEventTypes inboundEventTypes,
                                                            EventEnvelopeReader envelopeReader,
-                                                           InboxWriter inboxWriter) {
+                                                           InboxWriter inboxWriter,
+                                                           ObjectProvider<InboundEventBinding> bindings,
+                                                           KafkaTemplate<String, String> kafkaTemplate,
+                                                           @Value("${cartmate.kafka.retry-timeout:1m}") Duration retryTimeout) {
         return new KafkaInboundEventBridge(
                 (ConcurrentKafkaListenerContainerFactory<String, String>) kafkaListenerContainerFactory,
                 inboundEventTypes,
                 envelopeReader,
-                inboxWriter);
+                inboxWriter, bindings.orderedStream().toList(),
+                timeout -> errorHandler(kafkaTemplate, timeout), retryTimeout);
     }
 
     @Bean
