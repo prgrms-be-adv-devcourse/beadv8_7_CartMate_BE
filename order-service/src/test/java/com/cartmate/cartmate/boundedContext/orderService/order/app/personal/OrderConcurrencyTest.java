@@ -188,7 +188,6 @@ class OrderConcurrencyTest {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-            // 이 표시 뒤에야 커밋돼 행 락이 풀린다
             lockReleased.set(true);
         }));
         try {
@@ -196,8 +195,6 @@ class OrderConcurrencyTest {
 
             facade.createIndividualGroup(buyer, request);
 
-            // 시간 대신 순서로 본다: 주문이 끝난 시점에 행 락을 쥔 트랜잭션이 아직 풀지 않았으면 주문은 그 락을 기다리지 않은 것이다.
-            // 락을 기다렸다면 쥔 쪽이 release를 10초 기다린 뒤 표시하고 커밋해야 주문이 끝나므로 여기서 실패한다
             assertThat(lockReleased.get()).as("주문 생성이 공동구매 행 락이 풀리기를 기다렸다").isFalse();
         } finally {
             release.countDown();
