@@ -10,11 +10,6 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-/**
- * 결제 트랜잭션 전체를 재시도한다 (결제 모듈에 있던 것을 결제를 지휘하는 주문으로 옮김).
- * 예치금 동시 차감 충돌·잠금 대기 초과 시 트랜잭션을 처음부터 다시 실행한다.
- * 차감은 (구분·주문·회원) 키로 한 번만이라 다시 실행해도 두 번 빠지지 않는다.
- */
 @Service
 @RequiredArgsConstructor
 public class OrderPaymentRetryService {

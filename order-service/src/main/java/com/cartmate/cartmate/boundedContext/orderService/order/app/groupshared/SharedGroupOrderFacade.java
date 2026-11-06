@@ -26,7 +26,6 @@ public class SharedGroupOrderFacade {
     private final SharedGroupOrderCancelUseCase sharedGroupOrderCancelUseCase;
     private final Clock clock;
 
-    // 아웃박스 consumer(SharedGroupOrderEventListener)가 부른다. 마감 트랜잭션과 따로, order 자기 트랜잭션에서 만든다
     @Transactional
     public void createFromClosedPurchase(SharedGroupPurchaseClosedEvent event) {
         sharedGroupOrderCreateUseCase.createFromClosedPurchase(event, LocalDateTime.now(clock));
@@ -42,7 +41,6 @@ public class SharedGroupOrderFacade {
         return sharedGroupOrderPaymentUseCase.getPaymentInfo(sharedGroupOrderId, memberId, now);
     }
 
-    // 분담금 결제: 주문이 지휘한다 (주문 → 결제)
     @Transactional
     public PaymentResult pay(Long memberId, Long sharedGroupOrderId, TeamDeliveryAddress teamDeliveryAddress) {
         return sharedGroupOrderPaymentUseCase.pay(sharedGroupOrderId, memberId, teamDeliveryAddress, LocalDateTime.now(clock));
@@ -79,7 +77,6 @@ public class SharedGroupOrderFacade {
         return sharedGroupOrderCancelUseCase.findIdsToCancelByDeadline(now);
     }
 
-    // ===== 판매글 판매 중지 =====
     @Transactional(readOnly = true)
     public List<Long> findActiveIdsByProductIds(List<Long> productIds) {
         return sharedGroupOrderCancelUseCase.findActiveIdsByProductIds(productIds);
@@ -105,13 +102,16 @@ public class SharedGroupOrderFacade {
         return sharedGroupOrderQueryUseCase.getDetail(memberId, sharedGroupOrderId);
     }
 
-    // 회원 탈퇴 확인: 참여 중인 결제 중 공동 주문
+    @Transactional(readOnly = true)
+    public SharedGroupOrderDetailResponse getDetailByPurchase(Long memberId, Long sharedGroupPurchaseId) {
+        return sharedGroupOrderQueryUseCase.getDetailByPurchase(memberId, sharedGroupPurchaseId);
+    }
+
     @Transactional(readOnly = true)
     public List<Long> findPayingIdsOfParticipant(Long memberId) {
         return sharedGroupOrderQueryUseCase.findIdsOfParticipant(memberId, List.of(SharedGroupOrderStatus.PAYING));
     }
 
-    // 회원 탈퇴 확인: 참여 중인 확정 공동 주문 (배송이 구매확정까지 끝났는지는 delivery가 판단)
     @Transactional(readOnly = true)
     public List<Long> findConfirmedIdsOfParticipant(Long memberId) {
         return sharedGroupOrderQueryUseCase.findIdsOfParticipant(memberId, List.of(SharedGroupOrderStatus.CONFIRMED));

@@ -30,7 +30,6 @@ public class SharedGroupPurchaseItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "shared_group_purchase_id", nullable = false)
     private SharedGroupPurchase sharedGroupPurchase;
@@ -43,7 +42,6 @@ public class SharedGroupPurchaseItem {
 
     @Column(nullable = false)
     private int quantity;
-
 
     @Column(nullable = false)
     private Long updatedMemberId;
@@ -58,7 +56,6 @@ public class SharedGroupPurchaseItem {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
 
     private SharedGroupPurchaseItem(SharedGroupPurchase sharedGroupPurchase, Long memberId,
                                     Long productId, Long inventoryId, int quantity) {
@@ -75,18 +72,15 @@ public class SharedGroupPurchaseItem {
         return new SharedGroupPurchaseItem(sharedGroupPurchase, memberId, productId, inventoryId, quantity);
     }
 
-
     static SharedGroupPurchaseItem copyOf(SharedGroupPurchase sharedGroupPurchase, SharedGroupPurchaseItem source,
                                           Long memberId) {
         return new SharedGroupPurchaseItem(sharedGroupPurchase, memberId,
                 source.productId, source.inventoryId, source.quantity);
     }
 
-
     boolean isSameInventory(Long inventoryId) {
         return this.inventoryId.equals(inventoryId);
     }
-
 
     void increaseQuantity(int amount, Long memberId) {
         validateQuantity(amount);
@@ -110,20 +104,17 @@ public class SharedGroupPurchaseItem {
         this.updatedMemberId = memberId;
     }
 
-
     void changeOption(Long productId, Long inventoryId, Long memberId) {
         validateSameProduct(productId);
         this.inventoryId = inventoryId;
         this.updatedMemberId = memberId;
     }
 
-
     void validateSameProduct(Long productId) {
         if (!this.productId.equals(productId)) {
             throw new ServiceException(CartErrorCode.CART_SHARED_ITEM_OPTION_MISMATCH);
         }
     }
-
 
     private void validateQuantity(int quantity) {
         if (quantity < MIN_QUANTITY || quantity > MAX_QUANTITY) {

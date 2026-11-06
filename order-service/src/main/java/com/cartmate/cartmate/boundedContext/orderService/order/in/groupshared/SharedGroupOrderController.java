@@ -29,6 +29,15 @@ public class SharedGroupOrderController {
         return new RsData<>("200-1", "내 공동 주문 목록 조회 성공했습니다.", sharedGroupOrderFacade.getMyList(user.memberId()));
     }
 
+    @GetMapping(params = "purchaseId")
+    @Operation(operationId = "getSharedGroupOrderByPurchase", summary = "공동구매 id로 내 공동 주문 상세 조회")
+    public RsData<SharedGroupOrderDetailResponse> getDetailByPurchase(
+            @AuthenticationPrincipal SecurityUser user,
+            @RequestParam Long purchaseId
+    ) {
+        return new RsData<>("200-1", "공동 주문 조회 성공했습니다.", sharedGroupOrderFacade.getDetailByPurchase(user.memberId(), purchaseId));
+    }
+
     @GetMapping("/{id}")
     public RsData<SharedGroupOrderDetailResponse> getDetail(
             @AuthenticationPrincipal SecurityUser user,
@@ -46,7 +55,6 @@ public class SharedGroupOrderController {
         return new RsData<>("200-1", "공동 주문을 취소했습니다.");
     }
 
-    // 분담금 결제 (예전 POST /api/payments/shared-group-orders/{id}). 개설자는 팀 배송지를 함께 보낸다.
     @PostMapping("/{id}/payment")
     @Operation(operationId = "paySharedGroupOrder", summary = "공동 주문 분담금 예치금 결제")
     public RsData<PaymentResult> pay(@AuthenticationPrincipal SecurityUser user, @PathVariable Long id,

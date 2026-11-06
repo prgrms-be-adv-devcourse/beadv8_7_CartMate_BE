@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-// /api/admin/** 는 보안 설정에서 ADMIN만 들어온다
 @RestController
 @RequestMapping("/api/admin/orders/paybacks")
 @RequiredArgsConstructor
@@ -23,7 +22,6 @@ public class AdminPaybackPayoutController {
     private final OrderFacade orderFacade;
 
     @GetMapping
-    // REQUESTED로 오래 남은 건(결과 미수신)도 status=REQUESTED로 볼 수 있다
     public RsData<List<PaybackPayoutResponse>> getPayouts(
             @RequestParam(defaultValue = "FAILED") PaybackPayoutStatus status
     ) {

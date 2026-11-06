@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-
 @Getter
 @Entity
 @Table(
@@ -34,7 +33,6 @@ public class SharedGroupOrderParticipant {
     @Column(nullable = false)
     private Long memberId;
 
-
     @Column(nullable = false)
     private long shareAmount;
 
@@ -45,7 +43,6 @@ public class SharedGroupOrderParticipant {
     private Long paymentId;
 
     private LocalDateTime paidAt;
-
 
     @Version
     private Long version;

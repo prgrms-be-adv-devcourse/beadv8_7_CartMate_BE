@@ -19,7 +19,6 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.simpleNameEn
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
-// 쿠폰 모듈 경계. AbuseModuleBoundaryTest와 같은 방식으로 검사한다
 @AnalyzeClasses(packages = "com.cartmate.cartmate", importOptions = ImportOption.DoNotIncludeTests.class)
 class CouponModuleBoundaryTest {
 
@@ -27,8 +26,6 @@ class CouponModuleBoundaryTest {
     private static final String COUPON = "..boundedContext.orderService.coupon..";
     private static final String ANY_MODULE_OUT = "..boundedContext.*.*.out..";
 
-    // C1 쿠폰은 boundedContext 아래 쿠폰 밖 패키지(cart, order, abuse 등)에 의존하지 않는다.
-    // 예외는 coupon.out 어댑터가 다른 모듈 app의 Facade를 부르는 것뿐. 라이브러리·common은 막지 않는다 (AbuseModuleBoundaryTest A1과 같은 방식)
     @ArchTest
     static final ArchRule c1_couponMustNotDependOnOtherModules = classes().that().resideInAPackage(COUPON)
             .should(dependOnlyThroughAdapterFacades(
@@ -38,7 +35,6 @@ class CouponModuleBoundaryTest {
             .as("C1 쿠폰은 다른 업무 모듈에 의존하지 않는다. coupon.out 어댑터가 다른 모듈 app의 Facade를 부르는 것만 허용")
             .because("쿠폰은 다른 업무 모듈(cart, order, abuse 등)의 클래스를 직접 쓰지 않고 shared 계약과 out 어댑터로만 만난다");
 
-    // C2 다른 모듈은 자기 out 어댑터에서 CouponFacade와 쿠폰 dto만 부른다
     @ArchTest
     static final ArchRule c2_otherModulesMustUseCouponOnlyThroughFacade = classes().that(not(resideInAPackage(COUPON)))
             .should(dependOnlyThroughAdapterFacades(
@@ -49,7 +45,6 @@ class CouponModuleBoundaryTest {
             .as("C2 쿠폰 밖의 클래스는 쿠폰을 쓰지 않는다. 다른 모듈 out 어댑터가 CouponFacade와 쿠폰 dto를 부르는 것만 허용")
             .because("쿠폰의 domain, 저장소, UseCase를 직접 쓰면 쿠폰을 다른 서버로 옮길 때 어댑터 한 곳만 바꿀 수 없다");
 
-    // C3 같은 트랜잭션 @EventListener 금지 (커밋 후 Outbox 릴레이로 받는다)
     @ArchTest
     static final ArchRule c3_couponMustNotUseSameTransactionEventListener = noMethods()
             .that().areDeclaredInClassesThat().resideInAPackage(COUPON)

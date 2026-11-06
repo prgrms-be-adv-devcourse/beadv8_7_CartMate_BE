@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
 public record IndividualGroupPurchaseDashboardResponse(
         Long id,
         String title,
@@ -29,7 +28,6 @@ public record IndividualGroupPurchaseDashboardResponse(
         IndividualGroupPurchaseStatus status,
         LocalDateTime closedAt
 ) {
-
 
     public static IndividualGroupPurchaseDashboardResponse of(IndividualGroupPurchase purchase,
                                                               Map<Long, CartProductOptions> productOptions,

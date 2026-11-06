@@ -22,13 +22,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 개인물품 공동구매 주문의 cart 쪽 사본(읽기 모델). order가 아웃박스로 보낸 주문 생성 · 결제 · 취소 이벤트로만 바뀐다.
- * 현황판이 order 테이블을 직접 읽지 않게 한다.
- *
- * <p>릴레이는 순서와 한 번 전달을 보장하지 않는다. 그래서 어느 이벤트가 먼저 와도 이 행을 만들고,
- * 상태는 앞으로만 간다. 취소가 먼저 오면 공동구매 ID를 모른 채 취소 행만 남고, 나중에 온 생성 · 결제 이벤트가 정보를 채우되 상태는 바꾸지 않는다.
- */
 @Entity
 @Table(name = "individual_group_purchase_order",
         indexes = @Index(name = "idx_igp_order_purchase_status", columnList = "individual_group_purchase_id, status"))
@@ -36,7 +29,6 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IndividualGroupPurchaseOrderReplica implements Persistable<Long> {
 
-    // order 모듈의 주문 ID를 그대로 쓴다
     @Id
     private Long orderId;
 
@@ -85,10 +77,6 @@ public class IndividualGroupPurchaseOrderReplica implements Persistable<Long> {
         this.status = IndividualGroupPurchaseOrderReplicaStatus.CANCELED;
     }
 
-    /**
-     * 판매 중지로 결제 완료 주문에서 한 판매자 항목만 취소됐다. 남은 항목이 없으면 주문도 취소다.
-     * order는 이 경우 이중 환불을 막으려고 주문 취소 이벤트를 따로 보내지 않으므로, 여기서 주문 취소까지 판단한다.
-     */
     public void applySellerItemsCanceled(Long sellerId) {
         lines.stream().filter(line -> line.isSoldBy(sellerId)).forEach(IndividualGroupPurchaseOrderLineReplica::cancel);
         if (!lines.isEmpty() && lines.stream().allMatch(IndividualGroupPurchaseOrderLineReplica::isCanceled)) {

@@ -9,7 +9,6 @@ import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEve
 
 import java.time.LocalDateTime;
 
-// 공동구매 엔티티 → order에 알리는 이벤트 · 스냅샷. 모든 발행 지점이 같은 모양을 쓰게 한곳에 모은다
 public final class IndividualGroupPurchaseEvents {
 
     private IndividualGroupPurchaseEvents() {

@@ -8,7 +8,6 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-
 @Getter
 @Entity
 @Table(
@@ -19,15 +18,12 @@ import java.time.LocalDateTime;
         )
 )
 
-
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SharedGroupPurchaseMember {
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "shared_group_purchase_id", nullable = false)
@@ -36,17 +32,14 @@ public class SharedGroupPurchaseMember {
     @Column(nullable = false)
     private Long memberId;
 
-
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
 
     private SharedGroupPurchaseMember(SharedGroupPurchase sharedGroupPurchase, Long memberId) {
         this.sharedGroupPurchase = sharedGroupPurchase;
         this.memberId = memberId;
     }
-
 
     static SharedGroupPurchaseMember create(SharedGroupPurchase sharedGroupPurchase, Long memberId) {
         return new SharedGroupPurchaseMember(sharedGroupPurchase, memberId);

@@ -52,7 +52,6 @@ class CartItemUseCaseTest {
     @Mock
     private ProductClient productClient;
 
-
     private CartItemUseCase cartItemUseCase;
 
     @BeforeEach

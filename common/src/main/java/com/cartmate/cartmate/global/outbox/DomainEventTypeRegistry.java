@@ -10,11 +10,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 봉투의 {@code eventType}(클래스 단순 이름) → 이벤트 클래스. in-process 싱크가 payload를 되돌릴 때 쓴다.
- * 시작할 때 {@code com.cartmate.cartmate.shared} 아래의 {@link DomainEvent} 구현을 모두 찾는다.
- * 단순 이름이 겹치면 봉투만 보고 구분할 수 없으므로 시작을 막는다.
- */
 @Component
 public class DomainEventTypeRegistry {
 

@@ -29,7 +29,6 @@ class PaybackPayoutUseCase {
     private final PaybackPayoutRepository payoutRepository;
     private final DomainEventPublisher eventPublisher;
 
-    // 달성 판정과 같은 트랜잭션: 판정이 저장되면 지급 행과 요청 이벤트(아웃박스)도 함께 남는다
     void requestAll(Long individualGroupPurchaseId, Collection<Long> memberIds, long amount, LocalDateTime now) {
         memberIds.stream().sorted().forEach(memberId -> {
             PaybackPayout payout = payoutRepository.save(
@@ -64,7 +63,6 @@ class PaybackPayoutUseCase {
         return payoutRepository.findIdsByStatus(PaybackPayoutStatus.RETRY_WAITING, Limit.of(limit));
     }
 
-    // 스케줄러: 다른 실행이 먼저 처리했으면 대기 상태가 아니므로 건너뛴다
     void retryWaiting(Long paybackId, LocalDateTime now) {
         payoutRepository.findByIdForUpdate(paybackId)
                 .filter(PaybackPayout::isRetryWaiting)

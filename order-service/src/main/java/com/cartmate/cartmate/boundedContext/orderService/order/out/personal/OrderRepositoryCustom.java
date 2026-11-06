@@ -19,7 +19,6 @@ public interface OrderRepositoryCustom {
 
     boolean existsActiveOrderByIndividualGroupPurchaseAndProduct(Long individualGroupPurchaseId, Long productId);
 
-
     Optional<Long> findPendingIndividualGroupOrderId(Long memberId, Long individualGroupPurchaseId);
 
     Optional<Long> findPendingPersonalOrderIdContaining(Long memberId, Collection<Long> inventoryIds);

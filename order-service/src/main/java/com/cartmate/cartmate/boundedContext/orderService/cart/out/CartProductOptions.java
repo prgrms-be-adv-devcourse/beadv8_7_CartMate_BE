@@ -2,7 +2,6 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.out;
 
 import java.util.List;
 
-
 public record CartProductOptions(
         Long productId,
         String productName,

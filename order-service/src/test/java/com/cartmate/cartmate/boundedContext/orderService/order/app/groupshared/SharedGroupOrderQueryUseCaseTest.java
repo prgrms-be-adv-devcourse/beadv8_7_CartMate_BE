@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -114,6 +116,46 @@ class SharedGroupOrderQueryUseCaseTest {
         assertThatThrownBy(() -> queryUseCase.getDetail(OUTSIDER, 1L))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NOT_PARTICIPANT.getMsg());
+    }
+
+    @Test
+    @DisplayName("공동구매 id로 내 공동 주문 상세를 본다")
+    void getDetailByPurchase() {
+        SharedGroupOrder order = sharedOrder(CREATOR, MEMBER, CLOSED_AT);
+        ReflectionTestUtils.setField(order, "id", 1L);
+        given(sharedGroupOrderRepository.findBySharedGroupPurchaseId(10L)).willReturn(Optional.of(order));
+        given(sharedGroupOrderRepository.findWithDetailsById(1L)).willReturn(Optional.of(order));
+        given(orderProductClient.findAllByInventoryIds(anyCollection())).willReturn(List.of());
+        given(orderMemberClient.findNicknames(Set.of(CREATOR, MEMBER))).willReturn(Map.of());
+
+        SharedGroupOrderDetailResponse response = queryUseCase.getDetailByPurchase(MEMBER, 10L);
+
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.sharedGroupPurchaseId()).isEqualTo(10L);
+        assertThat(response.myShareAmount()).isEqualTo(25000L);
+    }
+
+    @Test
+    @DisplayName("공동구매 id로 조회해도 참여자가 아니면 볼 수 없다")
+    void getDetailByPurchaseNotParticipant() {
+        SharedGroupOrder order = sharedOrder(CREATOR, MEMBER, CLOSED_AT);
+        ReflectionTestUtils.setField(order, "id", 1L);
+        given(sharedGroupOrderRepository.findBySharedGroupPurchaseId(10L)).willReturn(Optional.of(order));
+        given(sharedGroupOrderRepository.findWithDetailsById(1L)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> queryUseCase.getDetailByPurchase(OUTSIDER, 10L))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_NOT_PARTICIPANT.getMsg());
+    }
+
+    @Test
+    @DisplayName("공동구매에 아직 공동 주문이 없으면 예외가 발생한다")
+    void getDetailByPurchaseNotFound() {
+        given(sharedGroupOrderRepository.findBySharedGroupPurchaseId(10L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> queryUseCase.getDetailByPurchase(MEMBER, 10L))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_NOT_FOUND.getMsg());
     }
 
     @Test
