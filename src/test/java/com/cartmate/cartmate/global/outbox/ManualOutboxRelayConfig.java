@@ -1,8 +1,6 @@
 package com.cartmate.cartmate.global.outbox;
 
-import com.cartmate.cartmate.support.TestEventRecorder;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -12,7 +10,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * 자동 폴링은 함께 쓰는 {@code custom.outbox.relay.initial-delay=PT1H}로 미루고 테스트가 {@link OutboxRelay#relay()}를 부른다.
  */
 @TestConfiguration
-@Import(TestEventRecorder.class) // 공용 이벤트 기록기도 함께(@Import를 더 늘리면 컨텍스트가 갈라진다, ARCH-18)
 public class ManualOutboxRelayConfig {
 
     /**

@@ -14,7 +14,6 @@ import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.Indi
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
@@ -78,7 +77,6 @@ class OrderFlowIntegrationTest {
             jdbcTemplate.update("DELETE FROM individual_group_purchase_order_line WHERE order_id = ?", orderId);
             jdbcTemplate.update("DELETE FROM individual_group_purchase_order WHERE order_id = ?", orderId);
         });
-        new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(memberIds);
         orderIds.forEach(orderRepository::deleteById);
         memberIds.forEach(memberId -> cartRepository.findByMemberId(memberId).ifPresent(cartRepository::delete));
         purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);

@@ -15,23 +15,6 @@ public class TestDataCleaner {
         this.jdbc = new NamedParameterJdbcTemplate(jdbcTemplate);
     }
 
-    public void deleteDeliveriesOf(Collection<Long> memberIds) {
-        if (memberIds.isEmpty()) {
-            return;
-        }
-        List<Long> deliveryIds = jdbc.queryForList(
-                "SELECT id FROM delivery WHERE member_id IN (:memberIds)",
-                Map.of("memberIds", memberIds), Long.class);
-        if (deliveryIds.isEmpty()) {
-            return;
-        }
-        Map<String, Object> params = Map.of("deliveryIds", deliveryIds);
-        jdbc.update("DELETE FROM delivery_item_option WHERE delivery_item_id IN "
-                + "(SELECT id FROM delivery_item WHERE delivery_id IN (:deliveryIds))", params);
-        jdbc.update("DELETE FROM delivery_item WHERE delivery_id IN (:deliveryIds)", params);
-        jdbc.update("DELETE FROM delivery WHERE id IN (:deliveryIds)", params);
-    }
-
     public void deleteSharedGroupOrdersOfPurchases(Collection<Long> purchaseIds) {
         if (purchaseIds.isEmpty()) {
             return;

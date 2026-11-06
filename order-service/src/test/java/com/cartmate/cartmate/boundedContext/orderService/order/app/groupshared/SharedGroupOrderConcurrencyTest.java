@@ -71,7 +71,6 @@ class SharedGroupOrderConcurrencyTest {
     @AfterEach
     void tearDown() {
         TestDataCleaner cleaner = new TestDataCleaner(jdbcTemplate);
-        cleaner.deleteDeliveriesOf(memberIds);
         createdIds.forEach(id -> jdbcTemplate.update(
                 "DELETE FROM outbox_event WHERE aggregate_type = 'SharedGroupOrder' AND aggregate_id = ?", String.valueOf(id)));
         transactionTemplate.executeWithoutResult(status -> createdIds.forEach(repository::deleteById));

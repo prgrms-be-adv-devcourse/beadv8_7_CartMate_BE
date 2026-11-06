@@ -80,7 +80,6 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
             jdbcTemplate.update("DELETE FROM individual_group_purchase_order_line WHERE order_id = ?", orderId);
             jdbcTemplate.update("DELETE FROM individual_group_purchase_order WHERE order_id = ?", orderId);
         });
-        new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(List.of(buyer, buyer + 1, buyer + 2, buyer + 3));
         orderIds.forEach(orderRepository::deleteById);
         new TestDataCleaner(jdbcTemplate).deleteIndividualGroupPurchaseReplicas(purchaseIds);
         purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);

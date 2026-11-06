@@ -1,3 +1,4 @@
 rootProject.name = 'cartmate'
 
 include 'common'
+include 'order-service'

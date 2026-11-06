@@ -88,7 +88,6 @@ class OrderConcurrencyTest {
 
     @AfterEach
     void tearDown() {
-        new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(buyerIds);
         buyerIds.forEach(buyer -> {
             jdbcTemplate.update("DELETE FROM cart_item WHERE cart_id IN (SELECT id FROM cart WHERE member_id = ?)", buyer);
             jdbcTemplate.update("DELETE FROM cart WHERE member_id = ?", buyer);
