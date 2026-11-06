@@ -1,8 +1,10 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app;
 
+import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared.SharedGroupPurchaseEvents;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
 import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
+import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseCancelReason;
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual.IndividualGroupPurchaseEvents;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +54,12 @@ public class GroupPurchaseSalesStopUseCase {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void removeFromShared(Long groupPurchaseId, List<Long> productIds) {
-        sharedGroupPurchaseRepository.findByIdForUpdate(groupPurchaseId).ifPresent(purchase ->
-                purchase.removeItemsBySalesStopped(new HashSet<>(productIds), LocalDateTime.now(clock)));
+        sharedGroupPurchaseRepository.findByIdForUpdate(groupPurchaseId).ifPresent(purchase -> {
+            boolean changed = purchase.removeItemsBySalesStopped(new HashSet<>(productIds), LocalDateTime.now(clock));
+            if (changed && purchase.isCanceled()) {
+                eventPublisher.publish(
+                        SharedGroupPurchaseEvents.canceled(purchase, SharedGroupPurchaseCancelReason.SALES_STOPPED));
+            }
+        });
     }
 }

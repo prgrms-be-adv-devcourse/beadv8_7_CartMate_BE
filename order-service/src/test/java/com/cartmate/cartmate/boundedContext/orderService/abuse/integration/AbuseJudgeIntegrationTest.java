@@ -47,7 +47,7 @@ class AbuseJudgeIntegrationTest {
     private long sequence;
 
     @Test
-    @DisplayName("30일 안 첫 무산 신호는 1단계 40점으로 판정되고 규칙별 결과가 남는다")
+    @DisplayName("30일 안 첫 무산 신호는 1단계 34점으로 판정되고 규칙별 결과가 남는다")
     void firstSignalIsCaution() {
         long member = nextMemberId();
 
@@ -56,14 +56,31 @@ class AbuseJudgeIntegrationTest {
         AbuseSignal signal = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(member).getFirst();
         assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
         assertThat(signal.getLevel()).isEqualTo(AbuseLevel.CAUTION);
-        assertThat(signal.getTotalScore()).isEqualTo(40);
-        assertThat(signal.getRuleResults()).containsExactly(
-                new AbuseRuleResult("SHARED_ORDER_PAYMENT_EXPIRED", 1, AbuseLevel.CAUTION, 40));
+        assertThat(signal.getTotalScore()).isEqualTo(34);
+        assertThat(signal.getRuleResults()).containsExactlyInAnyOrder(
+                new AbuseRuleResult("SHARED_ORDER_PAYMENT_EXPIRED", 1, 34),
+                new AbuseRuleResult("SHARED_PURCHASE_CREATOR_CANCELED", 0, 0),
+                new AbuseRuleResult("INDIVIDUAL_ORDER_PAYMENT_EXPIRED", 0, 0),
+                new AbuseRuleResult("SHARED_PURCHASE_LEFT", 0, 0),
+                new AbuseRuleResult("SHARED_PURCHASE_CONCURRENT_JOIN", 0, 0));
         assertThat(signal.getJudgedAt()).isNotNull();
         AbuseMemberState state = memberState(member);
         assertThat(state.getCurrentLevel()).isEqualTo(AbuseLevel.CAUTION);
         assertThat(state.getRestrictedUntil()).isNull();
         assertThat(abuseRestrictionRepository.findByMemberIdOrderByStartedAtAsc(member)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("규칙별 단계(level)가 들어 있던 예전 판정 결과도 그대로 읽힌다")
+    void readsLegacyRuleResults() {
+        long member = nextMemberId();
+        receiveAndJudge(member, "legacy", LocalDateTime.now());
+        jdbcTemplate.update("UPDATE abuse_signal SET rule_results = ? WHERE member_id = ?",
+                "[{\"ruleCode\":\"SHARED_ORDER_PAYMENT_EXPIRED\",\"signalCount\":1,\"level\":\"CAUTION\",\"score\":40}]", member);
+
+        AbuseSignal signal = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(member).getFirst();
+
+        assertThat(signal.getRuleResults()).containsExactly(new AbuseRuleResult("SHARED_ORDER_PAYMENT_EXPIRED", 1, 40));
     }
 
     @Test
@@ -157,6 +174,33 @@ class AbuseJudgeIntegrationTest {
         assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
         assertThat(signal.getLevel()).isEqualTo(AbuseLevel.CAUTION);
         assertThat(abuseFacade.findPendingMemberIds(10_000)).doesNotContain(stale);
+    }
+
+    @Test
+    @DisplayName("행동을 조금씩 섞어도 총점으로 단계가 오르고, 총점이 제한 기준선에 닿으면 제한한다")
+    void mixedSignalsReachRestrictionByTotalScore() {
+        long member = nextMemberId();
+        LocalDateTime now = LocalDateTime.now();
+        receive(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "expired", now);
+        receive(member, AbuseSignalType.SHARED_PURCHASE_LEFT, "left-1", now);
+        receive(member, AbuseSignalType.SHARED_PURCHASE_LEFT, "left-2", now);
+        receive(member, AbuseSignalType.SHARED_PURCHASE_LEFT, "left-3", now);
+        receive(member, AbuseSignalType.SHARED_PURCHASE_CREATOR_CANCELED, "canceled-1", now);
+        abuseFacade.judgePending(member);
+
+        assertThat(memberState(member).getCurrentLevel()).isEqualTo(AbuseLevel.SUSPICIOUS);
+        assertThat(abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(member).getLast().getTotalScore())
+                .isEqualTo(34 + 13 * 3 + 25);
+
+        receive(member, AbuseSignalType.SHARED_PURCHASE_CONCURRENT_JOIN, "join-1", now);
+        abuseFacade.judgePending(member);
+
+        assertThat(memberState(member).getCurrentLevel()).isEqualTo(AbuseLevel.RESTRICTED);
+        assertThat(onlyRestriction(member).getEndsAt()).isAfter(now);
+    }
+
+    private void receive(long memberId, AbuseSignalType type, String sourceKey, LocalDateTime occurredAt) {
+        abuseFacade.receive(new AbuseSignalCommand(memberId, type, sourceKey + "-" + memberId, occurredAt));
     }
 
     private void receiveAndJudge(long memberId, String sourceKey, LocalDateTime occurredAt) {
