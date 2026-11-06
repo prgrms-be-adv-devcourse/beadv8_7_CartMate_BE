@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.etcService.delivery.app;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryClaimCreateCommand;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryClaimResponse;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimStatus;
+import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryClaim;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryClaimItem;
@@ -14,6 +15,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryClai
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryItemRepository;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +51,9 @@ public class DeliveryClaimCreateUseCase {
         }
         if (delivery.getStatus() != DeliveryStatus.DELIVERED) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_INVALID_STATUS);
+        }
+        if (command.claimType() == ClaimType.REFUND && delivery.getPurchaseType() == PurchaseType.SHARED_GROUP) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REFUND_NOT_ALLOWED);
         }
 
         Map<Long, DeliveryItem> deliveryItems = deliveryItemRepository.findByDeliveryId(command.deliveryId())
