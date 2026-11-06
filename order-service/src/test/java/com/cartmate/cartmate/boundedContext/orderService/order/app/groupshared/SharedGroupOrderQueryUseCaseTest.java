@@ -80,6 +80,7 @@ class SharedGroupOrderQueryUseCaseTest {
         assertThat(response.items()).singleElement()
                 .satisfies(item -> assertThat(item.productName()).isEqualTo("축구공"));
         assertThat(response.teamDeliveryAddress()).isNull();
+        assertThat(response.serverTime()).isEqualTo(LocalDateTime.now(CLOCK));
     }
 
     @Test

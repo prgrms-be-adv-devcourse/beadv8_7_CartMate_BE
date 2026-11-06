@@ -1,5 +1,11 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackSettlement;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderItem;
+import com.cartmate.cartmate.shared.order.GroupPurchaseType;
+import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
+import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
+import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchasePayback;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
@@ -33,6 +39,8 @@ import static org.mockito.Mockito.verify;
 class IndividualGroupPurchasePaybackUseCaseTest {
 
     private static final Long PURCHASE = 7L;
+
+    private static final Long PRODUCT = 1L;
     private static final LocalDateTime OPENED = LocalDateTime.of(2026, 11, 6, 12, 0);
     private static final LocalDateTime LATER = OPENED.plusDays(10);
 
@@ -76,13 +84,16 @@ class IndividualGroupPurchasePaybackUseCaseTest {
 
         IndividualGroupPurchasePayback judged = savedJudgment();
         assertThat(judged.getIndividualGroupPurchaseId()).isEqualTo(PURCHASE);
-        assertThat(judged.getBuyerCount()).isEqualTo(2);
-        assertThat(judged.isReached()).isTrue();
-        assertThat(judged.getPaybackAmount()).isEqualTo(1_000L);
+        assertThat(judged.isPaid()).isTrue();
+        assertThat(judged.getConditionJudgments()).singleElement().satisfies(condition -> {
+            assertThat(condition.getConfirmedQuantity()).isEqualTo(2);
+            assertThat(condition.isReached()).isTrue();
+            assertThat(condition.isApplied()).isTrue();
+        });
     }
 
     @Test
-    @DisplayName("달성하면 구매확정한 서로 다른 구매자에게 1명 1건 지급을 요청한다")
+    @DisplayName("달성하면 구매자마다 개당 금액 × 자기 확정 수량으로 지급을 요청한다")
     void requestPayoutWhenReached() {
         givenReplica(closedWithPayback(2));
         givenOrders(order(1L, 10L, OrderStatus.PAID), order(2L, 20L, OrderStatus.PAID), order(3L, 10L, OrderStatus.PAID));
@@ -91,7 +102,9 @@ class IndividualGroupPurchasePaybackUseCaseTest {
         useCase.recordConfirmed(2L, LATER, LATER);
         useCase.recordConfirmed(3L, LATER, LATER);
 
-        verify(payoutUseCase).requestAll(PURCHASE, Set.of(10L, 20L), 1_000L, LATER);
+        verify(payoutUseCase).requestAll(GroupPurchaseType.INDIVIDUAL, PURCHASE, List.of(
+                new PaybackSettlement.PayoutLine(10L, PRODUCT, PaybackFunder.ADMIN, null, 2, 1_000L),
+                new PaybackSettlement.PayoutLine(20L, PRODUCT, PaybackFunder.ADMIN, null, 1, 1_000L)), LATER);
     }
 
     @Test
@@ -103,8 +116,8 @@ class IndividualGroupPurchasePaybackUseCaseTest {
         useCase.recordConfirmed(1L, LATER, LATER);
         useCase.recordConfirmed(2L, LATER, LATER);
 
-        assertThat(savedJudgment().isReached()).isFalse();
-        verify(payoutUseCase, never()).requestAll(any(), any(), anyLong(), any());
+        assertThat(savedJudgment().isPaid()).isFalse();
+        verify(payoutUseCase, never()).requestAll(any(), any(), any(), any());
     }
 
     @Test
@@ -124,7 +137,7 @@ class IndividualGroupPurchasePaybackUseCaseTest {
     @DisplayName("아직 판매 중이거나 페이백 조건이 없는(회원) 공동구매는 판정하지 않는다")
     void notJudged() {
         IndividualGroupPurchaseReplica open = IndividualGroupPurchaseReplica.of(PURCHASE, OPENED.plusDays(7), false, null, List.of(1L), 0);
-        open.fillPaybackCondition(2, 1_000L);
+        open.fillPaybackConditions(PaybackOverlapPolicy.BOTH, List.of(adminCondition(2)));
         givenReplica(open);
         givenOrders(order(1L, 10L, OrderStatus.PAID));
         useCase.recordConfirmed(1L, OPENED.plusDays(3), OPENED.plusDays(3));
@@ -159,8 +172,8 @@ class IndividualGroupPurchasePaybackUseCaseTest {
         verify(paybackRepository).save(any());
 
         IndividualGroupPurchasePayback judged = savedJudgment();
-        assertThat(judged.getBuyerCount()).isEqualTo(1);
-        assertThat(judged.isReached()).isFalse();
+        assertThat(judged.getConditionJudgments().getFirst().getConfirmedQuantity()).isEqualTo(1);
+        assertThat(judged.isPaid()).isFalse();
     }
 
     @Test
@@ -188,11 +201,29 @@ class IndividualGroupPurchasePaybackUseCaseTest {
         verify(paybackRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("판매자 조건만 있는 공동구매도 판정하고 판매자 부담으로 지급을 요청한다")
+    void sellerOnlyJudged() {
+        IndividualGroupPurchaseReplica replica = IndividualGroupPurchaseReplica.of(
+                PURCHASE, OPENED.plusDays(3), true, OPENED.plusDays(1), List.of(1L), 2);
+        replica.fillPaybackConditions(PaybackOverlapPolicy.BOTH,
+                List.of(new PaybackConditionPayload(PRODUCT, PaybackFunder.SELLER, 77L, 1, 300L)));
+        givenReplica(replica);
+        givenOrders(order(1L, 10L, OrderStatus.PAID));
+        useCase.recordConfirmed(1L, LATER, LATER);
+        verify(payoutUseCase).requestAll(GroupPurchaseType.INDIVIDUAL, PURCHASE, List.of(
+                new PaybackSettlement.PayoutLine(10L, PRODUCT, PaybackFunder.SELLER, 77L, 1, 300L)), LATER);
+    }
+
     private IndividualGroupPurchaseReplica closedWithPayback(int minBuyers) {
         IndividualGroupPurchaseReplica replica = IndividualGroupPurchaseReplica.of(
                 PURCHASE, OPENED.plusDays(3), true, OPENED.plusDays(1), List.of(1L), 2);
-        replica.fillPaybackCondition(minBuyers, 1_000L);
+        replica.fillPaybackConditions(PaybackOverlapPolicy.BOTH, List.of(adminCondition(minBuyers)));
         return replica;
+    }
+
+    private static PaybackConditionPayload adminCondition(int minQuantity) {
+        return new PaybackConditionPayload(PRODUCT, PaybackFunder.ADMIN, null, minQuantity, 1_000L);
     }
 
     private void givenReplica(IndividualGroupPurchaseReplica replica) {
@@ -212,6 +243,10 @@ class IndividualGroupPurchasePaybackUseCaseTest {
         given(order.getBuyerMemberId()).willReturn(buyer);
         given(order.getStatus()).willReturn(status);
         given(order.getIndividualGroupPurchaseId()).willReturn(PURCHASE);
+        OrderItem item = mock(OrderItem.class);
+        given(item.getProductId()).willReturn(PRODUCT);
+        given(item.getQuantity()).willReturn(1);
+        given(order.getItems()).willReturn(List.of(item));
         return order;
     }
 

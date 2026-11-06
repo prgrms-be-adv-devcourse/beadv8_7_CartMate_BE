@@ -29,6 +29,7 @@ class AbuseJudgeRunner {
     private final AbuseFacade abuseFacade;
 
     AbuseJudgeOutcome judge(Long memberId) {
+        confirmLinks(memberId);
         try {
             abuseFacade.judgePending(memberId);
             return AbuseJudgeOutcome.JUDGED;
@@ -40,6 +41,14 @@ class AbuseJudgeRunner {
             log.error("어뷰징 판정 실패, 재판정 대기: memberId={}", memberId, e);
             recordFailure(memberId, e);
             return AbuseJudgeOutcome.FAILURE;
+        }
+    }
+
+    private void confirmLinks(Long memberId) {
+        try {
+            abuseFacade.confirmLinks(memberId);
+        } catch (Exception e) {
+            log.warn("계정 연결 확인 실패, 판정은 그대로 진행하고 다음 신호 때 다시 확인: memberId={}", memberId, e);
         }
     }
 

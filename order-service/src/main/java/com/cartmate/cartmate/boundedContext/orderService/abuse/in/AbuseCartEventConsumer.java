@@ -36,19 +36,22 @@ public class AbuseCartEventConsumer {
     public void accept(SharedGroupPurchaseMemberJoinedEvent event) {
         if (event.activeParticipationCount() >= CONCURRENT_JOIN_THRESHOLD) {
             receiveOne(AbuseSignalIntake.command(event.memberId(), AbuseSignalType.SHARED_PURCHASE_CONCURRENT_JOIN,
-                    event.sharedGroupPurchaseId() + ":" + event.joinedAt(), event.joinedAt()), event.sharedGroupPurchaseId());
+                    event.sharedGroupPurchaseId() + ":" + event.joinedAt(), event.joinedAt(), event.sharedGroupPurchaseId()),
+                    event.sharedGroupPurchaseId());
         }
     }
 
     public void accept(SharedGroupPurchaseMemberLeftEvent event) {
         receiveOne(AbuseSignalIntake.command(event.memberId(), AbuseSignalType.SHARED_PURCHASE_LEFT,
-                event.sharedGroupPurchaseId() + ":" + event.leftAt(), event.leftAt()), event.sharedGroupPurchaseId());
+                event.sharedGroupPurchaseId() + ":" + event.leftAt(), event.leftAt(), event.sharedGroupPurchaseId()),
+                event.sharedGroupPurchaseId());
     }
 
     public void accept(SharedGroupPurchaseCanceledEvent event) {
         if (event.cancelReason() == SharedGroupPurchaseCancelReason.CREATOR_CANCELED) {
             receiveOne(AbuseSignalIntake.command(event.creatorMemberId(), AbuseSignalType.SHARED_PURCHASE_CREATOR_CANCELED,
-                    "purchase:" + event.sharedGroupPurchaseId(), event.canceledAt()), event.sharedGroupPurchaseId());
+                    "purchase:" + event.sharedGroupPurchaseId(), event.canceledAt(), event.sharedGroupPurchaseId()),
+                    event.sharedGroupPurchaseId());
         }
     }
 

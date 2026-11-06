@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
+import java.util.Map;
+import java.util.LinkedHashMap;
+import com.cartmate.cartmate.shared.coupon.dto.CouponOrderTarget;
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.shared.order.OrderType;
@@ -85,6 +88,25 @@ public class Order {
     private LocalDateTime paidAt;
 
     private LocalDateTime canceledAt;
+
+    @Column(name = "member_coupon_id")
+    private Long memberCouponId;
+
+    @Column(name = "discount_amount", nullable = false)
+    private long discountAmount;
+
+    @Column(name = "discount_burden", columnDefinition = "varchar(20)")
+    @Enumerated(EnumType.STRING)
+    private OrderDiscountBurden discountBurden;
+
+    @Column(name = "discount_seller_id")
+    private Long discountSellerId;
+
+    @Column(name = "item_refunded_amount", nullable = false)
+    private long itemRefundedAmount;
+
+    @Column(name = "partially_canceled", nullable = false)
+    private boolean partiallyCanceled;
 
     @OrderBy("id")
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -199,21 +221,84 @@ public class Order {
         return true;
     }
 
+    public void applyCoupon(Long memberCouponId, long discountAmount, boolean platformBurden, Long sellerId) {
+        if (this.memberCouponId != null) {
+            if (this.memberCouponId.equals(memberCouponId) && this.discountAmount == discountAmount) {
+                return;
+            }
+            throw new ServiceException(OrderErrorCode.ORDER_COUPON_ALREADY_APPLIED);
+        }
+        validatePaymentPending();
+        if (discountAmount < 0 || discountAmount > totalAmount) {
+            throw new ServiceException(OrderErrorCode.ORDER_INVALID_DISCOUNT);
+        }
+        this.memberCouponId = memberCouponId;
+        this.discountAmount = discountAmount;
+        this.discountBurden = platformBurden ? OrderDiscountBurden.PLATFORM : OrderDiscountBurden.SELLER;
+        this.discountSellerId = platformBurden ? null : sellerId;
+    }
+
+    public long payAmount() {
+        return totalAmount - discountAmount;
+    }
+
+    public boolean hasCoupon() {
+        return memberCouponId != null;
+    }
+
+    public CouponOrderTarget couponTarget() {
+        Map<Long, Long> bySeller = new LinkedHashMap<>();
+        for (OrderItem item : items) {
+            if (item.getSellerId() != null) {
+                bySeller.merge(item.getSellerId(), item.amount(), Long::sum);
+            }
+        }
+        return new CouponOrderTarget(totalAmount, bySeller.entrySet().stream()
+                .map(e -> new CouponOrderTarget.SellerAmount(e.getKey(), e.getValue()))
+                .toList());
+    }
+
+    public boolean couponRestorable() {
+        return hasCoupon() && status == OrderStatus.CANCELED && !partiallyCanceled;
+    }
+
+    private long discountShareOf(Long sellerId, long itemsAmount) {
+        if (discountAmount == 0 || itemsAmount == 0) {
+            return 0;
+        }
+        if (discountBurden == OrderDiscountBurden.SELLER) {
+            if (!sellerId.equals(discountSellerId)) {
+                return 0;
+            }
+            long sellerTotal = items.stream().filter(i -> sellerId.equals(i.getSellerId())).mapToLong(OrderItem::amount).sum();
+            return discountAmount * itemsAmount / sellerTotal;
+        }
+        return discountAmount * itemsAmount / totalAmount;
+    }
+
     public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
         if (status != OrderStatus.PAID) {
             return 0;
         }
-        long amount = 0;
+        long itemsAmount = 0;
         for (OrderItem item : items) {
             if (sellerId.equals(item.getSellerId()) && !item.isCanceled()) {
                 item.cancel(now);
-                amount += item.amount();
+                itemsAmount += item.amount();
             }
         }
-        if (amount > 0 && items.stream().allMatch(OrderItem::isCanceled)) {
-            cancel(OrderCancelReason.SALES_STOPPED, now);
+        if (itemsAmount == 0) {
+            return 0;
         }
-        return amount;
+        long refund = itemsAmount - discountShareOf(sellerId, itemsAmount);
+        if (items.stream().allMatch(OrderItem::isCanceled)) {
+            refund = payAmount() - itemRefundedAmount;
+            cancel(OrderCancelReason.SALES_STOPPED, now);
+        } else {
+            partiallyCanceled = true;
+        }
+        itemRefundedAmount += refund;
+        return refund;
     }
 
     public boolean isBuyer(Long memberId) {
