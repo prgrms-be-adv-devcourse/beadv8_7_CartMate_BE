@@ -8,13 +8,10 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
-import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
@@ -32,6 +29,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.address;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedLine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedOrder;
+import static com.cartmate.cartmate.support.OutboxRelayHelper.relayUntilPublished;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CartMateIntegrationTest
@@ -75,7 +76,7 @@ class AbuseOrderEventConsumerIntegrationTest {
                 .isEqualTo(SharedGroupOrderStatus.CANCELED);
         assertThat(abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(unpaid)).isEmpty();
 
-        relayUntilPublished(orderId);
+        relayUntilPublished(jdbcTemplate, outboxRelay, "SharedGroupOrder", orderId);
 
         assertThat(abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(creator)).isEmpty();
         List<AbuseSignal> signals = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(unpaid);
@@ -103,20 +104,6 @@ class AbuseOrderEventConsumerIntegrationTest {
         assertThat(signals.getFirst().getLevel()).isEqualTo(AbuseLevel.CAUTION);
     }
 
-    private void relayUntilPublished(Long orderId) {
-        for (int i = 0; i < 20; i++) {
-            ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
-            outboxRelay.relay();
-            Integer pending = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM outbox_event WHERE aggregate_type = 'SharedGroupOrder' AND aggregate_id = ? AND status = 'NEW'",
-                    Integer.class, String.valueOf(orderId));
-            if (pending == 0) {
-                return;
-            }
-        }
-        throw new AssertionError("아웃박스 이벤트가 릴레이되지 않았다: sharedGroupOrderId=" + orderId);
-    }
-
     private SharedGroupOrderCanceledEvent canceled(long orderId, List<Long> unpaidMemberIds) {
         return new SharedGroupOrderCanceledEvent(orderId, orderId, SharedGroupOrderCancelReason.DEADLINE_EXPIRED, LocalDateTime.now(), unpaidMemberIds);
     }
@@ -135,11 +122,9 @@ class AbuseOrderEventConsumerIntegrationTest {
                 .minus(SharedGroupOrder.GRACE_PERIOD)
                 .minusMinutes(5);
         return transactionTemplate.execute(status -> {
-            SharedGroupOrder order = SharedGroupOrder.create(purchaseId, creator, List.of(creator, unpaid),
-                    List.of(new OrderItemLine(2L, 4L, 1L, "상품", null, 1, 30000L)), closedAt);
+            SharedGroupOrder order = sharedOrder(purchaseId, creator, unpaid, closedAt, sharedLine(2L, 4L, 1L, 1, 30000L));
             order.markStockReserved();
-            order.pay(creator, creator, closedAt.plusMinutes(1),
-                    DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+            order.pay(creator, creator, closedAt.plusMinutes(1), address());
             return sharedGroupOrderRepository.save(order).getId();
         });
     }

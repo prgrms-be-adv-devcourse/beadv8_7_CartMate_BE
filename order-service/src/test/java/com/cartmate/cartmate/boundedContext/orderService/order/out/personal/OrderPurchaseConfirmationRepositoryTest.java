@@ -31,7 +31,6 @@ class OrderPurchaseConfirmationRepositoryTest {
         repository.insertIfAbsent(orderId, FIRST.plusDays(1));
         em.clear();
 
-        // 반환값(영향 행 수)은 MySQL 드라이버 설정(found rows)에 따라 달라 보지 않고 결과 행만 본다
         assertThat(repository.findById(orderId)).get()
                 .extracting(confirmation -> confirmation.getConfirmedAt())
                 .isEqualTo(FIRST);

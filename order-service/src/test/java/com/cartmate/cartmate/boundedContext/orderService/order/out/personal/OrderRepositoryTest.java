@@ -1,6 +1,5 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out.personal;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderItem;
@@ -17,6 +16,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.individualGroupOrder;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.productALine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.productBLine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -51,8 +54,7 @@ class OrderRepositoryTest {
     @DisplayName("구매자의 주문만 최신순으로 조회한다")
     void findAllByMember() {
         Order first = orderRepository.save(personal(newOrderNumber(), BUYER));
-        Order second = orderRepository.save(Order.createIndividualGroup(
-                newOrderNumber(), BUYER, 500L, NOW.plusDays(1), lines(), address(), NOW));
+        Order second = orderRepository.save(individualGroupOrder(newOrderNumber(), BUYER, 500L, lines(), NOW));
         orderRepository.save(personal(newOrderNumber(), OTHER_BUYER));
         flushAndClear();
 
@@ -99,8 +101,8 @@ class OrderRepositoryTest {
         flushAndClear();
 
         DataIntegrityViolationException e = catchThrowableOfType(DataIntegrityViolationException.class,
-                () -> orderRepository.saveAndFlush(Order.createPersonal(newOrderNumber(), buyer,
-                        List.of(new OrderLine(11L, 2L, 7L, "상품B", null, 15000, 1)), address(), NOW)));
+                () -> orderRepository.saveAndFlush(personalOrder(newOrderNumber(), buyer,
+                        List.of(productBLine(11L, 1)), NOW)));
 
         // OrderCreateUseCase가 판별에 쓰는 두 경로(Hibernate 제약 이름, 가장 안쪽 DB 메시지)를 실제 MySQL에서 확인한다
         assertThat(e).isNotNull();
@@ -228,12 +230,11 @@ class OrderRepositoryTest {
     }
 
     private Order personal(String orderNumber, Long buyerMemberId) {
-        return Order.createPersonal(orderNumber, buyerMemberId, lines(), address(), NOW);
+        return personalOrder(orderNumber, buyerMemberId, lines(), NOW);
     }
 
     private Order individualGroup(Long buyerMemberId, Long purchaseId) {
-        return Order.createIndividualGroup(newOrderNumber(), buyerMemberId, purchaseId, NOW.plusDays(1), lines(),
-                address(), NOW);
+        return individualGroupOrder(newOrderNumber(), buyerMemberId, purchaseId, lines(), NOW);
     }
 
     private Long uniqueMemberId() {
@@ -241,13 +242,7 @@ class OrderRepositoryTest {
     }
 
     private List<OrderLine> lines() {
-        return List.of(
-                new OrderLine(10L, 1L, 7L, "상품A", "옵션A", 25000, 2),
-                new OrderLine(11L, 2L, 7L, "상품B", null, 15000, 1));
-    }
-
-    private DeliveryAddress address() {
-        return DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호");
+        return List.of(productALine(10L, 2), productBLine(11L, 1));
     }
 
     private String newOrderNumber() {

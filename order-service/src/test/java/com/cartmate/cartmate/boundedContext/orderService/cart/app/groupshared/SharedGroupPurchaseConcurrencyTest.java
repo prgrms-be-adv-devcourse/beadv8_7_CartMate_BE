@@ -1,6 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
+import com.cartmate.cartmate.support.ConcurrentRunner;
+import com.cartmate.cartmate.support.ConcurrentRunner.Results;
 import com.cartmate.cartmate.support.TestEventRecorder;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -16,12 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -55,21 +52,13 @@ class SharedGroupPurchaseConcurrencyTest {
         var created = facade.create(creator, new SharedGroupPurchaseCreateRequest("동시 참여", 3));
         facade.join(creator + 1, created.inviteCode());
 
-        AtomicInteger success = new AtomicInteger();
-        AtomicInteger full = new AtomicInteger();
-        runConcurrently(index -> {
-            try {
-                facade.join(creator + 100 + index, created.inviteCode());
-                success.incrementAndGet();
-            } catch (ServiceException e) {
-                if (e.getResultCode().equals(CartErrorCode.CART_SHARED_FULL.resultCode())) {
-                    full.incrementAndGet();
-                }
-            }
-        });
+        Results results = ConcurrentRunner.run(THREADS, index -> facade.join(creator + 100 + index, created.inviteCode()));
 
-        assertThat(success.get()).isEqualTo(1);
-        assertThat(full.get()).isEqualTo(THREADS - 1);
+        results.assertNoUnexpected(ServiceException.class);
+        assertThat(results.successCount()).isEqualTo(1);
+        assertThat(results.errorsOf(ServiceException.class)).extracting(ServiceException::getResultCode)
+                .hasSize(THREADS - 1)
+                .containsOnly(CartErrorCode.CART_SHARED_FULL.resultCode());
         int memberCount = transactionTemplate.execute(status -> repository.findById(created.id()).orElseThrow().getMembers().size());
         assertThat(memberCount).isEqualTo(3);
     }
@@ -82,7 +71,8 @@ class SharedGroupPurchaseConcurrencyTest {
         Long itemId = transactionTemplate.execute(status ->
                 repository.findById(created.id()).orElseThrow().getItems().getFirst().getId());
 
-        runConcurrently(index -> facade.adjustItemQuantity(creator, created.id(), itemId, 1));
+        ConcurrentRunner.run(THREADS, index -> facade.adjustItemQuantity(creator, created.id(), itemId, 1))
+                .assertNoUnexpected();
 
         int quantity = transactionTemplate.execute(status ->
                 repository.findById(created.id()).orElseThrow().getItems().getFirst().getQuantity());
@@ -95,16 +85,10 @@ class SharedGroupPurchaseConcurrencyTest {
         var created = facade.create(creator, new SharedGroupPurchaseCreateRequest("동시 마감", 5));
         facade.addItem(creator, created.id(), 4L, 2);
 
-        AtomicInteger success = new AtomicInteger();
-        runConcurrently(index -> {
-            try {
-                facade.close(creator, created.id());
-                success.incrementAndGet();
-            } catch (ServiceException ignored) {
-            }
-        });
+        Results results = ConcurrentRunner.run(THREADS, index -> facade.close(creator, created.id()));
 
-        assertThat(success.get()).isEqualTo(1);
+        results.assertNoUnexpected(ServiceException.class);
+        assertThat(results.successCount()).isEqualTo(1);
         assertThat(eventRecorder.count(SharedGroupPurchaseClosedEvent.class, e -> e.sharedGroupPurchaseId().equals(created.id()))).isEqualTo(1);
         assertThat(statusOf(created.id())).isEqualTo(SharedGroupPurchaseStatus.CLOSED);
     }
@@ -119,7 +103,7 @@ class SharedGroupPurchaseConcurrencyTest {
             return repository.save(purchase).getId();
         });
 
-        runConcurrently(index -> facade.closeByDeadline(id));
+        ConcurrentRunner.run(THREADS, index -> facade.closeByDeadline(id)).assertNoUnexpected();
 
         assertThat(eventRecorder.count(SharedGroupPurchaseClosedEvent.class, e -> e.sharedGroupPurchaseId().equals(id))).isEqualTo(1);
         assertThat(statusOf(id)).isEqualTo(SharedGroupPurchaseStatus.CLOSED);
@@ -127,37 +111,5 @@ class SharedGroupPurchaseConcurrencyTest {
 
     private SharedGroupPurchaseStatus statusOf(Long id) {
         return repository.findById(id).orElseThrow().getStatus();
-    }
-
-
-    private void runConcurrently(IndexedTask task) throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(THREADS);
-        CountDownLatch ready = new CountDownLatch(THREADS);
-        CountDownLatch start = new CountDownLatch(1);
-        CountDownLatch done = new CountDownLatch(THREADS);
-        for (int i = 0; i < THREADS; i++) {
-            int index = i;
-            executor.submit(() -> {
-                ready.countDown();
-                try {
-                    start.await();
-                    task.run(index);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    done.countDown();
-                }
-            });
-        }
-        ready.await();
-        start.countDown();
-        done.await(30, TimeUnit.SECONDS);
-        executor.shutdown();
-        executor.awaitTermination(30, TimeUnit.SECONDS);
-    }
-
-    @FunctionalInterface
-    private interface IndexedTask {
-        void run(int index);
     }
 }

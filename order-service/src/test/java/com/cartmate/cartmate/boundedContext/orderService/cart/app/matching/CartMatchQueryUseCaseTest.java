@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.demandPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
@@ -138,9 +139,8 @@ class CartMatchQueryUseCaseTest {
     }
 
     private static IndividualGroupPurchase openPurchase(Long id, Long productId, LocalDateTime deadlineAt) {
-        IndividualGroupPurchase purchase = IndividualGroupPurchase.openFromDemand(
-                "공동구매 " + id, 99L, "invite%06d".formatted(id),
-                productId, deadlineAt, 10, 1_000L, NOW.minusHours(1));
+        IndividualGroupPurchase purchase = demandPurchase(99L, "invite%06d".formatted(id), productId, deadlineAt,
+                NOW.minusHours(1));
         ReflectionTestUtils.setField(purchase, "id", id);
         return purchase;
     }

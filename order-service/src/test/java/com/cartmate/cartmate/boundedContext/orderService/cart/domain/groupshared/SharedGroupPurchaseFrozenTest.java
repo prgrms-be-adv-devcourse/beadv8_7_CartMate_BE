@@ -9,6 +9,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 import java.util.Set;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.sharedPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -91,8 +92,7 @@ class SharedGroupPurchaseFrozenTest {
     }
 
     private SharedGroupPurchase purchaseWithBallAndPin() {
-        SharedGroupPurchase purchase = SharedGroupPurchase.create("FC 훈련용품", CREATOR, 5, "abcdefghijkl", createdAt);
-        purchase.join(PARTICIPANT, createdAt);
+        SharedGroupPurchase purchase = sharedPurchase(CREATOR, PARTICIPANT, createdAt);
         purchase.addItem(CREATOR, BALL_PRODUCT, BALL_SKU, 2, createdAt);
         purchase.addItem(PARTICIPANT, PIN_PRODUCT, PIN_SKU, 10, createdAt);
         long id = 1;

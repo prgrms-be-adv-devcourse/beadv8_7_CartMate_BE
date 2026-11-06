@@ -1,8 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out.personal;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.support.CartMateJpaTest;
 import jakarta.persistence.EntityManager;
@@ -17,6 +15,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.individualGroupOrder;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.productALine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.productBLine;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CartMateJpaTest
@@ -50,7 +52,7 @@ class IndividualGroupPurchaseOrderQueryTest {
     @CsvSource({"PAYMENT_PENDING, true", "PAID, true", "CANCELED, false"})
     @DisplayName("결제 대기 · 결제 완료 주문은 해당 상품의 주문으로 세고, 취소된 주문은 세지 않는다")
     void existsByStatus(OrderStatus status, boolean expected) {
-        Order order = group(BUYER, purchaseId, lineA(2));
+        Order order = individualGroupOrder(newOrderNumber(), BUYER, purchaseId, List.of(productALine(productA, 2)), NOW);
         if (status == OrderStatus.PAID) {
             order.markPaid(1L, NOW);
         } else if (status == OrderStatus.CANCELED) {
@@ -65,8 +67,8 @@ class IndividualGroupPurchaseOrderQueryTest {
     @Test
     @DisplayName("다른 상품이나 다른 공동구매의 주문은 존재 여부에 포함되지 않는다")
     void notExistsForOtherProductOrPurchase() {
-        orderRepository.save(group(BUYER, purchaseId, lineA(2)));
-        orderRepository.save(group(BUYER, otherPurchaseId, lineB(1)));
+        orderRepository.save(individualGroupOrder(newOrderNumber(), BUYER, purchaseId, List.of(productALine(productA, 2)), NOW));
+        orderRepository.save(individualGroupOrder(newOrderNumber(), BUYER, otherPurchaseId, List.of(productBLine(productB, 1)), NOW));
         flushAndClear();
 
         assertThat(orderRepository.existsActiveOrderByIndividualGroupPurchaseAndProduct(purchaseId, productB)).isFalse();
@@ -76,27 +78,10 @@ class IndividualGroupPurchaseOrderQueryTest {
     @Test
     @DisplayName("개인 주문은 존재 여부에 포함되지 않는다")
     void notExistsForPersonalOrder() {
-        orderRepository.save(Order.createPersonal(newOrderNumber(), BUYER, List.of(lineA(1)), address(), NOW));
+        orderRepository.save(personalOrder(newOrderNumber(), BUYER, List.of(productALine(productA, 1)), NOW));
         flushAndClear();
 
         assertThat(orderRepository.existsActiveOrderByIndividualGroupPurchaseAndProduct(purchaseId, productA)).isFalse();
-    }
-
-    private Order group(Long buyerMemberId, Long individualGroupPurchaseId, OrderLine... lines) {
-        return Order.createIndividualGroup(newOrderNumber(), buyerMemberId, individualGroupPurchaseId,
-                NOW.plusDays(1), List.of(lines), address(), NOW);
-    }
-
-    private OrderLine lineA(int quantity) {
-        return new OrderLine(productA, 1L, 7L, "상품A", "옵션A", 25000, quantity);
-    }
-
-    private OrderLine lineB(int quantity) {
-        return new OrderLine(productB, 2L, 7L, "상품B", null, 15000, quantity);
-    }
-
-    private DeliveryAddress address() {
-        return DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호");
     }
 
     private String newOrderNumber() {

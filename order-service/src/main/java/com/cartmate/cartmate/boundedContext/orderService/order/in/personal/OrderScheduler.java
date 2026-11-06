@@ -1,5 +1,11 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.in.personal;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
+
+import com.cartmate.cartmate.global.exception.ServiceException;
+
+import com.cartmate.cartmate.global.http.InternalApiClient.InternalServerUnavailableException;
+
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +43,16 @@ public class OrderScheduler {
         for (Long id : ids) {
             try {
                 action.accept(id);
+            } catch (InternalServerUnavailableException e) {
+                log.warn("주문 {} 중단: 다른 서버 응답 없음 ({}), 다음 주기에 다시 시도. 남은 {}건", taskName, e.getMessage(),
+                        ids.size() - ids.indexOf(id));
+                return;
+            } catch (ServiceException e) {
+                if (e.getResultCode().contains(OrderErrorCode.ORDER_PAYMENT_RELEASE_PENDING.getCode())) {
+                    log.warn("주문 {} 보류: id={} ({})", taskName, id, e.getMessage());
+                } else {
+                    log.error("주문 {} 실패: id={}", taskName, id, e);
+                }
             } catch (Exception e) {
                 log.error("주문 {} 실패: id={}", taskName, id, e);
             }

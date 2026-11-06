@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.out;
 
+import com.cartmate.cartmate.support.TestCatalog;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -10,19 +11,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 @Primary
 @Profile("test")
 public class FakeProductClient implements ProductClient {
 
-    private static final Map<Long, CartProductInfo> PRODUCTS = Map.of(
-            1L, new CartProductInfo(1L, 1L, "축구 유니폼", "M / 레드", 39000, "https://example.com/uniform.png", true),
-            2L, new CartProductInfo(2L, 1L, "축구 유니폼", "L / 레드", 39000, "https://example.com/uniform.png", true),
-            3L, new CartProductInfo(3L, 1L, "축구 유니폼", "L / 블루", 41000, "https://example.com/uniform.png", true),
-            4L, new CartProductInfo(4L, 2L, "축구공", "5호", 25000, "https://example.com/ball.png", true),
-            5L, new CartProductInfo(5L, 3L, "정강이 보호대", "FREE", 15000, "https://example.com/guard.png", false)
-    );
+    private static final Map<Long, CartProductInfo> PRODUCTS = TestCatalog.PRODUCTS.values().stream()
+            .collect(Collectors.toUnmodifiableMap(TestCatalog.Product::inventoryId, product -> new CartProductInfo(
+                    product.inventoryId(), product.productId(), product.productName(), product.optionName(),
+                    product.price(), product.imageUrl(), product.purchasable())));
 
     @Override
     public Optional<CartProductInfo> findByInventoryId(Long inventoryId) {

@@ -85,7 +85,6 @@ public class SharedGroupOrderFacade {
         return sharedGroupOrderCancelUseCase.findActiveIdsByProductIds(productIds);
     }
 
-    // 공동 주문 하나마다 새 트랜잭션. 발송된 배송이 있으면 delivery가 거절 → 이 트랜잭션만 롤백
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancelBySalesStopped(Long sharedGroupOrderId) {
         sharedGroupOrderCancelUseCase.cancelBySalesStopped(sharedGroupOrderId);
