@@ -6,7 +6,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryItem;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryClaimItemRepository;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryItemRepository;
-import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
+import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -21,7 +21,7 @@ public class DeliveryConfirmedEventPublisher {
 
     private final DeliveryItemRepository deliveryItemRepository;
     private final DeliveryClaimItemRepository deliveryClaimItemRepository;
-    private final EventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     // 구매확정된 배송과 그 상품 정보를 담아 DeliveryConfirmedEvent를 발행한다.
     // 구매확정 전에 환불이 완료된 수량은 판매가 아니므로 상품 수량에서 빼고, 전량 환불된 상품은 제외한다.
