@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.shared.product.dto;
+package com.cartmate.cartmate.boundedContext.productService.post.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;

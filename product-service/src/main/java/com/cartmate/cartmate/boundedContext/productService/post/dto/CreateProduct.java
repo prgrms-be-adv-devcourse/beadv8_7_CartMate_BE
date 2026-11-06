@@ -1,16 +1,15 @@
-package com.cartmate.cartmate.shared.product.dto;
+package com.cartmate.cartmate.boundedContext.productService.post.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SyncProduct {
+public class CreateProduct {
     private Long id;
     private Long sellerId;
     private Long salesPostId;
@@ -18,8 +17,10 @@ public class SyncProduct {
     private String name;
     private String description;
     private Long basePrice;
-    private LocalDateTime createDate;
-    private LocalDateTime modifyDate;
-    private List<SyncProductImage> productImageList;
-    private List<SyncProductOption> productOptionList;
+    private List<CreateProductImage> productImageList;
+    private List<CreateProductOption> productOptionList;
+
+    public void assignProductId(Long id) {
+        this.id = id;
+    }
 }
