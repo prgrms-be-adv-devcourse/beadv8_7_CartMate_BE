@@ -43,7 +43,6 @@ class IndividualGroupPurchasePaybackUseCase {
     void judgeOfOrder(Long orderId, LocalDateTime now) {
         Order order = orderRepository.findById(orderId).orElse(null);
         if (order == null) {
-            // 취소 · 판매자 항목 취소 이벤트는 order가 직접 낸 것이라 주문이 없으면 데이터가 어긋난 것이다. 추적할 수 있게 남긴다
             log.warn("페이백 판정 대상 주문을 찾을 수 없음: orderId={}", orderId);
             return;
         }

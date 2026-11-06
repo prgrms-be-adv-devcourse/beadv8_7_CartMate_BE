@@ -6,10 +6,9 @@ public interface AbuseRule {
 
     AbuseSignalType signalType();
 
-    AbuseRuleThreshold threshold();
+    AbuseRuleWeight weight();
 
-    default AbuseRuleResult evaluate(long signalCount) {
-        AbuseRuleThreshold threshold = threshold();
-        return new AbuseRuleResult(code(), signalCount, threshold.levelOf(signalCount), threshold.scoreOf(signalCount));
+    default AbuseRuleResult evaluate(long signalCount, AbuseScoreThreshold scoreThreshold) {
+        return new AbuseRuleResult(code(), signalCount, weight().scoreOf(signalCount, scoreThreshold));
     }
 }

@@ -30,9 +30,6 @@ import org.springframework.context.event.EventListener;
  * 어댑터가 나중에 HTTP · Kafka 클라이언트로 바뀌는 교체 지점이기 때문이다(ARCH-15 결정).
  * 그 어댑터도 다른 모듈의 엔티티 · Q클래스 · 리포지토리({@code domain} · {@code out})는 쓰지 못한다(R5).
  *
- * <p>예전에는 이미 있던 위반을 FreezingArchRule로 동결해 두었으나 ARCH-4 ~ ARCH-9에서 모두 해소되어 동결을 걷었다(TEST-2).
- * 이제 위반이 하나라도 생기면 바로 실패한다.
- *
  * <p>테스트 코드는 검사하지 않는다({@link ImportOption.DoNotIncludeTests}).
  * 다른 모듈끼리의 의존이나 다른 모듈의 리스너는 담당자 영역이라 검사하지 않는다.
  */

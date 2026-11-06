@@ -61,7 +61,7 @@ class AbuseJudgeUseCase {
     private List<AbuseRuleResult> evaluate(Long memberId, LocalDateTime now) {
         return abuseRules.stream()
                 .map(rule -> rule.evaluate(abuseSignalRepository.countInWindow(
-                        memberId, rule.signalType(), now.minus(rule.threshold().window()), now)))
+                        memberId, rule.signalType(), now.minus(rule.weight().window()), now), SCORE_THRESHOLD))
                 .toList();
     }
 

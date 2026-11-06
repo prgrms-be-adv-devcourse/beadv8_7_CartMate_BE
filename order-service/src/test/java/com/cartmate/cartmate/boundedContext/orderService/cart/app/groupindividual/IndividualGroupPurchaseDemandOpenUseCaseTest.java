@@ -27,6 +27,7 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.demandPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -90,8 +91,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     @Test
     @DisplayName("같은 상품으로 판매 중인 공동구매가 있으면 거절한다")
     void alreadyOpen() {
-        IndividualGroupPurchase previous = IndividualGroupPurchase.openFromDemand(
-                "축구공", ADMIN, "invitecode01", BALL, null, 10, 1_000L, NOW.minusHours(1));
+        IndividualGroupPurchase previous = demandPurchase(ADMIN, BALL, null, NOW.minusHours(1));
         given(repository.findByDemandProductKeyForUpdate(BALL)).willReturn(Optional.of(previous));
 
         assertThatThrownBy(() -> useCase.open(ADMIN, BALL, request(), NOW))
@@ -103,8 +103,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     @Test
     @DisplayName("마감 시각이 지난 이전 공동구매가 키를 잡고 있으면 풀고 새로 연다")
     void releaseExpired() {
-        IndividualGroupPurchase previous = IndividualGroupPurchase.openFromDemand(
-                "축구공", ADMIN, "invitecode01", BALL, null, 10, 1_000L, NOW.minusDays(4));
+        IndividualGroupPurchase previous = demandPurchase(ADMIN, BALL, null, NOW.minusDays(4));
         given(repository.findByDemandProductKeyForUpdate(BALL)).willReturn(Optional.of(previous));
         given(repository.saveAndFlush(any())).willAnswer(invocation -> invocation.getArgument(0));
 

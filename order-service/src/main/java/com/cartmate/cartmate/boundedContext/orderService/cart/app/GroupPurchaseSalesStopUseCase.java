@@ -1,8 +1,10 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app;
 
+import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared.SharedGroupPurchaseEvents;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
 import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
+import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseCancelReason;
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual.IndividualGroupPurchaseEvents;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
@@ -50,11 +52,14 @@ public class GroupPurchaseSalesStopUseCase {
         });
     }
 
-    // 개설자의 상품 변경 · 마감 · 스케줄러 마감과 같은 행을 바꾸므로 같은 행 락을 잡는다(ISS-28, 개인물품 쪽 ISS-23과 같은 방식).
-    // 락 없이 읽으면 서로 다른 스냅샷으로 항목 · 상태를 고쳐 한쪽 변경이 사라질 수 있다. 항목은 락 뒤에 지연 로딩으로 읽는다
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void removeFromShared(Long groupPurchaseId, List<Long> productIds) {
-        sharedGroupPurchaseRepository.findByIdForUpdate(groupPurchaseId).ifPresent(purchase ->
-                purchase.removeItemsBySalesStopped(new HashSet<>(productIds), LocalDateTime.now(clock)));
+        sharedGroupPurchaseRepository.findByIdForUpdate(groupPurchaseId).ifPresent(purchase -> {
+            boolean changed = purchase.removeItemsBySalesStopped(new HashSet<>(productIds), LocalDateTime.now(clock));
+            if (changed && purchase.isCanceled()) {
+                eventPublisher.publish(
+                        SharedGroupPurchaseEvents.canceled(purchase, SharedGroupPurchaseCancelReason.SALES_STOPPED));
+            }
+        });
     }
 }

@@ -2,6 +2,7 @@ package com.cartmate.cartmate.support;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.matching.MatchingOutJpaSliceBeans;
 import com.cartmate.cartmate.global.global.QuerydslConfig;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
@@ -27,6 +28,7 @@ import java.lang.annotation.Target;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @ImportTestcontainers(CartMateTestContainers.class)
+@ExtendWith(DatabaseCleaner.class)
 @Import({QuerydslConfig.class, MatchingOutJpaSliceBeans.class})
 public @interface CartMateJpaTest {
 }

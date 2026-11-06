@@ -1,7 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.support.CartMateJpaTest;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +12,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedLine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -52,7 +53,7 @@ class SharedGroupOrderRepositoryTest {
         SharedGroupOrder first = sharedGroupOrderRepository.save(order(base + 10));
         SharedGroupOrder second = sharedGroupOrderRepository.save(order(base + 11));
         sharedGroupOrderRepository.save(SharedGroupOrder.create(
-                base + 12, base + 2, List.of(base + 2), List.of(new OrderItemLine(10L, 1L, null, "상품", null, 1, 1000)), CLOSED_AT));
+                base + 12, base + 2, List.of(base + 2), List.of(sharedLine(10L, 1L, null, 1, 1000)), CLOSED_AT));
         flushAndClear();
 
         List<SharedGroupOrder> found = sharedGroupOrderRepository.findAllByParticipant(member);
@@ -87,12 +88,8 @@ class SharedGroupOrderRepositoryTest {
     }
 
     private SharedGroupOrder order(Long sharedGroupPurchaseId) {
-        return SharedGroupOrder.create(
-                sharedGroupPurchaseId,
-                creator,
-                List.of(creator, member),
-                List.of(new OrderItemLine(10L, 1L, null, "상품", null, 2, 25000), new OrderItemLine(11L, 2L, null, "상품", null, 1, 15000)),
-                CLOSED_AT);
+        return sharedOrder(sharedGroupPurchaseId, creator, member, CLOSED_AT,
+                sharedLine(10L, 1L, null, 2, 25000), sharedLine(11L, 2L, null, 1, 15000));
     }
 
     private void flushAndClear() {

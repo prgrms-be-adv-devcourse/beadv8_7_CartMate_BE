@@ -3,7 +3,10 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
+import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseMemberJoinedEvent;
+import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseMemberLeftEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +19,7 @@ class SharedGroupPurchaseMemberUseCase {
 
     private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
+    private final DomainEventPublisher eventPublisher;
     private final Clock clock;
 
     Long join(Long memberId, String inviteCode) {
@@ -24,13 +28,19 @@ class SharedGroupPurchaseMemberUseCase {
             return purchase.getId();
         }
         sharedGroupPurchaseSupport.validateNotRestricted(memberId);
-        purchase.join(memberId, LocalDateTime.now(clock));
+        LocalDateTime now = LocalDateTime.now(clock);
+        purchase.join(memberId, now);
+        long activeParticipationCount = sharedGroupPurchaseRepository.countActiveOfMember(memberId);
+        eventPublisher.publish(new SharedGroupPurchaseMemberJoinedEvent(
+                purchase.getId(), memberId, activeParticipationCount, now));
         return purchase.getId();
     }
 
     void leave(Long memberId, Long sharedGroupPurchaseId) {
-        sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
-                .leave(memberId, LocalDateTime.now(clock));
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime joinedAt = sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
+                .leave(memberId, now);
+        eventPublisher.publish(new SharedGroupPurchaseMemberLeftEvent(sharedGroupPurchaseId, memberId, joinedAt, now));
     }
 
     void kick(Long memberId, Long sharedGroupPurchaseId, Long targetMemberId) {

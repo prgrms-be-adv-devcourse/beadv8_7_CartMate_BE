@@ -10,7 +10,6 @@ import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.S
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.FakeOrderProductClient;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
-import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,8 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.BooleanSupplier;
 
+import static com.cartmate.cartmate.support.OutboxRelayHelper.relayOnce;
+import static com.cartmate.cartmate.support.OutboxRelayHelper.relayUntil;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -81,7 +81,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
         assertThat(outboxCount(purchaseId, CLOSED_EVENT)).isEqualTo(1);
         assertThat(orderCountOf(purchaseId)).isZero();
 
-        relayUntil(() -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
+        relayUntil(jdbcTemplate, outboxRelay, () -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
 
         assertThat(orderCountOf(purchaseId)).isEqualTo(1);
         Long orderId = orderIdOf(purchaseId).orElseThrow();
@@ -106,18 +106,18 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     void duplicateDeliveryCreatesOneOrder() {
         Long purchaseId = readyPurchase("중복 전달");
         sharedGroupPurchaseFacade.close(creator, purchaseId);
-        relayUntil(() -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
+        relayUntil(jdbcTemplate, outboxRelay, () -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
 
         // at-least-once: 싱크 성공 뒤 PUBLISHED 기록이 실패하면 같은 행이 다시 간다
         jdbcTemplate.update("UPDATE outbox_event SET status = 'NEW', next_attempt_at = ? " +
                 "WHERE aggregate_type = 'SharedGroupPurchase' AND aggregate_id = ? AND event_type = ?",
                 LocalDateTime.now(), String.valueOf(purchaseId), CLOSED_EVENT);
-        relayUntil(() -> pendingOf(purchaseId) == 0);
+        relayUntil(jdbcTemplate, outboxRelay, () -> pendingOf(purchaseId) == 0);
 
         assertThat(orderCountOf(purchaseId)).isEqualTo(1);
         assertThat(statusOf(purchaseId)).isEqualTo(SharedGroupPurchaseStatus.ORDER_CREATED);
         Long orderId = orderIdOf(purchaseId).orElseThrow();
-        relayUntil(() -> pendingOfOrder(orderId) == 0);
+        relayUntil(jdbcTemplate, outboxRelay, () -> pendingOfOrder(orderId) == 0);
         assertThat(statusOf(purchaseId)).isEqualTo(SharedGroupPurchaseStatus.ORDER_CREATED);
     }
 
@@ -128,7 +128,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
         sharedGroupPurchaseFacade.close(creator, purchaseId);
         fakeOrderProductClient.overrideFindAll(inventoryIds -> List.of());
 
-        relayUntil(() -> statusOf(purchaseId) == SharedGroupPurchaseStatus.FROZEN);
+        relayUntil(jdbcTemplate, outboxRelay, () -> statusOf(purchaseId) == SharedGroupPurchaseStatus.FROZEN);
 
         assertThat(orderCountOf(purchaseId)).isZero();
         assertThat(outboxCount(purchaseId, FAILED_EVENT)).isEqualTo(1);
@@ -138,7 +138,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
 
         fakeOrderProductClient.clearOverride();
         sharedGroupPurchaseFacade.close(creator, purchaseId);
-        relayUntil(() -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
+        relayUntil(jdbcTemplate, outboxRelay, () -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
         assertThat(orderCountOf(purchaseId)).isEqualTo(1);
     }
 
@@ -151,7 +151,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
             throw new QueryTimeoutException("순단");
         });
 
-        relayUntil(() -> attemptsOf(purchaseId, CLOSED_EVENT) >= 1);
+        relayUntil(jdbcTemplate, outboxRelay, () -> attemptsOf(purchaseId, CLOSED_EVENT) >= 1);
 
         assertThat(statusOf(purchaseId)).isEqualTo(SharedGroupPurchaseStatus.CLOSED);
         assertThat(orderCountOf(purchaseId)).isZero();
@@ -188,7 +188,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
         jdbcTemplate.update("UPDATE outbox_event SET next_attempt_at = ? " +
                 "WHERE aggregate_type = 'SharedGroupPurchase' AND aggregate_id = ?",
                 LocalDateTime.now(), String.valueOf(purchaseId));
-        relayUntil(() -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
+        relayUntil(jdbcTemplate, outboxRelay, () -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
         assertThat(orderCountOf(purchaseId)).isEqualTo(1);
     }
 
@@ -204,8 +204,7 @@ class SharedGroupOrderCreationFlowIntegrationTest {
 
         assertThat(statusOf(purchaseId)).isEqualTo(SharedGroupPurchaseStatus.OPEN);
         assertThat(outboxCount(purchaseId, CLOSED_EVENT)).isZero();
-        ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
-        outboxRelay.relay();
+        relayOnce(jdbcTemplate, outboxRelay);
         assertThat(orderCountOf(purchaseId)).isZero();
     }
 
@@ -214,18 +213,6 @@ class SharedGroupOrderCreationFlowIntegrationTest {
         sharedGroupPurchaseFacade.join(member, created.inviteCode());
         sharedGroupPurchaseFacade.addItem(member, created.id(), 4L, 3);
         return created.id();
-    }
-
-    // 조건이 맞을 때까지 릴레이를 돌린다
-    private void relayUntil(BooleanSupplier condition) {
-        for (int i = 0; i < 20; i++) {
-            ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
-            outboxRelay.relay();
-            if (condition.getAsBoolean()) {
-                return;
-            }
-        }
-        throw new AssertionError("릴레이를 돌려도 기대한 상태가 되지 않았다");
     }
 
     private SharedGroupPurchaseStatus statusOf(Long purchaseId) {
