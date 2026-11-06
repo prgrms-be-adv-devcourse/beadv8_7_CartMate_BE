@@ -59,7 +59,6 @@ class CouponOrderUseCase {
         CouponQuote quote = quoteOf(memberCoupon, memberId, orderType, orderId, target, now);
         memberCoupon.reserve(orderType, orderId, now);
         memberCoupon.use(orderType, orderId, now);
-        memberCouponRepository.save(memberCoupon);
         return quote;
     }
 
@@ -67,10 +66,7 @@ class CouponOrderUseCase {
     void restore(Long memberId, Long memberCouponId, String orderType, Long orderId) {
         memberCouponRepository.findByIdForUpdate(memberCouponId)
                 .filter(mc -> mc.getMemberId().equals(memberId))
-                .ifPresent(mc -> {
-                    mc.restore(orderType, orderId);
-                    memberCouponRepository.save(mc);
-                });
+                .ifPresent(mc -> mc.restore(orderType, orderId));
     }
 
     private CouponQuote quoteOf(MemberCoupon memberCoupon, Long memberId, String orderType, Long orderId,
