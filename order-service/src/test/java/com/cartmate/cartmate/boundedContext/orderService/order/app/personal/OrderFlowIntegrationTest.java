@@ -13,7 +13,6 @@ import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.Orde
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static com.cartmate.cartmate.support.OutboxRelayHelper.relayUntilPublished;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -73,7 +73,7 @@ class OrderFlowIntegrationTest {
         assertThat(orderFacade.getDetail(buyer, created.orderId()).status()).isEqualTo(OrderStatus.PAID);
         // 장바구니 정리는 결제 완료 이벤트를 릴레이로 받아서 한다(이중 발행 제거, MSA-5). 릴레이 전에는 그대로다
         assertThat(cartFacade.getCart(buyer).items()).hasSize(3);
-        relayUntilPublished(created.orderId());
+        relayUntilPublished(jdbcTemplate, outboxRelay, "Order", created.orderId());
         assertThat(cartFacade.getCart(buyer).items()).extracting(CartItemResponse::inventoryId).containsExactly(2L);
 
         // 같은 결제 완료 이벤트가 다시 전달돼도(at-least-once) 한 번만 뺀다:
@@ -82,7 +82,7 @@ class OrderFlowIntegrationTest {
         jdbcTemplate.update("UPDATE outbox_event SET status = 'NEW', next_attempt_at = ? "
                         + "WHERE aggregate_type = 'Order' AND aggregate_id = ? AND event_type = 'OrderPaidEvent'",
                 LocalDateTime.now(), String.valueOf(created.orderId()));
-        relayUntilPublished(created.orderId());
+        relayUntilPublished(jdbcTemplate, outboxRelay, "Order", created.orderId());
         assertThat(cartFacade.getCart(buyer).items()).extracting(CartItemResponse::inventoryId)
                 .containsExactlyInAnyOrder(2L, 1L);
     }
@@ -106,28 +106,13 @@ class OrderFlowIntegrationTest {
         orderFacade.applyPayment(created.orderId(), buyer, created.orderId(), LocalDateTime.now());
         // 현황판은 order 이벤트로 채우는 cart 읽기 모델이다. 결제 직후엔 아직 비어 있고, 릴레이가 돌면 나온다
         assertThat(individualGroupPurchaseFacade.getDashboard(creator, purchaseId).orderCount()).isZero();
-        relayUntilPublished(created.orderId());
+        relayUntilPublished(jdbcTemplate, outboxRelay, "Order", created.orderId());
 
         IndividualGroupPurchaseDashboardResponse dashboard = individualGroupPurchaseFacade.getDashboard(creator, purchaseId);
         assertThat(dashboard.orderCount()).isEqualTo(1);
         assertThat(dashboard.buyerCount()).isEqualTo(1);
         assertThat(dashboard.totalQuantity()).isEqualTo(2);
         assertThat(dashboard.totalAmount()).isEqualTo(50000L);
-    }
-
-    // 이 주문의 이벤트가 모두 넘어갈 때까지 릴레이를 돌린다
-    private void relayUntilPublished(Long orderId) {
-        for (int i = 0; i < 20; i++) {
-            ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
-            outboxRelay.relay();
-            Integer pending = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM outbox_event WHERE aggregate_type = 'Order' AND aggregate_id = ? AND status = 'NEW'",
-                    Integer.class, String.valueOf(orderId));
-            if (pending == 0) {
-                return;
-            }
-        }
-        throw new AssertionError("아웃박스 이벤트가 릴레이되지 않았다: orderId=" + orderId);
     }
 
     private long nextMember() {

@@ -12,7 +12,6 @@ import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshare
 import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
-import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
@@ -33,6 +32,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.address;
 import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedLine;
 import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedOrder;
+import static com.cartmate.cartmate.support.OutboxRelayHelper.relayUntilPublished;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CartMateIntegrationTest
@@ -76,7 +76,7 @@ class AbuseOrderEventConsumerIntegrationTest {
                 .isEqualTo(SharedGroupOrderStatus.CANCELED);
         assertThat(abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(unpaid)).isEmpty();
 
-        relayUntilPublished(orderId);
+        relayUntilPublished(jdbcTemplate, outboxRelay, "SharedGroupOrder", orderId);
 
         assertThat(abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(creator)).isEmpty();
         List<AbuseSignal> signals = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(unpaid);
@@ -102,20 +102,6 @@ class AbuseOrderEventConsumerIntegrationTest {
         assertThat(signals).hasSize(1);
         assertThat(signals.getFirst().getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
         assertThat(signals.getFirst().getLevel()).isEqualTo(AbuseLevel.CAUTION);
-    }
-
-    private void relayUntilPublished(Long orderId) {
-        for (int i = 0; i < 20; i++) {
-            ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
-            outboxRelay.relay();
-            Integer pending = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM outbox_event WHERE aggregate_type = 'SharedGroupOrder' AND aggregate_id = ? AND status = 'NEW'",
-                    Integer.class, String.valueOf(orderId));
-            if (pending == 0) {
-                return;
-            }
-        }
-        throw new AssertionError("아웃박스 이벤트가 릴레이되지 않았다: sharedGroupOrderId=" + orderId);
     }
 
     private SharedGroupOrderCanceledEvent canceled(long orderId, List<Long> unpaidMemberIds) {

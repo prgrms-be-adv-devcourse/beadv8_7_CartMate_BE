@@ -6,6 +6,8 @@ import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshare
 import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
+import com.cartmate.cartmate.support.ConcurrentRunner;
+import com.cartmate.cartmate.support.ConcurrentRunner.Results;
 import com.cartmate.cartmate.support.TestEventRecorder;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -18,15 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.address;
 import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedLine;
@@ -72,33 +67,19 @@ class SharedGroupOrderConcurrencyTest {
             Long orderId = saveOrder(closedAt, creator, List.of(creator, member, last), List.of(creator, member));
             LocalDateTime paidAt = closedAt.plus(SharedGroupOrder.PAYMENT_PERIOD).minusMinutes(1);
 
-            AtomicReference<String> paymentResult = new AtomicReference<>();
-            AtomicReference<Throwable> cancelError = new AtomicReference<>();
-            runConcurrently(List.of(
-                    () -> {
-                        try {
-                            facade.applyPayment(orderId, last, last, paidAt, null);
-                            paymentResult.set("PAID");
-                        } catch (ServiceException e) {
-                            paymentResult.set(e.getResultCode());
-                        }
-                    },
-                    () -> {
-                        try {
-                            facade.cancelByDeadline(orderId);
-                        } catch (RuntimeException e) {
-                            cancelError.set(e);
-                        }
-                    }
-            ));
+            Results results = ConcurrentRunner.run(
+                    () -> facade.applyPayment(orderId, last, last, paidAt, null),
+                    () -> facade.cancelByDeadline(orderId));
+            results.assertNoUnexpected(ServiceException.class);
+            String paymentResult = results.succeeded(0) ? "PAID" : ((ServiceException) results.error(0)).getResultCode();
 
             SharedGroupOrder order = findOrder(orderId);
             long confirmedEvents = eventRecorder.count(SharedGroupOrderConfirmedEvent.class, e -> e.sharedGroupOrderId().equals(orderId));
             long canceledEvents = eventRecorder.count(SharedGroupOrderCanceledEvent.class, e -> e.sharedGroupOrderId().equals(orderId));
-            assertThat(cancelError.get()).isNull();
+            assertThat(results.error(1)).as("기한 만료 취소는 예외 없이 끝난다").isNull();
             if (order.getStatus() == SharedGroupOrderStatus.CONFIRMED) {
                 confirmedRounds++;
-                assertThat(paymentResult.get()).isEqualTo("PAID");
+                assertThat(paymentResult).isEqualTo("PAID");
                 assertThat(confirmedEvents).isEqualTo(1);
                 assertThat(canceledEvents).isZero();
                 assertThat(order.getCancelReason()).isNull();
@@ -109,7 +90,7 @@ class SharedGroupOrderConcurrencyTest {
                 assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
                 assertThat(order.getCancelReason()).isEqualTo(SharedGroupOrderCancelReason.DEADLINE_EXPIRED);
                 assertThat(order.getConfirmedAt()).isNull();
-                assertThat(paymentResult.get()).isEqualTo(OrderErrorCode.ORDER_NOT_PAYABLE.resultCode());
+                assertThat(paymentResult).isEqualTo(OrderErrorCode.ORDER_NOT_PAYABLE.resultCode());
                 assertThat(canceledEvents).isEqualTo(1);
                 assertThat(confirmedEvents).isZero();
                 assertThat(order.getParticipant(last).isPaid()).isFalse();
@@ -128,20 +109,12 @@ class SharedGroupOrderConcurrencyTest {
             long second = nextId();
             Long orderId = saveOrder(closedAt, creator, List.of(creator, first, second), List.of(creator));
 
-            AtomicInteger success = new AtomicInteger();
-            runConcurrently(List.of(
-                    () -> {
-                        facade.applyPayment(orderId, first, first, LocalDateTime.now(), null);
-                        success.incrementAndGet();
-                    },
-                    () -> {
-                        facade.applyPayment(orderId, second, second, LocalDateTime.now(), null);
-                        success.incrementAndGet();
-                    }
-            ));
+            Results results = ConcurrentRunner.run(
+                    () -> facade.applyPayment(orderId, first, first, LocalDateTime.now(), null),
+                    () -> facade.applyPayment(orderId, second, second, LocalDateTime.now(), null));
 
+            results.assertNoUnexpected();
             SharedGroupOrder order = findOrder(orderId);
-            assertThat(success.get()).isEqualTo(2);
             assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CONFIRMED);
             assertThat(order.getParticipant(first).isPaid()).isTrue();
             assertThat(order.getParticipant(second).isPaid()).isTrue();
@@ -156,11 +129,7 @@ class SharedGroupOrderConcurrencyTest {
         long member = nextId();
         Long orderId = saveOrder(expiredClosedAt(), creator, List.of(creator, member), List.of());
 
-        List<Runnable> tasks = new ArrayList<>();
-        for (int i = 0; i < THREADS; i++) {
-            tasks.add(() -> facade.cancelByDeadline(orderId));
-        }
-        runConcurrently(tasks);
+        ConcurrentRunner.run(THREADS, i -> facade.cancelByDeadline(orderId)).assertNoUnexpected();
 
         assertThat(eventRecorder.count(SharedGroupOrderCanceledEvent.class, e -> e.sharedGroupOrderId().equals(orderId))).isEqualTo(1);
         assertThat(findOrder(orderId).getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
@@ -199,30 +168,5 @@ class SharedGroupOrderConcurrencyTest {
 
     private List<Boolean> paidStatusOf(SharedGroupOrder order) {
         return order.getParticipants().stream().map(SharedGroupOrderParticipant::isPaid).toList();
-    }
-
-    private void runConcurrently(List<Runnable> tasks) throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(tasks.size());
-        CountDownLatch ready = new CountDownLatch(tasks.size());
-        CountDownLatch start = new CountDownLatch(1);
-        CountDownLatch done = new CountDownLatch(tasks.size());
-        for (Runnable task : tasks) {
-            executor.submit(() -> {
-                ready.countDown();
-                try {
-                    start.await();
-                    task.run();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    done.countDown();
-                }
-            });
-        }
-        ready.await();
-        start.countDown();
-        done.await(30, TimeUnit.SECONDS);
-        executor.shutdown();
-        executor.awaitTermination(30, TimeUnit.SECONDS);
     }
 }
