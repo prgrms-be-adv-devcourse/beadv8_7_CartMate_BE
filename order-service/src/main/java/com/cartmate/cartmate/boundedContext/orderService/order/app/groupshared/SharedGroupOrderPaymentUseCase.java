@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 
+import com.cartmate.cartmate.global.http.InternalApiClient.InternalServerUnavailableException;
+
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderItem;
@@ -62,7 +64,10 @@ class SharedGroupOrderPaymentUseCase {
     void applyPayment(Long sharedGroupOrderId, Long memberId, Long paymentId, LocalDateTime paidAt,
                       TeamDeliveryAddress teamDeliveryAddress) {
         SharedGroupOrder order = sharedGroupOrderSupport.getOrderForUpdate(sharedGroupOrderId);
-        validatePurchasable(order.getItems().stream().map(SharedGroupOrderItem::getInventoryId).toList());
+        // 결제 중인 공동 주문일 때만 상품 서버를 다시 본다. 이미 취소 · 확정이면 pay의 업무 거절(→ 보상)로 끝낸다(ISS-27 리뷰)
+        if (order.getStatus() == SharedGroupOrderStatus.PAYING) {
+            validatePurchasable(order.getItems().stream().map(SharedGroupOrderItem::getInventoryId).toList());
+        }
         DeliveryAddress deliveryAddress = order.isCreator(memberId) ? toDeliveryAddress(teamDeliveryAddress) : null;
         if (order.pay(memberId, paymentId, paidAt, deliveryAddress)) {
             eventPublisher.publish(toConfirmedEvent(order));
@@ -151,12 +156,15 @@ class SharedGroupOrderPaymentUseCase {
         return applyOrCompensate(sharedGroupOrderId, memberId, payment, teamDeliveryAddress);
     }
 
-    // 반영이 거절되면(그 사이 기한 만료 취소 등) 빠진 분담금을 되돌린다. 일시적 오류(ServiceException이 아닌 예외)는 되돌리지 않고 재시도에 맡긴다.
-    // 주의: 상품 서버 일시 장애(503)도 ServiceException이라 지금은 되돌린다(ISS-27).
+    // 반영이 거절되면(그 사이 기한 만료 취소 등) 빠진 분담금을 되돌린다. 일시적 장애(ServiceException이 아닌 예외,
+    // 다른 서버의 503 InternalServerUnavailableException)는 되돌리지 않고 재시도에 맡긴다(ISS-27).
+    // 다시 결제하지 않은 채 공동 주문이 취소되면, payment가 그 공동 주문의 결제 완료 행을 모두 환불하므로 남은 차감도 함께 환불된다.
     private PaymentResult applyOrCompensate(Long sharedGroupOrderId, Long memberId, PaymentResult payment, TeamDeliveryAddress teamDeliveryAddress) {
         try {
             applyPayment(sharedGroupOrderId, memberId, payment.paymentId(), payment.paidAt(), teamDeliveryAddress);
             return payment;
+        } catch (InternalServerUnavailableException e) {
+            throw e;
         } catch (ServiceException e) {
             orderPaymentClient.compensateCharge(PaymentOrderType.SHARED_GROUP, sharedGroupOrderId, memberId);
             throw e;

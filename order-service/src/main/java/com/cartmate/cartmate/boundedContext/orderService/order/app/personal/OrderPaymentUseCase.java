@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.global.http.InternalApiClient.InternalServerUnavailableException;
+
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderItem;
@@ -50,10 +52,14 @@ class OrderPaymentUseCase {
     void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         orderSupport.validateBuyer(order, memberId);
-        validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
+        // 주문 상태를 먼저 본다. 이미 취소된 주문이면 상품 서버를 부르지 않고 markPaid의 업무 거절(→ 보상)로 끝낸다.
+        // 상품 서버를 먼저 부르면, 취소와 겹친 결제가 그 호출의 503(보상 안 함)으로 끝나 돈이 빠진 채 남을 수 있다(ISS-27 리뷰).
         // 같은 결제의 재통보(이미 PAID)는 markPaid가 멱등으로 넘기므로 결제 대기일 때만 다시 본다
-        if (order.isPaymentPending() && !groupPurchaseAcceptsPayment(order, paidAt, true)) {
-            throw new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED);
+        if (order.isPaymentPending()) {
+            validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
+            if (!groupPurchaseAcceptsPayment(order, paidAt, true)) {
+                throw new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED);
+            }
         }
         if (order.markPaid(paymentId, paidAt)) {
             eventPublisher.publish(toPaidEvent(order));
@@ -139,13 +145,16 @@ class OrderPaymentUseCase {
     }
 
     // 주문 반영이 거절되면(그 사이 기한 만료·취소, 판매 중지 등) 빠진 돈을 되돌린다.
-    // 결제 서버(HTTP)에 되돌리기를 요청한다. 잠금 대기 같은 일시적 오류(ServiceException이 아닌 예외)는 되돌리지 않고
-    // 그대로 던진다 → 재시도하면 위의 '이미 빠졌다' 경로로 반영된다.
-    // 주의: 상품 서버 일시 장애(503 InternalServerUnavailableException)도 ServiceException이라 지금은 되돌린다(ISS-27).
+    // 결제 서버(HTTP)에 되돌리기를 요청한다. 일시적 장애는 되돌리지 않고 그대로 던진다 → 다시 결제하면 위의 '이미 빠졌다'
+    // 경로로 반영된다. 일시적 장애: 잠금 대기 같은 ServiceException이 아닌 예외, 그리고 다른 서버의 503
+    // (InternalServerUnavailableException — ServiceException을 상속하므로 먼저 거른다, ISS-27).
+    // 다시 결제하지 않고 주문이 취소되면 남은 차감은 취소 쪽(OrderCancelUseCase)이 되돌린다.
     private PaymentResult applyOrCompensate(Long orderId, Long memberId, PaymentResult payment) {
         try {
             applyPayment(orderId, memberId, payment.paymentId(), payment.paidAt());
             return payment;
+        } catch (InternalServerUnavailableException e) {
+            throw e;
         } catch (ServiceException e) {
             orderPaymentClient.compensateCharge(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
             throw e;
