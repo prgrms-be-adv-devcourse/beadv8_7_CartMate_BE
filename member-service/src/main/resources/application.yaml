@@ -12,6 +12,19 @@ spring:
       enabled: false # Job은 스케줄러가 실행하므로 애플리케이션 시작 시 자동 실행하지 않는다
     jdbc:
       initialize-schema: always # MySQL에도 배치 메타데이터 테이블을 만든다
+  kafka:
+    # cartmate.kafka.enabled=true일 때만 실제로 연결한다(기본 꺼짐 → 브로커 없이도 지금처럼 동작)
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all   # 복제본까지 받아야 성공(outbox 행을 PUBLISHED로 바꾸는 근거)
+    consumer:
+      group-id: member-service
+      auto-offset-reset: earliest   # 처음 붙을 때 쌓인 메시지부터 받는다(중복은 processed_event가 거름)
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
 custom:
   wallet:
     platform-member-id: ${PLATFORM_MEMBER_ID:1} # 판매 수수료를 받는 관리자 회원 ID. 환경마다 PLATFORM_MEMBER_ID로 바꾼다
@@ -52,6 +65,8 @@ custom:
       port: ${REDIS_CORE_PORT:6380}
 
 cartmate:
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}   # 켜면 outbox 이벤트(가입 등)를 Kafka로도 내보낸다
   payment:
     # 주문이 결제를 부르는 방식. local: 같은 앱 결제 Facade (차감·주문 반영 한 트랜잭션)
     #                          http : 결제 서버 내부 API (서버 분리 후와 같음, 차감·반영이 다른 트랜잭션)
