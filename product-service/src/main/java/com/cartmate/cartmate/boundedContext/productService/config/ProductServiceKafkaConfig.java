@@ -6,6 +6,7 @@ import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEven
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.member.event.MemberSignedUpEvent;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
@@ -68,6 +69,11 @@ public class ProductServiceKafkaConfig {
     @Bean
     public InboundEventBinding paybackDepositFailedBinding() {
         return binding(PaybackDepositFailedEvent.class);
+    }
+
+    @Bean
+    public InboundEventBinding memberSignedUpBinding() {
+        return binding(MemberSignedUpEvent.class);
     }
 
     private static InboundEventBinding binding(Class<?> eventType) {
