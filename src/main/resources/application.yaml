@@ -55,5 +55,7 @@ cartmate:
     #                          http : 결제 서버 내부 API (서버 분리 후와 같음, 차감·반영이 다른 트랜잭션)
     client: ${PAYMENT_CLIENT:local}
     base-url: ${PAYMENT_BASE_URL:}   # http 모드에서 비우면 같은 앱 자신을 부른다
+  order-service:
+    base-url: ${ORDER_SERVICE_BASE_URL:}   # 주문 서버(장바구니·공동구매·주문) 내부 API. 비우면 같은 앱 자신을 부른다
   internal:
     api-key: ${INTERNAL_API_KEY:local-internal-key}   # /internal/** 서버 간 호출 키. 운영은 반드시 환경 변수로

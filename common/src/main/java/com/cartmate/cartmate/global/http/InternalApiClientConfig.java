@@ -18,4 +18,12 @@ public class InternalApiClientConfig {
                                                     Environment environment) {
         return new InternalApiClient("PAYMENT", "결제", baseUrl, apiKey, environment);
     }
+
+    // 주문 서버 (장바구니·공동구매·주문). 회원 서버가 마이페이지 활동 · 탈퇴 가능 여부를 묻는다.
+    @Bean
+    public InternalApiClient orderServerApiClient(@Value("${cartmate.order-service.base-url:}") String baseUrl,
+                                                  @Value("${cartmate.internal.api-key}") String apiKey,
+                                                  Environment environment) {
+        return new InternalApiClient("ORDER", "주문", baseUrl, apiKey, environment);
+    }
 }
