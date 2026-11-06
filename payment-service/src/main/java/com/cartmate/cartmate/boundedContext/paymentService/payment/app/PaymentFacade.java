@@ -12,6 +12,7 @@ import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
 import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -78,8 +79,7 @@ public class PaymentFacade {
 
     // ===== 환불 =====
 // 주문 취소 트랜잭션에 참여한다 (이벤트 리스너에서 호출)
-    // 판매자 승인 트랜잭션에 참여한다 (배송 이벤트 리스너에서 호출)
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void refundByClaim(Long claimId, Long orderId, Long memberId, Long amount) {
         paymentRefundUseCase.refundByClaim(claimId, orderId, memberId, amount);
     }
