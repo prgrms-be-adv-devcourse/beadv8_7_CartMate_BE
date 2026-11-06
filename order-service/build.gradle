@@ -1,0 +1,38 @@
+// 주문 서버: 장바구니 · 공동구매 · 주문 · 어뷰징 · 수요 매칭. 루트(모놀리스)와 따로 뜨는 실행 jar다.
+// 공통 설정(java 25 · 저장소 · Spring Boot BOM · lombok)은 루트 build.gradle의 subprojects가 넣는다.
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    // global(예외 · RsData · 보안 · outbox · 내부 API 클라이언트) + shared(서비스 간 이벤트 · DTO 계약).
+    // web · jpa · security · validation · querydsl · shedlock · jjwt는 common이 api로 넘겨준다.
+    implementation project(':common')
+
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // QueryDSL Q클래스는 이 모듈의 엔티티로 여기서 만든다
+    annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.7:jpa'
+    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers-mysql'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.1'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        exceptionFormat = 'full'
+    }
+}

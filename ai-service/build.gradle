@@ -1,0 +1,17 @@
+// AI 서버. 아직 코드가 없는 빈 골격이다(2026-11-06). 필요하면 common 의존 · DB 등을 담당자가 추가한다.
+// 공통 설정(java 25 · 저장소 · Spring Boot BOM · lombok)은 루트 build.gradle의 subprojects가 넣는다.
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

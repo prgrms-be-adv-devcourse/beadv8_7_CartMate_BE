@@ -1,0 +1,38 @@
+# 주문 서버(장바구니 · 공동구매 · 주문 · 어뷰징 · 수요 매칭) 설정. 모놀리스(루트)와 따로 뜬다.
+server:
+  port: ${ORDER_SERVICE_PORT:8986}
+spring:
+  application:
+    name: order-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    # 주문 전용 MySQL. 로컬은 같은 MySQL에 스키마만 따로 둔다 (createDatabaseIfNotExist)
+    url: ${ORDER_DB_URL:jdbc:mysql://localhost:3306/cartmate_order?createDatabaseIfNotExist=true&serverTimezone=Asia/Seoul}
+    username: ${ORDER_DB_USERNAME:root}
+    password: ${ORDER_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${ORDER_DB_POOL_SIZE:10}   # MySQL-주문 max_connections 40 — 재배포 중 두 벌이 겹쳐도 넘지 않게
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    open-in-view: false
+
+custom:
+  jwt:
+    # 회원 서버가 발급한 토큰을 검증만 한다. 회원 서버와 같은 키여야 한다
+    secret: ${JWT_SECRET:cartmate-local-dev-secret-key-must-be-at-least-32-bytes}
+    accessTokenExpireSeconds: 1800
+  cookie:
+    secure: false
+
+cartmate:
+  payment:
+    client: http   # 주문 서버에는 결제 Facade가 없다. 결제 서버 내부 API만 쓴다
+    base-url: ${PAYMENT_BASE_URL:http://localhost:8985}
+  product-service:
+    base-url: ${PRODUCT_SERVICE_BASE_URL:http://localhost:8985}
+  member-service:
+    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8985}
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-key}   # /internal/** 서버 간 호출 키. 운영은 반드시 환경 변수로

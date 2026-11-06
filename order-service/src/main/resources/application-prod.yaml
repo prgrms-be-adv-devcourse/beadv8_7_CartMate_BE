@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: ${ORDER_DB_URL}
+    username: ${ORDER_DB_USERNAME}
+    password: ${ORDER_DB_PASSWORD}
+
+logging:
+  level:
+    com.cartmate: INFO
+
+custom:
+  jwt:
+    secret: ${JWT_SECRET}
+
+cartmate:
+  payment:
+    base-url: ${PAYMENT_BASE_URL}
+  product-service:
+    base-url: ${PRODUCT_SERVICE_BASE_URL}
+  member-service:
+    base-url: ${MEMBER_SERVICE_BASE_URL}
+  internal:
+    api-key: ${INTERNAL_API_KEY}   # 기본값 없음 → 빠뜨리면 앱이 뜨지 않음
