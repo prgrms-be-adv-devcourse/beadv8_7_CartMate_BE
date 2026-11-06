@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.Indi
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.IndividualGroupPurchaseReplicaRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderPurchaseConfirmationRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
+import com.cartmate.cartmate.shared.order.GroupPurchaseType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -67,11 +68,12 @@ class IndividualGroupPurchasePaybackUseCase {
         confirmationRepository.findAllById(orders.stream().map(Order::getId).toList())
                 .forEach(confirmation -> confirmedOrderIds.add(confirmation.getOrderId()));
 
-        PaybackSettlement.confirmedBuyers(orders, confirmedOrderIds).ifPresent(buyers -> {
-            IndividualGroupPurchasePayback judged = paybackRepository.save(IndividualGroupPurchasePayback.judge(
-                    purchaseId, replica.getPaybackMinBuyers(), replica.getPaybackAmount(), buyers.size(), now));
-            if (judged.isReached()) {
-                paybackPayoutUseCase.requestAll(purchaseId, buyers, judged.getPaybackAmount(), now);
+        PaybackSettlement.confirmedLines(orders, confirmedOrderIds).ifPresent(lines -> {
+            PaybackSettlement.Result result = PaybackSettlement.settle(
+                    lines, replica.getPaybackConditions(), replica.getPaybackOverlapPolicy());
+            paybackRepository.save(IndividualGroupPurchasePayback.judge(purchaseId, result, now));
+            if (result.paid()) {
+                paybackPayoutUseCase.requestAll(GroupPurchaseType.INDIVIDUAL, purchaseId, result.payouts(), now);
             }
         });
     }

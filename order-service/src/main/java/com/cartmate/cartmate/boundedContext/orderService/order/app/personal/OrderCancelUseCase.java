@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient;
 import lombok.extern.slf4j.Slf4j;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
@@ -34,13 +35,16 @@ class OrderCancelUseCase {
     private final OrderRepository orderRepository;
     private final OrderSupport orderSupport;
     private final DomainEventPublisher eventPublisher;
+    private final OrderCouponClient orderCouponClient;
     private final OrderPaymentClient orderPaymentClient;
     private final Clock clock;
 
     void cancelByBuyer(Long memberId, Long orderId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         boolean paid = isPaid(order);
-        publishCanceledEventIf(order.cancelByBuyer(memberId, LocalDateTime.now(clock)), order, paid);
+        boolean canceled = order.cancelByBuyer(memberId, LocalDateTime.now(clock));
+        publishCanceledEventIf(canceled, order, paid);
+        restoreCouponIf(canceled, order);
     }
 
     void cancelByDeadline(Long orderId) {
@@ -78,6 +82,7 @@ class OrderCancelUseCase {
             eventPublisher.publish(new OrderSellerItemsCanceledEvent(
                     orderId, order.getBuyerMemberId(), sellerId, amount, now));
         }
+        restoreCouponIf(amount > 0, order);
     }
 
     List<Long> findIdsByStatusAndProductIds(OrderStatus status, Collection<Long> productIds) {
@@ -86,6 +91,12 @@ class OrderCancelUseCase {
 
     List<Long> findIdsToCancelByDeadline(LocalDateTime now) {
         return orderRepository.findIdsToCancelByDeadline(now);
+    }
+
+    private void restoreCouponIf(boolean canceled, Order order) {
+        if (canceled && order.couponRestorable()) {
+            orderCouponClient.restore(order.getBuyerMemberId(), order.getMemberCouponId(), order.getId());
+        }
     }
 
     private boolean isPaid(Order order) {

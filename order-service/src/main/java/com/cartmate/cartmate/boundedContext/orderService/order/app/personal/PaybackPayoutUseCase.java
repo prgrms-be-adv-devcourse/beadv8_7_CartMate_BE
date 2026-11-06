@@ -1,6 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackPayout;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackSettlement;
+import com.cartmate.cartmate.shared.order.GroupPurchaseType;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackPayoutStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.PaybackPayoutResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -29,12 +32,17 @@ class PaybackPayoutUseCase {
     private final PaybackPayoutRepository payoutRepository;
     private final DomainEventPublisher eventPublisher;
 
-    void requestAll(Long individualGroupPurchaseId, Collection<Long> memberIds, long amount, LocalDateTime now) {
-        memberIds.stream().sorted().forEach(memberId -> {
-            PaybackPayout payout = payoutRepository.save(
-                    PaybackPayout.request(individualGroupPurchaseId, memberId, amount, now));
-            eventPublisher.publish(toRequestedEvent(payout));
-        });
+    void requestAll(GroupPurchaseType groupPurchaseType, Long groupPurchaseId,
+                    Collection<PaybackSettlement.PayoutLine> lines, LocalDateTime now) {
+        lines.stream()
+                .sorted(Comparator.comparing(PaybackSettlement.PayoutLine::memberId)
+                        .thenComparing(PaybackSettlement.PayoutLine::productId)
+                        .thenComparing(PaybackSettlement.PayoutLine::funder))
+                .forEach(line -> {
+                    PaybackPayout payout = payoutRepository.save(
+                            PaybackPayout.request(groupPurchaseType, groupPurchaseId, line, now));
+                    eventPublisher.publish(toRequestedEvent(payout));
+                });
     }
 
     void applyDeposited(PaybackDepositedEvent event) {
@@ -91,6 +99,7 @@ class PaybackPayoutUseCase {
 
     private static PaybackRequestedEvent toRequestedEvent(PaybackPayout payout) {
         return new PaybackRequestedEvent(payout.getId(), payout.getMemberId(), payout.getAmount(),
-                payout.getIndividualGroupPurchaseId(), payout.getAttempt(), payout.getRequestedAt());
+                payout.getGroupPurchaseType(), payout.getGroupPurchaseId(), payout.getAttempt(),
+                payout.getRequestedAt());
     }
 }

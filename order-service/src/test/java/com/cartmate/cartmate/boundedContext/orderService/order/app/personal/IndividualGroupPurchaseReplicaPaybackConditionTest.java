@@ -1,5 +1,10 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.ReplicaPaybackCondition;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
+import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
+import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
+import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
 
 import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseOrigin;
@@ -28,6 +33,8 @@ class IndividualGroupPurchaseReplicaPaybackConditionTest {
 
     private static final Long PURCHASE = 7L;
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 6, 12, 0);
+    private static final PaybackConditionPayload ADMIN_CONDITION =
+            new PaybackConditionPayload(1L, PaybackFunder.ADMIN, null, 10, 1_000L);
 
     private final IndividualGroupPurchaseReplicaRepository replicaRepository = mock(IndividualGroupPurchaseReplicaRepository.class);
     private final List<IndividualGroupPurchaseReplica> saved = new ArrayList<>();
@@ -40,23 +47,51 @@ class IndividualGroupPurchaseReplicaPaybackConditionTest {
         givenStore();
 
         useCase.applyClosed(new IndividualGroupPurchaseClosedEvent(PURCHASE, IndividualGroupPurchaseOrigin.ADMIN_DEMAND, IndividualGroupPurchaseCloseReason.ADMIN,
-                NOW.plusDays(3), NOW, 2, 10, 1_000L));
+                NOW.plusDays(3), NOW, 2, PaybackOverlapPolicy.LARGER, List.of(ADMIN_CONDITION)));
         useCase.applyOpened(new IndividualGroupPurchaseOpenedEvent(PURCHASE, NOW.plusDays(3), List.of(1L), 0, NOW,
-                10, 1_000L));
+                PaybackOverlapPolicy.BOTH, List.of(new PaybackConditionPayload(1L, PaybackFunder.ADMIN, null, 20, 900L))));
 
         IndividualGroupPurchaseReplica replica = saved.getFirst();
         assertThat(replica.isClosed()).isTrue();
         assertThat(replica.hasPaybackCondition()).isTrue();
-        assertThat(replica.getPaybackMinBuyers()).isEqualTo(10);
+        assertThat(replica.getPaybackOverlapPolicy()).isEqualTo(PaybackOverlapPolicy.LARGER);
+        assertThat(replica.getPaybackConditions()).singleElement()
+                .extracting(ReplicaPaybackCondition::getMinQuantity, ReplicaPaybackCondition::getAmountPerUnit)
+                .containsExactly(10, 1_000L);
     }
 
     @Test
-    @DisplayName("회원 공동구매는 조건이 null이라 사본에도 조건이 없다")
+    @DisplayName("변경 이벤트로 온 판매자 조건도 사본에 더해지고, 이미 있는 (상품, 부담 주체) 조건은 바뀌지 않는다")
+    void updatedAddsSellerCondition() {
+        givenStore();
+        useCase.applyOpened(new IndividualGroupPurchaseOpenedEvent(PURCHASE, NOW.plusDays(2), List.of(1L), 0, NOW,
+                PaybackOverlapPolicy.BOTH, List.of(ADMIN_CONDITION)));
+
+        PaybackConditionPayload seller = new PaybackConditionPayload(2L, PaybackFunder.SELLER, 77L, 100, 300L);
+        useCase.applyUpdated(new IndividualGroupPurchaseUpdatedEvent(PURCHASE, NOW.plusDays(2), List.of(1L, 2L), 1,
+                NOW, PaybackOverlapPolicy.BOTH, List.of(
+                        new PaybackConditionPayload(1L, PaybackFunder.ADMIN, null, 99, 9L), seller)));
+
+        IndividualGroupPurchaseReplica replica = saved.getFirst();
+        assertThat(replica.getPaybackConditions()).hasSize(2);
+        assertThat(replica.getPaybackConditions())
+                .filteredOn(ReplicaPaybackCondition::isAdmin).singleElement()
+                .extracting(ReplicaPaybackCondition::getMinQuantity).isEqualTo(10);
+        assertThat(replica.getPaybackConditions())
+                .anySatisfy(condition -> {
+                    assertThat(condition.getFunder()).isEqualTo(PaybackFunder.SELLER);
+                    assertThat(condition.getSellerId()).isEqualTo(77L);
+                    assertThat(condition.getAmountPerUnit()).isEqualTo(300L);
+                });
+    }
+
+    @Test
+    @DisplayName("조건 없는 회원 공동구매는 사본에도 조건이 없다")
     void memberPurchase() {
         givenStore();
 
         useCase.applyOpened(new IndividualGroupPurchaseOpenedEvent(PURCHASE, NOW.plusDays(2), List.of(1L), 0, NOW,
-                null, null));
+                PaybackOverlapPolicy.BOTH, List.of()));
 
         assertThat(saved.getFirst().hasPaybackCondition()).isFalse();
     }

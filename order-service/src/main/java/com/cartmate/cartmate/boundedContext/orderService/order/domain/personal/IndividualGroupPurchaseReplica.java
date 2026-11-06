@@ -2,10 +2,14 @@ package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
+import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.PostLoad;
@@ -15,6 +19,7 @@ import jakarta.persistence.Transient;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
@@ -43,9 +48,15 @@ public class IndividualGroupPurchaseReplica implements Persistable<Long> {
     @Column(nullable = false)
     private long revision;
 
-    private Integer paybackMinBuyers;
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar(20)")
+    private PaybackOverlapPolicy paybackOverlapPolicy;
 
-    private Long paybackAmount;
+    @ElementCollection
+    @BatchSize(size = 100)
+    @CollectionTable(name = "individual_group_purchase_replica_payback_condition",
+            joinColumns = @JoinColumn(name = "individual_group_purchase_id"))
+    private Set<ReplicaPaybackCondition> paybackConditions = new HashSet<>();
 
     @ElementCollection
     @CollectionTable(name = "individual_group_purchase_replica_product",
@@ -95,16 +106,20 @@ public class IndividualGroupPurchaseReplica implements Persistable<Long> {
         return true;
     }
 
-    public void fillPaybackCondition(Integer paybackMinBuyers, Long paybackAmount) {
-        if (this.paybackMinBuyers != null || paybackMinBuyers == null || paybackAmount == null) {
+    public void fillPaybackConditions(PaybackOverlapPolicy overlapPolicy, Collection<PaybackConditionPayload> conditions) {
+        if (this.paybackOverlapPolicy == null && overlapPolicy != null) {
+            this.paybackOverlapPolicy = overlapPolicy;
+        }
+        if (conditions == null) {
             return;
         }
-        this.paybackMinBuyers = paybackMinBuyers;
-        this.paybackAmount = paybackAmount;
+        conditions.stream()
+                .map(ReplicaPaybackCondition::from)
+                .forEach(paybackConditions::add);
     }
 
     public boolean hasPaybackCondition() {
-        return paybackMinBuyers != null && paybackAmount != null;
+        return !paybackConditions.isEmpty();
     }
 
     public boolean isOpen(LocalDateTime now) {

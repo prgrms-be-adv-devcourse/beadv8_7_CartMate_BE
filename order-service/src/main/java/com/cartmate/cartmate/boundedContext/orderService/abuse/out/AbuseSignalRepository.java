@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> {
@@ -17,15 +18,18 @@ public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> 
     @Modifying
     @Query(value = """
             INSERT INTO abuse_signal
-                (member_id, signal_type, source_key, occurred_at, received_at, status, attempt_count, created_at, updated_at)
+                (member_id, signal_type, source_key, occurred_at, context_key, received_at, status, attempt_count,
+                 created_at, updated_at)
             VALUES
-                (:memberId, :signalType, :sourceKey, :occurredAt, :receivedAt, :status, 0, :receivedAt, :receivedAt)
+                (:memberId, :signalType, :sourceKey, :occurredAt, :contextKey, :receivedAt, :status, 0,
+                 :receivedAt, :receivedAt)
             ON DUPLICATE KEY UPDATE id = id
             """, nativeQuery = true)
     void insertIfAbsent(@Param("memberId") Long memberId,
                         @Param("signalType") String signalType,
                         @Param("sourceKey") String sourceKey,
                         @Param("occurredAt") LocalDateTime occurredAt,
+                        @Param("contextKey") String contextKey,
                         @Param("receivedAt") LocalDateTime receivedAt,
                         @Param("status") String status);
 
@@ -68,4 +72,34 @@ public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> 
                        @Param("signalType") AbuseSignalType signalType,
                        @Param("from") LocalDateTime from,
                        @Param("to") LocalDateTime to);
+
+    @Query("""
+            select distinct s.contextKey from AbuseSignal s
+            where s.memberId = :memberId and s.status = :status and s.contextKey is not null
+            """)
+    List<String> findContextKeysByMemberIdAndStatus(@Param("memberId") Long memberId,
+                                                    @Param("status") AbuseSignalStatus status);
+
+    @Query(value = """
+            SELECT b.member_id AS memberId, COUNT(DISTINCT b.context_key) AS sharedContexts
+            FROM abuse_signal a
+            JOIN abuse_signal b ON b.context_key = a.context_key AND b.member_id <> a.member_id
+            WHERE a.member_id = :memberId AND a.context_key IS NOT NULL
+              AND b.member_id IN (SELECT c.member_id FROM abuse_signal c WHERE c.context_key IN (:contextKeys))
+            GROUP BY b.member_id
+            HAVING COUNT(DISTINCT b.context_key) >= :minSharedContexts
+            ORDER BY b.member_id
+            LIMIT :maxCandidates
+            """, nativeQuery = true)
+    List<SharedContextCandidate> findLinkCandidates(@Param("memberId") Long memberId,
+                                                    @Param("contextKeys") Collection<String> contextKeys,
+                                                    @Param("minSharedContexts") int minSharedContexts,
+                                                    @Param("maxCandidates") int maxCandidates);
+
+    interface SharedContextCandidate {
+
+        Long getMemberId();
+
+        Long getSharedContexts();
+    }
 }

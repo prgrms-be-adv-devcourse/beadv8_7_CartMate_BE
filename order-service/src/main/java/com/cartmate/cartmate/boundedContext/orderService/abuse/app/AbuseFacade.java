@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.abuse.app;
 
+import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseIdentityCommand;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import lombok.RequiredArgsConstructor;
@@ -16,14 +17,26 @@ import java.util.List;
 public class AbuseFacade {
 
     private final AbuseSignalReceiveUseCase abuseSignalReceiveUseCase;
+    private final AbuseIdentityUseCase abuseIdentityUseCase;
     private final AbuseJudgeUseCase abuseJudgeUseCase;
     private final AbuseJudgeRetryUseCase abuseJudgeRetryUseCase;
     private final AbuseRestrictionQueryUseCase abuseRestrictionQueryUseCase;
+    private final AbuseAccountRingSupport abuseAccountRingSupport;
     private final Clock clock;
 
     @Transactional
     public void receive(AbuseSignalCommand command) {
         abuseSignalReceiveUseCase.receive(command, LocalDateTime.now(clock));
+    }
+
+    @Transactional
+    public void recordIdentity(AbuseIdentityCommand command) {
+        abuseIdentityUseCase.record(command, LocalDateTime.now(clock));
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void confirmLinks(Long memberId) {
+        abuseAccountRingSupport.confirmLinksOfPending(memberId, LocalDateTime.now(clock));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

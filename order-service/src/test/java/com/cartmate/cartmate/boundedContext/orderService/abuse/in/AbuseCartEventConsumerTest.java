@@ -8,6 +8,7 @@ import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
 import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseCancelReason;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseCanceledEvent;
+import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseMemberJoinedEvent;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseMemberLeftEvent;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +51,7 @@ class AbuseCartEventConsumerTest {
         consumer.handle(relayed(new SharedGroupPurchaseMemberJoinedEvent(11L, 2L, 5, AT)));
 
         then(abuseFacade).should().receive(new AbuseSignalCommand(2L, AbuseSignalType.SHARED_PURCHASE_CONCURRENT_JOIN,
-                "11:" + AT, AT));
+                "11:" + AT, AT, "sharedGroupPurchase:11"));
         then(abuseJudgeRunner).should().judge(2L);
         then(abuseFacade).shouldHaveNoMoreInteractions();
     }
@@ -61,7 +62,7 @@ class AbuseCartEventConsumerTest {
         consumer.handle(relayed(new SharedGroupPurchaseMemberLeftEvent(10L, 2L, AT.minusHours(1), AT)));
 
         then(abuseFacade).should().receive(new AbuseSignalCommand(2L, AbuseSignalType.SHARED_PURCHASE_LEFT,
-                "10:" + AT, AT));
+                "10:" + AT, AT, "sharedGroupPurchase:10"));
         then(abuseJudgeRunner).should().judge(2L);
     }
 
@@ -82,7 +83,7 @@ class AbuseCartEventConsumerTest {
         consumer.handle(relayed(canceled(SharedGroupPurchaseCancelReason.SALES_STOPPED)));
 
         then(abuseFacade).should().receive(new AbuseSignalCommand(1L, AbuseSignalType.SHARED_PURCHASE_CREATOR_CANCELED,
-                "purchase:10", AT));
+                "purchase:10", AT, "sharedGroupPurchase:10"));
         then(abuseJudgeRunner).should().judge(1L);
         then(abuseFacade).shouldHaveNoMoreInteractions();
     }
@@ -96,6 +97,15 @@ class AbuseCartEventConsumerTest {
 
         then(abuseFacade).should().receive(any());
         then(abuseFacade).should(never()).recordJudgeFailure(any(), any());
+    }
+
+    @Test
+    @DisplayName("어뷰징이 받지 않는 이벤트는 아무 처리도 하지 않는다")
+    void ignoresOtherEvents() {
+        consumer.handle(relayed(new SharedGroupPurchaseClosedEvent(10L, 1L, List.of(1L, 2L), List.of(), AT)));
+
+        then(abuseFacade).shouldHaveNoInteractions();
+        then(abuseJudgeRunner).shouldHaveNoInteractions();
     }
 
     private SharedGroupPurchaseCanceledEvent canceled(SharedGroupPurchaseCancelReason reason) {

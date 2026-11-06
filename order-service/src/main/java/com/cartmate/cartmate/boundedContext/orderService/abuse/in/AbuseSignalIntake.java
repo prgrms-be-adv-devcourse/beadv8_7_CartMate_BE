@@ -32,9 +32,10 @@ class AbuseSignalIntake {
     }
 
     static Optional<AbuseSignalCommand> command(Long memberId, AbuseSignalType type, String sourceKey,
-                                                LocalDateTime occurredAt) {
+                                                LocalDateTime occurredAt, Long sharedGroupPurchaseId) {
         try {
-            return Optional.of(new AbuseSignalCommand(memberId, type, sourceKey, occurredAt));
+            return Optional.of(new AbuseSignalCommand(memberId, type, sourceKey, occurredAt,
+                    AbuseSignalCommand.sharedGroupPurchaseContext(sharedGroupPurchaseId)));
         } catch (ServiceException e) {
             log.warn("잘못된 어뷰징 신호라 접수하지 않음: type={}, sourceKey={}, memberId={}", type, sourceKey, memberId);
             return Optional.empty();
