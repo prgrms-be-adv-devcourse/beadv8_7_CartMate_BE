@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,11 +24,12 @@ public class SharedGroupOrderFacade {
     private final SharedGroupOrderQueryUseCase sharedGroupOrderQueryUseCase;
     private final SharedGroupOrderPaymentUseCase sharedGroupOrderPaymentUseCase;
     private final SharedGroupOrderCancelUseCase sharedGroupOrderCancelUseCase;
+    private final Clock clock;
 
     // 아웃박스 consumer(SharedGroupOrderEventListener)가 부른다. 마감 트랜잭션과 따로, order 자기 트랜잭션에서 만든다
     @Transactional
     public void createFromClosedPurchase(SharedGroupPurchaseClosedEvent event) {
-        sharedGroupOrderCreateUseCase.createFromClosedPurchase(event, LocalDateTime.now());
+        sharedGroupOrderCreateUseCase.createFromClosedPurchase(event, LocalDateTime.now(clock));
     }
 
     @Transactional
@@ -43,7 +45,7 @@ public class SharedGroupOrderFacade {
     // 분담금 결제: 주문이 지휘한다 (주문 → 결제)
     @Transactional
     public PaymentResult pay(Long memberId, Long sharedGroupOrderId, TeamDeliveryAddress teamDeliveryAddress) {
-        return sharedGroupOrderPaymentUseCase.pay(sharedGroupOrderId, memberId, teamDeliveryAddress, LocalDateTime.now());
+        return sharedGroupOrderPaymentUseCase.pay(sharedGroupOrderId, memberId, teamDeliveryAddress, LocalDateTime.now(clock));
     }
 
     @Transactional

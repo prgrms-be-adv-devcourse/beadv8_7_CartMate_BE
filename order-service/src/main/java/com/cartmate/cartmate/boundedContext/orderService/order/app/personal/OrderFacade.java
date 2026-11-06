@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -31,17 +32,18 @@ public class OrderFacade {
     private final OrderCancelUseCase orderCancelUseCase;
     private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
     private final IndividualGroupPurchasePaybackUseCase individualGroupPurchasePaybackUseCase;
+    private final Clock clock;
 
     @Transactional
     public OrderCreateResponse createPersonal(Long memberId, OrderCreateRequest request) {
         return orderCreateUseCase.createPersonal(memberId, request.cartItemIds(),
-                request.deliveryAddress().toDeliveryAddress(), LocalDateTime.now());
+                request.deliveryAddress().toDeliveryAddress(), LocalDateTime.now(clock));
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public OrderCreateResponse createIndividualGroup(Long memberId, IndividualGroupOrderCreateRequest request) {
         return orderCreateUseCase.createIndividualGroup(memberId, request.individualGroupPurchaseId(), request.items(),
-                request.deliveryAddress().toDeliveryAddress(), LocalDateTime.now());
+                request.deliveryAddress().toDeliveryAddress(), LocalDateTime.now(clock));
     }
 
     @Transactional(readOnly = true)
@@ -62,10 +64,10 @@ public class OrderFacade {
     // 결제: 주문이 지휘한다 (주문 → 결제). 차감과 PAID 반영이 한 트랜잭션.
     @Transactional
     public PaymentResult payOrder(Long memberId, Long orderId) {
-        return orderPaymentUseCase.pay(orderId, memberId, LocalDateTime.now());
+        return orderPaymentUseCase.pay(orderId, memberId, LocalDateTime.now(clock));
     }
     @Transactional(readOnly = true) public OrderPaymentPreviewResponse getPaymentPreview(Long memberId, Long orderId) {
-        return orderPaymentUseCase.preview(orderId, memberId, LocalDateTime.now());
+        return orderPaymentUseCase.preview(orderId, memberId, LocalDateTime.now(clock));
     }
 
     @Transactional
@@ -133,17 +135,17 @@ public class OrderFacade {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
     public void recordPurchaseConfirmed(Long orderId, LocalDateTime confirmedAt) {
-        individualGroupPurchasePaybackUseCase.recordConfirmed(orderId, confirmedAt, LocalDateTime.now());
+        individualGroupPurchasePaybackUseCase.recordConfirmed(orderId, confirmedAt, LocalDateTime.now(clock));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
     public void judgeIndividualGroupPurchasePayback(Long individualGroupPurchaseId) {
-        individualGroupPurchasePaybackUseCase.judge(individualGroupPurchaseId, LocalDateTime.now());
+        individualGroupPurchasePaybackUseCase.judge(individualGroupPurchaseId, LocalDateTime.now(clock));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
     public void judgeIndividualGroupPurchasePaybackOfOrder(Long orderId) {
-        individualGroupPurchasePaybackUseCase.judgeOfOrder(orderId, LocalDateTime.now());
+        individualGroupPurchasePaybackUseCase.judgeOfOrder(orderId, LocalDateTime.now(clock));
     }
 
     // 공동구매가 닫힌 뒤 남은 결제 대기 주문 (사본을 닫는 트랜잭션이 커밋된 뒤 부른다)

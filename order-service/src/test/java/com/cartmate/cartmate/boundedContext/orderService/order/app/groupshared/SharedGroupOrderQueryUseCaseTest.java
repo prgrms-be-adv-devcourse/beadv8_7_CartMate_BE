@@ -11,14 +11,16 @@ import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductI
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderSharedGroupPurchaseClient;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +37,8 @@ class SharedGroupOrderQueryUseCaseTest {
     private static final Long CREATOR = 1L;
     private static final Long MEMBER = 2L;
     private static final Long OUTSIDER = 3L;
+    private static final Clock CLOCK = Clock.fixed(
+            LocalDateTime.of(2026, 10, 19, 12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
     @Mock
     private SharedGroupOrderRepository sharedGroupOrderRepository;
@@ -48,8 +52,13 @@ class SharedGroupOrderQueryUseCaseTest {
     @Mock
     private OrderSharedGroupPurchaseClient orderSharedGroupPurchaseClient;
 
-    @InjectMocks
     private SharedGroupOrderQueryUseCase queryUseCase;
+
+    @BeforeEach
+    void setUp() {
+        queryUseCase = new SharedGroupOrderQueryUseCase(
+                sharedGroupOrderRepository, orderProductClient, orderMemberClient, orderSharedGroupPurchaseClient, CLOCK);
+    }
 
     @Test
     @DisplayName("참여자는 내 부담 금액과 상품 정보가 담긴 상세를 본다")
