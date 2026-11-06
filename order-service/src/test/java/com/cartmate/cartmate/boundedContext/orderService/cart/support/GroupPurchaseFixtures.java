@@ -40,7 +40,12 @@ public final class GroupPurchaseFixtures {
 
     public static SharedGroupPurchase sharedPurchase(Long creatorMemberId, Long participantMemberId,
                                                      LocalDateTime createdAt) {
-        SharedGroupPurchase purchase = SharedGroupPurchase.create("FC 훈련용품", creatorMemberId, 5, INVITE_CODE, createdAt);
+        return sharedPurchase(creatorMemberId, participantMemberId, INVITE_CODE, createdAt);
+    }
+
+    public static SharedGroupPurchase sharedPurchase(Long creatorMemberId, Long participantMemberId, String inviteCode,
+                                                     LocalDateTime createdAt) {
+        SharedGroupPurchase purchase = SharedGroupPurchase.create("FC 훈련용품", creatorMemberId, 5, inviteCode, createdAt);
         purchase.join(participantMemberId, createdAt);
         return purchase;
     }
