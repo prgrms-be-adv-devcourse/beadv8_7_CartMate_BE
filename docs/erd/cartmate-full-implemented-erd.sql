@@ -166,6 +166,7 @@ CREATE TABLE `delivery_claim` (
 	`reason`	VARCHAR(255)	NOT NULL,
 	`detail`	VARCHAR(1000)	NULL,
 	`status`	VARCHAR(255)	NOT NULL,
+	`refund_status`	VARCHAR(20)	NOT NULL	DEFAULT 'NONE',
 	`processed_at`	DATETIME	NULL,
 	`completed_at`	DATETIME	NULL,
 	`created_at`	DATETIME	NOT NULL,

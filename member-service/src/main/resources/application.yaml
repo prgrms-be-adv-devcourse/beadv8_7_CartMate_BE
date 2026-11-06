@@ -1,0 +1,84 @@
+# member-service 설정. 루트 모놀리스 설정을 그대로 옮겨 왔다(2026-11-06).
+# 이 서비스에 필요 없는 항목은 담당자가 정리한다. 로컬 DB 등 개인 설정은 application-dev.yaml(커밋 안 함)에 둔다.
+server:
+  port: ${MEMBER_SERVICE_PORT:8981}
+spring:
+  application:
+    name: member-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  batch:
+    job:
+      enabled: false # Job은 스케줄러가 실행하므로 애플리케이션 시작 시 자동 실행하지 않는다
+    jdbc:
+      initialize-schema: always # MySQL에도 배치 메타데이터 테이블을 만든다
+  kafka:
+    # cartmate.kafka.enabled=true일 때만 실제로 연결한다(기본 꺼짐 → 브로커 없이도 지금처럼 동작)
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all   # 복제본까지 받아야 성공(outbox 행을 PUBLISHED로 바꾸는 근거)
+    consumer:
+      group-id: member-service
+      auto-offset-reset: earliest   # 처음 붙을 때 쌓인 메시지부터 받는다(중복은 processed_event가 거름)
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+custom:
+  wallet:
+    platform-member-id: ${PLATFORM_MEMBER_ID:1} # 판매 수수료를 받는 관리자 회원 ID. 환경마다 PLATFORM_MEMBER_ID로 바꾼다
+    toss:
+      base-url: https://api.tosspayments.com
+      secret-key: ${TOSS_SECRET_KEY:} # 결제위젯 연동 키의 시크릿 키. 저장소에는 비워 두고 환경 변수 TOSS_SECRET_KEY로 넣는다
+  openbanking:
+    mode: ${OPENBANKING_MODE:fake} # 승인 전에는 fake(실제 계좌 검증 없음). live 구현체는 이용기관 승인 후 추가한다
+    client-id: ${OPENBANKING_CLIENT_ID:} # 저장소에는 비워 두고 환경 변수로 넣는다. live일 때만 필요하다
+    client-secret: ${OPENBANKING_CLIENT_SECRET:}
+    org-code: ${OPENBANKING_ORG_CODE:}
+  member:
+    seller:
+      minAge: 19
+    seller-account:
+      verified-ttl: 10m # 계좌 확인 통과 표시 유효시간. 이 안에 판매자 등록을 마쳐야 한다
+      max-attempts: 5 # 회원당 계좌 확인 호출 횟수 한도
+      attempt-window: 10m # 위 횟수를 세는 시간 창
+    phone:
+      codeTtlSeconds: 180
+      verifiedTtlSeconds: 600
+      maxAttempts: 5
+  jwt:
+    secret: ${JWT_SECRET:cartmate-local-dev-secret-key-must-be-at-least-32-bytes}
+    accessTokenExpireSeconds: 1800
+    refreshTokenRememberDays: 30
+    refreshTokenSessionHours: 24
+  cookie:
+    secure: false
+  redis:
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:1}
+    cache:
+      host: ${REDIS_CACHE_HOST:localhost}
+      port: ${REDIS_CACHE_PORT:6379}
+    core:
+      host: ${REDIS_CORE_HOST:localhost}
+      port: ${REDIS_CORE_PORT:6380}
+
+cartmate:
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}   # 켜면 outbox 이벤트(가입 등)를 Kafka로도 내보낸다
+  payment:
+    # 주문이 결제를 부르는 방식. local: 같은 앱 결제 Facade (차감·주문 반영 한 트랜잭션)
+    #                          http : 결제 서버 내부 API (서버 분리 후와 같음, 차감·반영이 다른 트랜잭션)
+    client: ${PAYMENT_CLIENT:http}   # 회원의 결제 Facade 직접 호출(local)은 서버 분리로 없어졌다
+    base-url: ${PAYMENT_BASE_URL:http://localhost:8983}   # 결제 서버 내부 API
+  member-service:
+    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8981}   # 회원 서버 내부 API
+  etc-service:
+    base-url: ${ETC_SERVICE_BASE_URL:http://localhost:8984}   # 배송 서버 내부 API
+  product-service:
+    base-url: ${PRODUCT_SERVICE_BASE_URL:http://localhost:8982}   # 상품 서버 내부 API
+  order-service:
+    base-url: ${ORDER_SERVICE_BASE_URL:http://localhost:8986}   # 주문 서버(장바구니·공동구매·주문, order-service 모듈) 내부 API
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-key}   # /internal/** 서버 간 호출 키. 운영은 반드시 환경 변수로
