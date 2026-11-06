@@ -15,7 +15,11 @@ package com.cartmate.cartmate.global.event;
  * 예외는 그대로 릴레이로 올라가 재시도된다. consumer가 자기 트랜잭션을 연다.
  * 이 래퍼를 트랜잭션 안에서 발행하면 커밋 뒤 실행으로 바뀌어 예외가 로그로만 남으니, 릴레이 밖에서 발행하지 않는다.
  */
-public record OutboxMessageRelayed(EventEnvelope envelope, DomainEvent event) {
+public record OutboxMessageRelayed(EventEnvelope envelope, DomainEvent event, boolean fromKafka) {
+
+    public OutboxMessageRelayed(EventEnvelope envelope, DomainEvent event) {
+        this(envelope, event, false);
+    }
 
     public <T extends DomainEvent> boolean is(Class<T> type) {
         return type.isInstance(event);

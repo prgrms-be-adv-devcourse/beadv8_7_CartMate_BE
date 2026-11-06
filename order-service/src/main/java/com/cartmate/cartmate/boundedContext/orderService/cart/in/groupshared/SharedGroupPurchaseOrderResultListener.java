@@ -17,7 +17,7 @@ public class SharedGroupPurchaseOrderResultListener {
 
     private final SharedGroupPurchaseFacade sharedGroupPurchaseFacade;
 
-    @TransactionalEventListener(fallbackExecution = true)
+    @TransactionalEventListener(fallbackExecution = true, condition = "@relayedEventRouting.accepts(#message)")
     public void handle(OutboxMessageRelayed message) {
         switch (message.event()) {
             case SharedGroupOrderCreatedEvent event -> sharedGroupPurchaseFacade.markOrderCreated(event);

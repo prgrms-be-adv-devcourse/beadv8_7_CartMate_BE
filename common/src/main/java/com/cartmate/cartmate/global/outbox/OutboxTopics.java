@@ -21,7 +21,7 @@ public final class OutboxTopics {
         return PREFIX + "." + moduleOf(eventType) + "." + nameOf(eventType);
     }
 
-    static String moduleOf(Class<?> eventType) {
+    public static String moduleOf(Class<?> eventType) {
         String packageName = eventType.getPackageName();
         String prefix = SHARED_PACKAGE + ".";
         if (!packageName.startsWith(prefix) || !packageName.endsWith(".event")) {

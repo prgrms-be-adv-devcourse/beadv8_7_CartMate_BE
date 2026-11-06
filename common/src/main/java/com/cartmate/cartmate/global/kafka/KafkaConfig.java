@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.global.kafka;
 
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
+import com.cartmate.cartmate.global.outbox.DomainEventTypeRegistry;
 import com.cartmate.cartmate.global.outbox.InProcessOutboxRelaySink;
 import com.cartmate.cartmate.global.outbox.OutboxRelaySink;
 import lombok.extern.slf4j.Slf4j;
@@ -70,5 +71,20 @@ public class KafkaConfig {
                 applicationEventPublisher,
                 new TransactionTemplate(transactionManager),
                 processedEvents);
+    }
+
+    @Bean
+    @SuppressWarnings("unchecked")
+    public KafkaRelayedEventConsumer kafkaRelayedEventConsumer(ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory,
+                                                               ObjectProvider<RelaySubscription> subscriptions,
+                                                               DomainEventTypeRegistry typeRegistry,
+                                                               EventEnvelopeReader envelopeReader,
+                                                               ApplicationEventPublisher applicationEventPublisher) {
+        return new KafkaRelayedEventConsumer(
+                (ConcurrentKafkaListenerContainerFactory<String, String>) kafkaListenerContainerFactory,
+                subscriptions.orderedStream().toList(),
+                typeRegistry,
+                envelopeReader,
+                applicationEventPublisher);
     }
 }

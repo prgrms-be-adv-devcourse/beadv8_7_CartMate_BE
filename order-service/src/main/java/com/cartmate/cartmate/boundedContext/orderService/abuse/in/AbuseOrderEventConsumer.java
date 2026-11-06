@@ -24,8 +24,7 @@ public class AbuseOrderEventConsumer {
     private final AbuseFacade abuseFacade;
     private final AbuseJudgeRunner abuseJudgeRunner;
 
-    @TransactionalEventListener(fallbackExecution = true,
-            condition = "@environment.getProperty('cartmate.kafka.enabled', 'false') != 'true'")
+    @TransactionalEventListener(fallbackExecution = true, condition = "@relayedEventRouting.accepts(#message)")
     public void handle(OutboxMessageRelayed message) {
         if (message.event() instanceof SharedGroupOrderCanceledEvent event) {
             accept(event);

@@ -21,7 +21,7 @@ public class IndividualGroupPurchaseOrderReplicaListener {
 
     private final IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
-    @TransactionalEventListener(fallbackExecution = true)
+    @TransactionalEventListener(fallbackExecution = true, condition = "@relayedEventRouting.accepts(#message)")
     public void handle(OutboxMessageRelayed message) {
         switch (message.event()) {
             case OrderCreatedEvent event when event.orderType() == OrderType.INDIVIDUAL_GROUP ->

@@ -21,7 +21,7 @@ public class SharedGroupOrderEventListener {
 
     private final SharedGroupOrderFacade sharedGroupOrderFacade;
 
-    @TransactionalEventListener(fallbackExecution = true)
+    @TransactionalEventListener(fallbackExecution = true, condition = "@relayedEventRouting.accepts(#message)")
     public void handle(OutboxMessageRelayed message) {
         if (!(message.event() instanceof SharedGroupPurchaseClosedEvent event)) {
             return;

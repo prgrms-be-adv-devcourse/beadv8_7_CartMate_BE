@@ -20,7 +20,7 @@ public class IndividualGroupPurchasePaybackListener {
 
     private final OrderFacade orderFacade;
 
-    @TransactionalEventListener(fallbackExecution = true)
+    @TransactionalEventListener(fallbackExecution = true, condition = "@relayedEventRouting.accepts(#message)")
     public void handle(OutboxMessageRelayed message) {
         switch (message.event()) {
             case OrderCanceledEvent event when event.orderType() == OrderType.INDIVIDUAL_GROUP ->
