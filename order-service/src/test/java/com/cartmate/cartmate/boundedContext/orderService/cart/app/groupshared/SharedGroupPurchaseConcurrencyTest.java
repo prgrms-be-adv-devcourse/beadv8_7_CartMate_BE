@@ -9,18 +9,13 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataCleaner;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -47,11 +42,6 @@ class SharedGroupPurchaseConcurrencyTest {
     @Autowired
     private TestEventRecorder eventRecorder;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    private final List<Long> createdIds = new ArrayList<>();
-
     private final long creator = 7_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 1_000;
 
     @BeforeEach
@@ -59,19 +49,10 @@ class SharedGroupPurchaseConcurrencyTest {
         eventRecorder.clear();
     }
 
-    @AfterEach
-    void tearDown() {
-        transactionTemplate.executeWithoutResult(status -> {
-            new TestDataCleaner(jdbcTemplate).deleteSharedGroupOrdersOfPurchases(createdIds);
-            createdIds.forEach(repository::deleteById);
-        });
-    }
-
     @Test
     @DisplayName("마지막 한 자리에 여러 명이 동시에 참여해도 정원을 넘지 않는다")
     void lastSeatJoin() throws InterruptedException {
         var created = facade.create(creator, new SharedGroupPurchaseCreateRequest("동시 참여", 3));
-        createdIds.add(created.id());
         facade.join(creator + 1, created.inviteCode());
 
         AtomicInteger success = new AtomicInteger();
@@ -97,7 +78,6 @@ class SharedGroupPurchaseConcurrencyTest {
     @DisplayName("여러 명이 동시에 수량을 1씩 늘려도 증가분이 모두 반영된다")
     void concurrentQuantityAdjust() throws InterruptedException {
         var created = facade.create(creator, new SharedGroupPurchaseCreateRequest("동시 수량", 5));
-        createdIds.add(created.id());
         facade.addItem(creator, created.id(), 4L, 10);
         Long itemId = transactionTemplate.execute(status ->
                 repository.findById(created.id()).orElseThrow().getItems().getFirst().getId());
@@ -113,7 +93,6 @@ class SharedGroupPurchaseConcurrencyTest {
     @DisplayName("생성자의 마감 요청이 동시에 여러 번 와도 마감과 마감 이벤트는 한 번만 일어난다")
     void concurrentCreatorClose() throws InterruptedException {
         var created = facade.create(creator, new SharedGroupPurchaseCreateRequest("동시 마감", 5));
-        createdIds.add(created.id());
         facade.addItem(creator, created.id(), 4L, 2);
 
         AtomicInteger success = new AtomicInteger();
@@ -139,7 +118,6 @@ class SharedGroupPurchaseConcurrencyTest {
             purchase.addItem(creator, 2L, 4L, 1, past);
             return repository.save(purchase).getId();
         });
-        createdIds.add(id);
 
         runConcurrently(index -> facade.closeByDeadline(id));
 

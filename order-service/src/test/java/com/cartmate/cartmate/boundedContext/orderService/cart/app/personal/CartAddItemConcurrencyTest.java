@@ -4,7 +4,6 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.domain.personal.Ca
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.personal.CartItem;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.personal.CartRepository;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,16 +40,6 @@ class CartAddItemConcurrencyTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private final List<Long> memberIds = new ArrayList<>();
-
-    @AfterEach
-    void cleanUp() {
-        memberIds.forEach(memberId -> {
-            jdbcTemplate.update("DELETE FROM cart_item WHERE cart_id IN (SELECT id FROM cart WHERE member_id = ?)", memberId);
-            jdbcTemplate.update("DELETE FROM cart WHERE member_id = ?", memberId);
-        });
-    }
-
     @Test
     @DisplayName("장바구니가 없는 회원이 같은 상품을 동시에 여러 번 담아도 예외 없이 장바구니 1개 · 항목 1개에 수량이 모두 합쳐진다")
     void concurrentFirstAddOfSameItem() throws Exception {
@@ -81,9 +70,7 @@ class CartAddItemConcurrencyTest {
     }
 
     private Long newMemberId() {
-        Long memberId = 8_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L);
-        memberIds.add(memberId);
-        return memberId;
+        return 8_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L);
     }
 
     private Integer cartCount(Long memberId) {

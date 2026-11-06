@@ -6,14 +6,12 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErro
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -40,17 +38,6 @@ class IndividualGroupPurchaseCloseIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    private final List<Long> purchaseIds = new ArrayList<>();
-
-    @AfterEach
-    void cleanUp() {
-        purchaseIds.forEach(id -> {
-            jdbcTemplate.update("DELETE FROM outbox_event WHERE aggregate_type = 'IndividualGroupPurchase' AND aggregate_id = ?",
-                    String.valueOf(id));
-            repository.deleteById(id);
-        });
-    }
 
     @Test
     @DisplayName("마감 시각이 지난 어드민 공동구매만 시스템 마감 대상이고, 닫으면 수요 키가 비워지며 DEADLINE 종료 이벤트가 남는다")
@@ -121,19 +108,14 @@ class IndividualGroupPurchaseCloseIntegrationTest {
         LocalDateTime now = LocalDateTime.now();
         IndividualGroupPurchase purchase = IndividualGroupPurchase.openFromDemand("수요 공동구매 종료", ADMIN, inviteCode(),
                 productId, now.plusDays(3), 10, 1000L, now);
-        return track(repository.saveAndFlush(purchase).getId());
+        return repository.saveAndFlush(purchase).getId();
     }
 
     private Long saveMember() {
         long productId = 9_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L);
         IndividualGroupPurchase purchase = IndividualGroupPurchase.create("회원 공동구매 종료", 900_000_003L, inviteCode(),
                 List.of(productId), LocalDateTime.now());
-        return track(repository.saveAndFlush(purchase).getId());
-    }
-
-    private Long track(Long id) {
-        purchaseIds.add(id);
-        return id;
+        return repository.saveAndFlush(purchase).getId();
     }
 
     private void expireDeadline(Long id) {

@@ -2,19 +2,15 @@ package com.cartmate.cartmate.boundedContext.orderService.order.integration;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
-import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.DeliveryAddressRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
-import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +19,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -45,13 +40,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
     private IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
     @Autowired
-    private IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
-
-    @Autowired
     private OrderFacade orderFacade;
-
-    @Autowired
-    private OrderRepository orderRepository;
 
     @Autowired
     private OutboxRelay outboxRelay;
@@ -62,28 +51,9 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    private final List<Long> purchaseIds = new ArrayList<>();
-    private final List<Long> orderIds = new ArrayList<>();
-
     private final long base = 7_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
     private final Long creator = base;
     private final Long buyer = base + 1;
-
-    @AfterEach
-    void cleanUp() {
-        purchaseIds.forEach(id -> jdbcTemplate.update(
-                "DELETE FROM outbox_event WHERE aggregate_type = 'IndividualGroupPurchase' AND aggregate_id = ?",
-                String.valueOf(id)));
-        orderIds.forEach(orderId -> {
-            jdbcTemplate.update("DELETE FROM outbox_event WHERE aggregate_type = 'Order' AND aggregate_id = ?",
-                    String.valueOf(orderId));
-            jdbcTemplate.update("DELETE FROM individual_group_purchase_order_line WHERE order_id = ?", orderId);
-            jdbcTemplate.update("DELETE FROM individual_group_purchase_order WHERE order_id = ?", orderId);
-        });
-        orderIds.forEach(orderRepository::deleteById);
-        new TestDataCleaner(jdbcTemplate).deleteIndividualGroupPurchaseReplicas(purchaseIds);
-        purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);
-    }
 
     @Test
     @DisplayName("열림 · 상품 추가 · 마감 변경 · 종료가 릴레이를 거쳐 order 사본에 같은 순서의 번호로 반영된다")
@@ -208,10 +178,8 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
     }
 
     private Long openPurchase(List<Long> productIds) {
-        Long id = individualGroupPurchaseFacade.create(creator,
+        return individualGroupPurchaseFacade.create(creator,
                 new IndividualGroupPurchaseCreateRequest("사본 흐름", productIds)).id();
-        purchaseIds.add(id);
-        return id;
     }
 
     private Long createOrder(Long purchaseId) {
@@ -219,9 +187,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
     }
 
     private Long createOrder(Long memberId, Long purchaseId) {
-        Long orderId = orderFacade.createIndividualGroup(memberId, request(purchaseId)).orderId();
-        orderIds.add(orderId);
-        return orderId;
+        return orderFacade.createIndividualGroup(memberId, request(purchaseId)).orderId();
     }
 
     private String orderStatus(Long orderId) {

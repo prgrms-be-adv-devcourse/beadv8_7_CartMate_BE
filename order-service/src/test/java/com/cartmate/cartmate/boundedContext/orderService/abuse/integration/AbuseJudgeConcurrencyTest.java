@@ -9,18 +9,13 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberStateRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseRestrictionRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
-import com.cartmate.cartmate.boundedContext.orderService.abuse.support.AbuseTestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -53,19 +48,9 @@ class AbuseJudgeConcurrencyTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    private final List<Long> memberIds = new ArrayList<>();
-
     private final long base = 9_400_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
-
-    @AfterEach
-    void tearDown() {
-        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
-    }
 
     @Test
     @DisplayName("회원 상태 행이 없는 회원을 여러 스레드가 동시에 판정해도 교착 없이 신호마다 한 번만 판정하고 제한은 한 행만 생긴다")
@@ -164,8 +149,6 @@ class AbuseJudgeConcurrencyTest {
     }
 
     private long nextMemberId() {
-        long memberId = base + sequence++;
-        memberIds.add(memberId);
-        return memberId;
+        return base + sequence++;
     }
 }

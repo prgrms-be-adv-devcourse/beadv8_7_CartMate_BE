@@ -8,10 +8,12 @@ import com.cartmate.cartmate.boundedContext.orderService.order.in.groupshared.Sh
 import com.cartmate.cartmate.boundedContext.orderService.order.in.personal.OrderScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import com.cartmate.cartmate.support.CartMateTestContainers;
+import com.cartmate.cartmate.support.DatabaseCleaner;
 import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,6 +34,7 @@ import static org.mockito.Mockito.verify;
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
 @ImportTestcontainers(CartMateTestContainers.class)
+@ExtendWith(DatabaseCleaner.class)
 class CartOrderSchedulerLockTest {
 
     private static final String OTHER_NODE = "other-node";

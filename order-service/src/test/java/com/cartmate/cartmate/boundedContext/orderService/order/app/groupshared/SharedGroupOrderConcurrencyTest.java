@@ -8,18 +8,15 @@ import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshare
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataCleaner;
 import com.cartmate.cartmate.support.TestEventRecorder;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
@@ -53,12 +50,6 @@ class SharedGroupOrderConcurrencyTest {
     @Autowired
     private TestEventRecorder eventRecorder;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    private final List<Long> createdIds = new ArrayList<>();
-    private final List<Long> memberIds = new ArrayList<>();
-
     private final long base = 8_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
@@ -66,14 +57,6 @@ class SharedGroupOrderConcurrencyTest {
     @BeforeEach
     void setUp() {
         eventRecorder.clear();
-    }
-
-    @AfterEach
-    void tearDown() {
-        TestDataCleaner cleaner = new TestDataCleaner(jdbcTemplate);
-        createdIds.forEach(id -> jdbcTemplate.update(
-                "DELETE FROM outbox_event WHERE aggregate_type = 'SharedGroupOrder' AND aggregate_id = ?", String.valueOf(id)));
-        transactionTemplate.executeWithoutResult(status -> createdIds.forEach(repository::deleteById));
     }
 
     @Test
@@ -195,7 +178,7 @@ class SharedGroupOrderConcurrencyTest {
     }
 
     private Long saveOrder(LocalDateTime closedAt, Long creator, List<Long> participants, List<Long> paidMembers) {
-        Long orderId = transactionTemplate.execute(status -> {
+        return transactionTemplate.execute(status -> {
             SharedGroupOrder order = SharedGroupOrder.create(nextId(), creator, participants,
                     List.of(new OrderItemLine(2L, 4L, 1L, "상품", null, 1, 30000L)), closedAt);
             order.markStockReserved();
@@ -204,9 +187,6 @@ class SharedGroupOrderConcurrencyTest {
                     order.isCreator(memberId) ? DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호") : null));
             return repository.save(order).getId();
         });
-        createdIds.add(orderId);
-        memberIds.addAll(participants);
-        return orderId;
     }
 
     private SharedGroupOrder findOrder(Long orderId) {

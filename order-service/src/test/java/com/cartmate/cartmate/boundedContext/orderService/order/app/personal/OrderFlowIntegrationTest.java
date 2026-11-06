@@ -6,26 +6,21 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividua
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividual.IndividualGroupPurchaseDashboardResponse;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.personal.CartItemResponse;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
-import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.orderService.cart.out.personal.CartRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.DeliveryAddressRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateResponse;
-import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -49,38 +44,14 @@ class OrderFlowIntegrationTest {
     private IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
     @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
-    private CartRepository cartRepository;
-
-    @Autowired
-    private IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
-
-    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private OutboxRelay outboxRelay;
 
-    private final List<Long> orderIds = new ArrayList<>();
-    private final List<Long> memberIds = new ArrayList<>();
-    private final List<Long> purchaseIds = new ArrayList<>();
-
     private final long base = 9_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
-
-    @AfterEach
-    void cleanUp() {
-        orderIds.forEach(orderId -> {
-            jdbcTemplate.update("DELETE FROM individual_group_purchase_order_line WHERE order_id = ?", orderId);
-            jdbcTemplate.update("DELETE FROM individual_group_purchase_order WHERE order_id = ?", orderId);
-        });
-        orderIds.forEach(orderRepository::deleteById);
-        memberIds.forEach(memberId -> cartRepository.findWithItemsByMemberId(memberId).ifPresent(cartRepository::delete));
-        purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);
-    }
 
     @Test
     @DisplayName("장바구니 상품으로 주문하고 결제하면 주문은 결제 완료가 되고 주문한 상품만 장바구니에서 빠진다")
@@ -95,7 +66,6 @@ class OrderFlowIntegrationTest {
                 .toList();
 
         OrderCreateResponse created = orderFacade.createPersonal(buyer, new OrderCreateRequest(orderedCartItemIds, ADDRESS));
-        orderIds.add(created.orderId());
         assertThat(created.totalAmount()).isEqualTo(103000L);
 
         orderFacade.applyPayment(created.orderId(), buyer, created.orderId(), LocalDateTime.now());
@@ -111,11 +81,9 @@ class OrderFlowIntegrationTest {
         long buyer = nextMember();
         Long purchaseId = individualGroupPurchaseFacade.create(creator,
                 new IndividualGroupPurchaseCreateRequest("개인물품 통합", List.of(1L, 2L))).id();
-        purchaseIds.add(purchaseId);
 
         OrderCreateResponse created = orderFacade.createIndividualGroup(buyer, new IndividualGroupOrderCreateRequest(
                 purchaseId, List.of(new IndividualGroupOrderCreateRequest.Item(4L, 2)), ADDRESS));
-        orderIds.add(created.orderId());
 
         assertThatThrownBy(() -> individualGroupPurchaseFacade.removeProduct(creator, purchaseId, 2L))
                 .isInstanceOf(ServiceException.class)
@@ -134,7 +102,7 @@ class OrderFlowIntegrationTest {
         assertThat(dashboard.totalAmount()).isEqualTo(50000L);
     }
 
-    // 같은 DB를 쓰는 다른 테스트가 남긴 NEW 행이 앞에 있을 수 있어, 이 주문의 이벤트가 모두 넘어갈 때까지 돌린다
+    // 이 주문의 이벤트가 모두 넘어갈 때까지 릴레이를 돌린다
     private void relayUntilPublished(Long orderId) {
         for (int i = 0; i < 20; i++) {
             ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
@@ -151,7 +119,6 @@ class OrderFlowIntegrationTest {
 
     private long nextMember() {
         long memberId = base + sequence++;
-        memberIds.add(memberId);
         return memberId;
     }
 }

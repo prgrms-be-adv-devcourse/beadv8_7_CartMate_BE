@@ -12,16 +12,13 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberStateRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseRestrictionRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
-import com.cartmate.cartmate.boundedContext.orderService.abuse.support.AbuseTestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -45,16 +42,9 @@ class AbuseJudgeIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private final List<Long> memberIds = new ArrayList<>();
-
     private final long base = 9_300_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
-
-    @AfterEach
-    void tearDown() {
-        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
-    }
 
     @Test
     @DisplayName("30일 안 첫 무산 신호는 1단계 40점으로 판정되고 규칙별 결과가 남는다")
@@ -190,8 +180,6 @@ class AbuseJudgeIntegrationTest {
     }
 
     private long nextMemberId() {
-        long memberId = base + sequence++;
-        memberIds.add(memberId);
-        return memberId;
+        return base + sequence++;
     }
 }

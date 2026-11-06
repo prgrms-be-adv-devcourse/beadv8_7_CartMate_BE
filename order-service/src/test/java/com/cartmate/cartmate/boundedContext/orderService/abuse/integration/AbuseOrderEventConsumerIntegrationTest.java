@@ -5,34 +5,28 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalStatus;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
-import com.cartmate.cartmate.boundedContext.orderService.abuse.support.AbuseTestDataCleaner;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -62,24 +56,9 @@ class AbuseOrderEventConsumerIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private final List<Long> memberIds = new ArrayList<>();
-    private final List<Long> purchaseIds = new ArrayList<>();
-    private final List<String> orderIds = new ArrayList<>();
-
     private final long base = 9_100_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
-
-    @AfterEach
-    void tearDown() {
-        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
-        new TestDataCleaner(jdbcTemplate).deleteSharedGroupOrdersOfPurchases(purchaseIds);
-        if (!orderIds.isEmpty()) {
-            new NamedParameterJdbcTemplate(jdbcTemplate).update(
-                    "DELETE FROM outbox_event WHERE aggregate_type = 'SharedGroupOrder' AND aggregate_id IN (:ids)",
-                    Map.of("ids", orderIds));
-        }
-    }
 
     @Test
     @DisplayName("기한 만료 취소 트랜잭션은 abuse 테이블을 쓰지 않고, 아웃박스 릴레이 뒤에 미결제 참여자 신호가 접수·판정된다")
@@ -149,12 +128,11 @@ class AbuseOrderEventConsumerIntegrationTest {
 
     private Long saveExpiredOrder(long creator, long unpaid) {
         long purchaseId = base + sequence++;
-        purchaseIds.add(purchaseId);
         LocalDateTime closedAt = LocalDateTime.now()
                 .minus(SharedGroupOrder.PAYMENT_PERIOD)
                 .minus(SharedGroupOrder.GRACE_PERIOD)
                 .minusMinutes(5);
-        Long orderId = transactionTemplate.execute(status -> {
+        return transactionTemplate.execute(status -> {
             SharedGroupOrder order = SharedGroupOrder.create(purchaseId, creator, List.of(creator, unpaid),
                     List.of(new OrderItemLine(2L, 4L, 1L, "상품", null, 1, 30000L)), closedAt);
             order.markStockReserved();
@@ -162,8 +140,6 @@ class AbuseOrderEventConsumerIntegrationTest {
                     DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
             return sharedGroupOrderRepository.save(order).getId();
         });
-        orderIds.add(String.valueOf(orderId));
-        return orderId;
     }
 
     private long nextOrderId() {
@@ -171,8 +147,6 @@ class AbuseOrderEventConsumerIntegrationTest {
     }
 
     private long nextMemberId() {
-        long memberId = base + sequence++;
-        memberIds.add(memberId);
-        return memberId;
+        return base + sequence++;
     }
 }
