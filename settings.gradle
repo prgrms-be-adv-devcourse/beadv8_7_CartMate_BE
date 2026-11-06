@@ -1,4 +1,10 @@
 rootProject.name = 'cartmate'
 
+// 실행 앱은 각 *-service 모듈이다. 루트는 공통 빌드 설정만 둔다(2026-11-06 루트 모놀리스 제거)
 include 'common'
+include 'member-service'
+include 'product-service'
 include 'order-service'
+include 'payment-service'
+include 'ai-service'
+include 'etc-service'
