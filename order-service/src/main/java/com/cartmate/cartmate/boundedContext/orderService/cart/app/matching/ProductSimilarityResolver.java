@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.app.matching;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.matching.ProductSimilarity;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.matching.ProductSimilarityFinder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 class ProductSimilarityResolver {
@@ -32,7 +34,7 @@ class ProductSimilarityResolver {
         }
 
         Map<Long, Map<Long, ProductSimilarity>> strongest = new HashMap<>();
-        finders.forEach(finder -> finder.findSimilar(sources, candidates).forEach((sourceProductId, similarities) -> {
+        finders.forEach(finder -> findSafely(finder, sources, candidates).forEach((sourceProductId, similarities) -> {
             if (!sources.contains(sourceProductId)) {
                 return;
             }
@@ -48,5 +50,15 @@ class ProductSimilarityResolver {
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().values().stream()
                         .sorted(STRONGEST_FIRST)
                         .toList()));
+    }
+
+    private static Map<Long, List<ProductSimilarity>> findSafely(ProductSimilarityFinder finder,
+                                                                 Set<Long> sources, Set<Long> candidates) {
+        try {
+            return finder.findSimilar(sources, candidates);
+        } catch (RuntimeException e) {
+            log.warn("Product similarity finder {} failed; continuing without it", finder.getClass().getSimpleName(), e);
+            return Map.of();
+        }
     }
 }
