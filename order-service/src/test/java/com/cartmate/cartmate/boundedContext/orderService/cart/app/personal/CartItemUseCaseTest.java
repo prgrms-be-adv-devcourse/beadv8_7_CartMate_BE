@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.personal;
 
+import com.cartmate.cartmate.shared.order.OrderType;
+
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.ProductClient;
@@ -222,7 +224,7 @@ class CartItemUseCaseTest {
             cart.addItem(200L, 4L, 3);
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            cartItemUseCase.removeOrderedItems(paidEvent("PERSONAL", item(1L, 2), item(4L, 1)));
+            cartItemUseCase.removeOrderedItems(paidEvent(OrderType.PERSONAL, item(1L, 2), item(4L, 1)));
 
             assertThat(cart.getItems())
                     .extracting(CartItem::getInventoryId, CartItem::getQuantity)
@@ -236,7 +238,7 @@ class CartItemUseCaseTest {
             cart.addItem(100L, 1L, 5);
             given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            cartItemUseCase.removeOrderedItems(paidEvent("PERSONAL", item(1L, 2), item(1L, 1)));
+            cartItemUseCase.removeOrderedItems(paidEvent(OrderType.PERSONAL, item(1L, 2), item(1L, 1)));
 
             assertThat(cart.getItems())
                     .extracting(CartItem::getInventoryId, CartItem::getQuantity)
@@ -246,7 +248,7 @@ class CartItemUseCaseTest {
         @Test
         @DisplayName("공동구매 상품 주문이 결제되면 장바구니를 건드리지 않는다")
         void ignoreIndividualGroupOrder() {
-            cartItemUseCase.removeOrderedItems(paidEvent("INDIVIDUAL_GROUP", item(1L, 1)));
+            cartItemUseCase.removeOrderedItems(paidEvent(OrderType.INDIVIDUAL_GROUP, item(1L, 1)));
 
             verifyNoInteractions(cartRepository);
         }
@@ -255,7 +257,7 @@ class CartItemUseCaseTest {
             return new OrderPaidEvent.Item(null, 100L, inventoryId, null, "상품", null, quantity, 10000L);
         }
 
-        private OrderPaidEvent paidEvent(String orderType, OrderPaidEvent.Item... items) {
+        private OrderPaidEvent paidEvent(OrderType orderType, OrderPaidEvent.Item... items) {
             return new OrderPaidEvent(1L, "ORD-1", MEMBER_ID, orderType, null, LocalDateTime.now(), null, List.of(items));
         }
     }

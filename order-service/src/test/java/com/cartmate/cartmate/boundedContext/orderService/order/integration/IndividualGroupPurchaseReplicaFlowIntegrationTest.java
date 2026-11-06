@@ -1,5 +1,9 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.integration;
 
+import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
+
+import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseOrigin;
+
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
@@ -155,7 +159,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
         individualGroupPurchaseFacade.close(creator, purchaseId);
         // 사본만 닫고(취소 consumer가 돌기 전 상태) 결제를 넣는다
         orderFacade.applyIndividualGroupPurchaseClosed(new IndividualGroupPurchaseClosedEvent(
-                purchaseId, "MEMBER", "CREATOR", LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1));
+                purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR, LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null));
 
         assertThat(orderFacade.getPaymentInfo(orderId, buyer, LocalDateTime.now()).payable()).isFalse();
         assertThatThrownBy(() -> orderFacade.applyPayment(orderId, buyer, orderId, LocalDateTime.now()))
@@ -171,7 +175,7 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
         relayUntil(() -> replicaRevision(purchaseId) == 0);
         Long orderId = createOrder(buyer, purchaseId);
         orderFacade.applyIndividualGroupPurchaseClosed(new IndividualGroupPurchaseClosedEvent(
-                purchaseId, "MEMBER", "CREATOR", LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1));
+                purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR, LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null));
 
         assertThatThrownBy(() -> orderFacade.payOrder(buyer, orderId))
                 .isInstanceOf(ServiceException.class)
@@ -191,8 +195,8 @@ class IndividualGroupPurchaseReplicaFlowIntegrationTest {
             // payment처럼 한 트랜잭션에서 결제 정보를 먼저 본다 → 스냅샷이 잡히고 사본은 열림
             assertThat(orderFacade.getPaymentInfo(orderId, buyer, LocalDateTime.now()).payable()).isTrue();
             CompletableFuture.runAsync(() -> orderFacade.applyIndividualGroupPurchaseClosed(
-                    new IndividualGroupPurchaseClosedEvent(purchaseId, "MEMBER", "CREATOR",
-                            LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1))).join();
+                    new IndividualGroupPurchaseClosedEvent(purchaseId, IndividualGroupPurchaseOrigin.MEMBER, IndividualGroupPurchaseCloseReason.CREATOR,
+                            LocalDateTime.now().plusDays(1), LocalDateTime.now(), 1, null, null))).join();
             try {
                 orderFacade.applyPayment(orderId, buyer, orderId, LocalDateTime.now());
             } catch (RuntimeException e) {

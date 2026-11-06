@@ -24,7 +24,8 @@ class IndividualGroupPurchaseReplicaUseCase {
     private final EntityManager entityManager;
 
     void applyOpened(IndividualGroupPurchaseOpenedEvent event) {
-        applyOpenState(event.individualGroupPurchaseId(), event.deadlineAt(), event.productIds(), event.revision());
+        applyOpenState(event.individualGroupPurchaseId(), event.deadlineAt(), event.productIds(), event.revision())
+                .fillPaybackCondition(event.paybackMinBuyers(), event.paybackAmount());
     }
 
     void applyUpdated(IndividualGroupPurchaseUpdatedEvent event) {
@@ -33,11 +34,14 @@ class IndividualGroupPurchaseReplicaUseCase {
 
     // 열림보다 종료가 먼저 와도(재시도로 밀림) 닫힌 사본을 만든다. 늦게 온 열림은 닫힌 사본을 다시 열지 못한다
     void applyClosed(IndividualGroupPurchaseClosedEvent event) {
-        replicaRepository.findByIdForUpdate(event.individualGroupPurchaseId())
-                .ifPresentOrElse(
-                        replica -> replica.applyClosed(event.deadlineAt(), event.closedAt(), event.revision()),
-                        () -> replicaRepository.save(IndividualGroupPurchaseReplica.of(event.individualGroupPurchaseId(),
-                                event.deadlineAt(), true, event.closedAt(), List.of(), event.revision())));
+        IndividualGroupPurchaseReplica replica = replicaRepository.findByIdForUpdate(event.individualGroupPurchaseId())
+                .map(found -> {
+                    found.applyClosed(event.deadlineAt(), event.closedAt(), event.revision());
+                    return found;
+                })
+                .orElseGet(() -> replicaRepository.save(IndividualGroupPurchaseReplica.of(event.individualGroupPurchaseId(),
+                        event.deadlineAt(), true, event.closedAt(), List.of(), event.revision())));
+        replica.fillPaybackCondition(event.paybackMinBuyers(), event.paybackAmount());
     }
 
     /**
@@ -71,12 +75,14 @@ class IndividualGroupPurchaseReplicaUseCase {
 
     // 릴레이는 보통 한 인스턴스에서 한 줄씩 넘긴다. 두 인스턴스가 같은 행을 동시에 만들면 한쪽이 PK 충돌로 실패하고,
     // 릴레이가 다시 시도할 때 만들어진 행을 잠가 번호를 비교하므로 같은 결과로 수렴한다
-    private void applyOpenState(Long individualGroupPurchaseId, LocalDateTime deadlineAt,
-                                List<Long> productIds, long revision) {
-        replicaRepository.findByIdForUpdate(individualGroupPurchaseId)
-                .ifPresentOrElse(
-                        replica -> replica.applyOpenState(deadlineAt, productIds, revision),
-                        () -> replicaRepository.save(IndividualGroupPurchaseReplica.of(individualGroupPurchaseId,
-                                deadlineAt, false, null, productIds, revision)));
+    private IndividualGroupPurchaseReplica applyOpenState(Long individualGroupPurchaseId, LocalDateTime deadlineAt,
+                                                          List<Long> productIds, long revision) {
+        return replicaRepository.findByIdForUpdate(individualGroupPurchaseId)
+                .map(replica -> {
+                    replica.applyOpenState(deadlineAt, productIds, revision);
+                    return replica;
+                })
+                .orElseGet(() -> replicaRepository.save(IndividualGroupPurchaseReplica.of(individualGroupPurchaseId,
+                        deadlineAt, false, null, productIds, revision)));
     }
 }

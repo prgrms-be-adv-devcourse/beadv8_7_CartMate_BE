@@ -3,11 +3,11 @@ package com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderCancelReason;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderItem;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderParticipant;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderParticipantStatus;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderParticipantStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductInfo;
 
 import java.time.LocalDateTime;

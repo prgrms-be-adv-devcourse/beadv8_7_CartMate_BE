@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.shared.order.event;
 
+import com.cartmate.cartmate.shared.order.OrderType;
+
 import com.cartmate.cartmate.global.event.DomainEvent;
 
 import java.time.LocalDateTime;
@@ -13,7 +15,7 @@ public record OrderCreatedEvent(
         Long orderId,
         String orderNumber,
         Long memberId,
-        String orderType,
+        OrderType orderType,
         Long individualGroupPurchaseId,
         LocalDateTime createdAt,
         List<Item> items

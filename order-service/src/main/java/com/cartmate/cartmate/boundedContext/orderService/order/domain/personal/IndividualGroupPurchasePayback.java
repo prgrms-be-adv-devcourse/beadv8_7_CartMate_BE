@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.boundedContext.orderService.cart.domain.matching;
+package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,9 +12,9 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "demand_payback_judgment")
+@Table(name = "individual_group_purchase_payback")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PaybackJudgment {
+public class IndividualGroupPurchasePayback {
 
     @Id
     private Long individualGroupPurchaseId;
@@ -34,8 +34,8 @@ public class PaybackJudgment {
     @Column(nullable = false)
     private LocalDateTime judgedAt;
 
-    private PaybackJudgment(Long individualGroupPurchaseId, int minBuyers, long paybackAmount, int buyerCount,
-                            LocalDateTime judgedAt) {
+    private IndividualGroupPurchasePayback(Long individualGroupPurchaseId, int minBuyers, long paybackAmount,
+                                           int buyerCount, LocalDateTime judgedAt) {
         this.individualGroupPurchaseId = individualGroupPurchaseId;
         this.minBuyers = minBuyers;
         this.paybackAmount = paybackAmount;
@@ -44,8 +44,9 @@ public class PaybackJudgment {
         this.judgedAt = judgedAt;
     }
 
-    public static PaybackJudgment judge(Long individualGroupPurchaseId, int minBuyers, long paybackAmount,
-                                        int buyerCount, LocalDateTime judgedAt) {
-        return new PaybackJudgment(individualGroupPurchaseId, minBuyers, paybackAmount, buyerCount, judgedAt);
+    public static IndividualGroupPurchasePayback judge(Long individualGroupPurchaseId, int minBuyers,
+                                                       long paybackAmount, int buyerCount, LocalDateTime judgedAt) {
+        return new IndividualGroupPurchasePayback(individualGroupPurchaseId, minBuyers, paybackAmount, buyerCount,
+                judgedAt);
     }
 }

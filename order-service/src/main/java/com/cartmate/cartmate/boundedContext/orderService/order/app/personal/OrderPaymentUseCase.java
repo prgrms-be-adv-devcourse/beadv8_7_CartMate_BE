@@ -66,7 +66,7 @@ class OrderPaymentUseCase {
                 order.getId(),
                 order.getOrderNumber(),
                 order.getBuyerMemberId(),
-                order.getOrderType().name(),
+                order.getOrderType(),
                 order.getIndividualGroupPurchaseId(),
                 order.getPaidAt(),
                 new DeliveryAddressInfo(

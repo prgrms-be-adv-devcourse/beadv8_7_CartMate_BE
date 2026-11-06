@@ -1,5 +1,9 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual;
 
+import com.cartmate.cartmate.shared.order.OrderCancelReason;
+
+import com.cartmate.cartmate.shared.order.OrderType;
+
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseOrderLine;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseOrderReplicaRepository;
 import com.cartmate.cartmate.global.event.DomainEvent;
@@ -61,16 +65,16 @@ class IndividualGroupPurchaseOrderReplicaIntegrationTest {
         Long purchaseId = base;
         Long orderId = newOrderId();
 
-        relay(created(orderId, purchaseId, "INDIVIDUAL_GROUP"));
+        relay(created(orderId, purchaseId, OrderType.INDIVIDUAL_GROUP));
         assertThat(replicaRepository.findPaidLines(purchaseId)).isEmpty();
 
-        relay(paid(orderId, purchaseId, "INDIVIDUAL_GROUP"));
+        relay(paid(orderId, purchaseId, OrderType.INDIVIDUAL_GROUP));
         assertThat(replicaRepository.findPaidLines(purchaseId))
                 .extracting(IndividualGroupPurchaseOrderLine::orderId, IndividualGroupPurchaseOrderLine::productId,
                         IndividualGroupPurchaseOrderLine::quantity, IndividualGroupPurchaseOrderLine::orderedAt)
                 .containsExactly(tuple(orderId, 7L, 2, CREATED_AT), tuple(orderId, 8L, 1, CREATED_AT));
 
-        relay(new OrderCanceledEvent(orderId, 1L, "INDIVIDUAL_GROUP", "BUYER_CANCELED", true, CREATED_AT.plusHours(1)));
+        relay(new OrderCanceledEvent(orderId, 1L, OrderType.INDIVIDUAL_GROUP, OrderCancelReason.BUYER_CANCELED, true, CREATED_AT.plusHours(1)));
         assertThat(replicaRepository.findPaidLines(purchaseId)).isEmpty();
     }
 
@@ -81,12 +85,12 @@ class IndividualGroupPurchaseOrderReplicaIntegrationTest {
         Long duplicated = newOrderId();
         Long canceledFirst = newOrderId();
 
-        relay(paid(duplicated, purchaseId, "INDIVIDUAL_GROUP"));
-        relay(paid(duplicated, purchaseId, "INDIVIDUAL_GROUP"));
-        relay(created(duplicated, purchaseId, "INDIVIDUAL_GROUP"));
+        relay(paid(duplicated, purchaseId, OrderType.INDIVIDUAL_GROUP));
+        relay(paid(duplicated, purchaseId, OrderType.INDIVIDUAL_GROUP));
+        relay(created(duplicated, purchaseId, OrderType.INDIVIDUAL_GROUP));
 
-        relay(new OrderCanceledEvent(canceledFirst, 1L, "INDIVIDUAL_GROUP", "BUYER_CANCELED", true, CREATED_AT));
-        relay(paid(canceledFirst, purchaseId, "INDIVIDUAL_GROUP"));
+        relay(new OrderCanceledEvent(canceledFirst, 1L, OrderType.INDIVIDUAL_GROUP, OrderCancelReason.BUYER_CANCELED, true, CREATED_AT));
+        relay(paid(canceledFirst, purchaseId, OrderType.INDIVIDUAL_GROUP));
 
         assertThat(replicaRepository.findPaidLines(purchaseId))
                 .extracting(IndividualGroupPurchaseOrderLine::orderId, IndividualGroupPurchaseOrderLine::orderedAt)
@@ -98,8 +102,8 @@ class IndividualGroupPurchaseOrderReplicaIntegrationTest {
     void sellerItemsCanceled() {
         Long purchaseId = base + 3;
         Long orderId = newOrderId();
-        relay(created(orderId, purchaseId, "INDIVIDUAL_GROUP"));
-        relay(paid(orderId, purchaseId, "INDIVIDUAL_GROUP"));
+        relay(created(orderId, purchaseId, OrderType.INDIVIDUAL_GROUP));
+        relay(paid(orderId, purchaseId, OrderType.INDIVIDUAL_GROUP));
 
         relay(new OrderSellerItemsCanceledEvent(orderId, 1L, 3L, 50000L, CREATED_AT.plusHours(1)));
         assertThat(replicaRepository.findPaidLines(purchaseId))
@@ -124,8 +128,8 @@ class IndividualGroupPurchaseOrderReplicaIntegrationTest {
     void personalOrdersAreIgnored() {
         Long orderId = newOrderId();
 
-        relay(created(orderId, null, "PERSONAL"));
-        relay(paid(orderId, null, "PERSONAL"));
+        relay(created(orderId, null, OrderType.PERSONAL));
+        relay(paid(orderId, null, OrderType.PERSONAL));
 
         assertThat(replicaRepository.findById(orderId)).isEmpty();
     }
@@ -133,7 +137,7 @@ class IndividualGroupPurchaseOrderReplicaIntegrationTest {
     @Test
     @DisplayName("읽기 모델 반영이 실패하면 예외가 릴레이(발행한 쪽)까지 올라간다. 그래야 릴레이가 실패로 기록하고 다시 시도한다")
     void failurePropagatesToRelay() {
-        OrderPaidEvent broken = new OrderPaidEvent(newOrderId(), "ORD", 1L, "INDIVIDUAL_GROUP", base + 2,
+        OrderPaidEvent broken = new OrderPaidEvent(newOrderId(), "ORD", 1L, OrderType.INDIVIDUAL_GROUP, base + 2,
                 CREATED_AT, ADDRESS, null);
 
         assertThatThrownBy(() -> relay(broken)).isInstanceOf(NullPointerException.class);
@@ -151,13 +155,13 @@ class IndividualGroupPurchaseOrderReplicaIntegrationTest {
         return orderId;
     }
 
-    private OrderCreatedEvent created(Long orderId, Long purchaseId, String orderType) {
+    private OrderCreatedEvent created(Long orderId, Long purchaseId, OrderType orderType) {
         return new OrderCreatedEvent(orderId, "ORD-" + orderId, 1L, orderType, purchaseId, CREATED_AT, List.of(
                 new OrderCreatedEvent.Item(orderId * 10, 7L, 70L, 3L, 2, 25000L),
                 new OrderCreatedEvent.Item(orderId * 10 + 1, 8L, 80L, 4L, 1, 15000L)));
     }
 
-    private OrderPaidEvent paid(Long orderId, Long purchaseId, String orderType) {
+    private OrderPaidEvent paid(Long orderId, Long purchaseId, OrderType orderType) {
         return new OrderPaidEvent(orderId, "ORD-" + orderId, 1L, orderType, purchaseId, CREATED_AT.plusMinutes(5), ADDRESS,
                 List.of(new OrderPaidEvent.Item(orderId * 10, 7L, 70L, 3L, "상품", null, 2, 25000L),
                         new OrderPaidEvent.Item(orderId * 10 + 1, 8L, 80L, 4L, "상품", null, 1, 15000L)));

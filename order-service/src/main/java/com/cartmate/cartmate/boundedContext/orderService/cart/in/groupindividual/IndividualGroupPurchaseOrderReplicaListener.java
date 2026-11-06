@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.in.groupindividual;
 
+import com.cartmate.cartmate.shared.order.OrderType;
+
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
@@ -16,18 +18,17 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class IndividualGroupPurchaseOrderReplicaListener {
 
-    private static final String INDIVIDUAL_GROUP = "INDIVIDUAL_GROUP";
 
     private final IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
     @TransactionalEventListener(fallbackExecution = true)
     public void handle(OutboxMessageRelayed message) {
         switch (message.event()) {
-            case OrderCreatedEvent event when INDIVIDUAL_GROUP.equals(event.orderType()) ->
+            case OrderCreatedEvent event when event.orderType() == OrderType.INDIVIDUAL_GROUP ->
                     individualGroupPurchaseFacade.applyOrderCreated(event);
-            case OrderPaidEvent event when INDIVIDUAL_GROUP.equals(event.orderType()) ->
+            case OrderPaidEvent event when event.orderType() == OrderType.INDIVIDUAL_GROUP ->
                     individualGroupPurchaseFacade.applyOrderPaid(event);
-            case OrderCanceledEvent event when INDIVIDUAL_GROUP.equals(event.orderType()) ->
+            case OrderCanceledEvent event when event.orderType() == OrderType.INDIVIDUAL_GROUP ->
                     individualGroupPurchaseFacade.applyOrderCanceled(event);
             case OrderSellerItemsCanceledEvent event -> individualGroupPurchaseFacade.applyOrderSellerItemsCanceled(event);
             default -> {

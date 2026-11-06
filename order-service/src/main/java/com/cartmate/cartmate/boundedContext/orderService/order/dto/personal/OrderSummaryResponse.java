@@ -2,8 +2,8 @@ package com.cartmate.cartmate.boundedContext.orderService.order.dto.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderItem;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderType;
+import com.cartmate.cartmate.shared.order.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderType;
 
 import java.time.LocalDateTime;
 

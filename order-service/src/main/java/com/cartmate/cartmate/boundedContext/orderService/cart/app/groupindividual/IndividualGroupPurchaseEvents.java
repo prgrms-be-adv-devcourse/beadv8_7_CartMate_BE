@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchase;
-import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchaseCloseReason;
+import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
 import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseSnapshot;
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
@@ -17,7 +17,7 @@ public final class IndividualGroupPurchaseEvents {
 
     public static IndividualGroupPurchaseOpenedEvent opened(IndividualGroupPurchase purchase, LocalDateTime now) {
         return new IndividualGroupPurchaseOpenedEvent(purchase.getId(), purchase.getDeadlineAt(), purchase.productIds(),
-                purchase.getRevision(), now);
+                purchase.getRevision(), now, purchase.getPaybackMinBuyers(), purchase.getPaybackAmount());
     }
 
     public static IndividualGroupPurchaseUpdatedEvent updated(IndividualGroupPurchase purchase, LocalDateTime now) {
@@ -27,8 +27,9 @@ public final class IndividualGroupPurchaseEvents {
 
     public static IndividualGroupPurchaseClosedEvent closed(IndividualGroupPurchase purchase,
                                                             IndividualGroupPurchaseCloseReason reason) {
-        return new IndividualGroupPurchaseClosedEvent(purchase.getId(), purchase.getOrigin().name(), reason.name(),
-                purchase.getDeadlineAt(), purchase.getClosedAt(), purchase.getRevision());
+        return new IndividualGroupPurchaseClosedEvent(purchase.getId(), purchase.getOrigin(), reason,
+                purchase.getDeadlineAt(), purchase.getClosedAt(), purchase.getRevision(),
+                purchase.getPaybackMinBuyers(), purchase.getPaybackAmount());
     }
 
     static IndividualGroupPurchaseSnapshot snapshot(IndividualGroupPurchase purchase) {

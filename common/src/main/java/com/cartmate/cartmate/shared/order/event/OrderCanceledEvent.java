@@ -1,5 +1,9 @@
 package com.cartmate.cartmate.shared.order.event;
 
+import com.cartmate.cartmate.shared.order.OrderType;
+
+import com.cartmate.cartmate.shared.order.OrderCancelReason;
+
 import com.cartmate.cartmate.global.event.DomainEvent;
 
 import java.time.LocalDateTime;
@@ -7,8 +11,8 @@ import java.time.LocalDateTime;
 public record OrderCanceledEvent(
         Long orderId,
         Long memberId,
-        String orderType,
-        String cancelReason,
+        OrderType orderType,
+        OrderCancelReason cancelReason,
         boolean paid,
         LocalDateTime canceledAt
 ) implements DomainEvent {
