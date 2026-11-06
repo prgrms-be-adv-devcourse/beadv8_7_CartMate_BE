@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.domain.personal.Ca
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.personal.CartItem;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.personal.CartRepository;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,6 +79,30 @@ class CartAddItemConcurrencyTest {
         assertThat(cartCount(memberId)).isEqualTo(1);
         assertThat(itemsOf(memberId)).extracting(CartItem::getInventoryId)
                 .containsExactlyInAnyOrder(1L, 2L, 3L, 4L);
+    }
+
+    @Test
+    @DisplayName("같은 항목에 담기 · 수량 변경과 삭제가 동시에 와도 500(StaleState) 없이 끝나고 항목은 많아야 1개다 (ARCH-10#1)")
+    void addAndRemoveSameItemConcurrently() throws Exception {
+        for (int round = 0; round < 5; round++) {
+            Long memberId = newMemberId();
+            cartFacade.addItem(memberId, 1L, 1);
+            Long cartItemId = itemsOf(memberId).getFirst().getId();
+
+            List<Throwable> errors = runConcurrently(THREADS, i -> {
+                if (i == 0) {
+                    cartFacade.removeItem(memberId, cartItemId);
+                } else if (i == 1) {
+                    cartFacade.changeQuantity(memberId, cartItemId, 3);
+                } else {
+                    cartFacade.addItem(memberId, 1L, 1);
+                }
+            });
+
+            // 삭제가 먼저 끝나면 수량 변경은 "항목 없음"으로 거절될 수 있다(업무 예외). 그 밖의 예외는 없어야 한다
+            assertThat(errors).allMatch(e -> e instanceof ServiceException);
+            assertThat(itemsOf(memberId)).hasSizeLessThanOrEqualTo(1);
+        }
     }
 
     private Long newMemberId() {

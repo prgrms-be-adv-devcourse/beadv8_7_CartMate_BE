@@ -140,7 +140,7 @@ class CartItemUseCaseTest {
         @DisplayName("내 장바구니 항목의 수량을 바꾼다")
         void changeQuantity() {
             Cart cart = cartWithItem(10L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7);
 
@@ -151,7 +151,7 @@ class CartItemUseCaseTest {
         @DisplayName("내 장바구니에 없는 항목이면 예외가 발생한다")
         void itemNotInMyCart() {
             Cart cart = cartWithItem(10L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 99L, 7))
                     .isInstanceOf(ServiceException.class)
@@ -161,7 +161,7 @@ class CartItemUseCaseTest {
         @Test
         @DisplayName("장바구니가 없으면 예외가 발생한다")
         void cartNotFound() {
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7))
                     .isInstanceOf(ServiceException.class)
@@ -177,7 +177,7 @@ class CartItemUseCaseTest {
         @DisplayName("내 장바구니에서 항목을 삭제한다")
         void removeItem() {
             Cart cart = cartWithItem(10L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.removeItem(MEMBER_ID, 10L);
 
@@ -195,7 +195,7 @@ class CartItemUseCaseTest {
             Cart cart = Cart.create(MEMBER_ID);
             cart.addItem(100L, 1L, 2);
             cart.addItem(100L, 2L, 1);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.clear(MEMBER_ID);
 
@@ -205,7 +205,7 @@ class CartItemUseCaseTest {
         @Test
         @DisplayName("장바구니가 없어도 예외 없이 끝난다")
         void noCart() {
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.empty());
 
             assertThatCode(() -> cartItemUseCase.clear(MEMBER_ID)).doesNotThrowAnyException();
         }
@@ -222,7 +222,7 @@ class CartItemUseCaseTest {
             cart.addItem(100L, 1L, 2);
             cart.addItem(100L, 2L, 1);
             cart.addItem(200L, 4L, 3);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.removeOrderedItems(paidEvent(OrderType.PERSONAL, item(1L, 2), item(4L, 1)));
 
@@ -236,7 +236,7 @@ class CartItemUseCaseTest {
         void sumSameInventoryQuantities() {
             Cart cart = Cart.create(MEMBER_ID);
             cart.addItem(100L, 1L, 5);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.removeOrderedItems(paidEvent(OrderType.PERSONAL, item(1L, 2), item(1L, 1)));
 
