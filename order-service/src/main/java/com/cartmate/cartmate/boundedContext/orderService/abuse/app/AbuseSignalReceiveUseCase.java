@@ -20,6 +20,7 @@ class AbuseSignalReceiveUseCase {
                 command.type().name(),
                 command.sourceKey(),
                 command.occurredAt(),
+                command.contextKey(),
                 receivedAt,
                 AbuseSignalStatus.RECEIVED.name()
         );

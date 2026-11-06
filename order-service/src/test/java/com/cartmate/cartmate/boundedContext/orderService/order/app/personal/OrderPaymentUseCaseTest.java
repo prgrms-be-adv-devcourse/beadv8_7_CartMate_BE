@@ -71,7 +71,8 @@ class OrderPaymentUseCaseTest {
                         .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
                         .toList();
                 paymentUseCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher, allOnSale,
-                        replicaUseCase, org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderPaymentClient.class));
+                        replicaUseCase, org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderPaymentClient.class),
+                        org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
     }
 
     @Test
@@ -202,7 +203,8 @@ class OrderPaymentUseCaseTest {
             return inventoryIds.stream().map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true)).toList();
         };
         OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
-                eventPublisher, flaky, replicaUseCase, paymentClient);
+                eventPublisher, flaky, replicaUseCase, paymentClient,
+                org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
         Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
         given(orderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
@@ -224,7 +226,8 @@ class OrderPaymentUseCaseTest {
             throw new InternalServerUnavailableException("PRODUCT", "상품", null);
         };
         OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
-                eventPublisher, mustNotBeCalled, replicaUseCase, paymentClient);
+                eventPublisher, mustNotBeCalled, replicaUseCase, paymentClient,
+                org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
         Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
         order.cancelByBuyer(BUYER, CREATED_AT.plusMinutes(1));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
@@ -256,7 +259,8 @@ class OrderPaymentUseCaseTest {
                 .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
                 .toList();
         OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
-                eventPublisher, allOnSale, replicaUseCase, paymentClient);
+                eventPublisher, allOnSale, replicaUseCase, paymentClient,
+                org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
         Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
         given(orderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
         given(paymentClient.findPayment(any(), any(), any())).willReturn(Optional.empty());

@@ -34,7 +34,7 @@ public class AbuseOrderEventConsumer {
         if (event.cancelReason() == SharedGroupOrderCancelReason.DEADLINE_EXPIRED && event.unpaidMemberIds() != null) {
             List<AbuseSignalCommand> commands = event.unpaidMemberIds().stream()
                     .map(memberId -> AbuseSignalIntake.command(memberId, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
-                            String.valueOf(event.sharedGroupOrderId()), event.canceledAt()))
+                            String.valueOf(event.sharedGroupOrderId()), event.canceledAt(), event.sharedGroupPurchaseId()))
                     .flatMap(Optional::stream)
                     .toList();
             abuseSignalIntake.receiveAndJudge(commands, "sharedGroupOrder:" + event.sharedGroupOrderId());
@@ -42,7 +42,7 @@ public class AbuseOrderEventConsumer {
                 && event.creatorMemberId() != null) {
             receiveOne(AbuseSignalIntake.command(event.creatorMemberId(),
                     AbuseSignalType.SHARED_PURCHASE_CREATOR_CANCELED,
-                    "order:" + event.sharedGroupOrderId(), event.canceledAt()),
+                    "order:" + event.sharedGroupOrderId(), event.canceledAt(), event.sharedGroupPurchaseId()),
                     "sharedGroupOrder:" + event.sharedGroupOrderId());
         }
     }
@@ -50,7 +50,7 @@ public class AbuseOrderEventConsumer {
     public void accept(OrderCanceledEvent event) {
         if (event.orderType() == OrderType.INDIVIDUAL_GROUP && event.cancelReason() == OrderCancelReason.PAYMENT_EXPIRED) {
             receiveOne(AbuseSignalIntake.command(event.memberId(), AbuseSignalType.INDIVIDUAL_ORDER_PAYMENT_EXPIRED,
-                    String.valueOf(event.orderId()), event.canceledAt()), "order:" + event.orderId());
+                    String.valueOf(event.orderId()), event.canceledAt(), null), "order:" + event.orderId());
         }
     }
 
