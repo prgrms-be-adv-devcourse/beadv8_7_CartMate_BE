@@ -209,9 +209,10 @@ public class Order {
         if (status != OrderStatus.PAID) {
             return 0;
         }
+        // 이 판매자 상품을 모두 취소하고 그 금액을 합쳐 돌려준다 (판매자 상품이 여러 개일 수 있다)
         long amount = 0;
         for (OrderItem item : items) {
-            if (item.getSellerId().equals(sellerId) && !item.isCanceled()) {
+            if (sellerId.equals(item.getSellerId()) && !item.isCanceled()) {
                 item.cancel(now);
                 amount += item.amount();
             }
