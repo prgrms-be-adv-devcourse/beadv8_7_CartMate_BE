@@ -15,12 +15,10 @@ import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -45,19 +43,8 @@ class IndividualGroupPurchaseOrderReplicaIntegrationTest {
     @Autowired
     private IndividualGroupPurchaseOrderReplicaRepository replicaRepository;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     private final long base = 7_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 10;
     private final List<Long> orderIds = new ArrayList<>();
-
-    @AfterEach
-    void cleanUp() {
-        orderIds.forEach(orderId -> {
-            jdbcTemplate.update("DELETE FROM individual_group_purchase_order_line WHERE order_id = ?", orderId);
-            jdbcTemplate.update("DELETE FROM individual_group_purchase_order WHERE order_id = ?", orderId);
-        });
-    }
 
     @Test
     @DisplayName("생성 · 결제 이벤트를 받으면 현황판에 결제 완료 주문 줄이 주문 시각과 함께 나오고, 취소되면 빠진다")

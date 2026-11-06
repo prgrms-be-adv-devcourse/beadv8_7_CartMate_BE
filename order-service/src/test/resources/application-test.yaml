@@ -1,7 +1,6 @@
 spring:
+  # DB 주소 · 계정은 support/CartMateTestContainers의 @ServiceConnection이 넣는다(싱글턴 MySQL 컨테이너)
   datasource:
-    url: jdbc:tc:mysql:8.4:///cartmatedb
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
     hikari:
       minimum-idle: 1
       idle-timeout: 10000

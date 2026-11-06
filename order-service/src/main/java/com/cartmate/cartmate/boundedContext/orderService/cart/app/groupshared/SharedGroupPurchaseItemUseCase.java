@@ -10,6 +10,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.out.ProductClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
@@ -18,33 +19,34 @@ class SharedGroupPurchaseItemUseCase {
 
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
     private final ProductClient productClient;
+    private final Clock clock;
 
     void addItem(Long memberId, Long sharedGroupPurchaseId, Long inventoryId, int quantity) {
         CartProductInfo product = getPurchasableProduct(inventoryId);
         SharedGroupPurchase purchase = sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId);
-        purchase.addItem(memberId, product.productId(), inventoryId, quantity, LocalDateTime.now());
+        purchase.addItem(memberId, product.productId(), inventoryId, quantity, LocalDateTime.now(clock));
     }
 
     void changeItemQuantity(Long memberId, Long sharedGroupPurchaseId, Long itemId, int quantity) {
         sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
-                .changeItemQuantity(memberId, itemId, quantity, LocalDateTime.now());
+                .changeItemQuantity(memberId, itemId, quantity, LocalDateTime.now(clock));
     }
 
     SharedGroupPurchaseItemQuantityResponse adjustItemQuantity(Long memberId, Long sharedGroupPurchaseId, Long itemId, int delta) {
         SharedGroupPurchaseItem item = sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
-                .adjustItemQuantity(memberId, itemId, delta, LocalDateTime.now());
+                .adjustItemQuantity(memberId, itemId, delta, LocalDateTime.now(clock));
         return SharedGroupPurchaseItemQuantityResponse.from(item);
     }
 
     void changeItemOption(Long memberId, Long sharedGroupPurchaseId, Long itemId, Long inventoryId) {
         CartProductInfo product = getPurchasableProduct(inventoryId);
         SharedGroupPurchase purchase = sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId);
-        purchase.changeItemOption(memberId, itemId, product.productId(), inventoryId, LocalDateTime.now());
+        purchase.changeItemOption(memberId, itemId, product.productId(), inventoryId, LocalDateTime.now(clock));
     }
 
     void removeItem(Long memberId, Long sharedGroupPurchaseId, Long itemId) {
         sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
-                .removeItem(memberId, itemId, LocalDateTime.now());
+                .removeItem(memberId, itemId, LocalDateTime.now(clock));
     }
 
     private CartProductInfo getPurchasableProduct(Long inventoryId) {

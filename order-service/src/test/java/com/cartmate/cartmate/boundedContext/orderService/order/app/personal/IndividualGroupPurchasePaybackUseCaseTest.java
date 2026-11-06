@@ -45,11 +45,13 @@ class IndividualGroupPurchasePaybackUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        given(confirmationRepository.existsById(any())).willAnswer(invocation ->
-                confirmations.stream().anyMatch(c -> c.getOrderId().equals(invocation.getArgument(0))));
-        given(confirmationRepository.save(any())).willAnswer(invocation -> {
-            confirmations.add(invocation.getArgument(0));
-            return invocation.getArgument(0);
+        given(confirmationRepository.insertIfAbsent(any(), any())).willAnswer(invocation -> {
+            Long orderId = invocation.getArgument(0);
+            if (confirmations.stream().anyMatch(c -> c.getOrderId().equals(orderId))) {
+                return 0;
+            }
+            confirmations.add(OrderPurchaseConfirmation.of(orderId, invocation.getArgument(1)));
+            return 1;
         });
         given(confirmationRepository.findAllById(anyCollection())).willAnswer(invocation -> {
             Collection<Long> ids = invocation.getArgument(0);

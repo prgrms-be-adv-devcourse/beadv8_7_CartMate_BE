@@ -15,6 +15,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 class DemandAggregatorTest {
 
@@ -29,7 +30,7 @@ class DemandAggregatorTest {
                 new ProductDemand(10L, Set.of(1L, 2L, 3L)),
                 new ProductDemand(20L, Set.of(1L, 2L)),
                 new ProductDemand(30L, Set.of(4L, 5L, 6L, 7L))
-        ), 3);
+        ), 1, 3);
 
         assertThat(candidates).extracting(DemandCandidate::productId).containsExactly(30L, 10L);
         assertThat(candidates.getFirst().exactMemberCount()).isEqualTo(4);
@@ -50,7 +51,7 @@ class DemandAggregatorTest {
                 new ProductDemand(10L, Set.of(1L, 2L, 3L, 4L)),
                 new ProductDemand(11L, Set.of(4L, 5L, 6L)),
                 new ProductDemand(12L, Set.of(6L, 7L))
-        ), 5);
+        ), 1, 5);
 
         assertThat(candidates).hasSize(1);
         DemandCandidate candidate = candidates.getFirst();
@@ -76,7 +77,7 @@ class DemandAggregatorTest {
                 new ProductDemand(10L, Set.of(1L, 2L, 3L)),
                 new ProductDemand(20L, Set.of(4L, 5L)),
                 new ProductDemand(21L, Set.of(6L))
-        ), 3);
+        ), 1, 3);
 
         assertThat(candidates).extracting(DemandCandidate::productId).containsExactly(10L, 20L);
     }
@@ -92,7 +93,7 @@ class DemandAggregatorTest {
         List<DemandCandidate> candidates = aggregator.aggregate(List.of(
                 new ProductDemand(10L, Set.of(1L)),
                 new ProductDemand(11L, Set.of())
-        ), 1);
+        ), 1, 1);
 
         assertThat(candidates).hasSize(1);
         assertThat(candidates.getFirst().similarProducts()).isEmpty();
@@ -106,7 +107,7 @@ class DemandAggregatorTest {
         List<DemandCandidate> candidates = aggregator.aggregate(List.of(
                 new ProductDemand(10L, Set.of(1L, 2L)),
                 new ProductDemand(10L, Set.of(2L, 3L))
-        ), 3);
+        ), 1, 3);
 
         assertThat(candidates).hasSize(1);
         assertThat(candidates.getFirst().exactMemberCount()).isEqualTo(3);
@@ -120,21 +121,48 @@ class DemandAggregatorTest {
         List<DemandCandidate> candidates = aggregator.aggregate(List.of(
                 new ProductDemand(30L, Set.of(1L, 2L)),
                 new ProductDemand(20L, Set.of(3L, 4L))
-        ), 2);
+        ), 1, 2);
 
         assertThat(candidates).extracting(DemandCandidate::productId).containsExactly(20L, 30L);
     }
 
     @Test
-    @DisplayName("입력이 비어 있으면 후보도 비어 있다")
-    void emptyDemands() {
-        assertThat(aggregatorWith(EXACT).aggregate(List.of(), 1)).isEmpty();
+    @DisplayName("정확 인원이 바닥값 미만인 상품은 후보가 되지 않지만, 유사 상품으로는 합산된다")
+    void exactFloor() {
+        ProductSimilarityFinder vector = similarTo(Map.of(
+                10L, List.of(new ProductSimilarity(11L, 0.9, MatchType.VECTOR)),
+                11L, List.of(new ProductSimilarity(10L, 0.9, MatchType.VECTOR))
+        ));
+
+        List<DemandCandidate> candidates = aggregatorWith(EXACT, vector).aggregate(List.of(
+                new ProductDemand(10L, Set.of(1L, 2L)),
+                new ProductDemand(11L, Set.of(3L, 4L, 5L))
+        ), 3, 5);
+
+        assertThat(candidates).extracting(DemandCandidate::productId, DemandCandidate::exactMemberCount,
+                DemandCandidate::similarMemberCount).containsExactly(tuple(11L, 3, 2));
     }
 
     @Test
-    @DisplayName("최소 인원은 1명 이상이어야 한다")
+    @DisplayName("정확 인원이 바닥값을 넘어도 유사 포함 합계가 최소 인원 미만이면 후보가 아니다")
+    void totalFloor() {
+        assertThat(aggregatorWith(EXACT).aggregate(List.of(
+                new ProductDemand(10L, Set.of(1L, 2L, 3L, 4L))
+        ), 3, 5)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("입력이 비어 있으면 후보도 비어 있다")
+    void emptyDemands() {
+        assertThat(aggregatorWith(EXACT).aggregate(List.of(), 1, 1)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("정확 최소 인원은 1명 이상, 전체 최소 인원 이하여야 한다")
     void minMemberCount() {
-        assertThatThrownBy(() -> aggregatorWith(EXACT).aggregate(List.of(), 0))
+        assertThatThrownBy(() -> aggregatorWith(EXACT).aggregate(List.of(), 0, 5))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> aggregatorWith(EXACT).aggregate(List.of(), 4, 3))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

@@ -87,6 +87,7 @@ class IndividualGroupPurchaseCloseTest {
 
         assertThat(purchase.isClosed()).isTrue();
         assertThat(purchase.getDemandProductKey()).isNull();
+        assertThat(purchase.getSourceProductId()).isEqualTo(PRODUCT);
     }
 
     private static IndividualGroupPurchase demand() {

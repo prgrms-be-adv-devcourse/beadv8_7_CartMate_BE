@@ -1,12 +1,12 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.personal.CartResponse;
+import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -16,8 +16,11 @@ import java.util.List;
 
 public class CartFacade {
 
+    private static final String ORDER_PAID_CONSUMER = "cart.order-paid";
+
     private final CartItemUseCase cartItemUseCase;
     private final CartQueryUseCase cartQueryUseCase;
+    private final ProcessedEvents processedEvents;
 
     // 장바구니 행 락을 잡은 뒤 읽는 항목이 방금 커밋된 다른 담기까지 보도록 문장마다 새 스냅샷을 쓴다
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -35,23 +38,26 @@ public class CartFacade {
         return cartQueryUseCase.getItemsForOrder(memberId, cartItemIds);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void changeQuantity(Long memberId, Long cartItemId, int quantity) {
         cartItemUseCase.changeQuantity(memberId, cartItemId, quantity);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void removeItem(Long memberId, Long cartItemId) {
         cartItemUseCase.removeItem(memberId, cartItemId);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void clear(Long memberId) {
         cartItemUseCase.clear(memberId);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void removeOrderedItems(OrderPaidEvent event) {
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void removeOrderedItems(String eventId, OrderPaidEvent event) {
+        if (!processedEvents.markFirst(ORDER_PAID_CONSUMER, eventId)) {
+            return;
+        }
         cartItemUseCase.removeOrderedItems(event);
     }
 }

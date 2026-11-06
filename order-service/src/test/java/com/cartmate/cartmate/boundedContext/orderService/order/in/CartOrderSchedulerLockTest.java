@@ -8,9 +8,13 @@ import com.cartmate.cartmate.boundedContext.orderService.order.in.groupshared.Sh
 import com.cartmate.cartmate.boundedContext.orderService.order.in.personal.OrderScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import com.cartmate.cartmate.support.CartMateTestContainers;
+import com.cartmate.cartmate.support.DatabaseCleaner;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,6 +33,8 @@ import static org.mockito.Mockito.verify;
 /** cart · order 스케줄러 5개가 ShedLock으로 한 인스턴스에서만 돈다. 다른 인스턴스가 락을 잡고 있으면 건너뛴다. */
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
+@ImportTestcontainers(CartMateTestContainers.class)
+@ExtendWith(DatabaseCleaner.class)
 class CartOrderSchedulerLockTest {
 
     private static final String OTHER_NODE = "other-node";

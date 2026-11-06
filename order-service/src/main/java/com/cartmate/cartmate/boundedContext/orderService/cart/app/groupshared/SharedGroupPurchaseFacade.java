@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -26,6 +27,7 @@ public class SharedGroupPurchaseFacade {
     private final SharedGroupPurchaseCloseUseCase sharedGroupPurchaseCloseUseCase;
     private final SharedGroupPurchaseQueryUseCase sharedGroupPurchaseQueryUseCase;
     private final SharedGroupPurchaseOrderResultUseCase sharedGroupPurchaseOrderResultUseCase;
+    private final Clock clock;
 
     @Transactional
     public SharedGroupPurchaseCreateResponse create(Long memberId, SharedGroupPurchaseCreateRequest request) {
@@ -120,7 +122,7 @@ public class SharedGroupPurchaseFacade {
 
     @Transactional
     public void revertByOrderCreationTimeout(Long sharedGroupPurchaseId) {
-        sharedGroupPurchaseOrderResultUseCase.revertByOrderCreationTimeout(sharedGroupPurchaseId, LocalDateTime.now());
+        sharedGroupPurchaseOrderResultUseCase.revertByOrderCreationTimeout(sharedGroupPurchaseId, LocalDateTime.now(clock));
     }
 
     @Transactional(readOnly = true)

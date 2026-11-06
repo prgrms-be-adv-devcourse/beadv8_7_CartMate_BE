@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 import com.cartmate.cartmate.shared.coupon.dto.CouponQuote;
 import com.cartmate.cartmate.shared.coupon.dto.CouponOption;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient;
+import com.cartmate.cartmate.global.http.InternalApiClient.InternalServerUnavailableException;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderItem;
@@ -60,10 +61,12 @@ class OrderPaymentUseCase {
                       Long memberCouponId, Long paidAmount) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         orderSupport.validateBuyer(order, memberId);
-        validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
         // 같은 결제의 재통보(이미 PAID)는 markPaid가 멱등으로 넘기므로 결제 대기일 때만 다시 본다
-        if (order.isPaymentPending() && !groupPurchaseAcceptsPayment(order, paidAt, true)) {
-            throw new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED);
+        if (order.isPaymentPending()) {
+            validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
+            if (!groupPurchaseAcceptsPayment(order, paidAt, true)) {
+                throw new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED);
+            }
         }
         // 쿠폰: 결제 반영과 같은 트랜잭션에서 사용 처리하고 할인을 기록한다 (반영이 롤백되면 쿠폰도 롤백)
         if (memberCouponId != null && order.isPaymentPending()) {
@@ -136,9 +139,6 @@ class OrderPaymentUseCase {
 
     // ===== 결제 (주문이 지휘) =====
     // ① 이미 결제했는지 → ② 결제 가능 확인 (잠금 없이) → ③ 결제에 차감 요청 → ④ 잠그고 PAID 반영
-    // 지금은 한 트랜잭션이라 ④가 실패하면 ③도 롤백된다.
-    // 결제 서버를 나누면 ③과 ④가 다른 트랜잭션이 되므로, ④ 실패 시 보상 환불을 추가한다.
-    // ③ 동안 주문을 잠그지 않는 것도 분리 후를 대비한 순서다 (네트워크 대기 중 잠금을 잡지 않음).
     PaymentResult pay(Long orderId, Long memberId, LocalDateTime now) {
         return pay(orderId, memberId, null, now);
     }
@@ -166,11 +166,13 @@ class OrderPaymentUseCase {
     }
 
     // 주문 반영이 거절되면(그 사이 기한 만료·취소, 판매 중지, 쿠폰 사용 불가, 금액 불일치 등) 빠진 돈을 되돌린다.
-    // 잠금 대기 같은 일시적 오류는 되돌리지 않고 그대로 던진다 → 재시도하면 위의 '이미 빠졌다' 경로로 반영된다.
+    // 다른 서버 일시 장애(503)는 되돌리지 않고 그대로 던진다 → 재시도하면 위의 '이미 빠졌다' 경로로 반영된다.
     private PaymentResult applyOrCompensate(Long orderId, Long memberId, PaymentResult payment, Long memberCouponId) {
         try {
             applyPayment(orderId, memberId, payment.paymentId(), payment.paidAt(), memberCouponId, payment.amount());
             return payment;
+        } catch (InternalServerUnavailableException e) {
+            throw e;
         } catch (ServiceException e) {
             orderPaymentClient.compensateCharge(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
             throw e;

@@ -15,23 +15,19 @@ import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.Orde
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataCleaner;
 import com.cartmate.cartmate.support.TestEventRecorder;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -59,9 +55,6 @@ class OrderConcurrencyTest {
     private TestEventRecorder eventRecorder;
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @Autowired
     private IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
     @Autowired
@@ -73,10 +66,6 @@ class OrderConcurrencyTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    private final List<Long> createdIds = new ArrayList<>();
-    private final List<Long> buyerIds = new ArrayList<>();
-    private final List<Long> purchaseIds = new ArrayList<>();
-
     private final long base = 9_500_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
@@ -84,17 +73,6 @@ class OrderConcurrencyTest {
     @BeforeEach
     void setUp() {
         eventRecorder.clear();
-    }
-
-    @AfterEach
-    void tearDown() {
-        buyerIds.forEach(buyer -> {
-            jdbcTemplate.update("DELETE FROM cart_item WHERE cart_id IN (SELECT id FROM cart WHERE member_id = ?)", buyer);
-            jdbcTemplate.update("DELETE FROM cart WHERE member_id = ?", buyer);
-        });
-        createdIds.forEach(repository::deleteById);
-        purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);
-        new TestDataCleaner(jdbcTemplate).deleteIndividualGroupPurchaseReplicas(purchaseIds);
     }
 
     @Test
@@ -157,10 +135,8 @@ class OrderConcurrencyTest {
         for (int round = 0; round < 5; round++) {
             long creator = nextId();
             long buyer = nextId();
-            buyerIds.add(buyer);
             Long purchaseId = individualGroupPurchaseFacade.create(creator,
                     new IndividualGroupPurchaseCreateRequest("중복 주문 동시성", List.of(1L, 2L))).id();
-            purchaseIds.add(purchaseId);
             IndividualGroupOrderCreateRequest request = new IndividualGroupOrderCreateRequest(purchaseId,
                     List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)),
                     new DeliveryAddressRequest(
@@ -176,7 +152,6 @@ class OrderConcurrencyTest {
                 }
             };
             runConcurrently(List.of(create, create));
-            createdIds.addAll(created);
 
             assertThat(created).hasSize(1);
             assertThat(rejected).containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
@@ -184,7 +159,6 @@ class OrderConcurrencyTest {
 
             facade.cancelByBuyer(buyer, created.peek());
             OrderCreateResponse again = facade.createIndividualGroup(buyer, request);
-            createdIds.add(again.orderId());
             assertThat(again.orderId()).isNotEqualTo(created.peek());
         }
     }
@@ -194,7 +168,6 @@ class OrderConcurrencyTest {
     void duplicatePersonalOrderWithoutCartLock() throws InterruptedException {
         for (int round = 0; round < 5; round++) {
             long buyer = nextId();
-            buyerIds.add(buyer);
             cartFacade.addItem(buyer, 4L, 1);
             Long cartItemId = cartFacade.getCart(buyer).items().getFirst().cartItemId();
             OrderCreateRequest request = new OrderCreateRequest(List.of(cartItemId),
@@ -210,7 +183,6 @@ class OrderConcurrencyTest {
                 }
             };
             runConcurrently(List.of(create, create));
-            createdIds.addAll(created);
 
             assertThat(created).hasSize(1);
             assertThat(rejected).containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
@@ -222,10 +194,8 @@ class OrderConcurrencyTest {
     void individualGroupOrderDoesNotWaitForCartRowLock() throws Exception {
         long creator = nextId();
         long buyer = nextId();
-        buyerIds.add(buyer);
         Long purchaseId = individualGroupPurchaseFacade.create(creator,
                 new IndividualGroupPurchaseCreateRequest("행 락 없음", List.of(1L, 2L))).id();
-        purchaseIds.add(purchaseId);
         IndividualGroupOrderCreateRequest request = new IndividualGroupOrderCreateRequest(purchaseId,
                 List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)),
                 new DeliveryAddressRequest("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
@@ -246,9 +216,8 @@ class OrderConcurrencyTest {
             assertThat(locked.await(5, TimeUnit.SECONDS)).isTrue();
             long started = System.nanoTime();
 
-            OrderCreateResponse created = facade.createIndividualGroup(buyer, request);
+            facade.createIndividualGroup(buyer, request);
 
-            createdIds.add(created.orderId());
             assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)).isLessThan(3_000);
         } finally {
             release.countDown();
@@ -265,10 +234,7 @@ class OrderConcurrencyTest {
         Order order = Order.createPersonal("IT-" + nextId(), buyer,
                 List.of(new OrderLine(2L, 4L, 1L, "축구공", "5호", 25000, 1)),
                 DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"), createdAt);
-        Long orderId = repository.save(order).getId();
-        createdIds.add(orderId);
-        buyerIds.add(buyer);
-        return orderId;
+        return repository.save(order).getId();
     }
 
     private void runConcurrently(List<Runnable> tasks) throws InterruptedException {

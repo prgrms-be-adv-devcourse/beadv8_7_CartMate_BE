@@ -12,16 +12,13 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberStateRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseRestrictionRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
-import com.cartmate.cartmate.boundedContext.orderService.abuse.support.AbuseTestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -45,16 +42,9 @@ class AbuseJudgeIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private final List<Long> memberIds = new ArrayList<>();
-
     private final long base = 9_300_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
-
-    @AfterEach
-    void tearDown() {
-        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
-    }
 
     @Test
     @DisplayName("30일 안 첫 무산 신호는 1단계 40점으로 판정되고 규칙별 결과가 남는다")
@@ -147,6 +137,28 @@ class AbuseJudgeIntegrationTest {
         assertThat(memberState(member).getCurrentLevel()).isEqualTo(AbuseLevel.NONE);
     }
 
+    @Test
+    @DisplayName("받은 지 30초 지난 미판정 신호의 회원만 재판정 대상이고, 재판정하면 판정된다")
+    void judgesOnlyStaleReceivedSignals() {
+        long stale = nextMemberId();
+        long fresh = nextMemberId();
+        abuseFacade.receive(command(stale, "stale", LocalDateTime.now()));
+        abuseFacade.receive(command(fresh, "fresh", LocalDateTime.now()));
+        jdbcTemplate.update("UPDATE abuse_signal SET received_at = ? WHERE member_id = ?",
+                LocalDateTime.now().minusMinutes(1), stale);
+
+        List<Long> pending = abuseFacade.findPendingMemberIds(10_000);
+
+        assertThat(pending).contains(stale).doesNotContain(fresh);
+
+        assertThat(abuseFacade.judgePending(stale)).isEqualTo(1);
+
+        AbuseSignal signal = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(stale).getFirst();
+        assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
+        assertThat(signal.getLevel()).isEqualTo(AbuseLevel.CAUTION);
+        assertThat(abuseFacade.findPendingMemberIds(10_000)).doesNotContain(stale);
+    }
+
     private void receiveAndJudge(long memberId, String sourceKey, LocalDateTime occurredAt) {
         abuseFacade.receive(command(memberId, sourceKey, occurredAt));
         assertThat(abuseFacade.judgePending(memberId)).isEqualTo(1);
@@ -168,8 +180,6 @@ class AbuseJudgeIntegrationTest {
     }
 
     private long nextMemberId() {
-        long memberId = base + sequence++;
-        memberIds.add(memberId);
-        return memberId;
+        return base + sequence++;
     }
 }

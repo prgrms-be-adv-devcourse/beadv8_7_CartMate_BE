@@ -40,6 +40,7 @@ public enum OrderErrorCode implements ErrorCode {
 
     // 개인 주문
     ORDER_PRODUCT_NOT_PURCHASABLE("ORDER_PRODUCT_NOT_PURCHASABLE", "구매할 수 없는 상품입니다.", HttpStatus.CONFLICT),
+    ORDER_PAYMENT_RELEASE_PENDING("ORDER_PAYMENT_RELEASE_PENDING", "결제 정리가 아직 끝나지 않아 지금은 취소할 수 없습니다. 잠시 후 다시 시도해 주세요.", HttpStatus.SERVICE_UNAVAILABLE),
     ORDER_NOT_PAYMENT_PENDING("ORDER_NOT_PAYMENT_PENDING", "결제 대기 중인 주문이 아닙니다.", HttpStatus.CONFLICT),
     ORDER_PAYMENT_EXPIRED("ORDER_PAYMENT_EXPIRED", "결제 기한이 지난 주문입니다.", HttpStatus.CONFLICT),
     ORDER_BUYER_ONLY("ORDER_BUYER_ONLY", "주문한 회원만 할 수 있습니다.", HttpStatus.FORBIDDEN),
