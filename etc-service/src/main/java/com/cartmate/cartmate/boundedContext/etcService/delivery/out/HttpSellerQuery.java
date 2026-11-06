@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-// 회원 서버 내부 API(/internal/members/{id}/seller-id)로 판매자 ID를 묻는다. 회원 서버가 따로 떠 있어 HTTP로만 부른다.
 @Component
 @RequiredArgsConstructor
 public class HttpSellerQuery implements SellerQuery {

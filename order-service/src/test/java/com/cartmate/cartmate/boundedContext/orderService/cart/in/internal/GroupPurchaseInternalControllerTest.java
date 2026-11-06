@@ -13,10 +13,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * 회원 서버가 부르는 공동구매 내부 API의 경로와 응답 모양(RsData 봉투)을 확인한다.
- * 보안 필터(내부 API 키)는 공용 설정이라 여기서는 빼고, 컨트롤러 계약만 본다.
- */
 @CartMateIntegrationTest
 class GroupPurchaseInternalControllerTest {
 

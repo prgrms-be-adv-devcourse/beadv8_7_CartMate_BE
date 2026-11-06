@@ -1,5 +1,9 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackPayoutStatus;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.PaybackPayoutResponse;
+import com.cartmate.cartmate.shared.wallet.event.PaybackDepositFailedEvent;
+import com.cartmate.cartmate.shared.wallet.event.PaybackDepositedEvent;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;
@@ -32,6 +36,7 @@ public class OrderFacade {
     private final OrderCancelUseCase orderCancelUseCase;
     private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
     private final IndividualGroupPurchasePaybackUseCase individualGroupPurchasePaybackUseCase;
+    private final PaybackPayoutUseCase paybackPayoutUseCase;
     private final Clock clock;
 
     @Transactional
@@ -145,6 +150,38 @@ public class OrderFacade {
     @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
     public void judgeIndividualGroupPurchasePaybackOfOrder(Long orderId) {
         individualGroupPurchasePaybackUseCase.judgeOfOrder(orderId, LocalDateTime.now(clock));
+    }
+
+    // ===== 페이백 지급 (wallet 결과 이벤트 consumer · 재요청 스케줄러 · 어드민) =====
+    // 수신 다리의 트랜잭션(processed_event 기록)에 합류한다
+    @Transactional
+    public void applyPaybackDeposited(PaybackDepositedEvent event) {
+        paybackPayoutUseCase.applyDeposited(event);
+    }
+
+    @Transactional
+    public void applyPaybackDepositFailed(PaybackDepositFailedEvent event) {
+        paybackPayoutUseCase.applyDepositFailed(event);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findRetryWaitingPaybackIds(int limit) {
+        return paybackPayoutUseCase.findRetryWaitingIds(limit);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void retryWaitingPayback(Long paybackId) {
+        paybackPayoutUseCase.retryWaiting(paybackId, LocalDateTime.now(clock));
+    }
+
+    @Transactional
+    public void retryFailedPayback(Long paybackId) {
+        paybackPayoutUseCase.retryFailed(paybackId, LocalDateTime.now(clock));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaybackPayoutResponse> getPaybackPayouts(PaybackPayoutStatus status) {
+        return paybackPayoutUseCase.findAllByStatus(status);
     }
 
     // 공동구매가 닫힌 뒤 남은 결제 대기 주문 (사본을 닫는 트랜잭션이 커밋된 뒤 부른다)
