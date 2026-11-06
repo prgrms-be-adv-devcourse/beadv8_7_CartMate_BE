@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
+import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.*;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.*;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
@@ -8,12 +9,11 @@ import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
-import com.cartmate.cartmate.shared.post.dto.RollbackProductRequest;
-import com.cartmate.cartmate.shared.post.event.PostApiCallFailedEvent;
-import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
-import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
-import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductListRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductRequest;
 import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -88,7 +88,9 @@ public class SalesPostFacade {
                 salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId));
 
         // 상품 삭제 API가 판매글 쪽 상품 복제본까지 지울 수 있어서, 호출 전에 상품 ID를 모아 둔다
-        List<Long> productIds = salesPostProductRepository.findIdsBySalesPostId(postId);
+        List<Long> productIds = salesPostProductRepository.findBySalesPostId(postId).stream()
+                .map(SalesPostProduct::getId)
+                .toList();
 
         try {
             salesPostApiClient.deleteProducts(post.getId());
@@ -162,7 +164,7 @@ public class SalesPostFacade {
         try {
             salesPostApiClient.updateProducts(request, images);
         } catch (ServiceException e) {
-            if (e.getResultCode().equals("PRODUCT_UPDATE_INVALID")) {
+            if (e.getResultCode().equals(ProductErrorCode.PRODUCT_UPDATE_INVALID.resultCode())) {
                 // 명확한 실패(상품 쪽 rollback 완료)
                 transactionTemplate.executeWithoutResult(s -> {
                     salesPostRecoveryUseCase.delete(postId);

@@ -1,14 +1,11 @@
 package com.cartmate.cartmate.boundedContext.productService.product.domain;
 
+import com.cartmate.cartmate.boundedContext.productService.product.dto.*;
 import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
-import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
-    import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import com.cartmate.cartmate.shared.product.dto.CreateProductOption;
-import com.cartmate.cartmate.shared.product.dto.SyncProduct;
-import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
-import com.cartmate.cartmate.shared.product.dto.SyncProductOption;
+import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

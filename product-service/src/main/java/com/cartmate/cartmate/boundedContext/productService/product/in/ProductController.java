@@ -1,11 +1,11 @@
 package com.cartmate.cartmate.boundedContext.productService.product.in;
 
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectProductResponse;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
 import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
-import com.cartmate.cartmate.shared.product.dto.RestoreProductsRequest;
-import com.cartmate.cartmate.shared.product.dto.UpdateProductsRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.RestoreProductsRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
