@@ -85,8 +85,6 @@ public class SharedGroupOrderFacade {
         return sharedGroupOrderCancelUseCase.findActiveIdsByProductIds(productIds);
     }
 
-    // 공동 주문 하나마다 새 트랜잭션(하나가 실패해도 나머지 진행). delivery는 다른 서비스라 예전처럼 "발송된 배송이 있으면
-    // 거절"을 이 트랜잭션에서 할 수 없다. 발송 여부를 order가 알고 판단하는 일은 ARCH-9(fulfillmentStatus 복제)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancelBySalesStopped(Long sharedGroupOrderId) {
         sharedGroupOrderCancelUseCase.cancelBySalesStopped(sharedGroupOrderId);

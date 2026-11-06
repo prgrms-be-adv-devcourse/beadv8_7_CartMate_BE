@@ -45,7 +45,6 @@ class IndividualGroupPurchasePaybackUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        // DB의 insert-if-absent처럼: 이미 있으면 바꾸지 않는다
         given(confirmationRepository.insertIfAbsent(any(), any())).willAnswer(invocation -> {
             Long orderId = invocation.getArgument(0);
             if (confirmations.stream().anyMatch(c -> c.getOrderId().equals(orderId))) {

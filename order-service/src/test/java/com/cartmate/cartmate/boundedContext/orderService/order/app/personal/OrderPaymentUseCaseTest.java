@@ -197,7 +197,7 @@ class OrderPaymentUseCaseTest {
         OrderPaymentClient paymentClient = org.mockito.Mockito.mock(OrderPaymentClient.class);
         java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
         OrderProductClient flaky = inventoryIds -> {
-            if (calls.incrementAndGet() > 1) {  // 차감 전 확인은 통과, 반영 단계 재확인에서 503
+            if (calls.incrementAndGet() > 1) {
                 throw new InternalServerUnavailableException("PRODUCT", "상품", null);
             }
             return inventoryIds.stream().map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true)).toList();

@@ -12,19 +12,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 통합 테스트마다 시작 전에 테스트 DB의 모든 테이블을 비운다(TEST-2). {@link CartMateIntegrationTest}가 건다.
- *
- * <p>테이블 목록은 손으로 적지 않고 {@code information_schema}에서 읽는다. 엔티티 · outbox · shedlock 테이블이 늘어도
- * 정리 누락이 없고, 앞 테스트가 남긴 outbox 행이 릴레이를 막거나 다른 테스트 데이터와 섞이는 일이 없다.
- * 끝난 뒤가 아니라 시작 전에 비우므로 앞 테스트가 실패해 정리를 못 했어도 영향이 없다.
- *
- * <p>{@code TRUNCATE}는 테이블마다 DDL이라 느려서 {@code DELETE}를 쓴다. 대부분 비어 있어 거의 비용이 없고,
- * auto increment가 이어져 앞 테스트의 ID가 다시 쓰이지 않는다.
- *
- * <p>안전장치: 연결된 DB가 {@link CartMateTestContainers}의 컨테이너가 아니면 아무것도 지우지 않고 실패한다.
- * 로컬 {@code cartmate} DB에는 프론트 확인용 데이터가 있어서 절대 비우면 안 된다.
- */
 public class DatabaseCleaner implements BeforeEachCallback {
 
     private static final String TABLES_SQL = "SELECT table_name FROM information_schema.tables "

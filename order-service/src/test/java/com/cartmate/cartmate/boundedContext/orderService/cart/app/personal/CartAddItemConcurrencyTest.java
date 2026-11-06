@@ -88,7 +88,6 @@ class CartAddItemConcurrencyTest {
                 }
             });
 
-            // 삭제가 먼저 끝나면 수량 변경은 "항목 없음"으로 거절될 수 있다(업무 예외). 그 밖의 예외는 없어야 한다
             assertThat(errors).allMatch(e -> e instanceof ServiceException);
             assertThat(itemsOf(memberId)).hasSizeLessThanOrEqualTo(1);
         }

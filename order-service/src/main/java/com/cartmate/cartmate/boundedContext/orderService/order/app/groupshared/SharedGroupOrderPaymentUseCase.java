@@ -64,7 +64,6 @@ class SharedGroupOrderPaymentUseCase {
     void applyPayment(Long sharedGroupOrderId, Long memberId, Long paymentId, LocalDateTime paidAt,
                       TeamDeliveryAddress teamDeliveryAddress) {
         SharedGroupOrder order = sharedGroupOrderSupport.getOrderForUpdate(sharedGroupOrderId);
-        // 결제 중인 공동 주문일 때만 상품 서버를 다시 본다. 이미 취소 · 확정이면 pay의 업무 거절(→ 보상)로 끝낸다(ISS-27 리뷰)
         if (order.getStatus() == SharedGroupOrderStatus.PAYING) {
             validatePurchasable(order.getItems().stream().map(SharedGroupOrderItem::getInventoryId).toList());
         }
@@ -156,9 +155,6 @@ class SharedGroupOrderPaymentUseCase {
         return applyOrCompensate(sharedGroupOrderId, memberId, payment, teamDeliveryAddress);
     }
 
-    // 반영이 거절되면(그 사이 기한 만료 취소 등) 빠진 분담금을 되돌린다. 일시적 장애(ServiceException이 아닌 예외,
-    // 다른 서버의 503 InternalServerUnavailableException)는 되돌리지 않고 재시도에 맡긴다(ISS-27).
-    // 다시 결제하지 않은 채 공동 주문이 취소되면, payment가 그 공동 주문의 결제 완료 행을 모두 환불하므로 남은 차감도 함께 환불된다.
     private PaymentResult applyOrCompensate(Long sharedGroupOrderId, Long memberId, PaymentResult payment, TeamDeliveryAddress teamDeliveryAddress) {
         try {
             applyPayment(sharedGroupOrderId, memberId, payment.paymentId(), payment.paidAt(), teamDeliveryAddress);

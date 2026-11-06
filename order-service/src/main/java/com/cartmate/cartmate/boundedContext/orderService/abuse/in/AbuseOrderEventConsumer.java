@@ -16,15 +16,6 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * 공동 주문 이벤트로 어뷰징 신호를 접수하고 판정한다. 진입점이 둘이고 처리({@link #accept})는 하나다(MSA-9).
- * <ul>
- *   <li>Kafka가 꺼져 있으면(로컬 · 테스트 기본): 아웃박스 릴레이가 같은 프로세스에 전달한 것을 {@link #handle}로 받는다</li>
- *   <li>Kafka가 켜져 있으면: {@link AbuseOrderKafkaConsumer}가 토픽에서 받아 {@link #accept}를 부르고, {@link #handle}은 돌지 않는다
- *       (복합 싱크가 in-process로도 보내므로 둘 다 돌면 같은 신호를 두 번 처리하려 든다 — unique로 막히긴 하지만 판정을 두 번 돌린다)</li>
- * </ul>
- * Kafka 필수로 바꾸면(MSA-11) {@link #handle}과 이 조건을 없앤다.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -41,7 +32,6 @@ public class AbuseOrderEventConsumer {
         }
     }
 
-    // 두 진입점이 같이 쓰는 처리. 접수 예외는 그대로 던져 재전달되게 한다(릴레이 재시도 · Kafka 재시도 → DLT)
     public void accept(SharedGroupOrderCanceledEvent event) {
         if (isSignal(event)) {
             consume(event);
