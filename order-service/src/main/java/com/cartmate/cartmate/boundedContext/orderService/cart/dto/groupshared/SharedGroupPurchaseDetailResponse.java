@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.out.CartProductInf
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseItem;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseMember;
-import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus;
+import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;

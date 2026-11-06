@@ -1,8 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out.personal;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderType;
+import com.cartmate.cartmate.shared.order.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderType;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;

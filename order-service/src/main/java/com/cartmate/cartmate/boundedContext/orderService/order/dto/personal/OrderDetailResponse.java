@@ -3,10 +3,10 @@ package com.cartmate.cartmate.boundedContext.orderService.order.dto.personal;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderCancelReason;
+import com.cartmate.cartmate.shared.order.OrderCancelReason;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderItem;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderType;
+import com.cartmate.cartmate.shared.order.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderType;
 
 import java.time.LocalDateTime;
 import java.util.List;

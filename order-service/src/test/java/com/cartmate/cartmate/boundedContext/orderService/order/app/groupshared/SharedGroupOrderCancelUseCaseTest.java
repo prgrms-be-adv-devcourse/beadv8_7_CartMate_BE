@@ -3,8 +3,8 @@ package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderCancelReason;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -62,7 +62,7 @@ class SharedGroupOrderCancelUseCaseTest {
         SharedGroupOrderCanceledEvent event = captor.getValue();
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
         assertThat(event.sharedGroupPurchaseId()).isEqualTo(PURCHASE_ID);
-        assertThat(event.cancelReason()).isEqualTo(SharedGroupOrderCancelReason.CREATOR_CANCELED.name());
+        assertThat(event.cancelReason()).isEqualTo(SharedGroupOrderCancelReason.CREATOR_CANCELED);
         assertThat(event.canceledAt()).isEqualTo(order.getCanceledAt());
         assertThat(event.unpaidMemberIds()).containsExactly(CREATOR, MEMBER);
     }
@@ -92,7 +92,7 @@ class SharedGroupOrderCancelUseCaseTest {
 
         ArgumentCaptor<SharedGroupOrderCanceledEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCanceledEvent.class);
         then(eventPublisher).should().publish(captor.capture());
-        assertThat(captor.getValue().cancelReason()).isEqualTo(SharedGroupOrderCancelReason.DEADLINE_EXPIRED.name());
+        assertThat(captor.getValue().cancelReason()).isEqualTo(SharedGroupOrderCancelReason.DEADLINE_EXPIRED);
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
     }
 
@@ -155,7 +155,7 @@ class SharedGroupOrderCancelUseCaseTest {
 
         ArgumentCaptor<SharedGroupOrderCanceledEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCanceledEvent.class);
         then(eventPublisher).should().publish(captor.capture());
-        assertThat(captor.getValue().cancelReason()).isEqualTo(SharedGroupOrderCancelReason.OUT_OF_STOCK.name());
+        assertThat(captor.getValue().cancelReason()).isEqualTo(SharedGroupOrderCancelReason.OUT_OF_STOCK);
     }
 
     @Test

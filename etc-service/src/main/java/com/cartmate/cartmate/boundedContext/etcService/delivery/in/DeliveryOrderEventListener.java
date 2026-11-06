@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.in;
 
+import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
+
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryCreateCommand;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
@@ -79,7 +81,7 @@ public class DeliveryOrderEventListener {
     @Order(Ordered.HIGHEST_PRECEDENCE)
     @EventListener
     public void handle(SharedGroupOrderCanceledEvent event) {
-        if ("SALES_STOPPED".equals(event.cancelReason())) {
+        if (event.cancelReason() == SharedGroupOrderCancelReason.SALES_STOPPED) {
             deliveryFacade.cancelAllSharedBySalesStop(event.sharedGroupOrderId(), event.canceledAt());
         }
     }
