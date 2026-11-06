@@ -17,15 +17,18 @@ public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> 
     @Modifying
     @Query(value = """
             INSERT INTO abuse_signal
-                (member_id, signal_type, source_key, occurred_at, received_at, status, attempt_count, created_at, updated_at)
+                (member_id, signal_type, source_key, occurred_at, context_key, received_at, status, attempt_count,
+                 created_at, updated_at)
             VALUES
-                (:memberId, :signalType, :sourceKey, :occurredAt, :receivedAt, :status, 0, :receivedAt, :receivedAt)
+                (:memberId, :signalType, :sourceKey, :occurredAt, :contextKey, :receivedAt, :status, 0,
+                 :receivedAt, :receivedAt)
             ON DUPLICATE KEY UPDATE id = id
             """, nativeQuery = true)
     void insertIfAbsent(@Param("memberId") Long memberId,
                         @Param("signalType") String signalType,
                         @Param("sourceKey") String sourceKey,
                         @Param("occurredAt") LocalDateTime occurredAt,
+                        @Param("contextKey") String contextKey,
                         @Param("receivedAt") LocalDateTime receivedAt,
                         @Param("status") String status);
 

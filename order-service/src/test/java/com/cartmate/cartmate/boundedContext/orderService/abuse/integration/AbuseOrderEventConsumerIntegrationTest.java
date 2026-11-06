@@ -84,6 +84,8 @@ class AbuseOrderEventConsumerIntegrationTest {
         AbuseSignal signal = signals.getFirst();
         assertThat(signal.getSignalType()).isEqualTo(AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED);
         assertThat(signal.getSourceKey()).isEqualTo(String.valueOf(orderId));
+        assertThat(signal.getContextKey()).isEqualTo(
+                "sharedGroupPurchase:" + sharedGroupOrderRepository.findById(orderId).orElseThrow().getSharedGroupPurchaseId());
         assertThat(signal.getOccurredAt()).isEqualTo(sharedGroupOrderRepository.findById(orderId).orElseThrow().getCanceledAt());
         assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
         assertThat(signal.getLevel()).isEqualTo(AbuseLevel.CAUTION);
