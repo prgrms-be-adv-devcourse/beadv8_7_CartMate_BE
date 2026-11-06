@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared;
 
+import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import jakarta.persistence.*;

@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchase;
-import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchaseCloseReason;
+import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
 import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseSnapshot;
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
@@ -27,7 +27,7 @@ public final class IndividualGroupPurchaseEvents {
 
     public static IndividualGroupPurchaseClosedEvent closed(IndividualGroupPurchase purchase,
                                                             IndividualGroupPurchaseCloseReason reason) {
-        return new IndividualGroupPurchaseClosedEvent(purchase.getId(), purchase.getOrigin().name(), reason.name(),
+        return new IndividualGroupPurchaseClosedEvent(purchase.getId(), purchase.getOrigin(), reason,
                 purchase.getDeadlineAt(), purchase.getClosedAt(), purchase.getRevision(),
                 purchase.getPaybackMinBuyers(), purchase.getPaybackAmount());
     }

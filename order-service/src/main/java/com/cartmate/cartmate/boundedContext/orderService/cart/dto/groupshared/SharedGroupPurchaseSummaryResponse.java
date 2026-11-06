@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchase;
-import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus;
+import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus;
 
 import java.time.LocalDateTime;
 

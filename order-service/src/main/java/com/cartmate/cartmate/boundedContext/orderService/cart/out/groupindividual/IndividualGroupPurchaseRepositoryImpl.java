@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchase;
-import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchaseOrigin;
+import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseOrigin;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchaseStatus;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;

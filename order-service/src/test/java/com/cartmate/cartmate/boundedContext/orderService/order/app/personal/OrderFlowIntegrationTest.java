@@ -8,7 +8,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.dto.personal.CartI
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.personal.CartRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.DeliveryAddressRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;

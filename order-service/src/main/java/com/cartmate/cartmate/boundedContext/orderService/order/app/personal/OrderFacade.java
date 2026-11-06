@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateResponse;

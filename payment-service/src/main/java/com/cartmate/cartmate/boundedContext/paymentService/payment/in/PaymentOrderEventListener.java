@@ -28,7 +28,7 @@ public class PaymentOrderEventListener {
 
     @EventListener
     public void handle(SharedGroupOrderCanceledEvent event) {
-        paymentFacade.refundCanceledSharedGroupOrder(event.sharedGroupOrderId(), event.cancelReason());
+        paymentFacade.refundCanceledSharedGroupOrder(event.sharedGroupOrderId(), event.cancelReason().name());
     }
 
     // 판매글 판매 중지: 개인 주문 판매자 항목 취소 → 그 금액만 환불 (배송 취소와 같은 트랜잭션)

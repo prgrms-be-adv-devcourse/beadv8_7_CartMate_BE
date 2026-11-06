@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.shared.order.event;
 
+import com.cartmate.cartmate.shared.order.OrderType;
+
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
 
@@ -10,7 +12,7 @@ public record OrderPaidEvent(
         Long orderId,
         String orderNumber,
         Long memberId,
-        String orderType,
+        OrderType orderType,
         Long individualGroupPurchaseId,
         LocalDateTime paidAt,
         DeliveryAddressInfo deliveryAddress,
