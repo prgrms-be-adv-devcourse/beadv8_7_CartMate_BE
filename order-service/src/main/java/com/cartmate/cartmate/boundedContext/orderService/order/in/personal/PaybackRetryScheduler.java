@@ -8,7 +8,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-// wallet이 "다시 보내면 될 수 있다"(retryable)고 돌려준 실패만 같은 paybackId로 다시 요청한다. 횟수 상한은 PaybackPayout.MAX_AUTO_ATTEMPTS
 @Slf4j
 @Component
 @RequiredArgsConstructor

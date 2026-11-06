@@ -17,7 +17,6 @@ public class OrderServiceKafkaConfig {
 
     public static final String DELIVERY_CONFIRMED_TOPIC = "cartmate.delivery.delivery-confirmed";
 
-    // 페이백 예치금 적립 결과 → 지급 행 PAID · 재요청 대기 · FAILED(PaybackResultListener)
     public static final String PAYBACK_DEPOSITED_TOPIC = "cartmate.wallet.payback-deposited";
     public static final String PAYBACK_DEPOSIT_FAILED_TOPIC = "cartmate.wallet.payback-deposit-failed";
 
