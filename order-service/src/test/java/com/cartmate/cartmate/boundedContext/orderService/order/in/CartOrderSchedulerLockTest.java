@@ -21,6 +21,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.verify;
 class CartOrderSchedulerLockTest {
 
     private static final String OTHER_NODE = "other-node";
+    private static final Duration LOCK_AT_LEAST = Duration.ofSeconds(5);
 
     @Autowired
     private OrderScheduler orderScheduler;
@@ -87,9 +89,10 @@ class CartOrderSchedulerLockTest {
 
         verifyQueried(lockName, 1);
         Map<String, Object> row = jdbcTemplate.queryForMap(
-                "SELECT locked_by, lock_until > UTC_TIMESTAMP(3) AS held FROM shedlock WHERE name = ?", lockName);
+                "SELECT locked_by, TIMESTAMPDIFF(MICROSECOND, locked_at, lock_until) AS held_micros "
+                        + "FROM shedlock WHERE name = ?", lockName);
         assertThat(row.get("locked_by")).isNotIn(OTHER_NODE, "test-reset");
-        assertThat(((Number) row.get("held")).intValue()).isEqualTo(1);
+        assertThat(((Number) row.get("held_micros")).longValue()).isGreaterThanOrEqualTo(LOCK_AT_LEAST.toNanos() / 1000);
     }
 
     @ParameterizedTest(name = "{0}")
