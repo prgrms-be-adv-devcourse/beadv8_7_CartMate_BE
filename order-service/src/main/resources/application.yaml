@@ -17,6 +17,18 @@ spring:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
     open-in-view: false
+  kafka:
+    # cartmate.kafka.enabled=true일 때만 실제로 연결한다(기본 꺼짐 → 브로커 없이도 지금처럼 동작)
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all   # 복제본까지 받아야 성공(outbox 행을 PUBLISHED로 바꾸는 근거)
+    consumer:
+      group-id: order-service
+      auto-offset-reset: earliest   # 처음 붙을 때 쌓인 메시지부터 받는다(중복은 processed_event가 거름)
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 custom:
   jwt:
@@ -27,6 +39,8 @@ custom:
     secure: false
 
 cartmate:
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}   # 켜면 outbox 이벤트를 Kafka로도 내보내고, 상품 · 배송 이벤트를 Kafka로 받는다(MSA-5)
   payment:
     client: http   # 주문 서버에는 결제 Facade가 없다. 결제 서버 내부 API만 쓴다
     base-url: ${PAYMENT_BASE_URL:http://localhost:8983}   # payment-service

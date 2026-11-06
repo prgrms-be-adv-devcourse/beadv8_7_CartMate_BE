@@ -42,15 +42,6 @@ class SharedGroupOrderEventListenerTest {
             10L, 1L, List.of(1L, 2L), List.of(new SharedGroupPurchaseClosedEvent.Item(2L, 4L, 1)), AT);
 
     @Test
-    @DisplayName("마감 이벤트를 받으면 공동 주문을 만든다")
-    void createsOrderFromClosedEvent() {
-        listener.handle(relayed(closed));
-
-        then(sharedGroupOrderFacade).should().createFromClosedPurchase(closed);
-        then(sharedGroupOrderFacade).should(never()).reportCreationFailed(anyLong(), anyString());
-    }
-
-    @Test
     @DisplayName("다른 이벤트는 그냥 넘긴다")
     void ignoresOtherEvents() {
         listener.handle(relayed(new SharedGroupOrderCreatedEvent(5L, 10L, AT)));

@@ -17,6 +17,7 @@ import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ class IndividualGroupPurchaseQueryUseCase {
     private final IndividualGroupPurchaseSupport individualGroupPurchaseSupport;
     private final IndividualGroupPurchaseOrderReplicaRepository orderReplicaRepository;
     private final MemberClient memberClient;
+    private final Clock clock;
 
     IndividualGroupPurchaseDetailResponse getByInviteCode(Long memberId, String inviteCode) {
         IndividualGroupPurchase purchase = individualGroupPurchaseRepository.findWithProductsByInviteCode(inviteCode)
@@ -65,11 +67,11 @@ class IndividualGroupPurchaseQueryUseCase {
                 .map(IndividualGroupPurchaseOrderLine::buyerMemberId)
                 .collect(Collectors.toSet()));
         return IndividualGroupPurchaseDashboardResponse.of(purchase, productOptionsOf(purchase), lines, nicknames,
-                LocalDateTime.now());
+                LocalDateTime.now(clock));
     }
 
     List<IndividualGroupPurchaseSummaryResponse> getMyList(Long memberId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         return individualGroupPurchaseRepository.findAllByCreatorMemberIdOrderByIdDesc(memberId).stream()
                 .map(purchase -> IndividualGroupPurchaseSummaryResponse.of(purchase, now))
                 .toList();
@@ -91,7 +93,7 @@ class IndividualGroupPurchaseQueryUseCase {
     }
 
     private IndividualGroupPurchaseDetailResponse toDetailResponse(IndividualGroupPurchase purchase, Long viewerId) {
-        return IndividualGroupPurchaseDetailResponse.of(purchase, productOptionsOf(purchase), viewerId, LocalDateTime.now());
+        return IndividualGroupPurchaseDetailResponse.of(purchase, productOptionsOf(purchase), viewerId, LocalDateTime.now(clock));
     }
 
     private Map<Long, CartProductOptions> productOptionsOf(IndividualGroupPurchase purchase) {

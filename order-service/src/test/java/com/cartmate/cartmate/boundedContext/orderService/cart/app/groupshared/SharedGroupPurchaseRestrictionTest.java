@@ -3,20 +3,14 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.SharedGroupPurchaseCreateResponse;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
-import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.orderService.abuse.support.AbuseTestDataCleaner;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,26 +23,11 @@ class SharedGroupPurchaseRestrictionTest {
     private SharedGroupPurchaseFacade facade;
 
     @Autowired
-    private SharedGroupPurchaseRepository repository;
-
-    @Autowired
-    private TransactionTemplate transactionTemplate;
-
-    @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    private final List<Long> createdIds = new ArrayList<>();
-    private final List<Long> memberIds = new ArrayList<>();
 
     private final long base = 9_800_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
 
     private long sequence;
-
-    @AfterEach
-    void tearDown() {
-        new AbuseTestDataCleaner(jdbcTemplate).deleteRecordsOf(memberIds);
-        transactionTemplate.executeWithoutResult(status -> createdIds.forEach(repository::deleteById));
-    }
 
     @Test
     @DisplayName("제한 중인 회원은 공동구매-공동물품을 만들 수 없고 응답에 제한 종료 시각이 들어간다")
@@ -105,9 +84,7 @@ class SharedGroupPurchaseRestrictionTest {
     }
 
     private SharedGroupPurchaseCreateResponse create(long creator) {
-        SharedGroupPurchaseCreateResponse created = facade.create(creator, new SharedGroupPurchaseCreateRequest("제한 테스트", 5));
-        createdIds.add(created.id());
-        return created;
+        return facade.create(creator, new SharedGroupPurchaseCreateRequest("제한 테스트", 5));
     }
 
     private void restrict(long memberId, LocalDateTime restrictedUntil) {
@@ -119,8 +96,6 @@ class SharedGroupPurchaseRestrictionTest {
     }
 
     private long nextMemberId() {
-        long memberId = base + sequence++;
-        memberIds.add(memberId);
-        return memberId;
+        return base + sequence++;
     }
 }

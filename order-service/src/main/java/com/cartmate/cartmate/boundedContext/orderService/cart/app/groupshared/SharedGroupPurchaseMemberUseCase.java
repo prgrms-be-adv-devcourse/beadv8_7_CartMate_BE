@@ -7,6 +7,7 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
@@ -15,6 +16,7 @@ class SharedGroupPurchaseMemberUseCase {
 
     private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final SharedGroupPurchaseSupport sharedGroupPurchaseSupport;
+    private final Clock clock;
 
     Long join(Long memberId, String inviteCode) {
         SharedGroupPurchase purchase = getPurchaseByInviteCodeForUpdate(inviteCode);
@@ -22,23 +24,23 @@ class SharedGroupPurchaseMemberUseCase {
             return purchase.getId();
         }
         sharedGroupPurchaseSupport.validateNotRestricted(memberId);
-        purchase.join(memberId, LocalDateTime.now());
+        purchase.join(memberId, LocalDateTime.now(clock));
         return purchase.getId();
     }
 
     void leave(Long memberId, Long sharedGroupPurchaseId) {
         sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
-                .leave(memberId, LocalDateTime.now());
+                .leave(memberId, LocalDateTime.now(clock));
     }
 
     void kick(Long memberId, Long sharedGroupPurchaseId, Long targetMemberId) {
         sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
-                .kick(memberId, targetMemberId, LocalDateTime.now());
+                .kick(memberId, targetMemberId, LocalDateTime.now(clock));
     }
 
     void increaseMaxParticipants(Long memberId, Long sharedGroupPurchaseId, int maxParticipants) {
         sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
-                .increaseMaxParticipants(memberId, maxParticipants, LocalDateTime.now());
+                .increaseMaxParticipants(memberId, maxParticipants, LocalDateTime.now(clock));
     }
 
     private SharedGroupPurchase getPurchaseByInviteCodeForUpdate(String inviteCode) {

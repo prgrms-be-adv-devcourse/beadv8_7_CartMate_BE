@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.abuse.in;
 
 import com.cartmate.cartmate.boundedContext.orderService.abuse.app.AbuseFacade;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -57,14 +58,26 @@ class AbuseJudgeRunner {
 
     private void recordFailure(Long memberId, Exception cause) {
         try {
-            abuseFacade.recordJudgeFailure(memberId, describe(cause));
+            abuseFacade.recordJudgeFailure(memberId, classify(cause));
         } catch (Exception e) {
             log.error("어뷰징 판정 실패 기록 실패: memberId={}", memberId, e);
         }
     }
 
-    private String describe(Exception cause) {
-        String name = cause.getClass().getSimpleName();
-        return cause.getMessage() == null ? name : name + ": " + cause.getMessage();
+    static String classify(Throwable failure) {
+        String type = failure.getClass().getSimpleName();
+        if (failure instanceof ServiceException serviceException) {
+            return type + " " + serviceException.getResultCode();
+        }
+        Throwable root = rootCause(failure);
+        return root == failure ? type : type + " (원인: " + root.getClass().getSimpleName() + ")";
+    }
+
+    private static Throwable rootCause(Throwable failure) {
+        Throwable root = failure;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        return root;
     }
 }

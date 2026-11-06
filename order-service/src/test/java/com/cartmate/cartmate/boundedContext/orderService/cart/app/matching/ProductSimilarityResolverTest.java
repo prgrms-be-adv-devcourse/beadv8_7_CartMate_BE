@@ -40,6 +40,17 @@ class ProductSimilarityResolverTest {
     }
 
     @Test
+    @DisplayName("전략 하나가 실패해도 나머지 전략 결과로 계속한다")
+    void isolateFailingFinder() {
+        ProductSimilarityFinder broken = (sources, candidates) -> {
+            throw new IllegalStateException("index down");
+        };
+        ProductSimilarityResolver resolver = new ProductSimilarityResolver(List.of(broken, EXACT));
+
+        assertThat(resolver.resolveAll(List.of(1L), Set.of(1L))).isEqualTo(Map.of(1L, List.of(ProductSimilarity.exact(1L))));
+    }
+
+    @Test
     @DisplayName("후보에 자기 자신이 있으면 결과에 자기 자신(정확 매칭)이 포함된다")
     void includeSelf() {
         ProductSimilarityResolver resolver = new ProductSimilarityResolver(List.of(EXACT));

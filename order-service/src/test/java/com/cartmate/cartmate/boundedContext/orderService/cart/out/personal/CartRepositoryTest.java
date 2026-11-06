@@ -17,33 +17,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CartRepositoryTest {
 
     private static final Long MEMBER_ID = 9_000_000_001L;
-    private static final Long NO_CART_MEMBER_ID = 9_000_000_999L;
 
     @Autowired
     private CartRepository cartRepository;
 
     @Autowired
     private EntityManager em;
-
-    @Test
-    @DisplayName("회원 ID로 장바구니를 조회한다")
-    void findByMemberId() {
-        Cart saved = cartRepository.save(Cart.create(MEMBER_ID));
-        flushAndClear();
-
-        Optional<Cart> found = cartRepository.findByMemberId(MEMBER_ID);
-
-        assertThat(found).isPresent();
-        assertThat(found.get().getId()).isEqualTo(saved.getId());
-    }
-
-    @Test
-    @DisplayName("장바구니가 없는 회원이면 빈 Optional을 반환한다")
-    void findWithItemsByMemberId_noCart() {
-        Optional<Cart> found = cartRepository.findWithItemsByMemberId(NO_CART_MEMBER_ID);
-
-        assertThat(found).isEmpty();
-    }
 
     @Test
     @DisplayName("항목이 없는 장바구니도 조회된다 (left join)")

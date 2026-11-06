@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +23,7 @@ public class GroupPurchaseSalesStopUseCase {
     private final IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
     private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public List<Long> findIndividualTargets(List<Long> productIds) {
@@ -38,19 +40,19 @@ public class GroupPurchaseSalesStopUseCase {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void removeFromIndividual(Long groupPurchaseId, List<Long> productIds) {
         individualGroupPurchaseRepository.findByIdForUpdate(groupPurchaseId).ifPresent(purchase -> {
-            boolean changed = purchase.removeProductsBySalesStopped(new HashSet<>(productIds), LocalDateTime.now());
+            boolean changed = purchase.removeProductsBySalesStopped(new HashSet<>(productIds), LocalDateTime.now(clock));
             if (!changed) {
                 return;
             }
             eventPublisher.publish(purchase.isClosed()
                     ? IndividualGroupPurchaseEvents.closed(purchase, IndividualGroupPurchaseCloseReason.SALES_STOPPED)
-                    : IndividualGroupPurchaseEvents.updated(purchase, LocalDateTime.now()));
+                    : IndividualGroupPurchaseEvents.updated(purchase, LocalDateTime.now(clock)));
         });
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void removeFromShared(Long groupPurchaseId, List<Long> productIds) {
-        sharedGroupPurchaseRepository.findById(groupPurchaseId).ifPresent(purchase ->
-                purchase.removeItemsBySalesStopped(new HashSet<>(productIds), LocalDateTime.now()));
+        sharedGroupPurchaseRepository.findByIdForUpdate(groupPurchaseId).ifPresent(purchase ->
+                purchase.removeItemsBySalesStopped(new HashSet<>(productIds), LocalDateTime.now(clock)));
     }
 }

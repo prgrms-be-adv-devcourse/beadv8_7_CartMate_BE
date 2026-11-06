@@ -7,7 +7,6 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.simpleNameEn
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
-import static com.tngtech.archunit.library.freeze.FreezingArchRule.freeze;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
@@ -31,13 +30,6 @@ import org.springframework.context.event.EventListener;
  * 어댑터가 나중에 HTTP · Kafka 클라이언트로 바뀌는 교체 지점이기 때문이다(ARCH-15 결정).
  * 그 어댑터도 다른 모듈의 엔티티 · Q클래스 · 리포지토리({@code domain} · {@code out})는 쓰지 못한다(R5).
  *
- * <p>현재 코드에 이미 있는 위반은 {@link com.tngtech.archunit.library.freeze.FreezingArchRule}로 동결해 두었다
- * ({@code src/test/resources/archunit/}). 동결된 위반은 실패하지 않지만 새 위반은 즉시 실패하고,
- * 위반이 줄어들면 저장소 파일도 같이 줄어든다(ARCH-4 ~ ARCH-9에서 해소).
- *
- * <p>규칙 설명({@code as} · {@code because})은 동결 저장소 {@code stored.rules}의 키가 되므로 영어로 둔다
- * (한글이면 Properties 형식의 유니코드 이스케이프로 저장되어 diff를 읽을 수 없다).
- *
  * <p>테스트 코드는 검사하지 않는다({@link ImportOption.DoNotIncludeTests}).
  * 다른 모듈끼리의 의존이나 다른 모듈의 리스너는 담당자 영역이라 검사하지 않는다.
  */
@@ -51,69 +43,69 @@ class CartOrderModuleBoundaryTest {
     // R1. cart ↔ order 직접 의존 금지 (규칙 1: 모듈 간 동기 호출은 포트 경유, 반환은 shared record만)
 
     @ArchTest
-    static final ArchRule r1_cartMustNotDependOnOrder = freeze(
+    static final ArchRule r1_cartMustNotDependOnOrder =
             noClasses().that().resideInAPackage(CART)
                     .should().dependOnClassesThat().resideInAPackage(ORDER)
                     .as("R1 cart must not depend on order")
-                    .because("cart and order are separate services; they talk only through shared events and ports (ARCH-1 rule 1)"));
+                    .because("cart and order are separate services; they talk only through shared events and ports (ARCH-1 rule 1)");
 
     @ArchTest
-    static final ArchRule r1_orderMustNotDependOnCart = freeze(
+    static final ArchRule r1_orderMustNotDependOnCart =
             noClasses().that().resideInAPackage(ORDER)
                     .should().dependOnClassesThat().resideInAPackage(CART)
                     .as("R1 order must not depend on cart")
-                    .because("cart and order are separate services; they talk only through shared events and ports (ARCH-1 rule 1)"));
+                    .because("cart and order are separate services; they talk only through shared events and ports (ARCH-1 rule 1)");
 
     // R2. cart · order는 다른 boundedContext를 참조하지 않는다 (shared · global · 프레임워크는 허용).
     // 예외: 자기 모듈 out 어댑터가 다른 모듈 app(Facade)을 부르는 것. 물리 분리 때 그 어댑터만 HTTP · Kafka로 바꾼다
 
     @ArchTest
-    static final ArchRule r2_cartMustNotDependOnOtherBoundedContexts = freeze(
+    static final ArchRule r2_cartMustNotDependOnOtherBoundedContexts =
             classes().that().resideInAPackage(CART)
                     .should(notDependOnOtherBoundedContextsExceptAdapterFacades("orderService.cart"))
                     .as("R2 cart must not depend on other bounded contexts, except cart.out adapters calling their app facades")
-                    .because("contracts with other modules live in shared; an out adapter is the one swap point for a later HTTP or Kafka client (ARCH-1 rule 1, ARCH-15)"));
+                    .because("contracts with other modules live in shared; an out adapter is the one swap point for a later HTTP or Kafka client (ARCH-1 rule 1, ARCH-15)");
 
     @ArchTest
-    static final ArchRule r2_orderMustNotDependOnOtherBoundedContexts = freeze(
+    static final ArchRule r2_orderMustNotDependOnOtherBoundedContexts =
             classes().that().resideInAPackage(ORDER)
                     .should(notDependOnOtherBoundedContextsExceptAdapterFacades("orderService.order"))
                     .as("R2 order must not depend on other bounded contexts, except order.out adapters calling their app facades")
-                    .because("contracts with other modules live in shared; an out adapter is the one swap point for a later HTTP or Kafka client (ARCH-1 rule 1, ARCH-15)"));
+                    .because("contracts with other modules live in shared; an out adapter is the one swap point for a later HTTP or Kafka client (ARCH-1 rule 1, ARCH-15)");
 
     // R3. 다른 모듈은 cart · order 안의 어떤 클래스도 참조하지 않는다. 예외 없음 (Facade도 포함, shared 포트를 쓴다)
 
     @ArchTest
-    static final ArchRule r3_otherModulesMustNotDependOnCartOrder = freeze(
+    static final ArchRule r3_otherModulesMustNotDependOnCartOrder =
             noClasses().that(not(resideInAnyPackage(CART, ORDER)))
                     .should().dependOnClassesThat().resideInAnyPackage(CART, ORDER)
                     .as("R3 classes outside cart and order must not depend on any cart or order class")
-                    .because("the only contract cart and order expose is the shared package: events, ports, records (ARCH-1 rules 1, 3, ARCH-15)"));
+                    .because("the only contract cart and order expose is the shared package: events, ports, records (ARCH-1 rules 1, 3, ARCH-15)");
 
     // R4. cart · order 안에서는 같은 TX 리스너(@EventListener) 금지. @TransactionalEventListener(AFTER_COMMIT)만 허용
 
     @ArchTest
-    static final ArchRule r4_cartOrderMustNotUseSameTransactionEventListener = freeze(
+    static final ArchRule r4_cartOrderMustNotUseSameTransactionEventListener =
             noMethods().that().areDeclaredInClassesThat().resideInAnyPackage(CART, ORDER)
                     .should().beAnnotatedWith(EventListener.class)
                     .as("R4 methods in cart and order must not be annotated with @EventListener (use @TransactionalEventListener AFTER_COMMIT)")
-                    .because("cross-module writes happen only after commit; a same-transaction listener lets one module's rollback spread into another (ARCH-1 rule 2)"));
+                    .because("cross-module writes happen only after commit; a same-transaction listener lets one module's rollback spread into another (ARCH-1 rule 2)");
 
     // R5. cart · order는 다른 모듈의 엔티티 · Q클래스 · 리포지토리(domain · out)를 참조하지 않는다. out 어댑터도 마찬가지
 
     @ArchTest
-    static final ArchRule r5_cartMustNotDependOnOtherModulesDomainOrOut = freeze(
+    static final ArchRule r5_cartMustNotDependOnOtherModulesDomainOrOut =
             noClasses().that().resideInAPackage(CART)
                     .should().dependOnClassesThat(otherModulesDomainOrOut(CART))
                     .as("R5 cart must not depend on other modules' domain or out packages (entities, Q classes, repositories)")
-                    .because("another module's tables belong to its own schema; joins, FKs and locks across schemas are not allowed (team decision 2026-11-04, ARCH-15)"));
+                    .because("another module's tables belong to its own schema; joins, FKs and locks across schemas are not allowed (team decision 2026-11-04, ARCH-15)");
 
     @ArchTest
-    static final ArchRule r5_orderMustNotDependOnOtherModulesDomainOrOut = freeze(
+    static final ArchRule r5_orderMustNotDependOnOtherModulesDomainOrOut =
             noClasses().that().resideInAPackage(ORDER)
                     .should().dependOnClassesThat(otherModulesDomainOrOut(ORDER))
                     .as("R5 order must not depend on other modules' domain or out packages (entities, Q classes, repositories)")
-                    .because("another module's tables belong to its own schema; joins, FKs and locks across schemas are not allowed (team decision 2026-11-04, ARCH-15)"));
+                    .because("another module's tables belong to its own schema; joins, FKs and locks across schemas are not allowed (team decision 2026-11-04, ARCH-15)");
 
     private static DescribedPredicate<JavaClass> otherModulesDomainOrOut(String ownModule) {
         return resideInAnyPackage("..boundedContext.*.*.domain..", "..boundedContext.*.*.out..")

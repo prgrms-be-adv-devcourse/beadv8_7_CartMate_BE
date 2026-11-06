@@ -16,6 +16,7 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -31,6 +32,7 @@ class SharedGroupOrderQueryUseCase {
     private final OrderProductClient orderProductClient;
     private final OrderMemberClient orderMemberClient;
     private final OrderSharedGroupPurchaseClient orderSharedGroupPurchaseClient;
+    private final Clock clock;
 
     List<SharedGroupOrderSummaryResponse> getMyList(Long memberId) {
         List<SharedGroupOrder> orders = sharedGroupOrderRepository.findAllByParticipant(memberId);
@@ -48,7 +50,7 @@ class SharedGroupOrderQueryUseCase {
         if (!order.isParticipant(memberId)) {
             throw new ServiceException(OrderErrorCode.ORDER_NOT_PARTICIPANT);
         }
-        return SharedGroupOrderDetailResponse.of(order, productsOf(order), nicknamesOf(order), memberId, LocalDateTime.now());
+        return SharedGroupOrderDetailResponse.of(order, productsOf(order), nicknamesOf(order), memberId, LocalDateTime.now(clock));
     }
 
     private Map<Long, String> nicknamesOf(SharedGroupOrder order) {

@@ -14,6 +14,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.CannotCreateTransactionException;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLTransientConnectionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,13 +43,13 @@ class AbuseJudgeRunnerTest {
     }
 
     @Test
-    @DisplayName("다시 해도 같은 실패(예: 규칙·데이터 오류)는 예외 종류와 메시지로 실패를 기록한다")
+    @DisplayName("다시 해도 같은 실패(예: 규칙·데이터 오류)는 메시지 없이 예외 분류만 실패로 기록한다")
     void recordsPermanentFailure() {
         willThrow(new IllegalStateException("boom")).given(abuseFacade).judgePending(1L);
 
         assertThat(runner.judge(1L)).isEqualTo(AbuseJudgeOutcome.FAILURE);
 
-        then(abuseFacade).should().recordJudgeFailure(1L, "IllegalStateException: boom");
+        then(abuseFacade).should().recordJudgeFailure(1L, "IllegalStateException");
     }
 
     @Test
@@ -62,23 +63,28 @@ class AbuseJudgeRunnerTest {
     }
 
     @Test
-    @DisplayName("일시 장애가 다른 예외에 감싸여 와도 원인을 따라가 일시 장애로 본다")
-    void findsTransientCause() {
-        willThrow(new IllegalStateException("wrapped", new SQLTransientConnectionException("pool exhausted")))
-                .given(abuseFacade).judgePending(1L);
-
-        assertThat(runner.judge(1L)).isEqualTo(AbuseJudgeOutcome.TRANSIENT_FAILURE);
-    }
-
-    @Test
-    @DisplayName("일시 장애와 영구 실패 분류")
+    @DisplayName("일시 장애와 영구 실패 분류 (일시 장애가 다른 예외에 감싸여 와도 원인을 따라가 일시 장애로 본다)")
     void classifiesFailures() {
         assertThat(AbuseJudgeRunner.isTransient(new CannotAcquireLockException("lock"))).isTrue();
         assertThat(AbuseJudgeRunner.isTransient(new DataAccessResourceFailureException("db down"))).isTrue();
         assertThat(AbuseJudgeRunner.isTransient(new CannotCreateTransactionException("no connection"))).isTrue();
+        assertThat(AbuseJudgeRunner.isTransient(
+                new IllegalStateException("wrapped", new SQLTransientConnectionException("pool exhausted")))).isTrue();
         assertThat(AbuseJudgeRunner.isTransient(new ServiceException(AbuseErrorCode.ABUSE_MEMBER_STATE_NOT_FOUND))).isFalse();
         assertThat(AbuseJudgeRunner.isTransient(new DataIntegrityViolationException("constraint"))).isFalse();
         assertThat(AbuseJudgeRunner.isTransient(new IllegalStateException("bug"))).isFalse();
+    }
+
+    @Test
+    @DisplayName("실패 분류: 서비스 예외는 결과 코드, 감싼 예외는 가장 안쪽 원인 종류를 붙이고 메시지는 남기지 않는다")
+    void classifiesWithoutMessage() {
+        assertThat(AbuseJudgeRunner.classify(new ServiceException(AbuseErrorCode.ABUSE_MEMBER_STATE_NOT_FOUND)))
+                .isEqualTo("ServiceException 500-ABUSE_MEMBER_STATE_NOT_FOUND");
+        assertThat(AbuseJudgeRunner.classify(new DataIntegrityViolationException("Duplicate entry 'x' for key 'y'",
+                new SQLIntegrityConstraintViolationException("Duplicate entry 'x' for key 'y'"))))
+                .isEqualTo("DataIntegrityViolationException (원인: SQLIntegrityConstraintViolationException)");
+        assertThat(AbuseJudgeRunner.classify(new IllegalStateException("x".repeat(1_000))))
+                .isEqualTo("IllegalStateException");
     }
 
     @Test

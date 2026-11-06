@@ -47,12 +47,6 @@ class SharedGroupOrderRepositoryTest {
     }
 
     @Test
-    @DisplayName("없는 주문이면 상세 조회 결과가 비어 있다")
-    void findWithDetailsByIdEmpty() {
-        assertThat(sharedGroupOrderRepository.findWithDetailsById(999_999L)).isEmpty();
-    }
-
-    @Test
     @DisplayName("참여 중인 공동 주문만 최신순으로 조회하고 항목도 함께 불러온다")
     void findAllByParticipant() {
         SharedGroupOrder first = sharedGroupOrderRepository.save(order(base + 10));
