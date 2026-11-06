@@ -295,7 +295,7 @@ class GroupPurchaseApiContractTest extends ExternalApiTestSupport {
     @DisplayName("어드민은 수요 공동구매의 현황판을 조회하고 마감할 수 있다")
     void adminIndividual() throws Exception {
         Long id = individualGroupPurchaseFacade.openFromDemand(ADMIN, 2L,
-                new DemandGroupPurchaseOpenRequest("축구공 공동구매", null, null, null)).id();
+                new DemandGroupPurchaseOpenRequest("축구공 공동구매", null, null, null, null)).id();
 
         ok(get("/api/admin/carts/group-purchases/individual/{id}/dashboard", id).with(admin(ADMIN)))
                 .andExpect(jsonPath("$.data.id", equalTo(num(id))))

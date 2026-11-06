@@ -136,7 +136,7 @@ class ExternalApiGuardTest extends ExternalApiTestSupport {
                 Arguments.of(false, "POST", "/api/group-purchases/individual", "{\"title\":\"모임\",\"productIds\":[]}", "productIds"),
                 Arguments.of(false, "POST", "/api/group-purchases/individual/1/products", "{}", "productId"),
                 Arguments.of(false, "PATCH", "/api/group-purchases/individual/1/deadline", "{\"deadlineAt\":\"2020-01-01T00:00:00\"}", "deadlineAt"),
-                Arguments.of(true, "POST", "/api/admin/carts/demands/1/group-purchases", "{\"title\":\"수요\",\"paybackMinBuyers\":1}", "paybackMinBuyers"),
+                Arguments.of(true, "POST", "/api/admin/carts/demands/1/group-purchases", "{\"title\":\"수요\",\"paybackMinQuantity\":1}", "paybackMinQuantity"),
                 Arguments.of(false, "POST", "/api/orders",
                         "{\"cartItemIds\":[1],\"deliveryAddress\":{\"receiverPhone\":\"010-1234-5678\",\"zipCode\":\"12345\",\"address\":\"서울시\"}}",
                         "deliveryAddress.receiverName"),
