@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.domain.SellerTru
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostSellerTrustRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.global.QuerydslConfig;
-import com.cartmate.cartmate.boundedContext.etcService.shared.trust.event.SellerTrustScoreChangedEvent;
+import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

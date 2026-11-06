@@ -1,11 +1,11 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.in.matching;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.matching.CartMatchingFacade;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseClosedEvent;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCanceledEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;

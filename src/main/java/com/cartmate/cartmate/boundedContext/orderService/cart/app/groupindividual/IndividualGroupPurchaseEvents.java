@@ -2,10 +2,10 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividu
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchase;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchaseCloseReason;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.dto.IndividualGroupPurchaseSnapshot;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseClosedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
+import com.cartmate.cartmate.shared.cart.dto.IndividualGroupPurchaseSnapshot;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
 
 import java.time.LocalDateTime;
 

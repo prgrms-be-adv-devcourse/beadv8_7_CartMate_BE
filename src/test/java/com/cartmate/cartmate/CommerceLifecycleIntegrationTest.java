@@ -2,7 +2,7 @@ package com.cartmate.cartmate;
 
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryCreateCommand;
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.in.DeliveryScheduler;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Seller;
@@ -20,12 +20,12 @@ import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.ChargeGate
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.ChargeGatewayPayment;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.WalletChargeGateway;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.MemberSignedUpEvent;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.TeamDeliveryAddress;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderConfirmedEvent;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletPurchaseType;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.dto.SettleAndDepositRequest;
+import com.cartmate.cartmate.shared.member.event.MemberSignedUpEvent;
+import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
+import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.dto.SettleAndDepositRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;

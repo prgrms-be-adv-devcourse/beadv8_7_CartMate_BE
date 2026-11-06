@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual;
 
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.IndividualGroupOrderQuery;
+import com.cartmate.cartmate.shared.order.IndividualGroupOrderQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

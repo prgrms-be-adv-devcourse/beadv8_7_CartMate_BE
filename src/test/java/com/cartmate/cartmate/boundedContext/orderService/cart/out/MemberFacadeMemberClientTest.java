@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.out;
 
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.MemberQuery;
+import com.cartmate.cartmate.shared.member.MemberQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

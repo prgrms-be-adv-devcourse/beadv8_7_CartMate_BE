@@ -4,7 +4,7 @@ import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.SuspensionReleaseType;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.*;
 import com.cartmate.cartmate.global.page.PageResponse;
-import com.cartmate.cartmate.boundedContext.memberService.shared.member.dto.MemberDto;
+import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

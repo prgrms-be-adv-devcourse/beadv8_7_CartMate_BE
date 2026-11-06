@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.Orde
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.*;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

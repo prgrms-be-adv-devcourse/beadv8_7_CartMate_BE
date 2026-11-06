@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalType;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

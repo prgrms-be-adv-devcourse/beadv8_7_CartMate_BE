@@ -1,7 +1,8 @@
 package com.cartmate.cartmate.boundedContext.productService.post.domain;
 
 
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.shared.product.dto.SyncProductImage;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -44,6 +45,19 @@ public class SalesPostProductImage extends BaseManualIdAndTime {
         this.s3Key = s3Key;
         this.imageSeq = imageSeq;
         this.status = status;
+    }
+
+    public static SalesPostProductImage from(SyncProductImage image, SalesPostProduct salesPostProduct) {
+        return new SalesPostProductImage(
+                image.getId(),
+                image.getSellerId(),
+                salesPostProduct,
+                image.getS3Key(),
+                image.getImageSeq(),
+                image.getStatus(),
+                image.getCreateDate(),
+                image.getModifyDate()
+        );
     }
 
     public SalesPostProductImage delete() {

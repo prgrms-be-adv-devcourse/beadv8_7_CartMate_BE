@@ -6,8 +6,8 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCanceledEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderConfirmedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

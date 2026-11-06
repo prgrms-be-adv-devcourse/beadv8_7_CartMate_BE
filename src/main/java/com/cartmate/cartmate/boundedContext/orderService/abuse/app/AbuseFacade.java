@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.abuse.app;
 
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalCommand;
-import com.cartmate.cartmate.boundedContext.orderService.shared.abuse.dto.AbuseRestrictionStatus;
+import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;

@@ -2,8 +2,8 @@ package com.cartmate.cartmate.boundedContext.orderService.order.app;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.TeamDeliveryAddress;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.OptimisticLockingFailureException;

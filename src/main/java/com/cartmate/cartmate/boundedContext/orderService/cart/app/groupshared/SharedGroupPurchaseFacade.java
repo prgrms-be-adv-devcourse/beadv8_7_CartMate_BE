@@ -5,8 +5,8 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.Sh
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.SharedGroupPurchaseDetailResponse;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.SharedGroupPurchaseItemQuantityResponse;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.SharedGroupPurchaseSummaryResponse;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCreatedEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCreationFailedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCreationFailedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

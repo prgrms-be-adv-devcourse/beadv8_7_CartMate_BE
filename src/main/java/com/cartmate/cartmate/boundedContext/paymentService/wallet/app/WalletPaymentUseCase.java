@@ -7,7 +7,7 @@ import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.HoldingSet
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.WalletRepository;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.WalletTransactionRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.wallet.WalletPurchaseType;
+import com.cartmate.cartmate.shared.wallet.WalletPurchaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

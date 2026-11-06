@@ -8,8 +8,8 @@ import com.cartmate.cartmate.boundedContext.paymentService.payment.exception.Pay
 import com.cartmate.cartmate.boundedContext.paymentService.payment.out.PaymentRepository;
 import com.cartmate.cartmate.boundedContext.paymentService.payment.out.PaymentWalletClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentOrderType;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

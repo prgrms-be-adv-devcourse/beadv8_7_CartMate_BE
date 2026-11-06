@@ -22,8 +22,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 class AbuseModuleBoundaryTest {
 
     private static final String BOUNDED_CONTEXT = "..boundedContext..";
-    // 각 서비스의 shared는 모듈 간 계약이라 다른 boundedContext 의존에서 뺀다 (서비스 간 통신으로 바뀌면 없어질 임시 자리)
-    private static final String SHARED = "..boundedContext.*.shared..";
     private static final String ABUSE = "..boundedContext.orderService.abuse..";
     private static final String ANY_MODULE_OUT = "..boundedContext.*.*.out..";
 
@@ -31,7 +29,7 @@ class AbuseModuleBoundaryTest {
     static final ArchRule a1_abuseMustNotDependOnOtherBoundedContexts = classes().that().resideInAPackage(ABUSE)
             .should(dependOnlyThroughAdapterFacades(
                     resideInAPackage("..boundedContext.orderService.abuse.out.."),
-                    resideInAPackage(BOUNDED_CONTEXT).and(not(resideInAPackage(ABUSE))).and(not(resideInAPackage(SHARED))),
+                    resideInAPackage(BOUNDED_CONTEXT).and(not(resideInAPackage(ABUSE))),
                     resideInAPackage("..boundedContext.*.*.app..").and(simpleNameEndingWith("Facade"))))
             .as("A1 abuse must not depend on other bounded contexts, except abuse.out adapters calling their app facades")
             .because("abuse is a separate service; it talks to other modules only through shared events and out adapters (ABU-14, ARCH-15)");

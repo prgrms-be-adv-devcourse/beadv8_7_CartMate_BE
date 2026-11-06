@@ -26,7 +26,6 @@ import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.Orde
 import com.cartmate.cartmate.boundedContext.paymentService.payment.app.PaymentFacade;
 import com.cartmate.cartmate.boundedContext.paymentService.payment.domain.PaymentStatus;
 import com.cartmate.cartmate.boundedContext.paymentService.payment.domain.PaymentType;
-import com.cartmate.cartmate.boundedContext.paymentService.payment.dto.PaymentResponse;
 import com.cartmate.cartmate.boundedContext.paymentService.payment.out.PaymentRepository;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.app.WalletFacade;
 import com.cartmate.cartmate.boundedContext.paymentService.wallet.domain.HoldingStatus;
@@ -38,8 +37,8 @@ import com.cartmate.cartmate.boundedContext.paymentService.wallet.out.WalletTran
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.dto.TeamDeliveryAddress;
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

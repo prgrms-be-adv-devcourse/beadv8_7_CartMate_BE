@@ -10,12 +10,12 @@ import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApi
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostSanctionRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostSellerRepository;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.page.PageResponse;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.event.SalesPostHideType;
+import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.dto.personal;
 
-import com.cartmate.cartmate.boundedContext.paymentService.shared.payment.dto.PaymentResult;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 
 // 결제 화면: 주문 금액·결제 가능 여부(주문) + 예치금 잔액(결제)
 public record OrderPaymentPreviewResponse(

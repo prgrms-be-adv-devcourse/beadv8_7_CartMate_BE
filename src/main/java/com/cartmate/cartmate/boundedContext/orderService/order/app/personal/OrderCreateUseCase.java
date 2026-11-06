@@ -13,9 +13,9 @@ import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductC
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.dto.CartOrderItem;
+import com.cartmate.cartmate.shared.cart.dto.CartOrderItem;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCreatedEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;

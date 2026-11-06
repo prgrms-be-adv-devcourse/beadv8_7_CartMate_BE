@@ -1,13 +1,13 @@
 package com.cartmate.cartmate.boundedContext.paymentService.payout.app;
 
-import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.paymentService.payout.domain.Payout;
 import com.cartmate.cartmate.boundedContext.paymentService.payout.domain.PayoutPurchaseType;
 import com.cartmate.cartmate.boundedContext.paymentService.payout.domain.PayoutStatus;
 import com.cartmate.cartmate.boundedContext.paymentService.payout.out.PayoutRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryConfirmedEvent;
-import com.cartmate.cartmate.boundedContext.etcService.shared.delivery.event.DeliveryConfirmedEvent.Item;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent.Item;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

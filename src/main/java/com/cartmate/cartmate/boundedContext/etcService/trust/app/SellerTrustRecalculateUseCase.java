@@ -7,7 +7,7 @@ import com.cartmate.cartmate.boundedContext.etcService.trust.domain.TrustMetrics
 import com.cartmate.cartmate.boundedContext.etcService.trust.domain.TrustScorePolicy;
 import com.cartmate.cartmate.boundedContext.etcService.trust.out.SellerTrustScoreRepository;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
-import com.cartmate.cartmate.boundedContext.etcService.shared.trust.event.SellerTrustScoreChangedEvent;
+import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

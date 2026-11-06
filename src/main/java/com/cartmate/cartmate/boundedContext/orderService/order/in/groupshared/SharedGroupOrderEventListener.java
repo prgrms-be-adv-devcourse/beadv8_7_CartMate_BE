@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.orderService.order.in.groupshared;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.SharedGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

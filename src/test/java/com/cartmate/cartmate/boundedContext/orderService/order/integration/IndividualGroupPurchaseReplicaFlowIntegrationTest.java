@@ -13,7 +13,7 @@ import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
-import com.cartmate.cartmate.boundedContext.orderService.shared.cart.event.IndividualGroupPurchaseClosedEvent;
+import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseClosedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

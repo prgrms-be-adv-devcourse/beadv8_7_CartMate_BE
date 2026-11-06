@@ -6,7 +6,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.out.CartProductInf
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.ProductClient;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.personal.CartRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

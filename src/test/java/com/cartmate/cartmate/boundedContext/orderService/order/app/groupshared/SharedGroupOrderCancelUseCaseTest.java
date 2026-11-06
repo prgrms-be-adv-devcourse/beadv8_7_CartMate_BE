@@ -8,7 +8,7 @@ import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshare
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import org.junit.jupiter.api.DisplayName;

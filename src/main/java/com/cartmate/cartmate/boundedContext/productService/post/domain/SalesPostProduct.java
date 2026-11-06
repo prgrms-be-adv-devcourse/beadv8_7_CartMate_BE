@@ -1,9 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.domain;
 
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectSalesPostProduct;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectSalesPostProductImage;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectSalesPostProductOption;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.*;
 import lombok.Getter;

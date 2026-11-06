@@ -6,11 +6,9 @@ import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImage
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.dto.DeleteProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.shared.post.event.PostDeletedEvent;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProduct;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProductImage;
-import com.cartmate.cartmate.boundedContext.productService.shared.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.shared.product.dto.CreateProduct;
+import com.cartmate.cartmate.shared.product.dto.CreateProductImage;
+import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,7 +25,6 @@ import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;

@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.orderService.abuse.integration;
 
 import com.cartmate.cartmate.boundedContext.orderService.abuse.app.AbuseFacade;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.support.AbuseTestDataCleaner;
-import com.cartmate.cartmate.boundedContext.orderService.shared.abuse.dto.AbuseRestrictionStatus;
+import com.cartmate.cartmate.shared.abuse.dto.AbuseRestrictionStatus;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;

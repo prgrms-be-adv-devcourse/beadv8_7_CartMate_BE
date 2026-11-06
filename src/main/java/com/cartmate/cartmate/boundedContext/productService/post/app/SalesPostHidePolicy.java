@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
-import com.cartmate.cartmate.boundedContext.productService.shared.post.event.SalesPostHideType;
+import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
 import org.springframework.stereotype.Component;
 
 /**

@@ -12,8 +12,8 @@ import com.cartmate.cartmate.boundedContext.orderService.order.support.TestDataC
 import com.cartmate.cartmate.support.TestEventRecorder;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderCanceledEvent;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.SharedGroupOrderConfirmedEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

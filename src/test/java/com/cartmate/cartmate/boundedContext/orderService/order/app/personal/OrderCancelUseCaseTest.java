@@ -5,7 +5,7 @@ import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.O
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
-import com.cartmate.cartmate.boundedContext.orderService.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
