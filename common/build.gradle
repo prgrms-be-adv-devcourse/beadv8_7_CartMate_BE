@@ -30,4 +30,8 @@ dependencies {
     // Outbox · ShedLock
     api 'net.javacrumbs.shedlock:shedlock-spring:7.10.1'
     api 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.10.1'
+
+    // Kafka: 공용 전송 싱크 · 수신 다리(global/kafka). 쓰는 서비스만 spring-boot-starter-kafka를 직접 넣는다.
+    // 여기서는 컴파일만 하고 넘기지 않아 Kafka를 안 쓰는 서비스에는 들어가지 않는다
+    compileOnly 'org.springframework.kafka:spring-kafka'
 }
