@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
@@ -37,7 +36,7 @@ class IndividualGroupPurchaseSchedulerTest {
     @Test
     @DisplayName("마감 시각이 지난 어드민 공동구매를 하나씩 닫고, 하나가 실패해도 나머지는 닫는다")
     void closeEachAndContinueOnFailure() {
-        given(facade.findDemandIdsToCloseByDeadline(any())).willReturn(List.of(1L, 2L, 3L));
+        given(facade.findDemandIdsToCloseByDeadline(LocalDateTime.now(CLOCK))).willReturn(List.of(1L, 2L, 3L));
         willThrow(new IllegalStateException("boom")).given(facade).closeByDeadline(2L);
 
         scheduler.closeExpiredDemand();

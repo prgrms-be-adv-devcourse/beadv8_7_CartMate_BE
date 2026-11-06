@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual;
 
+import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
+import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
+import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseOrigin;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -8,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.demandPurchase;
 import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.memberPurchase;
@@ -31,8 +35,14 @@ class IndividualGroupPurchaseDemandTest {
         assertThat(purchase.isFromDemand()).isTrue();
         assertThat(purchase.getSourceProductId()).isEqualTo(BALL);
         assertThat(purchase.getDemandProductKey()).isEqualTo(BALL);
-        assertThat(purchase.getPaybackMinBuyers()).isEqualTo(10);
-        assertThat(purchase.getPaybackAmount()).isEqualTo(1_000L);
+        assertThat(purchase.getPaybackConditions()).singleElement().satisfies(condition -> {
+            assertThat(condition.getProductId()).isEqualTo(BALL);
+            assertThat(condition.getFunder()).isEqualTo(PaybackFunder.ADMIN);
+            assertThat(condition.getSellerId()).isNull();
+            assertThat(condition.getMinQuantity()).isEqualTo(10);
+            assertThat(condition.getAmountPerUnit()).isEqualTo(1_000L);
+        });
+        assertThat(purchase.getPaybackOverlapPolicy()).isEqualTo(PaybackOverlapPolicy.BOTH);
         assertThat(purchase.getCreatorMemberId()).isEqualTo(ADMIN);
         assertThat(purchase.getProducts()).extracting(IndividualGroupPurchaseProduct::getProductId).containsExactly(BALL);
         assertThat(purchase.getDeadlineAt()).isEqualTo(now.plusHours(72));
@@ -46,7 +56,8 @@ class IndividualGroupPurchaseDemandTest {
 
         assertThat(purchase.getOrigin()).isEqualTo(IndividualGroupPurchaseOrigin.MEMBER);
         assertThat(purchase.getDemandProductKey()).isNull();
-        assertThat(purchase.getPaybackMinBuyers()).isNull();
+        assertThat(purchase.getPaybackConditions()).isEmpty();
+        assertThat(purchase.getPaybackOverlapPolicy()).isEqualTo(PaybackOverlapPolicy.BOTH);
     }
 
     @Test
@@ -67,17 +78,65 @@ class IndividualGroupPurchaseDemandTest {
     }
 
     @Test
-    @DisplayName("페이백 기준 인원은 2~1000명, 금액은 1~100,000원이어야 한다")
+    @DisplayName("페이백 기준 수량은 2~100,000개, 개당 금액은 1~100,000원이어야 한다")
     void paybackRange() {
         assertThatThrownBy(() -> IndividualGroupPurchase.openFromDemand(
-                "축구공", ADMIN, "invitecode01", BALL, null, 1, 1_000L, now))
+                "축구공", ADMIN, "invitecode01", BALL, null, 1, 1_000L, null, now))
                 .hasMessageContaining(CartErrorCode.CART_DEMAND_INVALID_PAYBACK.getMsg());
         assertThatThrownBy(() -> IndividualGroupPurchase.openFromDemand(
-                "축구공", ADMIN, "invitecode01", BALL, null, 10, 0L, now))
+                "축구공", ADMIN, "invitecode01", BALL, null, 100_001, 1_000L, null, now))
                 .hasMessageContaining(CartErrorCode.CART_DEMAND_INVALID_PAYBACK.getMsg());
         assertThatThrownBy(() -> IndividualGroupPurchase.openFromDemand(
-                "축구공", ADMIN, "invitecode01", BALL, null, 10, 100_001L, now))
+                "축구공", ADMIN, "invitecode01", BALL, null, 10, 0L, null, now))
                 .hasMessageContaining(CartErrorCode.CART_DEMAND_INVALID_PAYBACK.getMsg());
+        assertThatThrownBy(() -> IndividualGroupPurchase.openFromDemand(
+                "축구공", ADMIN, "invitecode01", BALL, null, 10, 100_001L, null, now))
+                .hasMessageContaining(CartErrorCode.CART_DEMAND_INVALID_PAYBACK.getMsg());
+        assertThatCode(() -> IndividualGroupPurchase.openFromDemand(
+                "축구공", ADMIN, "invitecode01", BALL, null, 100_000, 100_000L, null, now))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("수요 개설 때 고른 겹침 모드가 저장된다")
+    void overlapPolicy() {
+        IndividualGroupPurchase purchase = IndividualGroupPurchase.openFromDemand(
+                "축구공", ADMIN, "invitecode01", BALL, null, 10, 500L, PaybackOverlapPolicy.LARGER, now);
+
+        assertThat(purchase.getPaybackOverlapPolicy()).isEqualTo(PaybackOverlapPolicy.LARGER);
+    }
+
+    @Test
+    @DisplayName("판매자 조건은 판매 중인 상품에만, 상품마다 한 번만 붙고 상품을 빼도 지워지지 않는다")
+    void sellerCondition() {
+        IndividualGroupPurchase purchase = memberPurchase(2L, List.of(BALL, 301L), now);
+
+        assertThat(purchase.addSellerPaybackCondition(BALL, 77L, 100, 300L)).isTrue();
+        assertThat(purchase.addSellerPaybackCondition(BALL, 77L, 50, 900L)).isFalse();
+        assertThatThrownBy(() -> purchase.addSellerPaybackCondition(999L, 77L, 100, 300L))
+                .hasMessageContaining(CartErrorCode.CART_INDIVIDUAL_PRODUCT_NOT_ON_SALE.getMsg());
+        assertThat(purchase.findPaybackCondition(BALL, PaybackFunder.SELLER))
+                .get().extracting(IndividualGroupPurchasePaybackCondition::getAmountPerUnit).isEqualTo(300L);
+        assertThat(purchase.paybackConditionPayloads())
+                .containsExactly(new PaybackConditionPayload(BALL, PaybackFunder.SELLER, 77L, 100, 300L));
+
+        purchase.removeProduct(2L, BALL, false, now);
+
+        assertThat(purchase.getPaybackConditions()).hasSize(1);
+        purchase.addProduct(2L, BALL, now);
+        assertThat(purchase.addSellerPaybackCondition(BALL, 77L, 10, 900L)).isFalse();
+    }
+
+    @Test
+    @DisplayName("판매 중지로 마지막 상품이 빠져 닫혀도 종료 이벤트에 실을 조건이 남아 있다")
+    void conditionsSurviveSalesStoppedClose() {
+        IndividualGroupPurchase purchase = demandPurchase(ADMIN, BALL, null, now);
+
+        purchase.removeProductsBySalesStopped(Set.of(BALL), now);
+
+        assertThat(purchase.isClosed()).isTrue();
+        assertThat(purchase.paybackConditionPayloads())
+                .containsExactly(new PaybackConditionPayload(BALL, PaybackFunder.ADMIN, null, 10, 1_000L));
     }
 
     @Test

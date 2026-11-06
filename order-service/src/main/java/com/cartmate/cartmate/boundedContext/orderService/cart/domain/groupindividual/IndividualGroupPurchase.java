@@ -1,12 +1,16 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual;
 
 import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseOrigin;
+import com.cartmate.cartmate.shared.cart.PaybackFunder;
+import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
+import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -14,6 +18,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Getter
@@ -32,11 +37,8 @@ public class IndividualGroupPurchase {
     public static final Duration MAX_SALE_PERIOD = Duration.ofHours(48);
     public static final Duration DEMAND_DEFAULT_SALE_PERIOD = Duration.ofHours(72);
     public static final Duration DEMAND_MAX_SALE_PERIOD = Duration.ofDays(7);
-    public static final int DEFAULT_PAYBACK_MIN_BUYERS = 10;
-    public static final long DEFAULT_PAYBACK_AMOUNT = 1_000L;
-    private static final int MIN_PAYBACK_BUYERS = 2;
-    private static final int MAX_PAYBACK_BUYERS = 1_000;
-    private static final long MAX_PAYBACK_AMOUNT = 100_000L;
+    public static final int DEFAULT_PAYBACK_MIN_QUANTITY = 10;
+    public static final long DEFAULT_PAYBACK_AMOUNT_PER_UNIT = 500L;
     private static final int MAX_TITLE_LENGTH = 50;
 
     @Id
@@ -70,9 +72,9 @@ public class IndividualGroupPurchase {
     @Column(name = "demand_product_key")
     private Long demandProductKey;
 
-    private Integer paybackMinBuyers;
-
-    private Long paybackAmount;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20) default 'BOTH'")
+    private PaybackOverlapPolicy paybackOverlapPolicy;
 
     @Column(nullable = false, columnDefinition = "bigint not null default 0")
     private long revision;
@@ -80,6 +82,11 @@ public class IndividualGroupPurchase {
     @OrderBy("id")
     @OneToMany(mappedBy = "individualGroupPurchase", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IndividualGroupPurchaseProduct> products = new ArrayList<>();
+
+    @OrderBy("id")
+    @BatchSize(size = 100)
+    @OneToMany(mappedBy = "individualGroupPurchase", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<IndividualGroupPurchasePaybackCondition> paybackConditions = new ArrayList<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -100,6 +107,7 @@ public class IndividualGroupPurchase {
         this.inviteCode = inviteCode;
         this.status = IndividualGroupPurchaseStatus.OPEN;
         this.origin = IndividualGroupPurchaseOrigin.MEMBER;
+        this.paybackOverlapPolicy = PaybackOverlapPolicy.BOTH;
         this.deadlineAt = now.plus(DEFAULT_SALE_PERIOD);
         productIds.stream()
                 .distinct()
@@ -113,15 +121,18 @@ public class IndividualGroupPurchase {
 
     public static IndividualGroupPurchase openFromDemand(String title, Long adminMemberId, String inviteCode,
                                                          Long productId, LocalDateTime deadlineAt,
-                                                         int paybackMinBuyers, long paybackAmount, LocalDateTime now) {
-        validatePayback(paybackMinBuyers, paybackAmount);
+                                                         int paybackMinQuantity, long paybackAmountPerUnit,
+                                                         PaybackOverlapPolicy paybackOverlapPolicy, LocalDateTime now) {
         IndividualGroupPurchase purchase =
                 new IndividualGroupPurchase(title, adminMemberId, inviteCode, List.of(productId), now);
         purchase.origin = IndividualGroupPurchaseOrigin.ADMIN_DEMAND;
         purchase.sourceProductId = productId;
         purchase.demandProductKey = productId;
-        purchase.paybackMinBuyers = paybackMinBuyers;
-        purchase.paybackAmount = paybackAmount;
+        purchase.paybackConditions.add(IndividualGroupPurchasePaybackCondition.admin(
+                purchase, productId, paybackMinQuantity, paybackAmountPerUnit));
+        if (paybackOverlapPolicy != null) {
+            purchase.paybackOverlapPolicy = paybackOverlapPolicy;
+        }
         LocalDateTime requestedDeadlineAt = deadlineAt == null ? now.plus(DEMAND_DEFAULT_SALE_PERIOD) : deadlineAt;
         purchase.validateDeadline(requestedDeadlineAt, now);
         purchase.deadlineAt = requestedDeadlineAt;
@@ -164,6 +175,29 @@ public class IndividualGroupPurchase {
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCT_NOT_ON_SALE));
         products.remove(product);
         revision++;
+    }
+
+    public boolean addSellerPaybackCondition(Long productId, Long sellerId, int minQuantity, long amountPerUnit) {
+        if (!hasProduct(productId)) {
+            throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_PRODUCT_NOT_ON_SALE);
+        }
+        if (findPaybackCondition(productId, PaybackFunder.SELLER).isPresent()) {
+            return false;
+        }
+        paybackConditions.add(IndividualGroupPurchasePaybackCondition.seller(
+                this, productId, sellerId, minQuantity, amountPerUnit));
+        return true;
+    }
+
+    public Optional<IndividualGroupPurchasePaybackCondition> findPaybackCondition(Long productId,
+                                                                                  PaybackFunder funder) {
+        return paybackConditions.stream()
+                .filter(condition -> condition.is(productId, funder))
+                .findFirst();
+    }
+
+    public List<PaybackConditionPayload> paybackConditionPayloads() {
+        return paybackConditions.stream().map(IndividualGroupPurchasePaybackCondition::toPayload).toList();
     }
 
     public boolean removeProductsBySalesStopped(Set<Long> productIds, LocalDateTime now) {
@@ -261,13 +295,6 @@ public class IndividualGroupPurchase {
         }
         if (!isFromDemand() && newDeadlineAt.isAfter(now.plus(MAX_SALE_PERIOD))) {
             throw new ServiceException(CartErrorCode.CART_INDIVIDUAL_DEADLINE_TOO_LATE);
-        }
-    }
-
-    private static void validatePayback(int paybackMinBuyers, long paybackAmount) {
-        if (paybackMinBuyers < MIN_PAYBACK_BUYERS || paybackMinBuyers > MAX_PAYBACK_BUYERS
-                || paybackAmount < 1 || paybackAmount > MAX_PAYBACK_AMOUNT) {
-            throw new ServiceException(CartErrorCode.CART_DEMAND_INVALID_PAYBACK);
         }
     }
 

@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
+import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
+import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchasePayback;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
@@ -124,7 +127,7 @@ class IndividualGroupPurchasePaybackUseCaseTest {
     @DisplayName("아직 판매 중이거나 페이백 조건이 없는(회원) 공동구매는 판정하지 않는다")
     void notJudged() {
         IndividualGroupPurchaseReplica open = IndividualGroupPurchaseReplica.of(PURCHASE, OPENED.plusDays(7), false, null, List.of(1L), 0);
-        open.fillPaybackCondition(2, 1_000L);
+        open.fillPaybackConditions(PaybackOverlapPolicy.BOTH, List.of(adminCondition(2)));
         givenReplica(open);
         givenOrders(order(1L, 10L, OrderStatus.PAID));
         useCase.recordConfirmed(1L, OPENED.plusDays(3), OPENED.plusDays(3));
@@ -188,11 +191,28 @@ class IndividualGroupPurchasePaybackUseCaseTest {
         verify(paybackRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("어드민 조건 없이 판매자 조건만 있으면 수량 기준 판정(PB-6) 전까지 판정하지 않는다")
+    void sellerOnlyNotJudgedYet() {
+        IndividualGroupPurchaseReplica replica = IndividualGroupPurchaseReplica.of(
+                PURCHASE, OPENED.plusDays(3), true, OPENED.plusDays(1), List.of(1L), 2);
+        replica.fillPaybackConditions(PaybackOverlapPolicy.BOTH,
+                List.of(new PaybackConditionPayload(1L, PaybackFunder.SELLER, 77L, 2, 1_000L)));
+        givenReplica(replica);
+        givenOrders(order(1L, 10L, OrderStatus.PAID));
+        useCase.recordConfirmed(1L, OPENED.plusDays(3), OPENED.plusDays(3));
+        verify(paybackRepository, never()).save(any());
+    }
+
     private IndividualGroupPurchaseReplica closedWithPayback(int minBuyers) {
         IndividualGroupPurchaseReplica replica = IndividualGroupPurchaseReplica.of(
                 PURCHASE, OPENED.plusDays(3), true, OPENED.plusDays(1), List.of(1L), 2);
-        replica.fillPaybackCondition(minBuyers, 1_000L);
+        replica.fillPaybackConditions(PaybackOverlapPolicy.BOTH, List.of(adminCondition(minBuyers)));
         return replica;
+    }
+
+    private static PaybackConditionPayload adminCondition(int minQuantity) {
+        return new PaybackConditionPayload(1L, PaybackFunder.ADMIN, null, minQuantity, 1_000L);
     }
 
     private void givenReplica(IndividualGroupPurchaseReplica replica) {

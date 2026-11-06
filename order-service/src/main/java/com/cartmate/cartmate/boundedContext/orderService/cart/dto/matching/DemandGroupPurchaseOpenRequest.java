@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.dto.matching;
 
+import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -15,10 +16,11 @@ public record DemandGroupPurchaseOpenRequest(
         @Future
         LocalDateTime deadlineAt,
         @Min(2)
-        @Max(1000)
-        Integer paybackMinBuyers,
+        @Max(100000)
+        Integer paybackMinQuantity,
         @Min(1)
         @Max(100000)
-        Long paybackAmount
+        Long paybackAmountPerUnit,
+        PaybackOverlapPolicy paybackOverlapPolicy
 ) {
 }

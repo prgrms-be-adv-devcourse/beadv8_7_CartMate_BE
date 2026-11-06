@@ -2,11 +2,13 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividu
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.InviteCodeGenerator;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchase;
+import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchasePaybackCondition;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividual.IndividualGroupPurchaseCreateResponse;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.matching.DemandGroupPurchaseOpenRequest;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.shared.cart.event.DemandGroupPurchaseOpenedEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
@@ -41,15 +43,20 @@ class IndividualGroupPurchaseDemandOpenUseCase {
         String inviteCode = inviteCodeGenerator.generateUnique(individualGroupPurchaseRepository::existsByInviteCode);
         IndividualGroupPurchase purchase = IndividualGroupPurchase.openFromDemand(
                 request.title(), adminMemberId, inviteCode, productId, request.deadlineAt(),
-                Objects.requireNonNullElse(request.paybackMinBuyers(), IndividualGroupPurchase.DEFAULT_PAYBACK_MIN_BUYERS),
-                Objects.requireNonNullElse(request.paybackAmount(), IndividualGroupPurchase.DEFAULT_PAYBACK_AMOUNT),
-                now);
+                Objects.requireNonNullElse(request.paybackMinQuantity(),
+                        IndividualGroupPurchase.DEFAULT_PAYBACK_MIN_QUANTITY),
+                Objects.requireNonNullElse(request.paybackAmountPerUnit(),
+                        IndividualGroupPurchase.DEFAULT_PAYBACK_AMOUNT_PER_UNIT),
+                request.paybackOverlapPolicy(), now);
 
         IndividualGroupPurchase saved = save(purchase);
         eventPublisher.publish(IndividualGroupPurchaseEvents.opened(saved, now));
+        IndividualGroupPurchasePaybackCondition adminCondition =
+                saved.findPaybackCondition(productId, PaybackFunder.ADMIN).orElseThrow();
         eventPublisher.publish(new DemandGroupPurchaseOpenedEvent(
                 saved.getId(), productId, saved.getTitle(), saved.getInviteCode(), saved.getDeadlineAt(),
-                saved.getPaybackMinBuyers(), saved.getPaybackAmount(), now));
+                adminCondition.getMinQuantity(), adminCondition.getAmountPerUnit(),
+                saved.getPaybackOverlapPolicy(), now));
         return IndividualGroupPurchaseCreateResponse.from(saved);
     }
 

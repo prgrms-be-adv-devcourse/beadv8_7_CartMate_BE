@@ -83,6 +83,7 @@ class OrderCancelUseCaseTest {
         assertThat(event.memberId()).isEqualTo(BUYER);
         assertThat(event.cancelReason()).isEqualTo(OrderCancelReason.BUYER_CANCELED);
         assertThat(event.paid()).isTrue();
+        assertThat(event.canceledAt()).isEqualTo(LocalDateTime.now(CLOCK));
     }
 
     @Test
