@@ -9,10 +9,12 @@ import com.cartmate.cartmate.boundedContext.orderService.coupon.exception.Coupon
 import com.cartmate.cartmate.boundedContext.orderService.coupon.out.CouponRepository;
 import com.cartmate.cartmate.boundedContext.orderService.coupon.out.MemberCouponRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -25,13 +27,22 @@ import java.time.LocalDateTime;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 class CouponIssueUseCase {
 
     private static final int MYSQL_DUPLICATE_KEY = 1062;
 
     private final CouponRepository couponRepository;
     private final MemberCouponRepository memberCouponRepository;
+    private final TransactionTemplate perCouponTransaction;
+
+    CouponIssueUseCase(CouponRepository couponRepository, MemberCouponRepository memberCouponRepository,
+                       PlatformTransactionManager transactionManager) {
+        this.couponRepository = couponRepository;
+        this.memberCouponRepository = memberCouponRepository;
+        // 자동 발급은 쿠폰 한 장마다 새 트랜잭션: 한 장이 실패하면 그 쿠폰의 수량 증가와 저장만 롤백되고 나머지는 발급된다
+        this.perCouponTransaction = new TransactionTemplate(transactionManager);
+        this.perCouponTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
 
     void download(Long couponId, Long memberId, LocalDateTime now) {
         Coupon coupon = couponRepository.findById(couponId)
@@ -46,6 +57,7 @@ class CouponIssueUseCase {
     }
 
     // 가입 쿠폰 자동 발급. 하나가 실패해도 다른 쿠폰은 계속 발급한다 (로그만 남김)
+    // 가입 쿠폰 자동 발급. 쿠폰마다 트랜잭션을 따로 둬서, 한 장이 실패해도(소진·동시 중복) 다른 쿠폰은 발급된다
     int issueOnSignup(Long memberId, LocalDateTime now) {
         int issued = 0;
         for (Coupon coupon : couponRepository.findAllByIssueTypeAndAutoTriggerAndStatus(
@@ -54,9 +66,9 @@ class CouponIssueUseCase {
                 continue;
             }
             try {
-                issue(coupon, memberId, now);
+                perCouponTransaction.executeWithoutResult(status -> issue(coupon, memberId, now));
                 issued++;
-            } catch (ServiceException e) {
+            } catch (RuntimeException e) {
                 log.warn("가입 쿠폰 자동 발급 건너뜀: 쿠폰 #{} 회원 #{} ({})", coupon.getId(), memberId, e.getMessage());
             }
         }

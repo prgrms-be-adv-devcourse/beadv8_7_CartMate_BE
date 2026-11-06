@@ -30,7 +30,8 @@ class CouponQueryUseCase {
     // 쿠폰함: 최근 받은 순. 상태(사용 가능·사용 예정·사용 완료·기간 만료)는 화면이 탭으로 나눈다
     List<MemberCouponResponse> myCoupons(Long memberId, LocalDateTime now) {
         List<MemberCoupon> owned = memberCouponRepository.findAllByMemberIdOrderByIdDesc(memberId);
-        Map<Long, Coupon> coupons = couponRepository.findAllById(owned.stream().map(MemberCoupon::getCouponId).toList())
+        Map<Long, Coupon> coupons = couponRepository.findAllById(
+                        owned.stream().map(MemberCoupon::getCouponId).distinct().toList())
                 .stream().collect(Collectors.toMap(Coupon::getId, Function.identity()));
         return owned.stream()
                 .filter(mc -> coupons.containsKey(mc.getCouponId()))

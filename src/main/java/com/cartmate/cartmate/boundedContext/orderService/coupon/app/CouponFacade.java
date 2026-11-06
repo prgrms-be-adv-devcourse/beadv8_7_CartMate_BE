@@ -8,7 +8,6 @@ import com.cartmate.cartmate.global.page.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -56,7 +55,6 @@ public class CouponFacade {
 
     // ===== 이벤트 =====
     // 커밋 후 리스너에서 부르므로 새 트랜잭션 (규칙 문서 2-2: REQUIRED면 오류 없이 저장 안 됨)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int issueSignupCoupons(Long memberId) {
         return couponIssueUseCase.issueOnSignup(memberId, LocalDateTime.now());
     }
