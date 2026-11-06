@@ -30,7 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
-/** 아웃박스 릴레이가 넘기는 래퍼 이벤트(트랜잭션 밖)를 받아 cart 주문 읽기 모델과 현황판 조회가 맞게 바뀌는지 본다. */
 @CartMateIntegrationTest
 class IndividualGroupPurchaseOrderReplicaIntegrationTest {
 

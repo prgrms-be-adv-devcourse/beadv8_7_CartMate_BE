@@ -22,7 +22,6 @@ public interface SharedGroupPurchaseRepositoryCustom {
 
     List<Long> findIdsToReleaseFrozen(LocalDateTime now);
 
-    // 공동 주문 생성 대기(CLOSED)가 기준 시각 이전에 마감된 것
     List<Long> findIdsAwaitingOrderClosedBefore(LocalDateTime threshold);
 
     Map<Long, String> findTitlesByIds(Collection<Long> ids);

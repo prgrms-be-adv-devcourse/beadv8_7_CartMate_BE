@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-
 public record SharedGroupPurchaseDetailResponse(
         Long id,
         String title,
@@ -34,7 +33,6 @@ public record SharedGroupPurchaseDetailResponse(
         boolean hasUnavailableItem,
         String creatorNickname
 ) {
-
 
     public static SharedGroupPurchaseDetailResponse of(SharedGroupPurchase purchase,
                                                        Map<Long, CartProductInfo> products,
@@ -84,7 +82,6 @@ public record SharedGroupPurchaseDetailResponse(
         );
     }
 
-
     public record MemberResponse(
             Long memberId,
             boolean creator,
@@ -95,7 +92,6 @@ public record SharedGroupPurchaseDetailResponse(
             return new MemberResponse(member.getMemberId(), creator, member.getCreatedAt(), nickname);
         }
     }
-
 
     @Schema(name = "SharedGroupPurchaseDetailItemResponse")
     public record ItemResponse(

@@ -104,7 +104,6 @@ class OrderRepositoryTest {
                 () -> orderRepository.saveAndFlush(personalOrder(newOrderNumber(), buyer,
                         List.of(productBLine(11L, 1)), NOW)));
 
-        // OrderCreateUseCase가 판별에 쓰는 두 경로(Hibernate 제약 이름, 가장 안쪽 DB 메시지)를 실제 MySQL에서 확인한다
         assertThat(e).isNotNull();
         assertThat(e.getCause()).isInstanceOf(ConstraintViolationException.class);
         assertThat(((ConstraintViolationException) e.getCause()).getConstraintName())
@@ -151,7 +150,6 @@ class OrderRepositoryTest {
         DataIntegrityViolationException e = catchThrowableOfType(DataIntegrityViolationException.class,
                 () -> orderRepository.saveAndFlush(individualGroup(buyer, purchaseId)));
 
-        // OrderCreateUseCase가 판별에 쓰는 두 경로(Hibernate 제약 이름, 가장 안쪽 DB 메시지)를 실제 MySQL에서 확인한다
         assertThat(e).isNotNull();
         assertThat(((ConstraintViolationException) e.getCause()).getConstraintName())
                 .contains(Order.PENDING_BUYER_INDIVIDUAL_GROUP_UNIQUE);

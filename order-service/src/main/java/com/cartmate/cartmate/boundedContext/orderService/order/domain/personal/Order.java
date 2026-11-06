@@ -54,8 +54,6 @@ public class Order {
 
     private Long individualGroupPurchaseId;
 
-    // 결제 대기 중인 개인물품 공동구매 주문일 때만 공동구매 ID, 아니면 NULL. unique(buyer_member_id, 이 컬럼)로
-    // "같은 회원은 같은 공동구매에 결제 대기 주문을 하나만"을 order DB가 보장한다 (예전엔 cart 공동구매 행 락이 맡았다)
     @Column(name = "pending_individual_group_purchase_id")
     private Long pendingIndividualGroupPurchaseId;
 
@@ -185,7 +183,6 @@ public class Order {
         return true;
     }
 
-    // 판매글 판매 중지: 결제 대기 주문만 전체 취소. 이미 결제·취소된 주문은 그대로.
     public boolean cancelBySalesStopped(LocalDateTime now) {
         if (status != OrderStatus.PAYMENT_PENDING) {
             return false;
@@ -194,7 +191,6 @@ public class Order {
         return true;
     }
 
-    // 개인물품 공동구매가 닫힘: 결제 대기 주문만 취소. 이미 결제 · 취소된 주문은 그대로(종료 전 결제는 결제 완료로 남는다)
     public boolean cancelByGroupPurchaseClosed(LocalDateTime now) {
         if (status != OrderStatus.PAYMENT_PENDING) {
             return false;
@@ -203,12 +199,10 @@ public class Order {
         return true;
     }
 
-    // 남은 항목이 없으면 주문도 취소 상태가 된다.
     public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
         if (status != OrderStatus.PAID) {
             return 0;
         }
-        // 이 판매자 상품을 모두 취소하고 그 금액을 합쳐 돌려준다 (판매자 상품이 여러 개일 수 있다)
         long amount = 0;
         for (OrderItem item : items) {
             if (sellerId.equals(item.getSellerId()) && !item.isCanceled()) {
@@ -245,7 +239,6 @@ public class Order {
         releasePending();
     }
 
-    // 결제 대기를 벗어나면 같은 상품 · 같은 공동구매로 다시 주문할 수 있게 unique 대상에서 뺀다
     private void releasePending() {
         this.pendingIndividualGroupPurchaseId = null;
         items.forEach(OrderItem::releasePending);

@@ -29,10 +29,6 @@ import static com.cartmate.cartmate.support.OutboxRelayHelper.relayOnce;
 import static com.cartmate.cartmate.support.OutboxRelayHelper.relayUntil;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * 공동구매 마감(cart 트랜잭션: CLOSED + 아웃박스)과 공동 주문 생성(order consumer 트랜잭션)이 분리된 흐름.
- * 릴레이를 직접 돌려 마감 이벤트 → 공동 주문 → 생성 소식 → ORDER_CREATED 순서로 넘어가는지 본다.
- */
 @CartMateIntegrationTest
 class SharedGroupOrderCreationFlowIntegrationTest {
 
@@ -108,7 +104,6 @@ class SharedGroupOrderCreationFlowIntegrationTest {
         sharedGroupPurchaseFacade.close(creator, purchaseId);
         relayUntil(jdbcTemplate, outboxRelay, () -> statusOf(purchaseId) == SharedGroupPurchaseStatus.ORDER_CREATED);
 
-        // at-least-once: 싱크 성공 뒤 PUBLISHED 기록이 실패하면 같은 행이 다시 간다
         jdbcTemplate.update("UPDATE outbox_event SET status = 'NEW', next_attempt_at = ? " +
                 "WHERE aggregate_type = 'SharedGroupPurchase' AND aggregate_id = ? AND event_type = ?",
                 LocalDateTime.now(), String.valueOf(purchaseId), CLOSED_EVENT);
@@ -164,13 +159,10 @@ class SharedGroupOrderCreationFlowIntegrationTest {
     void orderCreationTimeoutRevertsToFrozen() {
         Long purchaseId = readyPurchase("시간 초과");
         sharedGroupPurchaseFacade.close(creator, purchaseId);
-        // 다른 테스트 컨텍스트의 릴레이가 먼저 집어 가지 않게 마감 이벤트를 잠시 비켜 둔다(consumer가 계속 실패 중인 상황)
-        // 시각은 DB NOW()가 아니라 JVM 시각으로 넣는다(앱이 LocalDateTime.now()와 비교하므로 시간대 차이를 피한다)
         jdbcTemplate.update("UPDATE outbox_event SET next_attempt_at = ? " +
                 "WHERE aggregate_type = 'SharedGroupPurchase' AND aggregate_id = ?",
                 LocalDateTime.now().plusHours(1), String.valueOf(purchaseId));
 
-        // 스케줄러가 하는 일(대상 조회 → 하나씩 복귀)을 직접 부른다. 스케줄러 자체는 ShedLock 최소 유지 시간 때문에 연달아 부를 수 없다
         assertThat(sharedGroupPurchaseFacade.findIdsAwaitingOrderTooLong(LocalDateTime.now())).doesNotContain(purchaseId);
         sharedGroupPurchaseFacade.revertByOrderCreationTimeout(purchaseId);
         assertThat(statusOf(purchaseId)).isEqualTo(SharedGroupPurchaseStatus.CLOSED);
@@ -184,7 +176,6 @@ class SharedGroupOrderCreationFlowIntegrationTest {
         assertThat(sharedGroupPurchaseRepository.findById(purchaseId).orElseThrow().getFrozenAt()).isNotNull();
         assertThat(orderCountOf(purchaseId)).isZero();
 
-        // 주문은 order 생성 창(마감 뒤 8분) 안에 만들어졌는데 생성 소식이 늦게 온 경우: 주문 쪽이 기준이다
         jdbcTemplate.update("UPDATE outbox_event SET next_attempt_at = ? " +
                 "WHERE aggregate_type = 'SharedGroupPurchase' AND aggregate_id = ?",
                 LocalDateTime.now(), String.valueOf(purchaseId));

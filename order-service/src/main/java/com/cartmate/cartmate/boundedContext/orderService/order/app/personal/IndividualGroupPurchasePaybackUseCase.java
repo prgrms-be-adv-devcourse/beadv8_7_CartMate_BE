@@ -26,6 +26,7 @@ class IndividualGroupPurchasePaybackUseCase {
     private final IndividualGroupPurchaseReplicaRepository replicaRepository;
     private final OrderPurchaseConfirmationRepository confirmationRepository;
     private final IndividualGroupPurchasePaybackRepository paybackRepository;
+    private final PaybackPayoutUseCase paybackPayoutUseCase;
 
     void recordConfirmed(Long orderId, LocalDateTime confirmedAt, LocalDateTime now) {
         Long purchaseId = orderRepository.findById(orderId)
@@ -66,8 +67,12 @@ class IndividualGroupPurchasePaybackUseCase {
         confirmationRepository.findAllById(orders.stream().map(Order::getId).toList())
                 .forEach(confirmation -> confirmedOrderIds.add(confirmation.getOrderId()));
 
-        PaybackSettlement.confirmedBuyerCount(orders, confirmedOrderIds).ifPresent(buyerCount ->
-                paybackRepository.save(IndividualGroupPurchasePayback.judge(purchaseId,
-                        replica.getPaybackMinBuyers(), replica.getPaybackAmount(), buyerCount, now)));
+        PaybackSettlement.confirmedBuyers(orders, confirmedOrderIds).ifPresent(buyers -> {
+            IndividualGroupPurchasePayback judged = paybackRepository.save(IndividualGroupPurchasePayback.judge(
+                    purchaseId, replica.getPaybackMinBuyers(), replica.getPaybackAmount(), buyers.size(), now));
+            if (judged.isReached()) {
+                paybackPayoutUseCase.requestAll(purchaseId, buyers, judged.getPaybackAmount(), now);
+            }
+        });
     }
 }

@@ -16,7 +16,6 @@ public class CartPostEventListener {
 
     private final GroupPurchaseSalesStopUseCase salesStopUseCase;
 
-    // 판매글 숨김이 커밋된 뒤 별도 스레드에서, 모집 중 공동구매를 하나씩 정리한다.
     @Async("eventExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(SalesPostHiddenEvent event) {

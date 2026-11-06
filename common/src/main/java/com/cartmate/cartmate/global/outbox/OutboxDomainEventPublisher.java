@@ -7,9 +7,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * {@link DomainEventPublisher}의 아웃박스 구현. 호출한 트랜잭션에 참여만 한다(MANDATORY).
- */
 @Component
 @RequiredArgsConstructor
 public class OutboxDomainEventPublisher implements DomainEventPublisher {

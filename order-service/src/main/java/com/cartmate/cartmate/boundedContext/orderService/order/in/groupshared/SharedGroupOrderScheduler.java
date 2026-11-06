@@ -18,8 +18,6 @@ import java.util.function.Consumer;
 public class SharedGroupOrderScheduler {
 
     private static final long INTERVAL_MILLIS = 60_000L;
-    // 여러 인스턴스 중 한 곳만 돈다. 정합성은 행 락 + 상태 재검사가 지키고, 락은 같은 일을 겹쳐 하지 않게 한다.
-    // 인스턴스가 죽어도 5분 뒤 풀린다. 5초 최소 유지는 인스턴스 간 시계 차이로 같은 회차가 두 번 도는 것만 막는다
     private static final String LOCK_AT_MOST = "PT5M";
     private static final String LOCK_AT_LEAST = "PT5S";
 

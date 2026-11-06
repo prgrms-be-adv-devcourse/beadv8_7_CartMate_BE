@@ -104,7 +104,6 @@ public class SharedGroupPurchaseFacade {
         sharedGroupPurchaseCloseUseCase.closeByFrozenTimeout(sharedGroupPurchaseId);
     }
 
-    // 아래 둘은 order의 공동 주문 생성 결과로 공동구매 단계를 바꾼다 (아웃박스 릴레이 → SharedGroupPurchaseOrderResultListener)
     @Transactional
     public void markOrderCreated(SharedGroupOrderCreatedEvent event) {
         sharedGroupPurchaseOrderResultUseCase.markOrderCreated(event);
@@ -150,7 +149,6 @@ public class SharedGroupPurchaseFacade {
         return sharedGroupPurchaseQueryUseCase.findTitles(sharedGroupPurchaseIds);
     }
 
-    // 회원 탈퇴 확인: 참여 중인 모집 중 공용물품 공동구매 수
     @Transactional(readOnly = true)
     public long countActiveOfMember(Long memberId) {
         return sharedGroupPurchaseQueryUseCase.countActiveOfMember(memberId);

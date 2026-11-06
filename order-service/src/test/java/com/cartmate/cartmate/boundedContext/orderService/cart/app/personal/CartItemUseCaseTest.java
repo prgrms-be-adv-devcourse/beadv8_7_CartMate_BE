@@ -30,9 +30,9 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class CartItemUseCaseTest {
@@ -51,7 +51,6 @@ class CartItemUseCaseTest {
 
     @Mock
     private ProductClient productClient;
-
 
     private CartItemUseCase cartItemUseCase;
 
@@ -241,11 +240,18 @@ class CartItemUseCaseTest {
         }
 
         @Test
-        @DisplayName("공동구매 상품 주문이 결제되면 장바구니를 건드리지 않는다")
-        void ignoreIndividualGroupOrder() {
+        @DisplayName("개인물품 공동구매 주문이 결제돼도 산 상품 옵션을 그 수량만큼 장바구니에서 차감한다 (ISS-22)")
+        void removeIndividualGroupOrderedQuantities() {
+            Cart cart = Cart.create(MEMBER_ID);
+            cart.addItem(100L, 1L, 1);
+            cart.addItem(100L, 2L, 2);
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
+
             cartItemUseCase.removeOrderedItems(paidEvent(OrderType.INDIVIDUAL_GROUP, item(1L, 1)));
 
-            verifyNoInteractions(cartRepository);
+            assertThat(cart.getItems())
+                    .extracting(CartItem::getInventoryId, CartItem::getQuantity)
+                    .containsExactly(tuple(2L, 2));
         }
 
         private OrderPaidEvent.Item item(Long inventoryId, int quantity) {

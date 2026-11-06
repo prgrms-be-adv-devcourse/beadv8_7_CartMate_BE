@@ -27,8 +27,6 @@ class SharedGroupOrderCreateUseCase {
     private final SharedGroupOrderRepository sharedGroupOrderRepository;
     private final OrderProductClient orderProductClient;
     private final DomainEventPublisher eventPublisher;
-    // 마감 뒤 이 시간이 지나면 새로 만들지 않는다. cart는 마감 뒤 10분(custom.shared-group-purchase.order-creation-timeout)
-    // 안에 생성 소식이 없으면 FROZEN으로 돌리므로, 그보다 짧게 잡아 FROZEN으로 돌아간 뒤 늦게 주문이 생기는 일을 막는다
     private final Duration creationWindow;
 
     SharedGroupOrderCreateUseCase(
@@ -42,9 +40,6 @@ class SharedGroupOrderCreateUseCase {
         this.creationWindow = creationWindow;
     }
 
-    // 공동구매 하나에 공동 주문 하나(shared_group_purchase_id unique). 이미 있으면 다시 만들지 않고 생성 소식만 다시 낸다:
-    // 중복 전달이면 cart가 그냥 넘기고, 시간 초과로 FROZEN에 돌아갔다 재마감된 경우면 cart가 이 소식으로 ORDER_CREATED가 된다
-    // 재시도가 길어져 생성 창을 넘긴 마감은 업무 규칙 실패로 보고 만들지 않는다(→ 실패 소식 → cart FROZEN)
     void createFromClosedPurchase(SharedGroupPurchaseClosedEvent event, LocalDateTime now) {
         SharedGroupOrder order = sharedGroupOrderRepository.findBySharedGroupPurchaseId(event.sharedGroupPurchaseId())
                 .orElseGet(() -> create(event, now));
@@ -64,7 +59,6 @@ class SharedGroupOrderCreateUseCase {
                 event.closedAt()));
     }
 
-    // 주문 생성 트랜잭션은 이미 롤백됐다. 실패 소식만 새 트랜잭션에서 아웃박스에 남긴다
     void reportCreationFailed(Long sharedGroupPurchaseId, String reason) {
         eventPublisher.publish(new SharedGroupOrderCreationFailedEvent(sharedGroupPurchaseId, reason));
     }

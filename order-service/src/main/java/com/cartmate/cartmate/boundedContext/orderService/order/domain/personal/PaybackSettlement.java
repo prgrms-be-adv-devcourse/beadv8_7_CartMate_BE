@@ -12,6 +12,10 @@ public final class PaybackSettlement {
     }
 
     public static Optional<Integer> confirmedBuyerCount(Collection<Order> orders, Set<Long> confirmedOrderIds) {
+        return confirmedBuyers(orders, confirmedOrderIds).map(Set::size);
+    }
+
+    public static Optional<Set<Long>> confirmedBuyers(Collection<Order> orders, Set<Long> confirmedOrderIds) {
         Set<Long> confirmedBuyers = new HashSet<>();
         for (Order order : orders) {
             if (order.getStatus() == OrderStatus.CANCELED) {
@@ -22,6 +26,6 @@ public final class PaybackSettlement {
             }
             confirmedBuyers.add(order.getBuyerMemberId());
         }
-        return Optional.of(confirmedBuyers.size());
+        return Optional.of(Set.copyOf(confirmedBuyers));
     }
 }

@@ -17,7 +17,6 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class IndividualGroupPurchasePaybackListener {
 
-
     private final OrderFacade orderFacade;
 
     @TransactionalEventListener(fallbackExecution = true)

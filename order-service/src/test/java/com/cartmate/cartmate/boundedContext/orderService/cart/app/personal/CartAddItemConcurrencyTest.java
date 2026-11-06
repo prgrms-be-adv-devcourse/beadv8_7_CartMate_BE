@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @CartMateIntegrationTest
 class CartAddItemConcurrencyTest {
 
-    // 커넥션 풀(기본 10)보다 많이 띄워 요청당 커넥션 하나로 끝나는지도 본다
     private static final int THREADS = 16;
 
     @Autowired

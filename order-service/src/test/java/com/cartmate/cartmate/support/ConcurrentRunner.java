@@ -10,17 +10,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
-/**
- * 동시성 테스트용 실행기. 작업 N개를 스레드 N개에 올려 모두 출발선(ready)에 선 뒤 한 번에(start) 출발시키고,
- * 모두 끝날 때까지 기다려 작업마다 성공 / 던진 예외를 {@link Results}로 돌려준다.
- *
- * <ul>
- *   <li>제한 시간 안에 모두 끝나지 않으면 테스트를 실패시킨다(교착 · 무한 대기를 결과로 숨기지 않음)</li>
- *   <li>작업이 던진 예외는 삼키지 않고 모은다. 테스트는 허용한 예외(예: 업무 예외 {@code ServiceException})만
- *       나왔는지 {@link Results#assertNoUnexpected(Class[])}로 단정한다</li>
- *   <li>호출마다 executor를 만들고 끝나면 {@code shutdown} 후 종료를 기다린다. 라운드를 반복하는 테스트는 라운드마다 그냥 부르면 된다</li>
- * </ul>
- */
 public final class ConcurrentRunner {
 
     public static final Duration TIMEOUT = Duration.ofSeconds(30);
@@ -38,13 +27,11 @@ public final class ConcurrentRunner {
         void run(int index) throws Exception;
     }
 
-    /** 서로 다른 작업들을 동시에 출발시킨다. 결과의 순서는 인자 순서와 같다. */
     public static Results run(Task... tasks) throws InterruptedException {
         List<Task> list = List.of(tasks);
         return run(list.size(), index -> list.get(index).run());
     }
 
-    /** 같은 작업을 {@code count}개 스레드에서 동시에 출발시킨다. 작업은 0부터 시작하는 자기 순번을 받는다. */
     public static Results run(int count, IndexedTask task) throws InterruptedException {
         ExecutorService executor = Executors.newFixedThreadPool(count);
         CountDownLatch ready = new CountDownLatch(count);
@@ -94,12 +81,10 @@ public final class ConcurrentRunner {
                 return;
             }
         }
-        // 끝나지 않은 작업이 있으면 끊고 짧게만 기다린다(실패 원인은 이미 위에서 던졌다)
         executor.shutdownNow();
         executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    /** 작업마다의 결과. 인덱스는 작업 순번이다. 예외가 없으면 그 작업은 성공이다. */
     public static final class Results {
 
         private final Throwable[] errors;
@@ -116,7 +101,6 @@ public final class ConcurrentRunner {
             return errors[index] == null;
         }
 
-        /** 그 작업이 던진 예외. 성공했으면 null. */
         public Throwable error(int index) {
             return errors[index];
         }
@@ -125,17 +109,14 @@ public final class ConcurrentRunner {
             return Arrays.stream(errors).filter(e -> e == null).count();
         }
 
-        /** 실패한 작업들의 예외(순번 순). */
         public List<Throwable> errors() {
             return Arrays.stream(errors).filter(e -> e != null).toList();
         }
 
-        /** 실패한 작업 가운데 {@code type} 예외만. */
         public <T extends Throwable> List<T> errorsOf(Class<T> type) {
             return errors().stream().filter(type::isInstance).map(type::cast).toList();
         }
 
-        /** 허용한 예외 종류(하위 타입 포함)가 아닌 예외. 비어 있어야 정상이다. */
         @SafeVarargs
         public final List<Throwable> unexpected(Class<? extends Throwable>... allowed) {
             return errors().stream()
@@ -143,10 +124,6 @@ public final class ConcurrentRunner {
                     .toList();
         }
 
-        /**
-         * 허용한 예외 말고는 아무 예외도 없었는지 단정한다. 인자가 없으면 모든 작업이 성공해야 한다.
-         * 실패 메시지에 예상 밖 예외의 스택을 붙인다(suppressed).
-         */
         @SafeVarargs
         public final Results assertNoUnexpected(Class<? extends Throwable>... allowed) {
             List<Throwable> unexpected = unexpected(allowed);

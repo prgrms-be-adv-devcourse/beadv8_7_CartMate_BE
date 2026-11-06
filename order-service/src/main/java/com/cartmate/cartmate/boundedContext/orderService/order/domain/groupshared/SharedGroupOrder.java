@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @Getter
 @Entity
 @Table(name = "shared_group_order")
@@ -54,7 +53,6 @@ public class SharedGroupOrder {
     @Column(nullable = false)
     private boolean stockReserved;
 
-
     @Embedded
     private DeliveryAddress teamDeliveryAddress;
 
@@ -65,7 +63,6 @@ public class SharedGroupOrder {
     @OrderBy("id")
     @OneToMany(mappedBy = "sharedGroupOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SharedGroupOrderParticipant> participants = new ArrayList<>();
-
 
     @OrderBy("id")
     @OneToMany(mappedBy = "sharedGroupOrder", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -78,7 +75,6 @@ public class SharedGroupOrder {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
 
     private SharedGroupOrder(Long sharedGroupPurchaseId, Long creatorMemberId, List<Long> participantMemberIds,
                              List<OrderItemLine> itemLines, LocalDateTime closedAt) {
@@ -100,7 +96,6 @@ public class SharedGroupOrder {
         itemLines.forEach(line -> items.add(SharedGroupOrderItem.create(this, line)));
         this.totalAmount = items.stream().mapToLong(SharedGroupOrderItem::amount).sum();
 
-
         int headCount = participantMemberIds.size();
         long perPerson = totalAmount / headCount;
         long remainder = totalAmount % headCount;
@@ -112,7 +107,6 @@ public class SharedGroupOrder {
                                           List<OrderItemLine> itemLines, LocalDateTime closedAt) {
         return new SharedGroupOrder(sharedGroupPurchaseId, creatorMemberId, participantMemberIds, itemLines, closedAt);
     }
-
 
     public boolean canAcceptPayment(LocalDateTime paidAt) {
         return status == SharedGroupOrderStatus.PAYING && !paidAt.isAfter(paymentDeadlineAt);
@@ -156,7 +150,6 @@ public class SharedGroupOrder {
         return false;
     }
 
-
     public boolean cancelByDeadline(LocalDateTime now) {
         if (status != SharedGroupOrderStatus.PAYING || now.isBefore(paymentDeadlineAt.plus(GRACE_PERIOD))) {
             return false;
@@ -178,7 +171,6 @@ public class SharedGroupOrder {
         return true;
     }
 
-    // 판매글 판매 중지: 결제 중·확정 공동 주문 전체 취소. 이미 취소면 그대로.
     public boolean cancelBySalesStopped(LocalDateTime now) {
         if (status == SharedGroupOrderStatus.CANCELED) {
             return false;
@@ -187,7 +179,6 @@ public class SharedGroupOrder {
         return true;
     }
 
-    // 판매글 판매 중지: 확정 공동 주문에서 한 판매자 항목만 취소 (다른 판매자 배송이 이미 발송돼 전체 취소가 안 될 때)
     public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
         if (status != SharedGroupOrderStatus.CONFIRMED) {
             return 0;
@@ -201,7 +192,6 @@ public class SharedGroupOrder {
         }
         return amount;
     }
-
 
     public boolean isCreator(Long memberId) {
         return creatorMemberId.equals(memberId);
@@ -225,7 +215,6 @@ public class SharedGroupOrder {
                 .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_PARTICIPANT));
     }
 
-
     private void cancel(SharedGroupOrderCancelReason reason, LocalDateTime now) {
         this.status = SharedGroupOrderStatus.CANCELED;
         this.cancelReason = reason;
@@ -243,7 +232,6 @@ public class SharedGroupOrder {
             throw new ServiceException(OrderErrorCode.ORDER_CREATOR_ONLY);
         }
     }
-
 
     public record OrderItemLine(
             Long productId,

@@ -12,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-
 class IndividualGroupPurchaseTest {
 
     private static final Long CREATOR = 1L;
@@ -139,7 +138,6 @@ class IndividualGroupPurchaseTest {
         assertThat(purchase.getRevision()).isEqualTo(4);
         assertThat(purchase.productIds()).containsExactly(UNIFORM);
 
-        // 마지막 상품까지 빠지면 닫히고 번호는 한 번만 오른다
         assertThat(purchase.removeProductsBySalesStopped(java.util.Set.of(UNIFORM), now)).isTrue();
         assertThat(purchase.isClosed()).isTrue();
         assertThat(purchase.getRevision()).isEqualTo(5);

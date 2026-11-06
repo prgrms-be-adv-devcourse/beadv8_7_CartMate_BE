@@ -2,7 +2,6 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividu
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchase;
 
-
 public record IndividualGroupPurchaseCreateResponse(
         Long id,
         String inviteCode

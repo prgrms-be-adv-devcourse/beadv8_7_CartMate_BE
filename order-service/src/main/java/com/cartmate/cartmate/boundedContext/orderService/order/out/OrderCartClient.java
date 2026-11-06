@@ -10,6 +10,5 @@ public interface OrderCartClient {
 
     List<CartOrderItem> getCartItemsForOrder(Long memberId, List<Long> cartItemIds);
 
-    // 공동구매 사본이 아직 없을 때만 쓴다(잠그지 않음)
     Optional<IndividualGroupPurchaseSnapshot> findIndividualGroupPurchaseSnapshot(Long individualGroupPurchaseId);
 }

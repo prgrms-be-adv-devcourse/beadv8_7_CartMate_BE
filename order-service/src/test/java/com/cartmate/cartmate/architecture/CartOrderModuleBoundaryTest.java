@@ -20,27 +20,12 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.springframework.context.event.EventListener;
 
-/**
- * cart · order 모듈 경계 규칙 (ARCH-1 경계 규칙 1~3 · 6).
- *
- * <p>cart와 order는 한 앱 · 한 DB에 있지만 서로 다른 서비스처럼 다룬다.
- * 모듈 간 계약은 {@code com.cartmate.cartmate.shared} 패키지로만 드러낸다.
- * 다른 모듈이 cart · order 안의 어떤 클래스도 참조하지 않고(R3), cart · order도 다른 모듈을 참조하지 않는다(R1 · R2).
- * 예외는 하나: cart · order의 {@code out} 어댑터는 다른 모듈의 {@code app} Facade를 불러도 된다.
- * 어댑터가 나중에 HTTP · Kafka 클라이언트로 바뀌는 교체 지점이기 때문이다(ARCH-15 결정).
- * 그 어댑터도 다른 모듈의 엔티티 · Q클래스 · 리포지토리({@code domain} · {@code out})는 쓰지 못한다(R5).
- *
- * <p>테스트 코드는 검사하지 않는다({@link ImportOption.DoNotIncludeTests}).
- * 다른 모듈끼리의 의존이나 다른 모듈의 리스너는 담당자 영역이라 검사하지 않는다.
- */
 @AnalyzeClasses(packages = "com.cartmate.cartmate", importOptions = ImportOption.DoNotIncludeTests.class)
 class CartOrderModuleBoundaryTest {
 
     private static final String BOUNDED_CONTEXT = "..boundedContext..";
     private static final String CART = "..boundedContext.orderService.cart..";
     private static final String ORDER = "..boundedContext.orderService.order..";
-
-    // R1. cart ↔ order 직접 의존 금지 (규칙 1: 모듈 간 동기 호출은 포트 경유, 반환은 shared record만)
 
     @ArchTest
     static final ArchRule r1_cartMustNotDependOnOrder =
@@ -56,9 +41,6 @@ class CartOrderModuleBoundaryTest {
                     .as("R1 order must not depend on cart")
                     .because("cart and order are separate services; they talk only through shared events and ports (ARCH-1 rule 1)");
 
-    // R2. cart · order는 다른 boundedContext를 참조하지 않는다 (shared · global · 프레임워크는 허용).
-    // 예외: 자기 모듈 out 어댑터가 다른 모듈 app(Facade)을 부르는 것. 물리 분리 때 그 어댑터만 HTTP · Kafka로 바꾼다
-
     @ArchTest
     static final ArchRule r2_cartMustNotDependOnOtherBoundedContexts =
             classes().that().resideInAPackage(CART)
@@ -73,8 +55,6 @@ class CartOrderModuleBoundaryTest {
                     .as("R2 order must not depend on other bounded contexts, except order.out adapters calling their app facades")
                     .because("contracts with other modules live in shared; an out adapter is the one swap point for a later HTTP or Kafka client (ARCH-1 rule 1, ARCH-15)");
 
-    // R3. 다른 모듈은 cart · order 안의 어떤 클래스도 참조하지 않는다. 예외 없음 (Facade도 포함, shared 포트를 쓴다)
-
     @ArchTest
     static final ArchRule r3_otherModulesMustNotDependOnCartOrder =
             noClasses().that(not(resideInAnyPackage(CART, ORDER)))
@@ -82,16 +62,12 @@ class CartOrderModuleBoundaryTest {
                     .as("R3 classes outside cart and order must not depend on any cart or order class")
                     .because("the only contract cart and order expose is the shared package: events, ports, records (ARCH-1 rules 1, 3, ARCH-15)");
 
-    // R4. cart · order 안에서는 같은 TX 리스너(@EventListener) 금지. @TransactionalEventListener(AFTER_COMMIT)만 허용
-
     @ArchTest
     static final ArchRule r4_cartOrderMustNotUseSameTransactionEventListener =
             noMethods().that().areDeclaredInClassesThat().resideInAnyPackage(CART, ORDER)
                     .should().beAnnotatedWith(EventListener.class)
                     .as("R4 methods in cart and order must not be annotated with @EventListener (use @TransactionalEventListener AFTER_COMMIT)")
                     .because("cross-module writes happen only after commit; a same-transaction listener lets one module's rollback spread into another (ARCH-1 rule 2)");
-
-    // R5. cart · order는 다른 모듈의 엔티티 · Q클래스 · 리포지토리(domain · out)를 참조하지 않는다. out 어댑터도 마찬가지
 
     @ArchTest
     static final ArchRule r5_cartMustNotDependOnOtherModulesDomainOrOut =
@@ -112,8 +88,6 @@ class CartOrderModuleBoundaryTest {
                 .and(not(resideInAPackage(ownModule)));
     }
 
-    // 다른 boundedContext로 가는 의존을 하나씩 본다. 자기 모듈 out 어댑터 → 다른 모듈 app의 *Facade 만 통과시킨다.
-    // 위반 문구는 ArchUnit 기본 의존 설명을 그대로 써서 동결 저장소가 다른 규칙과 같은 형식이 된다
     private static ArchCondition<JavaClass> notDependOnOtherBoundedContextsExceptAdapterFacades(String module) {
         DescribedPredicate<JavaClass> otherBoundedContext = resideInAPackage(BOUNDED_CONTEXT)
                 .and(not(resideInAPackage("..boundedContext." + module + "..")));

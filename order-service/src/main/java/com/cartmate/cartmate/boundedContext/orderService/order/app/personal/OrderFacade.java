@@ -1,5 +1,9 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackPayoutStatus;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.PaybackPayoutResponse;
+import com.cartmate.cartmate.shared.wallet.event.PaybackDepositFailedEvent;
+import com.cartmate.cartmate.shared.wallet.event.PaybackDepositedEvent;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;
@@ -32,6 +36,7 @@ public class OrderFacade {
     private final OrderCancelUseCase orderCancelUseCase;
     private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
     private final IndividualGroupPurchasePaybackUseCase individualGroupPurchasePaybackUseCase;
+    private final PaybackPayoutUseCase paybackPayoutUseCase;
     private final Clock clock;
 
     @Transactional
@@ -94,7 +99,6 @@ public class OrderFacade {
         return orderCancelUseCase.findIdsToCancelByDeadline(now);
     }
 
-    // ===== 판매글 판매 중지 =====
     @Transactional(readOnly = true)
     public List<Long> findPendingIdsByProductIds(List<Long> productIds) {
         return orderCancelUseCase.findIdsByStatusAndProductIds(OrderStatus.PAYMENT_PENDING, productIds);
@@ -105,7 +109,6 @@ public class OrderFacade {
         return orderCancelUseCase.findIdsByStatusAndProductIds(OrderStatus.PAID, productIds);
     }
 
-    // 주문 하나마다 새 트랜잭션 (하나가 실패·거절돼도 다른 주문 처리에 영향 없음)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancelBySalesStopped(Long orderId) {
         orderCancelUseCase.cancelBySalesStopped(orderId);
@@ -116,7 +119,6 @@ public class OrderFacade {
         orderCancelUseCase.cancelSellerItemsBySalesStopped(orderId, sellerId);
     }
 
-    // ===== 개인물품 공동구매 사본 (cart 이벤트 consumer가 부른다) =====
     @Transactional
     public void applyIndividualGroupPurchaseOpened(IndividualGroupPurchaseOpenedEvent event) {
         individualGroupPurchaseReplicaUseCase.applyOpened(event);
@@ -147,19 +149,46 @@ public class OrderFacade {
         individualGroupPurchasePaybackUseCase.judgeOfOrder(orderId, LocalDateTime.now(clock));
     }
 
-    // 공동구매가 닫힌 뒤 남은 결제 대기 주문 (사본을 닫는 트랜잭션이 커밋된 뒤 부른다)
+    @Transactional
+    public void applyPaybackDeposited(PaybackDepositedEvent event) {
+        paybackPayoutUseCase.applyDeposited(event);
+    }
+
+    @Transactional
+    public void applyPaybackDepositFailed(PaybackDepositFailedEvent event) {
+        paybackPayoutUseCase.applyDepositFailed(event);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findRetryWaitingPaybackIds(int limit) {
+        return paybackPayoutUseCase.findRetryWaitingIds(limit);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void retryWaitingPayback(Long paybackId) {
+        paybackPayoutUseCase.retryWaiting(paybackId, LocalDateTime.now(clock));
+    }
+
+    @Transactional
+    public void retryFailedPayback(Long paybackId) {
+        paybackPayoutUseCase.retryFailed(paybackId, LocalDateTime.now(clock));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaybackPayoutResponse> getPaybackPayouts(PaybackPayoutStatus status) {
+        return paybackPayoutUseCase.findAllByStatus(status);
+    }
+
     @Transactional(readOnly = true)
     public List<Long> findPendingIdsOfIndividualGroupPurchase(Long individualGroupPurchaseId) {
         return orderCancelUseCase.findPendingIdsOfIndividualGroupPurchase(individualGroupPurchaseId);
     }
 
-    // 주문 하나마다 새 트랜잭션 (하나가 실패해도 이미 취소한 주문은 남고, 릴레이 재시도가 나머지를 이어 간다)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancelByGroupPurchaseClosed(Long orderId) {
         orderCancelUseCase.cancelByGroupPurchaseClosed(orderId);
     }
 
-    // 회원 탈퇴 확인: 결제 대기 중인 개인 주문 수
     @Transactional(readOnly = true)
     public long countPaymentPendingOfBuyer(Long buyerMemberId) {
         return orderQueryUseCase.countPaymentPendingOfBuyer(buyerMemberId);

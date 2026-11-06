@@ -66,7 +66,6 @@ class SharedGroupOrderPaymentUseCaseTest {
     @InjectMocks
     private SharedGroupOrderPaymentUseCase paymentUseCase;
 
-    // 결제 반영 시 상품 재확인: 기본은 모든 상품이 판매 중
     @BeforeEach
     void allProductsOnSale() {
         lenient().when(orderProductClient.findAllByInventoryIds(any())).thenAnswer(invocation -> {

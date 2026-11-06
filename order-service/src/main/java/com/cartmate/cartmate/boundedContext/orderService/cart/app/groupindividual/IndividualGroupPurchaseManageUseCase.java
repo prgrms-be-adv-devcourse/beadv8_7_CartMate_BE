@@ -36,7 +36,6 @@ class IndividualGroupPurchaseManageUseCase {
 
     void removeProduct(Long memberId, Long individualGroupPurchaseId, Long productId) {
         IndividualGroupPurchase purchase = getPurchaseForUpdate(individualGroupPurchaseId);
-        // 주문 쪽 동기 조회(조회만). 이 조회와 주문 생성 사이의 틈으로 생긴 주문은 결제 때 사본으로 다시 걸러진다(ARCH-16)
         boolean hasOrders = orderClient.hasOrders(individualGroupPurchaseId, productId);
         LocalDateTime now = LocalDateTime.now(clock);
         purchase.removeProduct(memberId, productId, hasOrders, now);
@@ -63,7 +62,6 @@ class IndividualGroupPurchaseManageUseCase {
         publishClosed(purchase, IndividualGroupPurchaseCloseReason.ADMIN);
     }
 
-    // 스케줄러가 공동구매 하나마다 부른다. 행을 잠근 뒤 다시 확인하므로 그사이 연장 · 마감됐으면 건너뛴다
     void closeByDeadline(Long individualGroupPurchaseId) {
         IndividualGroupPurchase purchase = getPurchaseForUpdate(individualGroupPurchaseId);
         if (purchase.closeByDeadline(LocalDateTime.now(clock))) {
