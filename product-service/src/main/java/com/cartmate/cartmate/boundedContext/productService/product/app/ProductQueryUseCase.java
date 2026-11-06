@@ -127,7 +127,8 @@ public class ProductQueryUseCase {
                 product.getName(),
                 product.getBasePrice(),
                 product.getStatus() == ProductStatus.ON_SALE,
-                imageKey == null ? null : imageStorage.toUrl(imageKey)
+                imageKey == null ? null : imageStorage.toUrl(imageKey),
+                product.getCategoryId()
         );
     }
 }

@@ -3,7 +3,6 @@ package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.shared.order.OrderType;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -15,6 +14,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.addressWithoutDetail;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -32,7 +32,7 @@ class OrderTest {
                 new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1),
                 new OrderLine(20L, 21L, 7L, "양말", null, 2_500L, 2),
                 new OrderLine(30L, 31L, 8L, "축구공", null, 20_000L, 1)
-        ), address(), NOW);
+        ), addressWithoutDetail(), NOW);
         order.markPaid(99L, NOW.plusMinutes(1));
 
         long refund = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));
@@ -48,7 +48,7 @@ class OrderTest {
         Order order = Order.createPersonal("ORD-4", BUYER, List.of(
                 new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1),
                 new OrderLine(20L, 21L, 7L, "양말", null, 2_500L, 2)
-        ), address(), NOW);
+        ), addressWithoutDetail(), NOW);
         order.markPaid(99L, NOW.plusMinutes(1));
 
         assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2))).isEqualTo(35_000L);
@@ -63,12 +63,11 @@ class OrderTest {
         Order pending = personalOrder();
         assertThat(pending.cancelSellerItemsBySalesStopped(12L, NOW)).isZero();
 
-        Order paid = personalOrder(); // 상품B는 판매자가 비어 있다
+        Order paid = personalOrder();
         paid.markPaid(99L, NOW.plusMinutes(1));
         assertThat(paid.cancelSellerItemsBySalesStopped(999L, NOW.plusMinutes(2))).isZero();
         assertThat(paid.getStatus()).isEqualTo(OrderStatus.PAID);
     }
-
 
     @Test
     @DisplayName("개인 주문은 결제 대기 상태로 생성되고 총액은 단가 x 수량의 합이다")
@@ -110,10 +109,10 @@ class OrderTest {
     @Test
     @DisplayName("주문 상품이 없으면 주문을 생성할 수 없다")
     void createWithoutLines() {
-        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(), address(), NOW))
+        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(), addressWithoutDetail(), NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NO_ITEMS.getMsg());
-        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, null, address(), NOW))
+        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, null, addressWithoutDetail(), NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NO_ITEMS.getMsg());
     }
@@ -121,10 +120,10 @@ class OrderTest {
     @Test
     @DisplayName("수량이 1 미만이거나 가격이 음수면 주문을 생성할 수 없다")
     void createWithInvalidLine() {
-        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(line(10_000L, 0)), address(), NOW))
+        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(line(10_000L, 0)), addressWithoutDetail(), NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_INVALID_QUANTITY.getMsg());
-        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(line(-1L, 1)), address(), NOW))
+        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(line(-1L, 1)), addressWithoutDetail(), NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_INVALID_PRICE.getMsg());
     }
@@ -276,14 +275,11 @@ class OrderTest {
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
     }
 
-    // ===== 쿠폰 할인 =====
-
     private Order twoSellerOrder() {
-        // 판매자 7: 30,000 / 판매자 8: 20,000 → 50,000
         return Order.createPersonal("ORD-C", BUYER, List.of(
                 new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1),
                 new OrderLine(30L, 31L, 8L, "축구공", null, 20_000L, 1)
-        ), address(), NOW);
+        ), addressWithoutDetail(), NOW);
     }
 
     @Test
@@ -295,7 +291,7 @@ class OrderTest {
 
         assertThat(order.payAmount()).isEqualTo(40_000L);
         assertThat(order.getDiscountBurden()).isEqualTo(OrderDiscountBurden.PLATFORM);
-        order.applyCoupon(5L, 10_000L, true, null); // 재시도
+        order.applyCoupon(5L, 10_000L, true, null);
         assertThat(order.payAmount()).isEqualTo(40_000L);
         assertThatThrownBy(() -> order.applyCoupon(6L, 3_000L, true, null))
                 .isInstanceOf(ServiceException.class)
@@ -324,24 +320,24 @@ class OrderTest {
     @DisplayName("부분 취소 + 전체 쿠폰: 취소 상품 몫의 할인을 비율로 빼고 환불, 마지막 취소는 남은 결제 금액 전부 (합계 = 낸 돈)")
     void cancelSellerItemsWithPlatformCoupon() {
         Order order = twoSellerOrder();
-        order.applyCoupon(5L, 10_000L, true, null); // 50,000 → 40,000
+        order.applyCoupon(5L, 10_000L, true, null);
         order.markPaid(99L, NOW.plusMinutes(1));
 
-        long first = order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2));  // 20,000 - 4,000
-        long second = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3)); // 남은 24,000
+        long first = order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2));
+        long second = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3));
 
         assertThat(first).isEqualTo(16_000L);
         assertThat(second).isEqualTo(24_000L);
         assertThat(first + second).isEqualTo(order.payAmount());
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
-        assertThat(order.couponRestorable()).isFalse(); // 앞서 부분 취소가 있었으니 쿠폰은 돌려주지 않음
+        assertThat(order.couponRestorable()).isFalse();
     }
 
     @Test
     @DisplayName("부분 취소 + 판매자 쿠폰: 그 판매자 상품 취소에만 할인을 빼고, 다른 판매자 상품은 전액 환불")
     void cancelSellerItemsWithSellerCoupon() {
         Order order = twoSellerOrder();
-        order.applyCoupon(5L, 3_000L, false, 7L); // 판매자 7 쿠폰: 50,000 → 47,000
+        order.applyCoupon(5L, 3_000L, false, 7L);
         order.markPaid(99L, NOW.plusMinutes(1));
 
         assertThat(order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2))).isEqualTo(20_000L);
@@ -355,8 +351,8 @@ class OrderTest {
                 new OrderLine(10L, 11L, 7L, "A", null, 10_000L, 1),
                 new OrderLine(20L, 21L, 8L, "B", null, 10_000L, 1),
                 new OrderLine(30L, 31L, 9L, "C", null, 10_000L, 1)
-        ), address(), NOW);
-        order.applyCoupon(5L, 1_000L, true, null); // 30,000 → 29,000, 상품당 333.33원
+        ), addressWithoutDetail(), NOW);
+        order.applyCoupon(5L, 1_000L, true, null);
         order.markPaid(99L, NOW.plusMinutes(1));
 
         long a = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));
@@ -378,7 +374,7 @@ class OrderTest {
         assertThat(byBuyer.couponRestorable()).isTrue();
 
         Order oneSeller = Order.createPersonal("ORD-S", BUYER, List.of(
-                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1)), address(), NOW);
+                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1)), addressWithoutDetail(), NOW);
         oneSeller.applyCoupon(5L, 3_000L, true, null);
         oneSeller.markPaid(99L, NOW.plusMinutes(1));
         assertThat(oneSeller.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2))).isEqualTo(27_000L);
@@ -391,7 +387,7 @@ class OrderTest {
         Order order = Order.createPersonal("ORD-3", BUYER, List.of(
                 new OrderLine(10L, 11L, 12L, "상품A", null, 10_000L, 2),
                 new OrderLine(30L, 31L, 12L, "상품C", null, 3_000L, 1),
-                new OrderLine(20L, 21L, 99L, "상품B", null, 5_000L, 1)), address(), NOW);
+                new OrderLine(20L, 21L, 99L, "상품B", null, 5_000L, 1)), addressWithoutDetail(), NOW);
         order.markPaid(1L, NOW);
 
         long amount = order.cancelSellerItemsBySalesStopped(12L, NOW);
@@ -402,12 +398,12 @@ class OrderTest {
     }
 
     private Order personalOrder() {
-        return Order.createPersonal("ORD-1", BUYER, lines(), address(), NOW);
+        return Order.createPersonal("ORD-1", BUYER, lines(), addressWithoutDetail(), NOW);
     }
 
     private Order individualGroupOrder(LocalDateTime saleDeadlineAt) {
         return Order.createIndividualGroup("ORD-2", BUYER, INDIVIDUAL_GROUP_PURCHASE_ID, saleDeadlineAt,
-                lines(), address(), NOW);
+                lines(), addressWithoutDetail(), NOW);
     }
 
     private List<OrderLine> lines() {
@@ -419,9 +415,5 @@ class OrderTest {
 
     private OrderLine line(long unitPrice, int quantity) {
         return new OrderLine(10L, 11L, 12L, "상품A", null, unitPrice, quantity);
-    }
-
-    private DeliveryAddress address() {
-        return DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", null);
     }
 }

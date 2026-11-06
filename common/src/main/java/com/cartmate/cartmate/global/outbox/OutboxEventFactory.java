@@ -9,10 +9,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * 도메인 이벤트를 아웃박스 봉투({@link OutboxEvent})로 만든다.
- * eventId는 UUID, occurredAt은 지금, version은 {@link OutboxEvent#SCHEMA_VERSION}, payload는 Jackson JSON.
- */
 @Component
 public class OutboxEventFactory {
 

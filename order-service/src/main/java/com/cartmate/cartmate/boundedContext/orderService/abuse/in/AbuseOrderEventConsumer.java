@@ -1,71 +1,60 @@
 package com.cartmate.cartmate.boundedContext.orderService.abuse.in;
 
-import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
-
-import com.cartmate.cartmate.boundedContext.orderService.abuse.app.AbuseFacade;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalType;
-import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
+import com.cartmate.cartmate.shared.order.OrderCancelReason;
+import com.cartmate.cartmate.shared.order.OrderType;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
 import java.util.Optional;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AbuseOrderEventConsumer {
 
-    private final AbuseFacade abuseFacade;
-    private final AbuseJudgeRunner abuseJudgeRunner;
+    private final AbuseSignalIntake abuseSignalIntake;
 
-    @TransactionalEventListener(fallbackExecution = true,
-            condition = "@environment.getProperty('cartmate.kafka.enabled', 'false') != 'true'")
+    @TransactionalEventListener(fallbackExecution = true, condition = "@relayedEventRouting.accepts(#message)")
     public void handle(OutboxMessageRelayed message) {
         if (message.event() instanceof SharedGroupOrderCanceledEvent event) {
+            accept(event);
+        } else if (message.event() instanceof OrderCanceledEvent event) {
             accept(event);
         }
     }
 
     public void accept(SharedGroupOrderCanceledEvent event) {
-        if (isSignal(event)) {
-            consume(event);
+        if (event.cancelReason() == SharedGroupOrderCancelReason.DEADLINE_EXPIRED && event.unpaidMemberIds() != null) {
+            List<AbuseSignalCommand> commands = event.unpaidMemberIds().stream()
+                    .map(memberId -> AbuseSignalIntake.command(memberId, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
+                            String.valueOf(event.sharedGroupOrderId()), event.canceledAt(), event.sharedGroupPurchaseId()))
+                    .flatMap(Optional::stream)
+                    .toList();
+            abuseSignalIntake.receiveAndJudge(commands, "sharedGroupOrder:" + event.sharedGroupOrderId());
+        } else if (event.cancelReason() == SharedGroupOrderCancelReason.CREATOR_CANCELED
+                && event.creatorMemberId() != null) {
+            receiveOne(AbuseSignalIntake.command(event.creatorMemberId(),
+                    AbuseSignalType.SHARED_PURCHASE_CREATOR_CANCELED,
+                    "order:" + event.sharedGroupOrderId(), event.canceledAt(), event.sharedGroupPurchaseId()),
+                    "sharedGroupOrder:" + event.sharedGroupOrderId());
         }
     }
 
-    private void consume(SharedGroupOrderCanceledEvent event) {
-        List<AbuseSignalCommand> commands = event.unpaidMemberIds().stream()
-                .map(memberId -> toCommand(event, memberId))
-                .flatMap(Optional::stream)
-                .toList();
-        commands.forEach(abuseFacade::receive);
-        List<Long> memberIds = commands.stream().map(AbuseSignalCommand::memberId).distinct().toList();
-        for (Long memberId : memberIds) {
-            if (abuseJudgeRunner.judge(memberId) == AbuseJudgeOutcome.TRANSIENT_FAILURE) {
-                log.warn("일시 장애로 판정을 멈춤, 남은 회원은 재판정 워커가 처리: sharedGroupOrderId={}",
-                        event.sharedGroupOrderId());
-                return;
-            }
+    public void accept(OrderCanceledEvent event) {
+        if (event.orderType() == OrderType.INDIVIDUAL_GROUP && event.cancelReason() == OrderCancelReason.PAYMENT_EXPIRED) {
+            receiveOne(AbuseSignalIntake.command(event.memberId(), AbuseSignalType.INDIVIDUAL_ORDER_PAYMENT_EXPIRED,
+                    String.valueOf(event.orderId()), event.canceledAt(), null), "order:" + event.orderId());
         }
     }
 
-    private boolean isSignal(SharedGroupOrderCanceledEvent event) {
-        return event.cancelReason() == SharedGroupOrderCancelReason.DEADLINE_EXPIRED && event.unpaidMemberIds() != null;
-    }
-
-    private Optional<AbuseSignalCommand> toCommand(SharedGroupOrderCanceledEvent event, Long memberId) {
-        try {
-            return Optional.of(new AbuseSignalCommand(memberId, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
-                    String.valueOf(event.sharedGroupOrderId()), event.canceledAt()));
-        } catch (ServiceException e) {
-            log.warn("잘못된 어뷰징 신호라 접수하지 않음: sharedGroupOrderId={}, memberId={}",
-                    event.sharedGroupOrderId(), memberId);
-            return Optional.empty();
-        }
+    private void receiveOne(Optional<AbuseSignalCommand> command, String source) {
+        command.ifPresent(c -> abuseSignalIntake.receiveAndJudge(List.of(c), source));
     }
 }

@@ -8,13 +8,16 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.EventEnvelope;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
+import com.cartmate.cartmate.shared.order.OrderCancelReason;
+import com.cartmate.cartmate.shared.order.OrderType;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -38,14 +41,20 @@ class AbuseOrderEventConsumerTest {
 
     private static final LocalDateTime CANCELED_AT = LocalDateTime.of(2026, 11, 4, 12, 0);
 
+    private static final Long CREATOR = 1L;
+
     @Mock
     private AbuseFacade abuseFacade;
 
     @Mock
     private AbuseJudgeRunner abuseJudgeRunner;
 
-    @InjectMocks
     private AbuseOrderEventConsumer consumer;
+
+    @BeforeEach
+    void setUp() {
+        consumer = new AbuseOrderEventConsumer(new AbuseSignalIntake(abuseFacade, abuseJudgeRunner));
+    }
 
     @Test
     @DisplayName("기한 만료 취소면 미결제 회원 신호를 모두 접수한 뒤 회원마다 한 번씩 판정한다")
@@ -116,9 +125,9 @@ class AbuseOrderEventConsumerTest {
     }
 
     @Test
-    @DisplayName("기한 만료가 아닌 취소, 미결제자 목록이 없는 취소, 다른 이벤트는 무시한다")
+    @DisplayName("신호가 아닌 취소 사유(판매 중지), 미결제자 목록이 없는 기한 만료, 다른 이벤트는 무시한다")
     void ignoresOtherMessages() {
-        consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.CREATOR_CANCELED, List.of(2L))));
+        consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.SALES_STOPPED, List.of(2L))));
         consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.DEADLINE_EXPIRED, null)));
         consumer.handle(relayed(mock(SharedGroupOrderConfirmedEvent.class)));
 
@@ -126,12 +135,53 @@ class AbuseOrderEventConsumerTest {
         then(abuseJudgeRunner).shouldHaveNoInteractions();
     }
 
+    @Test
+    @DisplayName("방장이 공동 주문을 취소하면 방장에게 방장 취소 신호를 접수하고 판정한다. 미결제자는 신호가 없다")
+    void receivesCreatorCanceledSignal() {
+        consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.CREATOR_CANCELED, List.of(2L, 3L))));
+
+        then(abuseFacade).should().receive(new AbuseSignalCommand(CREATOR, AbuseSignalType.SHARED_PURCHASE_CREATOR_CANCELED,
+                "order:100", CANCELED_AT, "sharedGroupPurchase:10"));
+        then(abuseJudgeRunner).should().judge(CREATOR);
+        then(abuseFacade).shouldHaveNoMoreInteractions();
+        then(abuseJudgeRunner).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("방장 ID가 없는 예전 방장 취소 이벤트는 무시한다")
+    void ignoresCreatorCanceledWithoutCreator() {
+        consumer.accept(new SharedGroupOrderCanceledEvent(100L, 10L, SharedGroupOrderCancelReason.CREATOR_CANCELED,
+                CANCELED_AT, List.of(2L), null));
+
+        then(abuseFacade).shouldHaveNoInteractions();
+        then(abuseJudgeRunner).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("개인물품 공동구매 주문이 결제 기한 만료로 취소되면 주문자 신호를 접수하고, 개인 주문 · 다른 사유는 무시한다")
+    void receivesIndividualOrderPaymentExpired() {
+        consumer.handle(relayed(orderCanceled(OrderType.INDIVIDUAL_GROUP, OrderCancelReason.PAYMENT_EXPIRED)));
+        consumer.handle(relayed(orderCanceled(OrderType.PERSONAL, OrderCancelReason.PAYMENT_EXPIRED)));
+        consumer.handle(relayed(orderCanceled(OrderType.INDIVIDUAL_GROUP, OrderCancelReason.BUYER_CANCELED)));
+
+        then(abuseFacade).should().receive(new AbuseSignalCommand(7L, AbuseSignalType.INDIVIDUAL_ORDER_PAYMENT_EXPIRED,
+                "500", CANCELED_AT));
+        then(abuseJudgeRunner).should().judge(7L);
+        then(abuseFacade).shouldHaveNoMoreInteractions();
+        then(abuseJudgeRunner).shouldHaveNoMoreInteractions();
+    }
+
+    private OrderCanceledEvent orderCanceled(OrderType orderType, OrderCancelReason reason) {
+        return new OrderCanceledEvent(500L, 7L, orderType, reason, false, CANCELED_AT);
+    }
+
     private SharedGroupOrderCanceledEvent canceled(SharedGroupOrderCancelReason reason, List<Long> unpaidMemberIds) {
-        return new SharedGroupOrderCanceledEvent(100L, 10L, reason, CANCELED_AT, unpaidMemberIds);
+        return new SharedGroupOrderCanceledEvent(100L, 10L, reason, CANCELED_AT, unpaidMemberIds, CREATOR);
     }
 
     private AbuseSignalCommand command(Long memberId) {
-        return new AbuseSignalCommand(memberId, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "100", CANCELED_AT);
+        return new AbuseSignalCommand(memberId, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "100", CANCELED_AT,
+                "sharedGroupPurchase:10");
     }
 
     private OutboxMessageRelayed relayed(DomainEvent event) {

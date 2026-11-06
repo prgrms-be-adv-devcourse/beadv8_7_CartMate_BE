@@ -24,9 +24,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -66,7 +66,6 @@ class SharedGroupOrderPaymentUseCaseTest {
     @InjectMocks
     private SharedGroupOrderPaymentUseCase paymentUseCase;
 
-    // 결제 반영 시 상품 재확인: 기본은 모든 상품이 판매 중
     @BeforeEach
     void allProductsOnSale() {
         lenient().when(orderProductClient.findAllByInventoryIds(any())).thenAnswer(invocation -> {
@@ -283,8 +282,8 @@ class SharedGroupOrderPaymentUseCaseTest {
     }
 
     private SharedGroupOrder order(LocalDateTime closedAt) {
-        return SharedGroupOrder.create(PURCHASE_ID, CREATOR, List.of(CREATOR, MEMBER),
-                List.of(new OrderItemLine(2L, 4L, 7L, "축구공", "5호", 1, 10000L),
-                        new OrderItemLine(3L, 5L, 8L, "축구 유니폼", null, 2, 10000L)), closedAt);
+        return sharedOrder(PURCHASE_ID, CREATOR, MEMBER, closedAt,
+                new OrderItemLine(2L, 4L, 7L, "축구공", "5호", 1, 10000L),
+                new OrderItemLine(3L, 5L, 8L, "축구 유니폼", null, 2, 10000L));
     }
 }

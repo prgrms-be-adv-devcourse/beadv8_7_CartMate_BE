@@ -3,8 +3,6 @@ package com.cartmate.cartmate.shared.order;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-// 개인 주문 · 개인물품 공동구매 주문이 취소된 이유. 취소 이벤트로 배송 · 결제 · cart에 나간다
-// 서비스 사이 계약 값(ARCH-8): 이름을 바꾸거나 지우면 받는 서비스가 깨진다. 값은 추가만 하고, 설명 없이는 추가할 수 없다.
 @Getter
 @RequiredArgsConstructor
 public enum OrderCancelReason {

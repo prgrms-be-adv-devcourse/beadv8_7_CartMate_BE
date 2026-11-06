@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseMember;
+import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseCancelReason;
 import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
@@ -31,8 +32,9 @@ class SharedGroupPurchaseCloseUseCase {
     }
 
     void cancel(Long memberId, Long sharedGroupPurchaseId) {
-        sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId)
-                .cancel(memberId, LocalDateTime.now(clock));
+        SharedGroupPurchase purchase = sharedGroupPurchaseSupport.getPurchaseForUpdate(sharedGroupPurchaseId);
+        purchase.cancel(memberId, LocalDateTime.now(clock));
+        publishCanceledEventIfCanceled(purchase, SharedGroupPurchaseCancelReason.CREATOR_CANCELED);
     }
 
     void closeByDeadline(Long sharedGroupPurchaseId) {
@@ -42,6 +44,7 @@ class SharedGroupPurchaseCloseUseCase {
             Set<Long> unavailable = sharedGroupPurchaseSupport.findUnavailableInventoryIds(purchase);
             purchase.closeByDeadline(unavailable, now);
             publishClosedEventIfClosed(purchase);
+            publishCanceledEventIfCanceled(purchase, SharedGroupPurchaseCancelReason.NO_ITEMS_AT_DEADLINE);
         }
     }
 
@@ -53,6 +56,7 @@ class SharedGroupPurchaseCloseUseCase {
             Set<Long> unavailable = sharedGroupPurchaseSupport.findUnavailableInventoryIds(purchase);
             purchase.closeByFrozenTimeout(unavailable, now);
             publishClosedEventIfClosed(purchase);
+            publishCanceledEventIfCanceled(purchase, SharedGroupPurchaseCancelReason.NO_ITEMS_AFTER_FROZEN);
         }
     }
 
@@ -67,6 +71,12 @@ class SharedGroupPurchaseCloseUseCase {
     private void publishClosedEventIfClosed(SharedGroupPurchase purchase) {
         if (purchase.getStatus() == SharedGroupPurchaseStatus.CLOSED) {
             eventPublisher.publish(toClosedEvent(purchase));
+        }
+    }
+
+    private void publishCanceledEventIfCanceled(SharedGroupPurchase purchase, SharedGroupPurchaseCancelReason reason) {
+        if (purchase.isCanceled()) {
+            eventPublisher.publish(SharedGroupPurchaseEvents.canceled(purchase, reason));
         }
     }
 

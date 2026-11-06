@@ -68,6 +68,6 @@ class HttpProductClientTest {
 
     private ProductForPurchase product(Long productId, Long basePrice, boolean purchasable) {
         return new ProductForPurchase(productId, 1L, "축구 유니폼", basePrice, purchasable,
-                "https://example.com/" + productId + ".png");
+                "https://example.com/" + productId + ".png", 3L);
     }
 }

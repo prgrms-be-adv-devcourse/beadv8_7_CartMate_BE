@@ -2,7 +2,6 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividu
 
 import java.time.LocalDateTime;
 
-
 public record IndividualGroupPurchaseOrderLine(
         Long orderId,
         Long buyerMemberId,

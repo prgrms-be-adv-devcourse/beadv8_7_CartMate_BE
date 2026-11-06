@@ -30,7 +30,8 @@ import java.util.List;
         ),
         indexes = {
                 @Index(name = "idx_abuse_signal_member_type_occurred", columnList = "member_id, signal_type, occurred_at"),
-                @Index(name = "idx_abuse_signal_status_received", columnList = "status, received_at")
+                @Index(name = "idx_abuse_signal_status_received", columnList = "status, received_at"),
+                @Index(name = "idx_abuse_signal_context_member", columnList = "context_key, member_id")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -55,6 +56,9 @@ public class AbuseSignal {
 
     @Column(nullable = false)
     private LocalDateTime occurredAt;
+
+    @Column(length = 64)
+    private String contextKey;
 
     @Column(nullable = false)
     private LocalDateTime receivedAt;

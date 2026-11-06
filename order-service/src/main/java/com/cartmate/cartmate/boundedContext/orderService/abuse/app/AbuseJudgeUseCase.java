@@ -18,8 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 
 @Slf4j
@@ -28,18 +30,22 @@ import java.util.function.Supplier;
 class AbuseJudgeUseCase {
 
     static final AbuseScoreThreshold SCORE_THRESHOLD = new AbuseScoreThreshold(30, 60, 100);
+    static final String ACCOUNT_RING_CODE = "ACCOUNT_RING";
+    static final int RING_BOOST_PERCENT = 50;
 
     private final AbuseSignalRepository abuseSignalRepository;
     private final AbuseMemberStateRepository abuseMemberStateRepository;
     private final AbuseRestrictionRepository abuseRestrictionRepository;
     private final List<AbuseRule> abuseRules;
+    private final AbuseAccountRingSupport abuseAccountRingSupport;
 
     int judgePending(Long memberId, Supplier<LocalDateTime> clock) {
         AbuseMemberState state = lockMemberState(memberId, clock.get());
         LocalDateTime now = clock.get();
         List<AbuseSignal> pending = abuseSignalRepository
                 .findByMemberIdAndStatusOrderByOccurredAtAscIdAsc(memberId, AbuseSignalStatus.RECEIVED);
-        pending.forEach(signal -> judge(state, signal, now));
+        Optional<AbuseRuleResult> ringResult = evaluateRing(memberId, now);
+        pending.forEach(signal -> judge(state, signal, ringResult, now));
         return pending.size();
     }
 
@@ -49,8 +55,11 @@ class AbuseJudgeUseCase {
                 .orElseThrow(() -> new ServiceException(AbuseErrorCode.ABUSE_MEMBER_STATE_NOT_FOUND));
     }
 
-    private void judge(AbuseMemberState state, AbuseSignal signal, LocalDateTime now) {
-        AbuseVerdict verdict = AbuseVerdict.of(evaluate(state.getMemberId(), now), SCORE_THRESHOLD);
+    private void judge(AbuseMemberState state, AbuseSignal signal, Optional<AbuseRuleResult> ringResult,
+                       LocalDateTime now) {
+        List<AbuseRuleResult> results = new ArrayList<>(evaluateRules(state.getMemberId(), now));
+        ringResult.ifPresent(results::add);
+        AbuseVerdict verdict = AbuseVerdict.of(results, SCORE_THRESHOLD);
         signal.judge(verdict, now);
         if (verdict.requiresRestriction()) {
             restrict(state, signal, now);
@@ -58,10 +67,22 @@ class AbuseJudgeUseCase {
         state.applyJudgment(verdict.level(), now);
     }
 
-    private List<AbuseRuleResult> evaluate(Long memberId, LocalDateTime now) {
+    private Optional<AbuseRuleResult> evaluateRing(Long memberId, LocalDateTime now) {
+        Set<Long> ring = abuseAccountRingSupport.ringMembersOf(memberId);
+        if (ring.isEmpty()) {
+            return Optional.empty();
+        }
+        int othersScore = ring.stream()
+                .mapToInt(other -> evaluateRules(other, now).stream().mapToInt(AbuseRuleResult::score).sum())
+                .sum();
+        int boost = Math.min(othersScore * RING_BOOST_PERCENT / 100, SCORE_THRESHOLD.restrictedScore());
+        return Optional.of(new AbuseRuleResult(ACCOUNT_RING_CODE, ring.size(), boost));
+    }
+
+    private List<AbuseRuleResult> evaluateRules(Long memberId, LocalDateTime now) {
         return abuseRules.stream()
                 .map(rule -> rule.evaluate(abuseSignalRepository.countInWindow(
-                        memberId, rule.signalType(), now.minus(rule.threshold().window()), now)))
+                        memberId, rule.signalType(), now.minus(rule.weight().window()), now), SCORE_THRESHOLD))
                 .toList();
     }
 

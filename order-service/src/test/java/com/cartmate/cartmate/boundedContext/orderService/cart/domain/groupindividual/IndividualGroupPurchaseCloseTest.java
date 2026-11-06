@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.demandPurchase;
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.memberPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -22,7 +24,7 @@ class IndividualGroupPurchaseCloseTest {
     @Test
     @DisplayName("어드민 공동구매는 만든 어드민이 아니어도 어드민 마감으로 닫히고, 수요 상품 키가 비워진다")
     void closeByAdmin() {
-        IndividualGroupPurchase purchase = demand();
+        IndividualGroupPurchase purchase = demandPurchase(ADMIN, PRODUCT, DEADLINE, NOW);
         assertThat(purchase.getDemandProductKey()).isEqualTo(PRODUCT);
 
         purchase.closeByAdmin(NOW.plusHours(1));
@@ -38,7 +40,7 @@ class IndividualGroupPurchaseCloseTest {
     @Test
     @DisplayName("회원 공동구매는 어드민 마감 대상이 아니다 (회원 공동구매는 개설자만 마감)")
     void closeByAdminRejectsMemberPurchase() {
-        IndividualGroupPurchase purchase = member();
+        IndividualGroupPurchase purchase = memberPurchase(2L, List.of(PRODUCT), NOW);
 
         assertThatThrownBy(() -> purchase.closeByAdmin(NOW))
                 .isInstanceOf(ServiceException.class)
@@ -49,7 +51,7 @@ class IndividualGroupPurchaseCloseTest {
     @Test
     @DisplayName("시스템 마감은 마감 시각이 지난 OPEN 어드민 공동구매만 닫는다. 마감 전 · 이미 닫힘 · 회원 공동구매는 그대로 두고 false")
     void closeByDeadline() {
-        IndividualGroupPurchase purchase = demand();
+        IndividualGroupPurchase purchase = demandPurchase(ADMIN, PRODUCT, DEADLINE, NOW);
 
         assertThat(purchase.closeByDeadline(DEADLINE.minusSeconds(1))).isFalse();
         assertThat(purchase.isClosed()).isFalse();
@@ -61,7 +63,7 @@ class IndividualGroupPurchaseCloseTest {
         assertThat(purchase.closeByDeadline(DEADLINE.plusHours(1))).isFalse();
         assertThat(purchase.getClosedAt()).isEqualTo(DEADLINE);
 
-        IndividualGroupPurchase memberPurchase = member();
+        IndividualGroupPurchase memberPurchase = memberPurchase(2L, List.of(PRODUCT), NOW);
         assertThat(memberPurchase.closeByDeadline(NOW.plusDays(10))).isFalse();
         assertThat(memberPurchase.isClosed()).isFalse();
     }
@@ -69,7 +71,7 @@ class IndividualGroupPurchaseCloseTest {
     @Test
     @DisplayName("판매 중지로 상품이 모두 빠져 닫혀도 수요 상품 키를 비운다 (같은 상품으로 다시 열 수 있게)")
     void salesStopCloseReleasesDemandKey() {
-        IndividualGroupPurchase purchase = demand();
+        IndividualGroupPurchase purchase = demandPurchase(ADMIN, PRODUCT, DEADLINE, NOW);
 
         boolean changed = purchase.removeProductsBySalesStopped(Set.of(PRODUCT), NOW.plusHours(1));
 
@@ -81,20 +83,12 @@ class IndividualGroupPurchaseCloseTest {
     @Test
     @DisplayName("개설자 마감도 같은 종료 경로를 지나 수요 상품 키를 비운다")
     void creatorCloseReleasesDemandKey() {
-        IndividualGroupPurchase purchase = demand();
+        IndividualGroupPurchase purchase = demandPurchase(ADMIN, PRODUCT, DEADLINE, NOW);
 
         purchase.close(ADMIN, NOW.plusHours(1));
 
         assertThat(purchase.isClosed()).isTrue();
         assertThat(purchase.getDemandProductKey()).isNull();
         assertThat(purchase.getSourceProductId()).isEqualTo(PRODUCT);
-    }
-
-    private static IndividualGroupPurchase demand() {
-        return IndividualGroupPurchase.openFromDemand("수요 공동구매", ADMIN, "INVITE000001", PRODUCT, DEADLINE, 10, 1000L, NOW);
-    }
-
-    private static IndividualGroupPurchase member() {
-        return IndividualGroupPurchase.create("회원 공동구매", 2L, "INVITE000002", List.of(PRODUCT), NOW);
     }
 }

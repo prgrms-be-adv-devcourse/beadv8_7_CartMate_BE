@@ -24,7 +24,6 @@ public class IndividualGroupPurchaseProduct {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "individual_group_purchase_id", nullable = false)
     private IndividualGroupPurchase individualGroupPurchase;
@@ -40,7 +39,6 @@ public class IndividualGroupPurchaseProduct {
         this.individualGroupPurchase = individualGroupPurchase;
         this.productId = productId;
     }
-
 
     static IndividualGroupPurchaseProduct create(IndividualGroupPurchase individualGroupPurchase, Long productId) {
         return new IndividualGroupPurchaseProduct(individualGroupPurchase, productId);

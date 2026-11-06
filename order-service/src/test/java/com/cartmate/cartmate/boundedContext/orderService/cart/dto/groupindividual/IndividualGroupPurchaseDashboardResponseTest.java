@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.memberPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-
 
 class IndividualGroupPurchaseDashboardResponseTest {
 
@@ -30,8 +30,7 @@ class IndividualGroupPurchaseDashboardResponseTest {
     @Test
     @DisplayName("상품별·옵션별·구매자별 수량과 금액을 집계하고, 모든 합계가 서로 맞는다")
     void aggregate() {
-        IndividualGroupPurchase purchase = IndividualGroupPurchase.create(
-                "OO FC 2026 유니폼", 1L, "abcdefghijkl", List.of(UNIFORM, SOCKS), now);
+        IndividualGroupPurchase purchase = memberPurchase(1L, List.of(UNIFORM, SOCKS), now);
 
         Map<Long, CartProductOptions> productOptions = Map.of(
                 UNIFORM, new CartProductOptions(UNIFORM, "축구 유니폼", null, true, List.of(
@@ -40,7 +39,6 @@ class IndividualGroupPurchaseDashboardResponseTest {
                         new CartProductOptions.Option(UNIFORM_XL, "XL", 41000, true))),
                 SOCKS, new CartProductOptions(SOCKS, "양말", null, true, List.of(
                         new CartProductOptions.Option(SOCKS_FREE, "FREE", 5000, true))));
-
 
         List<IndividualGroupPurchaseOrderLine> lines = List.of(
                 line(10L, 101L, UNIFORM, UNIFORM_M, 1, 39000),
@@ -96,8 +94,7 @@ class IndividualGroupPurchaseDashboardResponseTest {
     @Test
     @DisplayName("주문이 없으면 모든 상품과 옵션이 0으로 보이고 구매자 목록은 비어 있다")
     void noOrders() {
-        IndividualGroupPurchase purchase = IndividualGroupPurchase.create(
-                "OO FC 2026 유니폼", 1L, "abcdefghijkl", List.of(SOCKS), now);
+        IndividualGroupPurchase purchase = memberPurchase(1L, List.of(SOCKS), now);
         Map<Long, CartProductOptions> productOptions = Map.of(
                 SOCKS, new CartProductOptions(SOCKS, "양말", null, true, List.of(
                         new CartProductOptions.Option(SOCKS_FREE, "FREE", 5000, true))));
@@ -114,8 +111,7 @@ class IndividualGroupPurchaseDashboardResponseTest {
     @Test
     @DisplayName("옵션명이 없는 단일 옵션 상품이어도 현황판을 만들고 옵션명은 null로 보인다")
     void nullOptionName() {
-        IndividualGroupPurchase purchase = IndividualGroupPurchase.create(
-                "OO FC 2026 유니폼", 1L, "abcdefghijkl", List.of(UNIFORM, SOCKS), now);
+        IndividualGroupPurchase purchase = memberPurchase(1L, List.of(UNIFORM, SOCKS), now);
         Map<Long, CartProductOptions> productOptions = Map.of(
                 UNIFORM, new CartProductOptions(UNIFORM, "축구 유니폼", null, true, List.of(
                         new CartProductOptions.Option(UNIFORM, null, 39000, true))),
@@ -144,8 +140,7 @@ class IndividualGroupPurchaseDashboardResponseTest {
     @Test
     @DisplayName("마감된 공동구매는 상태와 마감 시각을 함께 보여 준다")
     void closedStatus() {
-        IndividualGroupPurchase purchase = IndividualGroupPurchase.create(
-                "OO FC 2026 유니폼", 1L, "abcdefghijkl", List.of(SOCKS), now);
+        IndividualGroupPurchase purchase = memberPurchase(1L, List.of(SOCKS), now);
         LocalDateTime closedAt = now.plusHours(1);
         purchase.close(1L, closedAt);
         Map<Long, CartProductOptions> productOptions = Map.of(

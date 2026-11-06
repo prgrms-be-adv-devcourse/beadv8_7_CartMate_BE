@@ -41,8 +41,6 @@ class OrderCreateUseCase {
 
     OrderCreateResponse createPersonal(Long memberId, List<Long> cartItemIds, DeliveryAddress deliveryAddress,
                                        LocalDateTime now) {
-        // 재고 ID 순으로 정렬해 저장한다. 같은 회원이 같은 상품들을 다른 순서로 동시에 주문해도
-        // order_item unique 인덱스를 같은 순서로 잡아 서로 기다리는 교착 없이 한쪽이 중복으로 거절된다
         List<CartOrderItem> cartItems = orderCartClient.getCartItemsForOrder(memberId, cartItemIds).stream()
                 .sorted(Comparator.comparing(CartOrderItem::inventoryId))
                 .toList();
@@ -72,7 +70,6 @@ class OrderCreateUseCase {
                 .map(item -> toLine(products, item.inventoryId(), item.quantity()))
                 .toList();
         List<Long> productIds = lines.stream().map(OrderLine::productId).distinct().toList();
-        // cart 공동구매 행을 잠그지 않고 order 쪽 사본으로 판단한다(ARCH-16). 사본이 늦어 생긴 주문은 결제 때 다시 걸러진다
         IndividualGroupPurchaseReplica purchase = individualGroupPurchaseReplicaUseCase.find(individualGroupPurchaseId)
                 .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_NOT_FOUND));
         purchase.validateOrderable(productIds, now);
@@ -106,9 +103,6 @@ class OrderCreateUseCase {
         );
     }
 
-    // 위 조회와 저장 사이에 결제 대기 주문이 먼저 들어오면 DB unique가 막는다. 개인 주문은 order_item(같은 회원 · 같은 상품),
-    // 개인물품 주문은 orders(같은 회원 · 같은 공동구매). cart 쪽은 잠그지 않으므로(모듈을 넘는 락 금지, ARCH-15 · 16)
-    // 같은 회원의 동시 주문은 이 unique만 막는다.
     private Order saveNew(Order order) {
         try {
             return orderRepository.saveAndFlush(order);
@@ -120,7 +114,6 @@ class OrderCreateUseCase {
         }
     }
 
-    // Hibernate가 알려 주는 제약 이름을 먼저 보고, 없으면 DB 메시지에서 찾는다 (MySQL은 'order_item.uk_...'처럼 테이블을 붙인다)
     private static boolean isPendingItemConflict(DataIntegrityViolationException e) {
         for (Throwable cause = e; cause != null; cause = cause.getCause()) {
             if (cause instanceof ConstraintViolationException violation && violation.getConstraintName() != null) {

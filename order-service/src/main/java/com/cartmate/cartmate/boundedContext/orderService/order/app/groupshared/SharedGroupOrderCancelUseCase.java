@@ -38,13 +38,11 @@ class SharedGroupOrderCancelUseCase {
         publishCanceledEventIf(order.cancelByOutOfStock(LocalDateTime.now(clock)), order);
     }
 
-    // 판매글 판매 중지: 결제 중·확정 공동 주문 전체 취소 → 기존 취소 이벤트로 배송 취소·전원 환불
     void cancelBySalesStopped(Long sharedGroupOrderId) {
         SharedGroupOrder order = sharedGroupOrderSupport.getOrderForUpdate(sharedGroupOrderId);
         publishCanceledEventIf(order.cancelBySalesStopped(LocalDateTime.now(clock)), order);
     }
 
-    // 판매글 판매 중지: 확정 공동 주문에서 한 판매자 항목만 취소 → 그 배송 취소, 결제한 사람들에게 나눠 환불
     void cancelSellerItemsBySalesStopped(Long sharedGroupOrderId, Long sellerId) {
         SharedGroupOrder order = sharedGroupOrderSupport.getOrderForUpdate(sharedGroupOrderId);
         LocalDateTime now = LocalDateTime.now(clock);
@@ -76,7 +74,8 @@ class SharedGroupOrderCancelUseCase {
                 order.getSharedGroupPurchaseId(),
                 order.getCancelReason(),
                 order.getCanceledAt(),
-                order.getUnpaidMemberIds()
+                order.getUnpaidMemberIds(),
+                order.getCreatorMemberId()
         );
     }
 }

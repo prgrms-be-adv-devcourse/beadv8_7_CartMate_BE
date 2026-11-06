@@ -21,6 +21,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -30,7 +31,6 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-/** cart · order 스케줄러 5개가 ShedLock으로 한 인스턴스에서만 돈다. 다른 인스턴스가 락을 잡고 있으면 건너뛴다. */
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
 @ImportTestcontainers(CartMateTestContainers.class)
@@ -38,6 +38,7 @@ import static org.mockito.Mockito.verify;
 class CartOrderSchedulerLockTest {
 
     private static final String OTHER_NODE = "other-node";
+    private static final Duration LOCK_AT_LEAST = Duration.ofSeconds(5);
 
     @Autowired
     private OrderScheduler orderScheduler;
@@ -60,8 +61,6 @@ class CartOrderSchedulerLockTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    // 락 행을 지우지 않고 만료시킨다. ShedLock은 한 번 만든 락 이름을 기억하고 그다음부터 UPDATE만 하므로,
-    // 행을 지우면 UPDATE가 0건이 되어 계속 "잠김"으로 보고 건너뛴다 (운영에서도 락을 풀 때는 lock_until만 과거로 돌린다)
     @BeforeEach
     void setUp() {
         jobs().map(arguments -> (String) arguments.get()[0]).forEach(name -> jdbcTemplate.update(
@@ -90,9 +89,10 @@ class CartOrderSchedulerLockTest {
 
         verifyQueried(lockName, 1);
         Map<String, Object> row = jdbcTemplate.queryForMap(
-                "SELECT locked_by, lock_until > UTC_TIMESTAMP(3) AS held FROM shedlock WHERE name = ?", lockName);
+                "SELECT locked_by, TIMESTAMPDIFF(MICROSECOND, locked_at, lock_until) AS held_micros "
+                        + "FROM shedlock WHERE name = ?", lockName);
         assertThat(row.get("locked_by")).isNotIn(OTHER_NODE, "test-reset");
-        assertThat(((Number) row.get("held")).intValue()).isEqualTo(1);
+        assertThat(((Number) row.get("held_micros")).longValue()).isGreaterThanOrEqualTo(LOCK_AT_LEAST.toNanos() / 1000);
     }
 
     @ParameterizedTest(name = "{0}")

@@ -7,9 +7,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.function.Predicate;
 
-/**
- * {@code ManualOutboxRelayConfig}가 가져오므로 {@link CartMateIntegrationTest}를 단 테스트는 주입만 받으면 된다.
- */
 @TestConfiguration
 public class TestEventRecorder {
 

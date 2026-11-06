@@ -33,14 +33,20 @@ jobs:
       - name: Run tests
         run: |
           chmod +x gradlew
-          ./gradlew test
+          ./gradlew test --continue
+
+      - name: Test summary
+        if: always()
+        run: python3 .github/scripts/test_summary.py >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: build/reports/tests/test
+          path: |
+            */build/reports/tests/test
+            */build/test-results/test
           retention-days: 7
 
       - name: Login to Docker Hub

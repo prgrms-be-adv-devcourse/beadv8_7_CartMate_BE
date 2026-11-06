@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// 어드민이 연 개인물품 공동구매를 만든 어드민이 아니어도 다룬다. /api/admin/** 는 보안 설정에서 ADMIN만 들어온다
 @RestController
 @RequestMapping("/api/admin/carts/group-purchases/individual")
 @RequiredArgsConstructor

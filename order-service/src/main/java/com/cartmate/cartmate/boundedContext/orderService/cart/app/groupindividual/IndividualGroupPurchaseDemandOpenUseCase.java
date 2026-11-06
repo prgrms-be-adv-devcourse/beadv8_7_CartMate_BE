@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -40,16 +39,12 @@ class IndividualGroupPurchaseDemandOpenUseCase {
 
         String inviteCode = inviteCodeGenerator.generateUnique(individualGroupPurchaseRepository::existsByInviteCode);
         IndividualGroupPurchase purchase = IndividualGroupPurchase.openFromDemand(
-                request.title(), adminMemberId, inviteCode, productId, request.deadlineAt(),
-                Objects.requireNonNullElse(request.paybackMinBuyers(), IndividualGroupPurchase.DEFAULT_PAYBACK_MIN_BUYERS),
-                Objects.requireNonNullElse(request.paybackAmount(), IndividualGroupPurchase.DEFAULT_PAYBACK_AMOUNT),
-                now);
+                request.title(), adminMemberId, inviteCode, productId, request.deadlineAt(), now);
 
         IndividualGroupPurchase saved = save(purchase);
         eventPublisher.publish(IndividualGroupPurchaseEvents.opened(saved, now));
         eventPublisher.publish(new DemandGroupPurchaseOpenedEvent(
-                saved.getId(), productId, saved.getTitle(), saved.getInviteCode(), saved.getDeadlineAt(),
-                saved.getPaybackMinBuyers(), saved.getPaybackAmount(), now));
+                saved.getId(), productId, saved.getTitle(), saved.getInviteCode(), saved.getDeadlineAt(), now));
         return IndividualGroupPurchaseCreateResponse.from(saved);
     }
 

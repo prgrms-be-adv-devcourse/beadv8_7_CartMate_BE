@@ -5,7 +5,6 @@ import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus;
 
 import java.time.LocalDateTime;
 
-
 public record SharedGroupPurchaseSummaryResponse(
         Long id,
         String title,

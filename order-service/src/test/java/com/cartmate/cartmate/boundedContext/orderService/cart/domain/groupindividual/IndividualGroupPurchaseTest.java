@@ -7,10 +7,10 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.memberPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 
 class IndividualGroupPurchaseTest {
 
@@ -25,21 +25,21 @@ class IndividualGroupPurchaseTest {
     @Test
     @DisplayName("만들면 판매 중이고 기본 판매 기간은 48시간이며, 같은 상품을 두 번 넘겨도 한 번만 등록된다")
     void create() {
-        IndividualGroupPurchase purchase = purchase(List.of(UNIFORM, SOCKS, UNIFORM));
+        IndividualGroupPurchase purchase = memberPurchase(CREATOR, List.of(UNIFORM, SOCKS, UNIFORM), createdAt);
 
         assertThat(purchase.getStatus()).isEqualTo(IndividualGroupPurchaseStatus.OPEN);
         assertThat(purchase.getDeadlineAt()).isEqualTo(createdAt.plusHours(48));
         assertThat(purchase.getProducts()).extracting(IndividualGroupPurchaseProduct::getProductId)
                 .containsExactly(UNIFORM, SOCKS);
 
-        assertThatThrownBy(() -> purchase(List.of()))
+        assertThatThrownBy(() -> memberPurchase(CREATOR, List.of(), createdAt))
                 .hasMessageContaining("판매할 상품을 하나 이상 선택해야 합니다.");
     }
 
     @Test
     @DisplayName("판매 마감 시각 전에는 판매 목록의 상품만 살 수 있고, 마감 시각이 지나면 상태가 OPEN이어도 살 수 없다")
     void orderableUntilDeadline() {
-        IndividualGroupPurchase purchase = purchase(List.of(UNIFORM));
+        IndividualGroupPurchase purchase = memberPurchase(CREATOR, List.of(UNIFORM), createdAt);
         LocalDateTime beforeDeadline = createdAt.plusHours(47);
         LocalDateTime atDeadline = createdAt.plusHours(48);
 
@@ -56,7 +56,7 @@ class IndividualGroupPurchaseTest {
     @Test
     @DisplayName("조기 마감하면 더 이상 살 수 없고, 다시 마감할 수 없다")
     void close() {
-        IndividualGroupPurchase purchase = purchase(List.of(UNIFORM));
+        IndividualGroupPurchase purchase = memberPurchase(CREATOR, List.of(UNIFORM), createdAt);
         LocalDateTime now = createdAt.plusHours(1);
 
         assertThatThrownBy(() -> purchase.close(OTHER, now)).hasMessageContaining("공동구매 생성자만 할 수 있습니다.");
@@ -71,7 +71,7 @@ class IndividualGroupPurchaseTest {
     @Test
     @DisplayName("판매 상품은 생성자만 추가할 수 있고, 이미 있는 상품이나 마감 후 추가는 거절된다")
     void addProduct() {
-        IndividualGroupPurchase purchase = purchase(List.of(UNIFORM));
+        IndividualGroupPurchase purchase = memberPurchase(CREATOR, List.of(UNIFORM), createdAt);
         LocalDateTime now = createdAt.plusHours(1);
 
         assertThatThrownBy(() -> purchase.addProduct(OTHER, SOCKS, now)).hasMessageContaining("공동구매 생성자만 할 수 있습니다.");
@@ -87,7 +87,7 @@ class IndividualGroupPurchaseTest {
     @Test
     @DisplayName("이미 산 사람이 있는 상품과 마지막 하나 남은 상품은 뺄 수 없다")
     void removeProduct() {
-        IndividualGroupPurchase purchase = purchase(List.of(UNIFORM, SOCKS));
+        IndividualGroupPurchase purchase = memberPurchase(CREATOR, List.of(UNIFORM, SOCKS), createdAt);
         LocalDateTime now = createdAt.plusHours(1);
 
         assertThatThrownBy(() -> purchase.removeProduct(CREATOR, SOCKS, true, now))
@@ -103,7 +103,7 @@ class IndividualGroupPurchaseTest {
     @Test
     @DisplayName("판매 마감 시각은 지금 이후부터 지금으로부터 48시간 이내로만 바꿀 수 있다")
     void changeDeadline() {
-        IndividualGroupPurchase purchase = purchase(List.of(UNIFORM));
+        IndividualGroupPurchase purchase = memberPurchase(CREATOR, List.of(UNIFORM), createdAt);
         LocalDateTime now = createdAt.plusHours(10);
 
         assertThatThrownBy(() -> purchase.changeDeadline(CREATOR, now, now))
@@ -121,7 +121,7 @@ class IndividualGroupPurchaseTest {
     @Test
     @DisplayName("판매 조건이 바뀔 때마다 revision이 1씩 오르고, 실패한 변경 · 바뀐 게 없는 판매 중지는 올리지 않는다 (order 사본 순서 판단용)")
     void revisionIncreasesOnEveryChange() {
-        IndividualGroupPurchase purchase = purchase(List.of(UNIFORM, SOCKS));
+        IndividualGroupPurchase purchase = memberPurchase(CREATOR, List.of(UNIFORM, SOCKS), createdAt);
         LocalDateTime now = createdAt.plusHours(1);
         assertThat(purchase.getRevision()).isZero();
 
@@ -138,13 +138,8 @@ class IndividualGroupPurchaseTest {
         assertThat(purchase.getRevision()).isEqualTo(4);
         assertThat(purchase.productIds()).containsExactly(UNIFORM);
 
-        // 마지막 상품까지 빠지면 닫히고 번호는 한 번만 오른다
         assertThat(purchase.removeProductsBySalesStopped(java.util.Set.of(UNIFORM), now)).isTrue();
         assertThat(purchase.isClosed()).isTrue();
         assertThat(purchase.getRevision()).isEqualTo(5);
-    }
-
-    private IndividualGroupPurchase purchase(List<Long> productIds) {
-        return IndividualGroupPurchase.create("OO FC 2026 유니폼", CREATOR, "abcdefghijkl", productIds, createdAt);
     }
 }

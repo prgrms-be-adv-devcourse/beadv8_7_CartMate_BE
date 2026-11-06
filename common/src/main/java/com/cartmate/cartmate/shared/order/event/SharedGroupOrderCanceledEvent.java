@@ -12,7 +12,8 @@ public record SharedGroupOrderCanceledEvent(
         Long sharedGroupPurchaseId,
         SharedGroupOrderCancelReason cancelReason,
         LocalDateTime canceledAt,
-        List<Long> unpaidMemberIds
+        List<Long> unpaidMemberIds,
+        Long creatorMemberId
 ) implements DomainEvent {
 
     @Override

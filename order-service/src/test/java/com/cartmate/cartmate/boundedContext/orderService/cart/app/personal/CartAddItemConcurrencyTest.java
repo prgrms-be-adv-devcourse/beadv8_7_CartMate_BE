@@ -4,6 +4,8 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.domain.personal.Ca
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.personal.CartItem;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.personal.CartRepository;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
+import com.cartmate.cartmate.support.ConcurrentRunner;
+import com.cartmate.cartmate.support.ConcurrentRunner.Results;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,22 +13,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CartMateIntegrationTest
 class CartAddItemConcurrencyTest {
 
-    // 커넥션 풀(기본 10)보다 많이 띄워 요청당 커넥션 하나로 끝나는지도 본다
     private static final int THREADS = 16;
 
     @Autowired
@@ -46,9 +40,8 @@ class CartAddItemConcurrencyTest {
     void concurrentFirstAddOfSameItem() throws Exception {
         Long memberId = newMemberId();
 
-        List<Throwable> errors = runConcurrently(THREADS, i -> cartFacade.addItem(memberId, 1L, 1));
+        ConcurrentRunner.run(THREADS, i -> cartFacade.addItem(memberId, 1L, 1)).assertNoUnexpected();
 
-        assertThat(errors).isEmpty();
         assertThat(cartCount(memberId)).isEqualTo(1);
         List<CartItem> items = itemsOf(memberId);
         assertThat(items).hasSize(1);
@@ -61,10 +54,9 @@ class CartAddItemConcurrencyTest {
         Long memberId = newMemberId();
         long[] inventoryIds = {1L, 2L, 3L, 4L};
 
-        List<Throwable> errors = runConcurrently(inventoryIds.length,
-                i -> cartFacade.addItem(memberId, inventoryIds[i], 1));
+        ConcurrentRunner.run(inventoryIds.length, i -> cartFacade.addItem(memberId, inventoryIds[i], 1))
+                .assertNoUnexpected();
 
-        assertThat(errors).isEmpty();
         assertThat(cartCount(memberId)).isEqualTo(1);
         assertThat(itemsOf(memberId)).extracting(CartItem::getInventoryId)
                 .containsExactlyInAnyOrder(1L, 2L, 3L, 4L);
@@ -78,7 +70,7 @@ class CartAddItemConcurrencyTest {
             cartFacade.addItem(memberId, 1L, 1);
             Long cartItemId = itemsOf(memberId).getFirst().getId();
 
-            List<Throwable> errors = runConcurrently(THREADS, i -> {
+            Results results = ConcurrentRunner.run(THREADS, i -> {
                 if (i == 0) {
                     cartFacade.removeItem(memberId, cartItemId);
                 } else if (i == 1) {
@@ -88,7 +80,7 @@ class CartAddItemConcurrencyTest {
                 }
             });
 
-            assertThat(errors).allMatch(e -> e instanceof ServiceException);
+            results.assertNoUnexpected(ServiceException.class);
             assertThat(itemsOf(memberId)).hasSizeLessThanOrEqualTo(1);
         }
     }
@@ -106,35 +98,5 @@ class CartAddItemConcurrencyTest {
                 .map(Cart::getItems)
                 .map(List::copyOf)
                 .orElseThrow());
-    }
-
-    private List<Throwable> runConcurrently(int count, IndexedTask task) throws Exception {
-        ExecutorService executor = Executors.newFixedThreadPool(count);
-        CountDownLatch start = new CountDownLatch(1);
-        List<Future<?>> futures = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            int index = i;
-            futures.add(executor.submit((Callable<Void>) () -> {
-                start.await();
-                task.run(index);
-                return null;
-            }));
-        }
-        start.countDown();
-        List<Throwable> errors = new ArrayList<>();
-        for (Future<?> future : futures) {
-            try {
-                future.get(30, TimeUnit.SECONDS);
-            } catch (java.util.concurrent.ExecutionException e) {
-                errors.add(e.getCause());
-            }
-        }
-        executor.shutdownNow();
-        return errors;
-    }
-
-    @FunctionalInterface
-    private interface IndexedTask {
-        void run(int index);
     }
 }

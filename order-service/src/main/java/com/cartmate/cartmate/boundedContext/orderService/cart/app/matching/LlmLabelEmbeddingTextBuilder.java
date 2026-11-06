@@ -33,4 +33,9 @@ class LlmLabelEmbeddingTextBuilder implements EmbeddingTextBuilder {
                 .map(label -> new EmbeddingText(label.strip(), VERSION))
                 .toList();
     }
+
+    @Override
+    public String version() {
+        return VERSION;
+    }
 }

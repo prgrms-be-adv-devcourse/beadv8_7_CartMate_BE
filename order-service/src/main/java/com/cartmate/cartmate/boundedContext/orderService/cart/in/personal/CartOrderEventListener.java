@@ -13,7 +13,7 @@ public class CartOrderEventListener {
 
     private final CartFacade cartFacade;
 
-    @TransactionalEventListener(fallbackExecution = true)
+    @TransactionalEventListener(fallbackExecution = true, condition = "@relayedEventRouting.accepts(#message)")
     public void handle(OutboxMessageRelayed message) {
         if (message.event() instanceof OrderPaidEvent event) {
             cartFacade.removeOrderedItems(message.envelope().eventId(), event);

@@ -72,10 +72,6 @@ public class OrderController {
         return new RsData<>("200-1", "주문을 취소했습니다.");
     }
 
-    // ===== 결제 (주문이 지휘, 예치금 차감은 결제 모듈) =====
-    // 예전 POST /api/payments/orders/{id}, GET /api/payments/orders/{id}/preview 를 주문으로 옮김.
-    // operationId는 그대로 두어 프론트 생성 훅 이름(usePayOrder, usePreview)이 바뀌지 않게 한다.
-    // 본문은 선택: 쿠폰을 쓰면 {"memberCouponId": 1}
     @PostMapping("/{orderId}/payment")
     @Operation(operationId = "payOrder", summary = "개인 주문 예치금 결제 (쿠폰 선택)")
     public RsData<PaymentResult> pay(@AuthenticationPrincipal SecurityUser user, @PathVariable Long orderId,

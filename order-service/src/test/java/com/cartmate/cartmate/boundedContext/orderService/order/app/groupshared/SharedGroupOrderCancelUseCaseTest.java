@@ -1,8 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
@@ -25,9 +23,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 import java.util.stream.Stream;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.address;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedLine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -76,7 +76,7 @@ class SharedGroupOrderCancelUseCaseTest {
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
         assertThat(event.sharedGroupPurchaseId()).isEqualTo(PURCHASE_ID);
         assertThat(event.cancelReason()).isEqualTo(SharedGroupOrderCancelReason.CREATOR_CANCELED);
-        assertThat(event.canceledAt()).isEqualTo(order.getCanceledAt());
+        assertThat(event.canceledAt()).isEqualTo(LocalDateTime.now(CLOCK));
         assertThat(event.unpaidMemberIds()).containsExactly(CREATOR, MEMBER);
     }
 
@@ -106,6 +106,7 @@ class SharedGroupOrderCancelUseCaseTest {
         ArgumentCaptor<SharedGroupOrderCanceledEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCanceledEvent.class);
         then(eventPublisher).should().publish(captor.capture());
         assertThat(captor.getValue().cancelReason()).isEqualTo(SharedGroupOrderCancelReason.DEADLINE_EXPIRED);
+        assertThat(captor.getValue().canceledAt()).isEqualTo(LocalDateTime.now(CLOCK));
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
     }
 
@@ -118,8 +119,7 @@ class SharedGroupOrderCancelUseCaseTest {
                 .minusMinutes(1);
         SharedGroupOrder order = order(closedAt);
         order.markStockReserved();
-        order.pay(CREATOR, 1L, closedAt.plusMinutes(1),
-                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+        order.pay(CREATOR, 1L, closedAt.plusMinutes(1), address());
         given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
 
         cancelUseCase.cancelByDeadline(ORDER_ID);
@@ -171,7 +171,6 @@ class SharedGroupOrderCancelUseCaseTest {
     }
 
     private static SharedGroupOrder order(LocalDateTime closedAt) {
-        return SharedGroupOrder.create(PURCHASE_ID, CREATOR, List.of(CREATOR, MEMBER),
-                List.of(new OrderItemLine(2L, 4L, null, "상품", null, 1, 10000L)), closedAt);
+        return sharedOrder(PURCHASE_ID, CREATOR, MEMBER, closedAt, sharedLine(2L, 4L, null, 1, 10000L));
     }
 }

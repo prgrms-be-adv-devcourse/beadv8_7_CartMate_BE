@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-
 public record IndividualGroupPurchaseDetailResponse(
         Long id,
         String title,
@@ -21,7 +20,6 @@ public record IndividualGroupPurchaseDetailResponse(
         LocalDateTime serverTime,
         List<ProductResponse> products
 ) {
-
 
     public static IndividualGroupPurchaseDetailResponse of(IndividualGroupPurchase purchase,
                                                            Map<Long, CartProductOptions> productOptions,

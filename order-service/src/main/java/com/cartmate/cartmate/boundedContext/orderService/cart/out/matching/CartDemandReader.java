@@ -10,4 +10,6 @@ public interface CartDemandReader {
 
     List<ProductDemand> findRecentDemands(LocalDateTime since, int minMemberCount, int limit,
                                          Collection<Long> excludedProductIds);
+
+    List<Long> findRecentProductIdsByDemand(LocalDateTime since, int limit);
 }

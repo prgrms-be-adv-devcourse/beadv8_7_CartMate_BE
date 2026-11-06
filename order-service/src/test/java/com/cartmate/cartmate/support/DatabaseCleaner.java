@@ -44,9 +44,11 @@ public class DatabaseCleaner implements BeforeEachCallback {
     }
 
     private static void requireTestContainer(String url) {
-        String container = "//" + CartMateTestContainers.MYSQL.getHost() + ":"
+        String container = "jdbc:mysql://" + CartMateTestContainers.MYSQL.getHost() + ":"
                 + CartMateTestContainers.MYSQL.getMappedPort(3306) + "/" + CartMateTestContainers.MYSQL.getDatabaseName();
-        if (url == null || !url.contains(container)) {
+        boolean matches = url != null && url.startsWith(container)
+                && (url.length() == container.length() || url.charAt(container.length()) == '?');
+        if (!matches) {
             throw new IllegalStateException("테스트 컨테이너 DB가 아니라 데이터를 지우지 않는다: " + url
                     + " (기대: " + container + "). 로컬 DB를 비우지 않도록 막아 둔 안전장치다");
         }

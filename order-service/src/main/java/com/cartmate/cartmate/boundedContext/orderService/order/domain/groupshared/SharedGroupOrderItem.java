@@ -67,7 +67,6 @@ public class SharedGroupOrderItem {
         return unitPrice * quantity;
     }
 
-    // 판매 중지 등으로 이 항목만 취소된 시각 (주문 전체 취소와 별개)
     private LocalDateTime canceledAt;
 
     public boolean isCanceled() {

@@ -5,7 +5,6 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindivi
 
 import java.time.LocalDateTime;
 
-
 public record IndividualGroupPurchaseSummaryResponse(
         Long id,
         String title,

@@ -35,8 +35,6 @@ class CartQueryUseCase {
         if (cartItemIds == null || cartItemIds.isEmpty()) {
             throw new ServiceException(CartErrorCode.CART_ORDER_ITEMS_REQUIRED);
         }
-        // 잠그지 않는다. order 주문 생성 트랜잭션이 shared 포트로 부르므로, 잠그면 order가 cart 스키마 행을 잠그게 된다
-        // (모듈을 넘는 락 금지). 같은 회원 · 같은 상품의 중복 결제 대기는 order 쪽 unique(order_item.pending_buyer_member_id)가 막는다
         Cart cart = cartRepository.findWithItemsByMemberId(memberId)
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_NOT_FOUND));
         return cartItemIds.stream()

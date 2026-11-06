@@ -84,22 +84,4 @@ class IndividualGroupPurchaseReplicaTest {
     private static IndividualGroupPurchaseReplica open(List<Long> productIds, long revision) {
         return IndividualGroupPurchaseReplica.of(ID, NOW.plusDays(1), false, null, productIds, revision);
     }
-
-    @Test
-    @DisplayName("페이백 조건은 비어 있을 때만 채우고, 닫힌 사본에도 채울 수 있다 (종료가 열림보다 먼저 와도 빠지지 않게)")
-    void fillPaybackCondition() {
-        IndividualGroupPurchaseReplica replica = IndividualGroupPurchaseReplica.of(
-                1L, LocalDateTime.of(2026, 11, 10, 12, 0), true, LocalDateTime.of(2026, 11, 9, 12, 0), List.of(), 3);
-        assertThat(replica.hasPaybackCondition()).isFalse();
-
-        replica.fillPaybackCondition(null, null);
-        assertThat(replica.hasPaybackCondition()).isFalse();
-
-        replica.fillPaybackCondition(10, 1_000L);
-        replica.fillPaybackCondition(20, 2_000L);
-
-        assertThat(replica.hasPaybackCondition()).isTrue();
-        assertThat(replica.getPaybackMinBuyers()).isEqualTo(10);
-        assertThat(replica.getPaybackAmount()).isEqualTo(1_000L);
-    }
 }

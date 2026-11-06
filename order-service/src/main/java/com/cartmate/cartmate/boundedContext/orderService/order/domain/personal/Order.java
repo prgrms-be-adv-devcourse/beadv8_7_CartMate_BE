@@ -57,8 +57,6 @@ public class Order {
 
     private Long individualGroupPurchaseId;
 
-    // 결제 대기 중인 개인물품 공동구매 주문일 때만 공동구매 ID, 아니면 NULL. unique(buyer_member_id, 이 컬럼)로
-    // "같은 회원은 같은 공동구매에 결제 대기 주문을 하나만"을 order DB가 보장한다 (예전엔 cart 공동구매 행 락이 맡았다)
     @Column(name = "pending_individual_group_purchase_id")
     private Long pendingIndividualGroupPurchaseId;
 
@@ -91,12 +89,9 @@ public class Order {
 
     private LocalDateTime canceledAt;
 
-    // ===== 쿠폰 할인 (결제할 때 정해짐) =====
-    // 쓴 쿠폰 (회원 쿠폰 ID). 없으면 null
     @Column(name = "member_coupon_id")
     private Long memberCouponId;
 
-    // 할인액. 결제 금액 = totalAmount - discountAmount
     @Column(name = "discount_amount", nullable = false)
     private long discountAmount;
 
@@ -104,15 +99,12 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderDiscountBurden discountBurden;
 
-    // 판매자 쿠폰이면 그 판매자 (할인 대상 = 그 판매자 상품)
     @Column(name = "discount_seller_id")
     private Long discountSellerId;
 
-    // 판매자 상품 일부 취소로 지금까지 환불한 금액 (마지막 취소에서 남은 결제 금액을 정확히 돌려주려고)
     @Column(name = "item_refunded_amount", nullable = false)
     private long itemRefundedAmount;
 
-    // 일부 상품만 취소된 적이 있는지 (있으면 나중에 전부 취소돼도 쿠폰을 돌려주지 않는다)
     @Column(name = "partially_canceled", nullable = false)
     private boolean partiallyCanceled;
 
@@ -213,7 +205,6 @@ public class Order {
         return true;
     }
 
-    // 판매글 판매 중지: 결제 대기 주문만 전체 취소. 이미 결제·취소된 주문은 그대로.
     public boolean cancelBySalesStopped(LocalDateTime now) {
         if (status != OrderStatus.PAYMENT_PENDING) {
             return false;
@@ -222,7 +213,6 @@ public class Order {
         return true;
     }
 
-    // 개인물품 공동구매가 닫힘: 결제 대기 주문만 취소. 이미 결제 · 취소된 주문은 그대로(종료 전 결제는 결제 완료로 남는다)
     public boolean cancelByGroupPurchaseClosed(LocalDateTime now) {
         if (status != OrderStatus.PAYMENT_PENDING) {
             return false;
@@ -231,10 +221,6 @@ public class Order {
         return true;
     }
 
-    // 남은 항목이 없으면 주문도 취소 상태가 된다.
-    // ===== 쿠폰 =====
-
-    // 결제할 때 쿠폰 할인을 기록한다. 결제 대기일 때만, 한 번만 (같은 쿠폰·같은 금액으로 다시 오면 그대로)
     public void applyCoupon(Long memberCouponId, long discountAmount, boolean platformBurden, Long sellerId) {
         if (this.memberCouponId != null) {
             if (this.memberCouponId.equals(memberCouponId) && this.discountAmount == discountAmount) {
@@ -252,7 +238,6 @@ public class Order {
         this.discountSellerId = platformBurden ? null : sellerId;
     }
 
-    // 실제로 결제할(된) 금액
     public long payAmount() {
         return totalAmount - discountAmount;
     }
@@ -261,7 +246,6 @@ public class Order {
         return memberCouponId != null;
     }
 
-    // 쿠폰에 넘길 금액 정보: 할인 전 주문 금액과 판매자별 상품 금액
     public CouponOrderTarget couponTarget() {
         Map<Long, Long> bySeller = new LinkedHashMap<>();
         for (OrderItem item : items) {
@@ -274,13 +258,10 @@ public class Order {
                 .toList());
     }
 
-    // 전체 취소 때 쿠폰을 돌려줄지: 쿠폰을 썼고, 주문이 한 번에 전부 취소됐을 때만 (앞서 일부 취소가 있었으면 돌려주지 않음)
     public boolean couponRestorable() {
         return hasCoupon() && status == OrderStatus.CANCELED && !partiallyCanceled;
     }
 
-    // 취소되는 상품 금액에 붙은 할인 몫 (비율, 원 미만 버림)
-    // 전체 쿠폰: 할인 × 상품 금액 / 주문 금액. 판매자 쿠폰: 그 판매자 상품일 때만, 할인 × 상품 금액 / 그 판매자 상품 금액
     private long discountShareOf(Long sellerId, long itemsAmount) {
         if (discountAmount == 0 || itemsAmount == 0) {
             return 0;
@@ -299,7 +280,6 @@ public class Order {
         if (status != OrderStatus.PAID) {
             return 0;
         }
-        // 이 판매자 상품을 모두 취소하고 그 금액을 합친다 (판매자 상품이 여러 개일 수 있다)
         long itemsAmount = 0;
         for (OrderItem item : items) {
             if (sellerId.equals(item.getSellerId()) && !item.isCanceled()) {
@@ -310,7 +290,6 @@ public class Order {
         if (itemsAmount == 0) {
             return 0;
         }
-        // 환불 = 상품 금액 - 그 상품에 붙은 쿠폰 할인 몫. 이걸로 모든 상품이 취소되면 남은 결제 금액을 정확히 돌려준다 (나눗셈 끝전 포함)
         long refund = itemsAmount - discountShareOf(sellerId, itemsAmount);
         if (items.stream().allMatch(OrderItem::isCanceled)) {
             refund = payAmount() - itemRefundedAmount;
@@ -345,7 +324,6 @@ public class Order {
         releasePending();
     }
 
-    // 결제 대기를 벗어나면 같은 상품 · 같은 공동구매로 다시 주문할 수 있게 unique 대상에서 뺀다
     private void releasePending() {
         this.pendingIndividualGroupPurchaseId = null;
         items.forEach(OrderItem::releasePending);

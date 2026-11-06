@@ -17,10 +17,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.demandPurchase;
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.memberPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** 개인물품 공동구매가 닫히는 네 경로(개설자 · 어드민 · 마감 시각 · 판매 중지)가 상태 · 수요 키 · 종료 이벤트(아웃박스)를 같은 방식으로 남기는지 본다. */
 @CartMateIntegrationTest
 class IndividualGroupPurchaseCloseIntegrationTest {
 
@@ -106,15 +107,14 @@ class IndividualGroupPurchaseCloseIntegrationTest {
     private Long saveDemand() {
         long productId = 9_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L);
         LocalDateTime now = LocalDateTime.now();
-        IndividualGroupPurchase purchase = IndividualGroupPurchase.openFromDemand("수요 공동구매 종료", ADMIN, inviteCode(),
-                productId, now.plusDays(3), 10, 1000L, now);
+        IndividualGroupPurchase purchase = demandPurchase(ADMIN, inviteCode(), productId, now.plusDays(3), now);
         return repository.saveAndFlush(purchase).getId();
     }
 
     private Long saveMember() {
         long productId = 9_000_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L);
-        IndividualGroupPurchase purchase = IndividualGroupPurchase.create("회원 공동구매 종료", 900_000_003L, inviteCode(),
-                List.of(productId), LocalDateTime.now());
+        IndividualGroupPurchase purchase = memberPurchase(900_000_003L, inviteCode(), List.of(productId),
+                LocalDateTime.now());
         return repository.saveAndFlush(purchase).getId();
     }
 

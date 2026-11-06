@@ -10,8 +10,6 @@ public record DemandGroupPurchaseOpenedEvent(
         String title,
         String inviteCode,
         LocalDateTime deadlineAt,
-        int paybackMinBuyers,
-        long paybackAmount,
         LocalDateTime openedAt
 ) implements DomainEvent {
 

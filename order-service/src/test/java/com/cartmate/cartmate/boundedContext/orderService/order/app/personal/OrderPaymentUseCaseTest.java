@@ -8,10 +8,8 @@ import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderPaymentC
 
 import com.cartmate.cartmate.shared.order.OrderType;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductClient;
@@ -23,6 +21,7 @@ import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
+import com.cartmate.cartmate.shared.coupon.dto.CouponQuote;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +34,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.addressWithoutDetail;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.ballLine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -66,11 +68,9 @@ class OrderPaymentUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        // 결제 반영 시 상품 재확인: 기본은 모든 상품이 판매 중
                 OrderProductClient allOnSale = inventoryIds -> inventoryIds.stream().distinct()
                         .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
                         .toList();
-        // 결제 반영(applyPayment) 테스트라 결제 포트는 쓰지 않는다. 결제 흐름(pay)은 통합 테스트에서 확인
                 paymentUseCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher, allOnSale,
                         replicaUseCase, org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderPaymentClient.class),
                         org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
@@ -79,7 +79,7 @@ class OrderPaymentUseCaseTest {
     @Test
     @DisplayName("결제 기한 안에 결제하면 결제 완료로 바꾸고 결제 완료 이벤트를 한 번 발행한다")
     void applyPayment() {
-        Order order = order();
+        Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
         LocalDateTime paidAt = CREATED_AT.plusMinutes(10);
 
@@ -105,7 +105,7 @@ class OrderPaymentUseCaseTest {
     @Test
     @DisplayName("결제 기한이 지난 결제는 반영하지 않고 이벤트도 발행하지 않는다")
     void applyPaymentAfterDeadline() {
-        Order order = order();
+        Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
 
         assertThatThrownBy(() -> paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID,
@@ -119,7 +119,7 @@ class OrderPaymentUseCaseTest {
     @Test
     @DisplayName("같은 결제 ID로 결제 통보가 두 번 와도 예외 없이 결제 완료 이벤트는 한 번만 발행한다")
     void applyPaymentSamePaymentIdTwice() {
-        Order order = order();
+        Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
         LocalDateTime paidAt = CREATED_AT.plusMinutes(10);
 
@@ -133,7 +133,7 @@ class OrderPaymentUseCaseTest {
     @Test
     @DisplayName("이미 다른 결제 ID로 결제된 주문은 다시 결제할 수 없다")
     void applyPaymentDifferentPaymentId() {
-        Order order = order();
+        Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
         LocalDateTime paidAt = CREATED_AT.plusMinutes(10);
         paymentUseCase.applyPayment(ORDER_ID, BUYER, PAYMENT_ID, paidAt);
@@ -206,7 +206,7 @@ class OrderPaymentUseCaseTest {
         OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
                 eventPublisher, flaky, replicaUseCase, paymentClient,
                 org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
-        Order order = order();
+        Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
         given(orderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
         given(paymentClient.findPayment(any(), any(), any())).willReturn(Optional.empty());
@@ -229,7 +229,7 @@ class OrderPaymentUseCaseTest {
         OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
                 eventPublisher, mustNotBeCalled, replicaUseCase, paymentClient,
                 org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
-        Order order = order();
+        Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
         order.cancelByBuyer(BUYER, CREATED_AT.plusMinutes(1));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
         PaymentResult charged = new PaymentResult(PAYMENT_ID, ORDER_ID, 50000L, 0L, 50000L, "INDIVIDUAL_GROUP", "PAID",
@@ -242,17 +242,158 @@ class OrderPaymentUseCaseTest {
         then(paymentClient).should().compensateCharge(any(), any(), any());
     }
 
-    private Order individualGroupOrder(LocalDateTime createdAt) {
-        Order order = Order.createIndividualGroup("20261019-IGPORDER", BUYER, PURCHASE_ID, createdAt.plusDays(1),
-                List.of(new OrderLine(2L, 4L, 9L, "축구공", "5호", 25000, 2)),
-                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", null), createdAt);
-        ReflectionTestUtils.setField(order, "createdAt", createdAt); // @CreationTimestamp는 저장할 때 채워진다
-        return order;
+    @Test
+    @DisplayName("차감에 응답이 없고 재조회로도 결제를 확인하지 못하면 주문을 결제 대기로 두고 되돌리기 · 이벤트 없이 503을 그대로 던진다")
+    void chargeUnavailableKeepsOrderPending() {
+        assertChargeFailureLeavesOrderPending(new InternalServerUnavailableException("PAYMENT", "결제", null));
     }
 
-    private Order order() {
-        return Order.createPersonal("20261019-ABCDEFGH", BUYER,
-                List.of(new OrderLine(2L, 4L, 9L, "축구공", "5호", 25000, 2)),
-                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", null), CREATED_AT);
+    @Test
+    @DisplayName("결제 서버가 차감을 업무 거절하면 주문을 결제 대기로 두고 되돌리기 · 이벤트 없이 그 예외를 그대로 던진다")
+    void chargeRejectedKeepsOrderPending() {
+        assertChargeFailureLeavesOrderPending(new ServiceException("400-INSUFFICIENT_BALANCE", "예치금이 부족합니다."));
+    }
+
+    private void assertChargeFailureLeavesOrderPending(ServiceException failure) {
+        OrderPaymentClient paymentClient = org.mockito.Mockito.mock(OrderPaymentClient.class);
+        OrderProductClient allOnSale = inventoryIds -> inventoryIds.stream().distinct()
+                .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
+                .toList();
+        OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
+                eventPublisher, allOnSale, replicaUseCase, paymentClient,
+                org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
+        Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
+        given(orderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
+        given(paymentClient.findPayment(any(), any(), any())).willReturn(Optional.empty());
+        given(paymentClient.charge(any(), any(), any(), org.mockito.ArgumentMatchers.anyLong())).willThrow(failure);
+
+        assertThatThrownBy(() -> useCase.pay(ORDER_ID, BUYER, CREATED_AT.plusMinutes(1))).isSameAs(failure);
+        then(paymentClient).should(never()).compensateCharge(any(), any(), any());
+        then(orderRepository).should(never()).findByIdForUpdate(any());
+        then(eventPublisher).should(never()).publish(any());
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
+    }
+
+    @Test
+    @DisplayName("쿠폰 결제는 상품 서버가 계산한 할인만큼 덜 차감하고, 사용 결과 할인으로 주문을 결제 완료해 결제액이 차감액과 같다")
+    void payWithCouponChargesDiscountedAmount() {
+        CouponFixture f = couponFixture();
+        given(f.couponClient.quote(any(), any(), any(), any())).willReturn(QUOTE);
+        given(f.couponClient.use(any(), any(), any(), any())).willReturn(QUOTE);
+        given(f.paymentClient.charge(any(), any(), any(), org.mockito.ArgumentMatchers.eq(45_000L))).willReturn(charged(45_000L));
+
+        f.useCase.pay(ORDER_ID, BUYER, 5L, CREATED_AT.plusMinutes(1));
+
+        assertThat(f.order.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(f.order.getMemberCouponId()).isEqualTo(5L);
+        assertThat(f.order.payAmount()).isEqualTo(45_000L);
+        then(f.couponClient).should().use(org.mockito.ArgumentMatchers.eq(BUYER), org.mockito.ArgumentMatchers.eq(5L),
+                org.mockito.ArgumentMatchers.eq(ORDER_ID), any());
+        then(f.couponClient).should(never()).restore(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("결제 반영 중 쿠폰 사용이 거절되면 차감을 되돌리고 그 주문 기준으로 쿠폰 복구도 요청한 뒤 쿠폰 오류를 그대로 던진다")
+    void couponRejectedCompensatesChargeAndRestoresCoupon() {
+        CouponFixture f = couponFixture();
+        ServiceException expired = new ServiceException("409-COUPON_EXPIRED", "사용 기간이 지난 쿠폰입니다.");
+        given(f.couponClient.quote(any(), any(), any(), any())).willReturn(QUOTE);
+        given(f.couponClient.use(any(), any(), any(), any())).willThrow(expired);
+        given(f.paymentClient.charge(any(), any(), any(), org.mockito.ArgumentMatchers.anyLong())).willReturn(charged(45_000L));
+
+        assertThatThrownBy(() -> f.useCase.pay(ORDER_ID, BUYER, 5L, CREATED_AT.plusMinutes(1))).isSameAs(expired);
+        then(f.paymentClient).should().compensateCharge(any(), any(), any());
+        then(f.couponClient).should().restore(BUYER, 5L, ORDER_ID);
+    }
+
+    @Test
+    @DisplayName("쿠폰을 쓴 뒤 결제액이 맞지 않아 반영이 실패하면 차감을 되돌리고 쿠폰도 복구 요청한다")
+    void amountMismatchAfterCouponUseRestoresCoupon() {
+        CouponFixture f = couponFixture();
+        given(f.couponClient.quote(any(), any(), any(), any())).willReturn(QUOTE);
+        given(f.couponClient.use(any(), any(), any(), any())).willReturn(QUOTE);
+        given(f.paymentClient.charge(any(), any(), any(), org.mockito.ArgumentMatchers.anyLong())).willReturn(charged(50_000L));
+
+        assertThatThrownBy(() -> f.useCase.pay(ORDER_ID, BUYER, 5L, CREATED_AT.plusMinutes(1)))
+                .hasMessageContaining(OrderErrorCode.ORDER_PAYMENT_AMOUNT_MISMATCH.getMsg());
+        then(f.paymentClient).should().compensateCharge(any(), any(), any());
+        then(f.couponClient).should().restore(BUYER, 5L, ORDER_ID);
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용에 상품 서버가 응답하지 않으면 차감은 다시 결제할 때 반영하도록 두고, 쿠폰은 복구 요청해 주문과 맞춘 뒤 503을 던진다")
+    void couponUnavailableKeepsChargeAndRestoresCoupon() {
+        CouponFixture f = couponFixture();
+        InternalServerUnavailableException timeout = new InternalServerUnavailableException("PRODUCT", "상품", null);
+        given(f.couponClient.quote(any(), any(), any(), any())).willReturn(QUOTE);
+        given(f.couponClient.use(any(), any(), any(), any())).willThrow(timeout);
+        given(f.paymentClient.charge(any(), any(), any(), org.mockito.ArgumentMatchers.anyLong())).willReturn(charged(45_000L));
+
+        assertThatThrownBy(() -> f.useCase.pay(ORDER_ID, BUYER, 5L, CREATED_AT.plusMinutes(1))).isSameAs(timeout);
+        then(f.paymentClient).should(never()).compensateCharge(any(), any(), any());
+        then(f.couponClient).should().restore(BUYER, 5L, ORDER_ID);
+        assertThat(f.order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
+    }
+
+    @Test
+    @DisplayName("보상 중 쿠폰 복구까지 실패해도 원래 결제 반영 오류를 그대로 던진다")
+    void restoreFailureKeepsOriginalError() {
+        CouponFixture f = couponFixture();
+        ServiceException expired = new ServiceException("409-COUPON_EXPIRED", "사용 기간이 지난 쿠폰입니다.");
+        given(f.couponClient.quote(any(), any(), any(), any())).willReturn(QUOTE);
+        given(f.couponClient.use(any(), any(), any(), any())).willThrow(expired);
+        org.mockito.BDDMockito.willThrow(new InternalServerUnavailableException("PRODUCT", "상품", null))
+                .given(f.couponClient).restore(any(), any(), any());
+        given(f.paymentClient.charge(any(), any(), any(), org.mockito.ArgumentMatchers.anyLong())).willReturn(charged(45_000L));
+
+        assertThatThrownBy(() -> f.useCase.pay(ORDER_ID, BUYER, 5L, CREATED_AT.plusMinutes(1))).isSameAs(expired);
+    }
+
+    @Test
+    @DisplayName("이미 쿠폰으로 결제 완료된 주문은 반영이 실패해도 그 주문에 쓴 쿠폰을 복구하지 않는다")
+    void paidOrderFailureDoesNotRestoreCoupon() {
+        CouponFixture f = couponFixture();
+        f.order.applyCoupon(5L, 5_000L, true, null);
+        f.order.markPaid(999L, CREATED_AT.plusMinutes(1));
+        given(f.paymentClient.findPayment(any(), any(), any())).willReturn(Optional.of(charged(45_000L)));
+
+        assertThatThrownBy(() -> f.useCase.pay(ORDER_ID, BUYER, 5L, CREATED_AT.plusMinutes(2)))
+                .isInstanceOf(ServiceException.class);
+        then(f.couponClient).should(never()).use(any(), any(), any(), any());
+        then(f.couponClient).should(never()).restore(any(), any(), any());
+    }
+
+    private static final CouponQuote QUOTE = new CouponQuote(5L, 10L, "전체 10%", 5_000L, true, null);
+
+    private record CouponFixture(OrderPaymentUseCase useCase, OrderPaymentClient paymentClient,
+                                 com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient couponClient,
+                                 Order order) {
+    }
+
+    private CouponFixture couponFixture() {
+        OrderPaymentClient paymentClient = org.mockito.Mockito.mock(OrderPaymentClient.class);
+        var couponClient = org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class);
+        OrderProductClient allOnSale = inventoryIds -> inventoryIds.stream().distinct()
+                .map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true))
+                .toList();
+        OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
+                eventPublisher, allOnSale, replicaUseCase, paymentClient, couponClient);
+        Order order = personalOrder(BUYER, ballLine(9L, 2), CREATED_AT);
+        given(orderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        given(paymentClient.findPayment(any(), any(), any())).willReturn(Optional.empty());
+        return new CouponFixture(useCase, paymentClient, couponClient, order);
+    }
+
+    private static PaymentResult charged(long amount) {
+        return new PaymentResult(PAYMENT_ID, ORDER_ID, amount, 0L, amount, "INDIVIDUAL_GROUP", "PAID",
+                CREATED_AT.plusMinutes(1), null);
+    }
+
+    private Order individualGroupOrder(LocalDateTime createdAt) {
+        Order order = Order.createIndividualGroup("20261019-IGPORDER", BUYER, PURCHASE_ID, createdAt.plusDays(1),
+                List.of(ballLine(9L, 2)), addressWithoutDetail(), createdAt);
+        ReflectionTestUtils.setField(order, "createdAt", createdAt);
+        return order;
     }
 }

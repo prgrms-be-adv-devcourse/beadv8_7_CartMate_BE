@@ -52,8 +52,6 @@ public class OrderItem {
     @Column(nullable = false)
     private int quantity;
 
-    // 결제 대기 중인 개인 주문일 때만 구매자 ID, 아니면 NULL. unique(pending_buyer_member_id, inventory_id)로
-    // "같은 회원이 같은 재고 상품의 결제 대기 개인 주문을 둘 가질 수 없다"를 DB가 보장한다 (NULL끼리는 겹쳐도 된다)
     @Column(name = "pending_buyer_member_id")
     private Long pendingBuyerMemberId;
 
@@ -87,7 +85,6 @@ public class OrderItem {
         return unitPrice * quantity;
     }
 
-    // 판매 중지 등으로 이 항목만 취소된 시각 (주문 전체 취소와 별개)
     private LocalDateTime canceledAt;
 
     public boolean isCanceled() {

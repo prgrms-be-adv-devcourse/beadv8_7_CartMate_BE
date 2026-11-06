@@ -27,6 +27,7 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.demandPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -59,7 +60,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     }
 
     @Test
-    @DisplayName("기본 페이백 조건으로 열고 개설 이벤트를 발행한다")
+    @DisplayName("기본 판매 기간으로 열고 개설 이벤트를 발행한다")
     void open() {
         given(repository.findByDemandProductKeyForUpdate(BALL)).willReturn(Optional.empty());
         given(repository.saveAndFlush(any())).willAnswer(invocation -> {
@@ -69,7 +70,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
         });
 
         IndividualGroupPurchaseCreateResponse response =
-                useCase.open(ADMIN, BALL, new DemandGroupPurchaseOpenRequest("축구공 공동구매", null, null, null), NOW);
+                useCase.open(ADMIN, BALL, new DemandGroupPurchaseOpenRequest("축구공 공동구매", null), NOW);
 
         assertThat(response.id()).isEqualTo(77L);
         ArgumentCaptor<DomainEvent> published = ArgumentCaptor.forClass(DomainEvent.class);
@@ -81,8 +82,6 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
         DemandGroupPurchaseOpenedEvent event = (DemandGroupPurchaseOpenedEvent) published.getAllValues().get(1);
         assertThat(event.individualGroupPurchaseId()).isEqualTo(77L);
         assertThat(event.productId()).isEqualTo(BALL);
-        assertThat(event.paybackMinBuyers()).isEqualTo(10);
-        assertThat(event.paybackAmount()).isEqualTo(1_000L);
         assertThat(event.deadlineAt()).isEqualTo(NOW.plusHours(72));
         assertThat(event.inviteCode()).isEqualTo(response.inviteCode());
     }
@@ -90,8 +89,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     @Test
     @DisplayName("같은 상품으로 판매 중인 공동구매가 있으면 거절한다")
     void alreadyOpen() {
-        IndividualGroupPurchase previous = IndividualGroupPurchase.openFromDemand(
-                "축구공", ADMIN, "invitecode01", BALL, null, 10, 1_000L, NOW.minusHours(1));
+        IndividualGroupPurchase previous = demandPurchase(ADMIN, BALL, null, NOW.minusHours(1));
         given(repository.findByDemandProductKeyForUpdate(BALL)).willReturn(Optional.of(previous));
 
         assertThatThrownBy(() -> useCase.open(ADMIN, BALL, request(), NOW))
@@ -103,8 +101,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     @Test
     @DisplayName("마감 시각이 지난 이전 공동구매가 키를 잡고 있으면 풀고 새로 연다")
     void releaseExpired() {
-        IndividualGroupPurchase previous = IndividualGroupPurchase.openFromDemand(
-                "축구공", ADMIN, "invitecode01", BALL, null, 10, 1_000L, NOW.minusDays(4));
+        IndividualGroupPurchase previous = demandPurchase(ADMIN, BALL, null, NOW.minusDays(4));
         given(repository.findByDemandProductKeyForUpdate(BALL)).willReturn(Optional.of(previous));
         given(repository.saveAndFlush(any())).willAnswer(invocation -> invocation.getArgument(0));
 
@@ -157,6 +154,6 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     }
 
     private static DemandGroupPurchaseOpenRequest request() {
-        return new DemandGroupPurchaseOpenRequest("축구공 공동구매", null, 10, 1_000L);
+        return new DemandGroupPurchaseOpenRequest("축구공 공동구매", null);
     }
 }

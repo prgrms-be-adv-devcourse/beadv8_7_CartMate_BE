@@ -4,9 +4,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividua
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.personal.CartFacade;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.DeliveryAddressRequest;
@@ -15,6 +13,8 @@ import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.Orde
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
+import com.cartmate.cartmate.support.ConcurrentRunner;
+import com.cartmate.cartmate.support.ConcurrentRunner.Results;
 import com.cartmate.cartmate.support.TestEventRecorder;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -36,8 +36,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.ballLine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CartMateIntegrationTest
@@ -86,33 +88,19 @@ class OrderConcurrencyTest {
             long buyer = nextId();
             Long orderId = saveOrder(buyer, createdAt);
 
-            AtomicReference<String> paymentResult = new AtomicReference<>();
-            AtomicReference<Throwable> cancelError = new AtomicReference<>();
-            runConcurrently(List.of(
-                    () -> {
-                        try {
-                            facade.applyPayment(orderId, buyer, orderId, paidAt);
-                            paymentResult.set("PAID");
-                        } catch (ServiceException e) {
-                            paymentResult.set(e.getResultCode());
-                        }
-                    },
-                    () -> {
-                        try {
-                            facade.cancelByDeadline(orderId);
-                        } catch (RuntimeException e) {
-                            cancelError.set(e);
-                        }
-                    }
-            ));
+            Results results = ConcurrentRunner.run(
+                    () -> facade.applyPayment(orderId, buyer, orderId, paidAt),
+                    () -> facade.cancelByDeadline(orderId));
+            results.assertNoUnexpected(ServiceException.class);
+            String paymentResult = results.succeeded(0) ? "PAID" : ((ServiceException) results.error(0)).getResultCode();
 
             Order order = repository.findById(orderId).orElseThrow();
             long paidEvents = eventRecorder.count(OrderPaidEvent.class, e -> e.orderId().equals(orderId));
             long canceledEvents = eventRecorder.count(OrderCanceledEvent.class, e -> e.orderId().equals(orderId));
-            assertThat(cancelError.get()).isNull();
+            assertThat(results.error(1)).as("기한 만료 취소는 예외 없이 끝난다").isNull();
             if (order.getStatus() == OrderStatus.PAID) {
                 paidRounds++;
-                assertThat(paymentResult.get()).isEqualTo("PAID");
+                assertThat(paymentResult).isEqualTo("PAID");
                 assertThat(order.getPaidAt()).isEqualTo(paidAt);
                 assertThat(paidEvents).isEqualTo(1);
                 assertThat(canceledEvents).isZero();
@@ -121,7 +109,7 @@ class OrderConcurrencyTest {
                 assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
                 assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.PAYMENT_EXPIRED);
                 assertThat(order.getPaidAt()).isNull();
-                assertThat(paymentResult.get()).isEqualTo(OrderErrorCode.ORDER_NOT_PAYMENT_PENDING.resultCode());
+                assertThat(paymentResult).isEqualTo(OrderErrorCode.ORDER_NOT_PAYMENT_PENDING.resultCode());
                 assertThat(canceledEvents).isEqualTo(1);
                 assertThat(paidEvents).isZero();
             }
@@ -143,18 +131,12 @@ class OrderConcurrencyTest {
                             "홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
 
             Queue<Long> created = new ConcurrentLinkedQueue<>();
-            Queue<String> rejected = new ConcurrentLinkedQueue<>();
-            Runnable create = () -> {
-                try {
-                    created.add(facade.createIndividualGroup(buyer, request).orderId());
-                } catch (ServiceException e) {
-                    rejected.add(e.getResultCode());
-                }
-            };
-            runConcurrently(List.of(create, create));
+            Results results = ConcurrentRunner.run(2, i -> created.add(facade.createIndividualGroup(buyer, request).orderId()));
 
+            results.assertNoUnexpected(ServiceException.class);
             assertThat(created).hasSize(1);
-            assertThat(rejected).containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
+            assertThat(results.errorsOf(ServiceException.class)).extracting(ServiceException::getResultCode)
+                    .containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
             assertThat(repository.findPendingIndividualGroupOrderId(buyer, purchaseId)).contains(created.peek());
 
             facade.cancelByBuyer(buyer, created.peek());
@@ -174,18 +156,12 @@ class OrderConcurrencyTest {
                     new DeliveryAddressRequest("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
 
             Queue<Long> created = new ConcurrentLinkedQueue<>();
-            Queue<String> rejected = new ConcurrentLinkedQueue<>();
-            Runnable create = () -> {
-                try {
-                    created.add(facade.createPersonal(buyer, request).orderId());
-                } catch (ServiceException e) {
-                    rejected.add(e.getResultCode());
-                }
-            };
-            runConcurrently(List.of(create, create));
+            Results results = ConcurrentRunner.run(2, i -> created.add(facade.createPersonal(buyer, request).orderId()));
 
+            results.assertNoUnexpected(ServiceException.class);
             assertThat(created).hasSize(1);
-            assertThat(rejected).containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
+            assertThat(results.errorsOf(ServiceException.class)).extracting(ServiceException::getResultCode)
+                    .containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
         }
     }
 
@@ -202,6 +178,7 @@ class OrderConcurrencyTest {
 
         CountDownLatch locked = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
+        AtomicBoolean lockReleased = new AtomicBoolean();
         ExecutorService holder = Executors.newSingleThreadExecutor();
         holder.submit(() -> transactionTemplate.executeWithoutResult(status -> {
             individualGroupPurchaseRepository.findByIdForUpdate(purchaseId).orElseThrow();
@@ -211,18 +188,18 @@ class OrderConcurrencyTest {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+            lockReleased.set(true);
         }));
         try {
             assertThat(locked.await(5, TimeUnit.SECONDS)).isTrue();
-            long started = System.nanoTime();
 
             facade.createIndividualGroup(buyer, request);
 
-            assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)).isLessThan(3_000);
+            assertThat(lockReleased.get()).as("주문 생성이 공동구매 행 락이 풀리기를 기다렸다").isFalse();
         } finally {
             release.countDown();
             holder.shutdown();
-            holder.awaitTermination(10, TimeUnit.SECONDS);
+            assertThat(holder.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
         }
     }
 
@@ -231,34 +208,7 @@ class OrderConcurrencyTest {
     }
 
     private Long saveOrder(Long buyer, LocalDateTime createdAt) {
-        Order order = Order.createPersonal("IT-" + nextId(), buyer,
-                List.of(new OrderLine(2L, 4L, 1L, "축구공", "5호", 25000, 1)),
-                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"), createdAt);
+        Order order = personalOrder("IT-" + nextId(), buyer, List.of(ballLine(1L, 1)), createdAt);
         return repository.save(order).getId();
-    }
-
-    private void runConcurrently(List<Runnable> tasks) throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(tasks.size());
-        CountDownLatch ready = new CountDownLatch(tasks.size());
-        CountDownLatch start = new CountDownLatch(1);
-        CountDownLatch done = new CountDownLatch(tasks.size());
-        for (Runnable task : tasks) {
-            executor.submit(() -> {
-                ready.countDown();
-                try {
-                    start.await();
-                    task.run();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    done.countDown();
-                }
-            });
-        }
-        ready.await();
-        start.countDown();
-        done.await(30, TimeUnit.SECONDS);
-        executor.shutdown();
-        executor.awaitTermination(30, TimeUnit.SECONDS);
     }
 }

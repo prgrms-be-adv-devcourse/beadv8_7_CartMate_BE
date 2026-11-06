@@ -17,7 +17,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IndividualGroupPurchaseOrderLineReplica {
 
-    // order 모듈의 주문 항목 ID를 그대로 쓴다
     @Id
     private Long orderItemId;
 
@@ -39,7 +38,6 @@ public class IndividualGroupPurchaseOrderLineReplica {
 
     private Long sellerId;
 
-    // 판매 중지로 이 판매자 항목만 취소됐다 (주문 전체 취소와 별개)
     @Column(nullable = false)
     private boolean canceled;
 

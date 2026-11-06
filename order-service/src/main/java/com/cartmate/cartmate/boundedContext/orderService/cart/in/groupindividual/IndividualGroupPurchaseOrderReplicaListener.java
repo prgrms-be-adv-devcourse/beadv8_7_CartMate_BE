@@ -12,16 +12,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-// 아웃박스 릴레이가 트랜잭션 밖에서 넘기는 order 이벤트로 개인물품 공동구매 주문 읽기 모델을 고친다.
-// 트랜잭션이 없으니 fallbackExecution으로 바로 실행되고, 예외는 그대로 릴레이로 올라가 다시 시도된다
 @Component
 @RequiredArgsConstructor
 public class IndividualGroupPurchaseOrderReplicaListener {
 
-
     private final IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
-    @TransactionalEventListener(fallbackExecution = true)
+    @TransactionalEventListener(fallbackExecution = true, condition = "@relayedEventRouting.accepts(#message)")
     public void handle(OutboxMessageRelayed message) {
         switch (message.event()) {
             case OrderCreatedEvent event when event.orderType() == OrderType.INDIVIDUAL_GROUP ->

@@ -23,7 +23,6 @@ import java.util.Set;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SharedGroupPurchase {
 
-
     public static final Duration EDIT_PERIOD = Duration.ofHours(48);
     public static final Duration FROZEN_PERIOD = Duration.ofHours(24);
     private static final int MIN_PARTICIPANTS = 2;
@@ -34,14 +33,11 @@ public class SharedGroupPurchase {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @Column(nullable = false, length = MAX_TITLE_LENGTH)
     private String title;
 
-
     @Column(nullable = false)
     private Long creatorMemberId;
-
 
     @Column(nullable = false)
     private int maxParticipants;
@@ -50,10 +46,8 @@ public class SharedGroupPurchase {
     @Column(nullable = false, columnDefinition = "varchar(20)")
     private SharedGroupPurchaseStatus status;
 
-
     @Column(nullable = false, unique = true, length = 12)
     private String inviteCode;
-
 
     @Column(nullable = false)
     private LocalDateTime editDeadlineAt;
@@ -63,7 +57,6 @@ public class SharedGroupPurchase {
     private LocalDateTime closedAt;
 
     private Long sourceSharedGroupPurchaseId;
-
 
     @OrderBy("id")
     @OneToMany(mappedBy = "sharedGroupPurchase", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -100,7 +93,6 @@ public class SharedGroupPurchase {
         return new SharedGroupPurchase(title, creatorMemberId, maxParticipants, inviteCode, null, now);
     }
 
-
     public SharedGroupPurchase duplicate(Long requesterId, String inviteCode, Set<Long> unavailableInventoryIds,
                                          LocalDateTime now) {
         validateCreator(requesterId);
@@ -115,7 +107,6 @@ public class SharedGroupPurchase {
         return copy;
     }
 
-
     public void join(Long memberId, LocalDateTime now) {
         validateEditable(now);
         if (isMember(memberId)) {
@@ -127,12 +118,12 @@ public class SharedGroupPurchase {
         members.add(SharedGroupPurchaseMember.create(this, memberId));
     }
 
-    public void leave(Long memberId, LocalDateTime now) {
+    public LocalDateTime leave(Long memberId, LocalDateTime now) {
         validateEditable(now);
         if (isCreator(memberId)) {
             throw new ServiceException(CartErrorCode.CART_SHARED_CREATOR_CANNOT_LEAVE);
         }
-        removeMember(memberId);
+        return removeMember(memberId).getCreatedAt();
     }
 
     public void kick(Long requesterId, Long targetMemberId, LocalDateTime now) {
@@ -162,7 +153,6 @@ public class SharedGroupPurchase {
         return creatorMemberId.equals(memberId);
     }
 
-
     public void addItem(Long memberId, Long productId, Long inventoryId, int quantity, LocalDateTime now) {
         validateEditable(now);
         validateMember(memberId);
@@ -186,7 +176,6 @@ public class SharedGroupPurchase {
         item.adjustQuantity(delta, memberId);
         return item;
     }
-
 
     public void changeItemOption(Long memberId, Long itemId, Long productId, Long inventoryId, LocalDateTime now) {
         validateEditableOrFrozenByCreator(memberId, now);
@@ -216,7 +205,6 @@ public class SharedGroupPurchase {
                 .findFirst()
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_SHARED_ITEM_NOT_FOUND));
     }
-
 
     public void close(Long requesterId, Set<Long> unavailableInventoryIds, LocalDateTime now) {
         validateCreator(requesterId);
@@ -262,8 +250,6 @@ public class SharedGroupPurchase {
         finish(items.isEmpty() ? SharedGroupPurchaseStatus.CANCELED : SharedGroupPurchaseStatus.CLOSED, now);
     }
 
-    // order가 공동 주문을 만들었다. 보통은 마감 대기(CLOSED)에서 넘어간다.
-    // 시간 초과로 FROZEN에 돌아간 뒤 늦게 온 생성도 받는다: 주문이 이미 있으니 주문 쪽이 기준이다. 바뀌었으면 true
     public boolean markOrderCreated() {
         if (status != SharedGroupPurchaseStatus.CLOSED && status != SharedGroupPurchaseStatus.FROZEN) {
             return false;
@@ -272,8 +258,6 @@ public class SharedGroupPurchase {
         return true;
     }
 
-    // 공동 주문을 만들지 못했다(즉시 실패 · 시간 초과). 마감 대기에서만 마감 보류로 돌아가고,
-    // 생성자가 정리해 다시 마감하거나 보류 24시간 뒤 자동 마감이 다시 시도한다. 바뀌었으면 true
     public boolean revertToFrozen(LocalDateTime now) {
         if (status != SharedGroupPurchaseStatus.CLOSED) {
             return false;
@@ -291,7 +275,6 @@ public class SharedGroupPurchase {
         return status == SharedGroupPurchaseStatus.CLOSED && !now.isBefore(closedAt.plus(timeout));
     }
 
-    // 판매글 판매 중지: 담긴 상품을 빼고 계속 모집한다. 남은 상품이 없으면 공동구매를 취소한다. 바뀐 게 있으면 true.
     public boolean removeItemsBySalesStopped(Set<Long> productIds, LocalDateTime now) {
         if (status != SharedGroupPurchaseStatus.OPEN && status != SharedGroupPurchaseStatus.FROZEN) {
             return false;
@@ -303,16 +286,21 @@ public class SharedGroupPurchase {
         return removed;
     }
 
+    public boolean isCanceled() {
+        return status == SharedGroupPurchaseStatus.CANCELED;
+    }
+
     public boolean isEditable(LocalDateTime now) {
         return status == SharedGroupPurchaseStatus.OPEN && now.isBefore(editDeadlineAt);
     }
 
-    private void removeMember(Long memberId) {
+    private SharedGroupPurchaseMember removeMember(Long memberId) {
         SharedGroupPurchaseMember member = members.stream()
                 .filter(m -> m.is(memberId))
                 .findFirst()
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_SHARED_MEMBER_NOT_FOUND));
         members.remove(member);
+        return member;
     }
 
     private Optional<SharedGroupPurchaseItem> findItemByInventoryId(Long inventoryId) {

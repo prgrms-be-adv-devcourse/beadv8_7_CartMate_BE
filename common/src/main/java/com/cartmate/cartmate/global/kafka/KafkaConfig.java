@@ -1,12 +1,18 @@
 package com.cartmate.cartmate.global.kafka;
 
-import com.cartmate.cartmate.global.inbox.ProcessedEvents;
+import com.cartmate.cartmate.global.inbox.InboxEventRepository;
+import com.cartmate.cartmate.global.inbox.InboxProcessor;
+import com.cartmate.cartmate.global.inbox.InboxProcessorProperties;
+import com.cartmate.cartmate.global.inbox.InboxWorker;
+import com.cartmate.cartmate.global.inbox.InboxWriter;
+import com.cartmate.cartmate.global.outbox.DomainEventTypeRegistry;
 import com.cartmate.cartmate.global.outbox.InProcessOutboxRelaySink;
 import com.cartmate.cartmate.global.outbox.OutboxRelaySink;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +23,6 @@ import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.backoff.FixedBackOff;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
@@ -27,6 +32,7 @@ import java.time.Duration;
 @Slf4j
 @Configuration
 @ConditionalOnProperty(name = "cartmate.kafka.enabled", havingValue = "true")
+@EnableConfigurationProperties(InboxProcessorProperties.class)
 public class KafkaConfig {
 
     @Bean
@@ -56,19 +62,53 @@ public class KafkaConfig {
     }
 
     @Bean
+    public InboundEventTypes inboundEventTypes(ObjectProvider<InboundEventBinding> bindings) {
+        return InboundEventTypes.of(bindings.orderedStream().toList());
+    }
+
+    @Bean
     @SuppressWarnings("unchecked")
     public KafkaInboundEventBridge kafkaInboundEventBridge(ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory,
-                                                           ObjectProvider<InboundEventBinding> bindings,
+                                                           InboundEventTypes inboundEventTypes,
                                                            EventEnvelopeReader envelopeReader,
-                                                           ApplicationEventPublisher applicationEventPublisher,
-                                                           PlatformTransactionManager transactionManager,
-                                                           ProcessedEvents processedEvents) {
+                                                           InboxWriter inboxWriter) {
         return new KafkaInboundEventBridge(
                 (ConcurrentKafkaListenerContainerFactory<String, String>) kafkaListenerContainerFactory,
-                bindings.orderedStream().toList(),
+                inboundEventTypes,
                 envelopeReader,
-                applicationEventPublisher,
-                new TransactionTemplate(transactionManager),
-                processedEvents);
+                inboxWriter);
+    }
+
+    @Bean
+    public InboxWorker inboxWorker(InboxEventRepository inboxEventRepository,
+                                   EventEnvelopeReader envelopeReader,
+                                   InboundEventTypes inboundEventTypes,
+                                   ApplicationEventPublisher applicationEventPublisher,
+                                   InboxProcessorProperties inboxProcessorProperties,
+                                   PlatformTransactionManager transactionManager) {
+        return new InboxWorker(inboxEventRepository, envelopeReader, inboundEventTypes,
+                applicationEventPublisher, inboxProcessorProperties, transactionManager);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "cartmate.scheduling.enabled", havingValue = "true", matchIfMissing = true)
+    public InboxProcessor inboxProcessor(InboxEventRepository inboxEventRepository, InboxWorker inboxWorker,
+                                         InboxProcessorProperties inboxProcessorProperties) {
+        return new InboxProcessor(inboxEventRepository, inboxWorker, inboxProcessorProperties);
+    }
+
+    @Bean
+    @SuppressWarnings("unchecked")
+    public KafkaRelayedEventConsumer kafkaRelayedEventConsumer(ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory,
+                                                               ObjectProvider<RelaySubscription> subscriptions,
+                                                               DomainEventTypeRegistry typeRegistry,
+                                                               EventEnvelopeReader envelopeReader,
+                                                               ApplicationEventPublisher applicationEventPublisher) {
+        return new KafkaRelayedEventConsumer(
+                (ConcurrentKafkaListenerContainerFactory<String, String>) kafkaListenerContainerFactory,
+                subscriptions.orderedStream().toList(),
+                typeRegistry,
+                envelopeReader,
+                applicationEventPublisher);
     }
 }

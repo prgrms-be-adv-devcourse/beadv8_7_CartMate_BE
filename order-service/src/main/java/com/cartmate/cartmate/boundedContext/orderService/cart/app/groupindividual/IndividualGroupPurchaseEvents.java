@@ -9,7 +9,6 @@ import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEve
 
 import java.time.LocalDateTime;
 
-// 공동구매 엔티티 → order에 알리는 이벤트 · 스냅샷. 모든 발행 지점이 같은 모양을 쓰게 한곳에 모은다
 public final class IndividualGroupPurchaseEvents {
 
     private IndividualGroupPurchaseEvents() {
@@ -17,7 +16,7 @@ public final class IndividualGroupPurchaseEvents {
 
     public static IndividualGroupPurchaseOpenedEvent opened(IndividualGroupPurchase purchase, LocalDateTime now) {
         return new IndividualGroupPurchaseOpenedEvent(purchase.getId(), purchase.getDeadlineAt(), purchase.productIds(),
-                purchase.getRevision(), now, purchase.getPaybackMinBuyers(), purchase.getPaybackAmount());
+                purchase.getRevision(), now);
     }
 
     public static IndividualGroupPurchaseUpdatedEvent updated(IndividualGroupPurchase purchase, LocalDateTime now) {
@@ -28,8 +27,7 @@ public final class IndividualGroupPurchaseEvents {
     public static IndividualGroupPurchaseClosedEvent closed(IndividualGroupPurchase purchase,
                                                             IndividualGroupPurchaseCloseReason reason) {
         return new IndividualGroupPurchaseClosedEvent(purchase.getId(), purchase.getOrigin(), reason,
-                purchase.getDeadlineAt(), purchase.getClosedAt(), purchase.getRevision(),
-                purchase.getPaybackMinBuyers(), purchase.getPaybackAmount());
+                purchase.getDeadlineAt(), purchase.getClosedAt(), purchase.getRevision());
     }
 
     static IndividualGroupPurchaseSnapshot snapshot(IndividualGroupPurchase purchase) {
