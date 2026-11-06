@@ -54,6 +54,7 @@ class AbuseCartEventConsumerIntegrationTest {
         AbuseSignal signal = onlySignal(member);
         assertThat(signal.getSignalType()).isEqualTo(AbuseSignalType.SHARED_PURCHASE_LEFT);
         assertThat(signal.getSourceKey()).startsWith(purchase.id() + ":");
+        assertThat(signal.getContextKey()).isEqualTo("sharedGroupPurchase:" + purchase.id());
         assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
         assertThat(signal.getTotalScore()).isEqualTo(13);
     }
