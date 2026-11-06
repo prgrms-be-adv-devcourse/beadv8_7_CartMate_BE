@@ -1,8 +1,5 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.in;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackSettlement;
-import com.cartmate.cartmate.shared.order.GroupPurchaseType;
-import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual.IndividualGroupPurchaseFacade;
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.personal.CartFacade;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
@@ -10,11 +7,9 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.dto.personal.CartI
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.PaybackPayout;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.DeliveryAddressRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.PaybackPayoutRepository;
 import com.cartmate.cartmate.support.ExternalApiTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,9 +57,6 @@ class OrderApiContractTest extends ExternalApiTestSupport {
 
     @Autowired
     private SharedGroupOrderRepository sharedGroupOrderRepository;
-
-    @Autowired
-    private PaybackPayoutRepository paybackPayoutRepository;
 
     @Test
     @DisplayName("장바구니 상품으로 주문하면 201과 주문 id · 번호 · 금액 · 결제 기한을 주고, 목록 · 상세를 계약된 필드로 준다")
@@ -282,42 +274,6 @@ class OrderApiContractTest extends ExternalApiTestSupport {
                 .andExpect(jsonPath("$.data.status").value("CANCELED"))
                 .andExpect(jsonPath("$.data.cancelReason").isString())
                 .andExpect(jsonPath("$.data.canceledAt", matchesPattern(ISO_LOCAL_DATE_TIME)));
-    }
-
-    @Test
-    @DisplayName("어드민 페이백 지급 목록은 status 쿼리 파라미터(기본 FAILED)로 거르고, 실패 건을 다시 요청할 수 있다")
-    void adminPaybackPayouts() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
-        PaybackPayout failed = PaybackPayout.request(GroupPurchaseType.INDIVIDUAL, 77L,
-                new PaybackSettlement.PayoutLine(BUYER, 5L, PaybackFunder.ADMIN, null, 2, 500L), now);
-        failed.markFailed("WALLET_NOT_FOUND", false, 1, now);
-        Long failedId = paybackPayoutRepository.save(failed).getId();
-        Long requestedId = paybackPayoutRepository.save(PaybackPayout.request(GroupPurchaseType.INDIVIDUAL, 77L,
-                new PaybackSettlement.PayoutLine(OTHER_BUYER, 5L, PaybackFunder.ADMIN, null, 2, 500L), now)).getId();
-
-        ok(get("/api/admin/orders/paybacks").with(admin(ADMIN)))
-                .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].paybackId", equalTo(num(failedId))))
-                .andExpect(jsonPath("$.data[0].groupPurchaseType").value("INDIVIDUAL"))
-                .andExpect(jsonPath("$.data[0].groupPurchaseId", equalTo(77)))
-                .andExpect(jsonPath("$.data[0].memberId", equalTo(num(BUYER))))
-                .andExpect(jsonPath("$.data[0].productId", equalTo(5)))
-                .andExpect(jsonPath("$.data[0].funder").value("ADMIN"))
-                .andExpect(jsonPath("$.data[0].quantity", equalTo(2)))
-                .andExpect(jsonPath("$.data[0].amountPerUnit", equalTo(500)))
-                .andExpect(jsonPath("$.data[0].amount", equalTo(1_000)))
-                .andExpect(jsonPath("$.data[0].status").value("FAILED"))
-                .andExpect(jsonPath("$.data[0].attempt", equalTo(1)))
-                .andExpect(jsonPath("$.data[0].failureCode").value("WALLET_NOT_FOUND"))
-                .andExpect(jsonPath("$.data[0].requestedAt", matchesPattern(ISO_LOCAL_DATE_TIME)))
-                .andExpect(jsonPath("$.data[0].completedAt", matchesPattern(ISO_LOCAL_DATE_TIME)));
-        ok(get("/api/admin/orders/paybacks").param("status", "REQUESTED").with(admin(ADMIN)))
-                .andExpect(jsonPath("$.data[*].paybackId", contains(num(requestedId))));
-
-        ok(post("/api/admin/orders/paybacks/{paybackId}/retry", failedId).with(admin(ADMIN)))
-                .andExpect(jsonPath("$.data").value(nullValue()));
-        ok(get("/api/admin/orders/paybacks").with(admin(ADMIN)))
-                .andExpect(jsonPath("$.data", hasSize(0)));
     }
 
     private Long createPersonalOrder(long buyer) {

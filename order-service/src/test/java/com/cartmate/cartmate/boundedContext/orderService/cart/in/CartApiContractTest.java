@@ -89,7 +89,7 @@ class CartApiContractTest extends ExternalApiTestSupport {
     @DisplayName("장바구니 매칭은 내 장바구니 상품으로 참여할 수 있는 어드민 공동구매를 계약된 필드로 준다")
     void matches() throws Exception {
         Long purchaseId = individualGroupPurchaseFacade.openFromDemand(ADMIN, 1L,
-                new DemandGroupPurchaseOpenRequest("유니폼 공동구매", null, 5, 2_000L, null)).id();
+                new DemandGroupPurchaseOpenRequest("유니폼 공동구매", null)).id();
         cartFacade.addItem(BUYER, 2L, 1);
 
         ok(get("/api/carts/matches").with(buyer(BUYER)))
@@ -98,8 +98,6 @@ class CartApiContractTest extends ExternalApiTestSupport {
                 .andExpect(jsonPath("$.data[0].title").value("유니폼 공동구매"))
                 .andExpect(jsonPath("$.data[0].inviteCode", matchesPattern("[a-z0-9]{12}")))
                 .andExpect(jsonPath("$.data[0].deadlineAt", matchesPattern(ISO_LOCAL_DATE_TIME)))
-                .andExpect(jsonPath("$.data[0].paybackMinQuantity", equalTo(5)))
-                .andExpect(jsonPath("$.data[0].paybackAmountPerUnit", equalTo(2_000)))
                 .andExpect(jsonPath("$.data[0].productId", equalTo(1)))
                 .andExpect(jsonPath("$.data[0].productName").value("축구 유니폼"))
                 .andExpect(jsonPath("$.data[0].imageUrl").value("https://example.com/uniform.png"))
@@ -139,7 +137,7 @@ class CartApiContractTest extends ExternalApiTestSupport {
     @DisplayName("어드민 수요 공동구매 열기는 경로의 상품 id로 열고 201과 공동구매 id · 초대 코드를 준다")
     void openDemandGroupPurchase() throws Exception {
         created(json(post("/api/admin/carts/demands/{productId}/group-purchases", 2L),
-                "{\"title\":\"축구공 공동구매\",\"paybackMinQuantity\":3,\"paybackAmountPerUnit\":500}").with(admin(ADMIN)))
+                "{\"title\":\"축구공 공동구매\"}").with(admin(ADMIN)))
                 .andExpect(jsonPath("$.data.id").isNumber())
                 .andExpect(jsonPath("$.data.inviteCode", matchesPattern("[a-z0-9]{12}")));
     }

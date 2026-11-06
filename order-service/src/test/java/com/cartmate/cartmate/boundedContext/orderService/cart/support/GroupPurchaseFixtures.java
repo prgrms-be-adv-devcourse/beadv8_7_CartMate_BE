@@ -1,6 +1,5 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.support;
 
-import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchase;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchase;
 
@@ -11,9 +10,6 @@ public final class GroupPurchaseFixtures {
 
     private static final String INVITE_CODE = "abcdefghijkl";
     private static final String DEMAND_INVITE_CODE = "invitecode01";
-
-    private static final int PAYBACK_MIN_QUANTITY = 10;
-    private static final long PAYBACK_AMOUNT_PER_UNIT = 1_000L;
 
     private GroupPurchaseFixtures() {
     }
@@ -36,7 +32,7 @@ public final class GroupPurchaseFixtures {
     public static IndividualGroupPurchase demandPurchase(Long adminMemberId, String inviteCode, Long productId,
                                                          LocalDateTime deadlineAt, LocalDateTime openedAt) {
         return IndividualGroupPurchase.openFromDemand("수요 공동구매", adminMemberId, inviteCode, productId, deadlineAt,
-                PAYBACK_MIN_QUANTITY, PAYBACK_AMOUNT_PER_UNIT, PaybackOverlapPolicy.BOTH, openedAt);
+                openedAt);
     }
 
     public static SharedGroupPurchase sharedPurchase(Long creatorMemberId, Long participantMemberId,

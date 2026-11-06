@@ -24,24 +24,20 @@ class IndividualGroupPurchaseReplicaUseCase {
     private final EntityManager entityManager;
 
     void applyOpened(IndividualGroupPurchaseOpenedEvent event) {
-        applyOpenState(event.individualGroupPurchaseId(), event.deadlineAt(), event.productIds(), event.revision())
-                .fillPaybackConditions(event.paybackOverlapPolicy(), event.paybackConditions());
+        applyOpenState(event.individualGroupPurchaseId(), event.deadlineAt(), event.productIds(), event.revision());
     }
 
     void applyUpdated(IndividualGroupPurchaseUpdatedEvent event) {
-        applyOpenState(event.individualGroupPurchaseId(), event.deadlineAt(), event.productIds(), event.revision())
-                .fillPaybackConditions(event.paybackOverlapPolicy(), event.paybackConditions());
+        applyOpenState(event.individualGroupPurchaseId(), event.deadlineAt(), event.productIds(), event.revision());
     }
 
     void applyClosed(IndividualGroupPurchaseClosedEvent event) {
-        IndividualGroupPurchaseReplica replica = replicaRepository.findByIdForUpdate(event.individualGroupPurchaseId())
-                .map(found -> {
-                    found.applyClosed(event.deadlineAt(), event.closedAt(), event.revision());
-                    return found;
-                })
-                .orElseGet(() -> replicaRepository.save(IndividualGroupPurchaseReplica.of(event.individualGroupPurchaseId(),
-                        event.deadlineAt(), true, event.closedAt(), List.of(), event.revision())));
-        replica.fillPaybackConditions(event.paybackOverlapPolicy(), event.paybackConditions());
+        replicaRepository.findByIdForUpdate(event.individualGroupPurchaseId())
+                .ifPresentOrElse(
+                        found -> found.applyClosed(event.deadlineAt(), event.closedAt(), event.revision()),
+                        () -> replicaRepository.save(IndividualGroupPurchaseReplica.of(
+                                event.individualGroupPurchaseId(), event.deadlineAt(), true, event.closedAt(),
+                                List.of(), event.revision())));
     }
 
     Optional<IndividualGroupPurchaseReplica> find(Long individualGroupPurchaseId) {

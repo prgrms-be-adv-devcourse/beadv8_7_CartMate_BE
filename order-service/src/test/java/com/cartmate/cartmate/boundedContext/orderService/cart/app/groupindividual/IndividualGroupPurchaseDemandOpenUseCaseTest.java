@@ -1,8 +1,5 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual;
 
-import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
-import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
-import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.InviteCodeGenerator;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchase;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividual.IndividualGroupPurchaseCreateResponse;
@@ -63,7 +60,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     }
 
     @Test
-    @DisplayName("기본 페이백 조건으로 열고 개설 이벤트를 발행한다")
+    @DisplayName("기본 판매 기간으로 열고 개설 이벤트를 발행한다")
     void open() {
         given(repository.findByDemandProductKeyForUpdate(BALL)).willReturn(Optional.empty());
         given(repository.saveAndFlush(any())).willAnswer(invocation -> {
@@ -73,7 +70,7 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
         });
 
         IndividualGroupPurchaseCreateResponse response =
-                useCase.open(ADMIN, BALL, new DemandGroupPurchaseOpenRequest("축구공 공동구매", null, null, null, null), NOW);
+                useCase.open(ADMIN, BALL, new DemandGroupPurchaseOpenRequest("축구공 공동구매", null), NOW);
 
         assertThat(response.id()).isEqualTo(77L);
         ArgumentCaptor<DomainEvent> published = ArgumentCaptor.forClass(DomainEvent.class);
@@ -82,15 +79,9 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
         assertThat(opened.individualGroupPurchaseId()).isEqualTo(77L);
         assertThat(opened.productIds()).containsExactly(BALL);
         assertThat(opened.revision()).isZero();
-        assertThat(opened.paybackOverlapPolicy()).isEqualTo(PaybackOverlapPolicy.BOTH);
-        assertThat(opened.paybackConditions())
-                .containsExactly(new PaybackConditionPayload(BALL, PaybackFunder.ADMIN, null, 10, 500L));
         DemandGroupPurchaseOpenedEvent event = (DemandGroupPurchaseOpenedEvent) published.getAllValues().get(1);
         assertThat(event.individualGroupPurchaseId()).isEqualTo(77L);
         assertThat(event.productId()).isEqualTo(BALL);
-        assertThat(event.paybackMinQuantity()).isEqualTo(10);
-        assertThat(event.paybackAmountPerUnit()).isEqualTo(500L);
-        assertThat(event.paybackOverlapPolicy()).isEqualTo(PaybackOverlapPolicy.BOTH);
         assertThat(event.deadlineAt()).isEqualTo(NOW.plusHours(72));
         assertThat(event.inviteCode()).isEqualTo(response.inviteCode());
     }
@@ -163,6 +154,6 @@ class IndividualGroupPurchaseDemandOpenUseCaseTest {
     }
 
     private static DemandGroupPurchaseOpenRequest request() {
-        return new DemandGroupPurchaseOpenRequest("축구공 공동구매", null, 10, 1_000L, null);
+        return new DemandGroupPurchaseOpenRequest("축구공 공동구매", null);
     }
 }

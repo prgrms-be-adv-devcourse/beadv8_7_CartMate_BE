@@ -1,8 +1,5 @@
 package com.cartmate.cartmate.shared.cart.event;
 
-import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
-import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
-
 import com.cartmate.cartmate.global.event.DomainEvent;
 
 import java.time.LocalDateTime;
@@ -13,9 +10,7 @@ public record IndividualGroupPurchaseUpdatedEvent(
         LocalDateTime deadlineAt,
         List<Long> productIds,
         long revision,
-        LocalDateTime updatedAt,
-        PaybackOverlapPolicy paybackOverlapPolicy,
-        List<PaybackConditionPayload> paybackConditions
+        LocalDateTime updatedAt
 ) implements DomainEvent {
 
     @Override

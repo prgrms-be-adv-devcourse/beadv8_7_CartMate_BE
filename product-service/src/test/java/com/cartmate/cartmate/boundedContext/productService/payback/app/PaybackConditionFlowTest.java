@@ -159,18 +159,15 @@ class PaybackConditionFlowTest {
     }
 
     private static IndividualGroupPurchaseOpenedEvent opened(Long purchaseId, List<Long> productIds, long revision) {
-        return new IndividualGroupPurchaseOpenedEvent(purchaseId, NOW.plusDays(1), productIds, revision, NOW,
-                null, null);
+        return new IndividualGroupPurchaseOpenedEvent(purchaseId, NOW.plusDays(1), productIds, revision, NOW);
     }
 
     private static IndividualGroupPurchaseUpdatedEvent updated(Long purchaseId, List<Long> productIds, long revision) {
-        return new IndividualGroupPurchaseUpdatedEvent(purchaseId, NOW.plusDays(1), productIds, revision, NOW,
-                null, null);
+        return new IndividualGroupPurchaseUpdatedEvent(purchaseId, NOW.plusDays(1), productIds, revision, NOW);
     }
 
     private static IndividualGroupPurchaseClosedEvent closed(Long purchaseId, long revision) {
         return new IndividualGroupPurchaseClosedEvent(purchaseId, IndividualGroupPurchaseOrigin.ADMIN_DEMAND,
-                IndividualGroupPurchaseCloseReason.ADMIN, NOW.minusHours(1), NOW.minusHours(1), revision,
-                null, null);
+                IndividualGroupPurchaseCloseReason.ADMIN, NOW.minusHours(1), NOW.minusHours(1), revision);
     }
 }
