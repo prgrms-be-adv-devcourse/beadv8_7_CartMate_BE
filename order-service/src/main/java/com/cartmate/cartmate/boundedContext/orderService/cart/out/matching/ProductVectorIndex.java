@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.domain.matching.Pr
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ProductVectorIndex {
 
@@ -13,4 +14,6 @@ public interface ProductVectorIndex {
     Optional<ProductVector> find(Long productId);
 
     List<ProductVector> findAll(Collection<Long> productIds);
+
+    Set<Long> findUpToDate(Collection<Long> productIds, String model, String textVersion);
 }
