@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
@@ -56,7 +57,10 @@ public class SalesPostHideUseCase {
 
     // 판매글 상태를 바꾼 트랜잭션 안에서 호출한다. 받는 쪽은 커밋 후에 처리한다.
     public void publishHidden(SalesPost post, SalesPostHideType hideType, Long actorId, String reason) {
-        publishHidden(post, salesPostProductRepository.findIdsBySalesPostId(post.getId()), hideType, actorId, reason);
+        List<Long> productIds = salesPostProductRepository.findBySalesPostId(post.getId()).stream()
+                .map(SalesPostProduct::getId)
+                .toList();
+        publishHidden(post, productIds, hideType, actorId, reason);
     }
 
     // 삭제처럼 상품 복제본이 먼저 지워질 수 있는 경우, 미리 모아 둔 상품 ID로 발행한다.

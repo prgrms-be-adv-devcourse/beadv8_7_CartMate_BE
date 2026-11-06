@@ -5,12 +5,12 @@ import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectProduc
 import com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
-import com.cartmate.cartmate.shared.product.dto.RestoreProduct;
-import com.cartmate.cartmate.shared.product.dto.RestoreProductImage;
-import com.cartmate.cartmate.shared.product.dto.RestoreProductOption;
-import com.cartmate.cartmate.shared.product.dto.RestoreProductsRequest;
+import com.cartmate.cartmate.global.http.InternalApiClient.InternalResponse;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProduct;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductImage;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductOption;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductsRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
@@ -141,7 +141,8 @@ public class SalesPostApiClient {
 
     public List<SelectProductResponse> getProduct(Long postId) {
         try {
-            RsData<List<SelectProductResponse>> response = restClient.get()
+            // RsData는 응답을 만드는 용도라 JSON에서 다시 만들 수 없다(final 필드, 생성자 표시 없음). 읽을 때는 같은 모양의 record로 읽는다
+            InternalResponse<List<SelectProductResponse>> response = restClient.get()
                     .uri("/{postId}", postId)
                     .retrieve()
                     .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
@@ -151,7 +152,7 @@ public class SalesPostApiClient {
                         throw new ServiceException(ProductErrorCode.PRODUCT_SELECT_FAILED);
                     })
                     .body(new ParameterizedTypeReference<>() {});
-            return response == null ? List.of() : response.getData();
+            return response == null ? List.of() : response.data();
         } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
             throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
         }

@@ -89,7 +89,7 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
                 .where(
                         salesPost.id.eq(salesPostId),
                         salesPost.updateStatus.in(from),
-                        salesPost.status.notIn(SalesPostSaleStatus.PENDING, SalesPostSaleStatus.DELETED)
+                        salesPost.status.notIn(SalesPostSaleStatus.PENDING, SalesPostSaleStatus.DELETING, SalesPostSaleStatus.DELETED)
                 )
                 .execute();
 
@@ -102,11 +102,11 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
     public Long startDelete(Long salesPostId, Collection<SalesPostUpdateStatus> editable) {
         long updated = queryFactory
                 .update(salesPost)
-                .set(salesPost.status, SalesPostSaleStatus.PENDING)
+                .set(salesPost.status, SalesPostSaleStatus.DELETING)
                 .where(
                         salesPost.id.eq(salesPostId),
                         salesPost.updateStatus.in(editable),
-                        salesPost.status.notIn(SalesPostSaleStatus.PENDING, SalesPostSaleStatus.DELETED)
+                        salesPost.status.notIn(SalesPostSaleStatus.PENDING, SalesPostSaleStatus.DELETING, SalesPostSaleStatus.DELETED)
                 )
                 .execute();
 
@@ -137,7 +137,7 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
 
     // 관리자는 삭제·등록 진행 중을 제외한 전부를 본다 (숨김 포함)
     private BooleanExpression adminVisible() {
-        return salesPost.status.notIn(SalesPostSaleStatus.DELETED, SalesPostSaleStatus.PENDING);
+        return salesPost.status.notIn(SalesPostSaleStatus.DELETED, SalesPostSaleStatus.DELETING, SalesPostSaleStatus.PENDING);
     }
 
     private BooleanExpression statusEq(SalesPostSaleStatus status) {

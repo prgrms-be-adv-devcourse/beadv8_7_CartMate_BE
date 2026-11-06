@@ -1,12 +1,14 @@
 spring:
-  # DB 주소 · 계정은 support/ProductServiceTestContainers의 @ServiceConnection이 넣는다(싱글턴 MySQL 컨테이너)
   datasource:
+    url: jdbc:tc:mysql:8.4:///cartmatedb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
     hikari:
       minimum-idle: 1
       idle-timeout: 10000
+
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: create-drop
     properties:
       hibernate:
         format_sql: false
@@ -14,5 +16,11 @@ spring:
 
 logging:
   level:
-    com.cartmate: INFO
+    com.cartmate: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
     org.testcontainers: INFO
+
+product:
+  global:
+    internalUrl: http://test-url.com

@@ -25,7 +25,7 @@ public class SalesPostSupport {
             throw new ServiceException(SalesPostErrorCode.POST_ACCESS_DENIED);
         }
 
-        if (post.getStatus() == SalesPostSaleStatus.PENDING) { // 등록 중이거나 삭제 중인 글
+        if (post.getStatus() == SalesPostSaleStatus.PENDING || post.getStatus() == SalesPostSaleStatus.DELETING) { // 등록 중이거나 삭제 중인 글
             throw new ServiceException(SalesPostErrorCode.POST_SALE_PENDING_STATUS);
         }
 
@@ -45,7 +45,7 @@ public class SalesPostSupport {
     }
 
     private SalesPostErrorCode reasonOf(SalesPost current) {
-        if (current.getStatus() == SalesPostSaleStatus.PENDING) { // 판매상태
+        if (current.getStatus() == SalesPostSaleStatus.PENDING || current.getStatus() == SalesPostSaleStatus.DELETING) { // 판매상태: 등록 중이거나 삭제 중
             return SalesPostErrorCode.POST_SALE_PENDING_STATUS;
         }
         return switch (current.getUpdateStatus()) { // 업데이트 상태
