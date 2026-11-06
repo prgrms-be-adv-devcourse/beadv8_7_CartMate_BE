@@ -27,7 +27,7 @@ class OrderTest {
 
     @Test
     @DisplayName("판매 중지: 한 판매자의 상품이 여러 개면 그 금액을 모두 합쳐 환불 금액으로 돌려주고, 다른 판매자 상품은 남는다")
-    void cancelSellerItemsSumsAllItemsOfSeller() {
+    void cancelSellerItemsRefundsSellerTotalAndKeepsOtherSellerItems() {
         Order order = Order.createPersonal("ORD-3", BUYER, List.of(
                 new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1),
                 new OrderLine(20L, 21L, 7L, "양말", null, 2_500L, 2),
