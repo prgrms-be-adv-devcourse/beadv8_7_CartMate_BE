@@ -72,14 +72,14 @@ public class KafkaConfig {
     @SuppressWarnings("unchecked")
     public KafkaInboundEventBridge kafkaInboundEventBridge(ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory,
                                                            ObjectProvider<InboundEventBinding> bindings,
-                                                           ObjectMapper objectMapper,
+                                                           EventEnvelopeReader envelopeReader,
                                                            ApplicationEventPublisher applicationEventPublisher,
                                                            PlatformTransactionManager transactionManager,
                                                            ProcessedEvents processedEvents) {
         return new KafkaInboundEventBridge(
                 (ConcurrentKafkaListenerContainerFactory<String, String>) kafkaListenerContainerFactory,
                 bindings.orderedStream().toList(),
-                objectMapper,
+                envelopeReader,
                 applicationEventPublisher,
                 new TransactionTemplate(transactionManager),
                 processedEvents);
