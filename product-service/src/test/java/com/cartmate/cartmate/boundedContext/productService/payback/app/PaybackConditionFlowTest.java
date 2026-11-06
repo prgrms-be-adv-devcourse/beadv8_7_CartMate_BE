@@ -30,9 +30,10 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 @ProductServiceJpaTest
-@Import({PaybackFacade.class, PaybackConditionUseCase.class, GroupPurchaseSnapshotUseCase.class})
+@Import(PaybackAppTestConfig.class)
 class PaybackConditionFlowTest {
 
     private static final long SELLER_ID = 70L;
@@ -71,8 +72,8 @@ class PaybackConditionFlowTest {
         assertThat(conditions).extracting(PaybackConditionResponse::funder, PaybackConditionResponse::minQuantity,
                         PaybackConditionResponse::amountPerUnit, PaybackConditionResponse::overlapPolicy)
                 .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple(PaybackFunder.ADMIN, 10, 500L, PaybackOverlapPolicy.LARGER),
-                        org.assertj.core.groups.Tuple.tuple(PaybackFunder.SELLER, 6, 400L, null));
+                        tuple(PaybackFunder.ADMIN, 10, 500L, PaybackOverlapPolicy.LARGER),
+                        tuple(PaybackFunder.SELLER, 6, 400L, null));
     }
 
     @Test
@@ -130,7 +131,7 @@ class PaybackConditionFlowTest {
 
         assertThat(snapshots(1L)).extracting(PaybackConditionSnapshot::getProductId,
                         PaybackConditionSnapshot::getSellerId)
-                .containsExactly(org.assertj.core.groups.Tuple.tuple(otherProductId, SELLER_ID));
+                .containsExactly(tuple(otherProductId, SELLER_ID));
         assertThat(snapshots(2L)).hasSize(1);
     }
 

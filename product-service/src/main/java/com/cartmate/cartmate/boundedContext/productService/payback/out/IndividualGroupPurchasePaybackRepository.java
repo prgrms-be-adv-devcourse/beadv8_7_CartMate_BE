@@ -15,7 +15,7 @@ public interface IndividualGroupPurchasePaybackRepository
 
     @Modifying
     @Query(value = "INSERT INTO product_individual_group_purchase_payback "
-            + "(individual_group_purchase_id, opened, closed, revision) VALUES (:id, false, false, 0) "
+            + "(individual_group_purchase_id, opened, closed, revision, paid) VALUES (:id, false, false, 0, false) "
             + "ON DUPLICATE KEY UPDATE individual_group_purchase_id = individual_group_purchase_id",
             nativeQuery = true)
     void insertIfAbsent(@Param("id") Long individualGroupPurchaseId);
