@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.abuse.integration;
 
+import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
+
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseLevel;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignal;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalStatus;
@@ -9,7 +11,7 @@ import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.S
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
@@ -116,7 +118,7 @@ class AbuseOrderEventConsumerIntegrationTest {
     }
 
     private SharedGroupOrderCanceledEvent canceled(long orderId, List<Long> unpaidMemberIds) {
-        return new SharedGroupOrderCanceledEvent(orderId, orderId, "DEADLINE_EXPIRED", LocalDateTime.now(), unpaidMemberIds);
+        return new SharedGroupOrderCanceledEvent(orderId, orderId, SharedGroupOrderCancelReason.DEADLINE_EXPIRED, LocalDateTime.now(), unpaidMemberIds);
     }
 
     private OutboxMessageRelayed relayed(SharedGroupOrderCanceledEvent event) {

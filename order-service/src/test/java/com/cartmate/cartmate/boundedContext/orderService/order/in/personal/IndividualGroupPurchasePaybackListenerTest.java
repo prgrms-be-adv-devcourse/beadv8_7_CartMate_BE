@@ -1,5 +1,9 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.in.personal;
 
+import com.cartmate.cartmate.shared.order.OrderCancelReason;
+
+import com.cartmate.cartmate.shared.order.OrderType;
+
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
 import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
@@ -28,9 +32,9 @@ class IndividualGroupPurchasePaybackListenerTest {
     @Test
     @DisplayName("개인물품 공동구매 주문의 취소와 판매자 항목 취소는 그 주문으로 판정을 일으킨다")
     void cancellationsTriggerJudgment() {
-        listener.handle(relayed(new OrderCanceledEvent(1L, 10L, "INDIVIDUAL_GROUP", "BUYER_CANCELED", true, AT)));
+        listener.handle(relayed(new OrderCanceledEvent(1L, 10L, OrderType.INDIVIDUAL_GROUP, OrderCancelReason.BUYER_CANCELED, true, AT)));
         listener.handle(relayed(new OrderSellerItemsCanceledEvent(2L, 10L, 5L, 1_000L, AT)));
-        listener.handle(relayed(new OrderCanceledEvent(3L, 10L, "PERSONAL", "BUYER_CANCELED", true, AT)));
+        listener.handle(relayed(new OrderCanceledEvent(3L, 10L, OrderType.PERSONAL, OrderCancelReason.BUYER_CANCELED, true, AT)));
 
         verify(orderFacade).judgeIndividualGroupPurchasePaybackOfOrder(1L);
         verify(orderFacade).judgeIndividualGroupPurchasePaybackOfOrder(2L);

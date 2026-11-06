@@ -66,7 +66,7 @@ class AbuseJudgeFailureIntegrationTest {
         AbuseSignal afterFirst = onlySignal(member);
         assertThat(afterFirst.getStatus()).isEqualTo(AbuseSignalStatus.RECEIVED);
         assertThat(afterFirst.getAttemptCount()).isEqualTo(1);
-        assertThat(afterFirst.getLastError()).startsWith("ServiceException");
+        assertThat(afterFirst.getLastError()).isEqualTo("ServiceException 500-ABUSE_MEMBER_STATE_NOT_FOUND");
         assertThat(afterFirst.getJudgedAt()).isNull();
 
         for (int i = 1; i < AbuseSignal.MAX_JUDGE_ATTEMPTS; i++) {

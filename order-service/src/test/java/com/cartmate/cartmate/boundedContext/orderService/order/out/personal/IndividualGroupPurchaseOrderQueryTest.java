@@ -3,7 +3,7 @@ package com.cartmate.cartmate.boundedContext.orderService.order.out.personal;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.support.CartMateJpaTest;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;

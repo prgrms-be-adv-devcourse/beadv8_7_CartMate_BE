@@ -3,8 +3,8 @@ package com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderItem;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderParticipant;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderParticipantStatus;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderParticipantStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 
 import java.time.LocalDateTime;
 

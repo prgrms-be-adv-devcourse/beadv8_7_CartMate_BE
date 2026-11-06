@@ -1,5 +1,9 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
+
+import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseOrigin;
+
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.IndividualGroupPurchaseReplica;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCartClient;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.IndividualGroupPurchaseReplicaRepository;
@@ -35,7 +39,7 @@ class IndividualGroupPurchaseReplicaPaybackConditionTest {
     void closedFirst() {
         givenStore();
 
-        useCase.applyClosed(new IndividualGroupPurchaseClosedEvent(PURCHASE, "ADMIN_DEMAND", "ADMIN",
+        useCase.applyClosed(new IndividualGroupPurchaseClosedEvent(PURCHASE, IndividualGroupPurchaseOrigin.ADMIN_DEMAND, IndividualGroupPurchaseCloseReason.ADMIN,
                 NOW.plusDays(3), NOW, 2, 10, 1_000L));
         useCase.applyOpened(new IndividualGroupPurchaseOpenedEvent(PURCHASE, NOW.plusDays(3), List.of(1L), 0, NOW,
                 10, 1_000L));

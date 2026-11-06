@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual;
 
+import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseOrigin;
 import com.cartmate.cartmate.boundedContext.orderService.cart.exception.CartErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;

@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.abuse.in;
 
+import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
+
 import com.cartmate.cartmate.boundedContext.orderService.abuse.app.AbuseFacade;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalType;
@@ -19,7 +21,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AbuseOrderEventConsumer {
 
-    private static final String DEADLINE_EXPIRED = "DEADLINE_EXPIRED";
 
     private final AbuseFacade abuseFacade;
     private final AbuseJudgeRunner abuseJudgeRunner;
@@ -48,7 +49,7 @@ public class AbuseOrderEventConsumer {
     }
 
     private boolean isSignal(SharedGroupOrderCanceledEvent event) {
-        return DEADLINE_EXPIRED.equals(event.cancelReason()) && event.unpaidMemberIds() != null;
+        return event.cancelReason() == SharedGroupOrderCancelReason.DEADLINE_EXPIRED && event.unpaidMemberIds() != null;
     }
 
     private Optional<AbuseSignalCommand> toCommand(SharedGroupOrderCanceledEvent event, Long memberId) {

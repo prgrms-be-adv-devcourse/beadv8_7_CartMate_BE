@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;

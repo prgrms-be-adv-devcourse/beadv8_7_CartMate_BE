@@ -1,9 +1,11 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.shared.order.OrderCancelReason;
+
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderStatus;
+import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.global.event.DomainEvent;
@@ -59,7 +61,7 @@ class OrderCancelUseCaseTest {
         OrderCanceledEvent event = captor.getValue();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
         assertThat(event.memberId()).isEqualTo(BUYER);
-        assertThat(event.cancelReason()).isEqualTo("BUYER_CANCELED");
+        assertThat(event.cancelReason()).isEqualTo(OrderCancelReason.BUYER_CANCELED);
         assertThat(event.paid()).isTrue();
     }
 

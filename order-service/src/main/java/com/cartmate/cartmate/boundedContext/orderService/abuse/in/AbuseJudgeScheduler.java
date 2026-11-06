@@ -5,20 +5,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.util.List;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "cartmate.scheduling.enabled", havingValue = "true", matchIfMissing = true)
+@EnableConfigurationProperties(AbuseJudgeProperties.class)
 public class AbuseJudgeScheduler {
 
-    static final int BATCH_SIZE = 100;
-    static final Duration TIME_BUDGET = Duration.ofSeconds(10);
     static final String LOCK_NAME = "abuse.judgePending";
     static final String LOCK_AT_MOST = "PT5M";
     static final String LOCK_AT_LEAST = "PT5S";
@@ -26,15 +25,16 @@ public class AbuseJudgeScheduler {
 
     private final AbuseFacade abuseFacade;
     private final AbuseJudgeRunner abuseJudgeRunner;
+    private final AbuseJudgeProperties properties;
 
     @Scheduled(fixedDelay = INTERVAL_MILLIS, initialDelay = INTERVAL_MILLIS)
     @SchedulerLock(name = LOCK_NAME, lockAtMostFor = LOCK_AT_MOST, lockAtLeastFor = LOCK_AT_LEAST)
     public void judgePendingSignals() {
-        retryPending(System.nanoTime() + TIME_BUDGET.toNanos());
+        retryPending(System.nanoTime() + properties.timeBudget().toNanos());
     }
 
     int retryPending(long deadlineNanos) {
-        List<Long> memberIds = abuseFacade.findPendingMemberIds(BATCH_SIZE);
+        List<Long> memberIds = abuseFacade.findPendingMemberIds(properties.batchSize());
         int processed = 0;
         for (Long memberId : memberIds) {
             if (System.nanoTime() > deadlineNanos) {

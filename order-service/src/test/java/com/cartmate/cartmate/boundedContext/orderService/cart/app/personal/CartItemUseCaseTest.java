@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.cart.app.personal;
 
+import com.cartmate.cartmate.shared.order.OrderType;
+
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.CartProductInfo;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.ProductClient;
@@ -137,7 +139,7 @@ class CartItemUseCaseTest {
         @DisplayName("내 장바구니 항목의 수량을 바꾼다")
         void changeQuantity() {
             Cart cart = cartWithItem(10L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7);
 
@@ -148,7 +150,7 @@ class CartItemUseCaseTest {
         @DisplayName("내 장바구니에 없는 항목이면 예외가 발생한다")
         void itemNotInMyCart() {
             Cart cart = cartWithItem(10L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 99L, 7))
                     .isInstanceOf(ServiceException.class)
@@ -158,7 +160,7 @@ class CartItemUseCaseTest {
         @Test
         @DisplayName("장바구니가 없으면 예외가 발생한다")
         void cartNotFound() {
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.empty());
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> cartItemUseCase.changeQuantity(MEMBER_ID, 10L, 7))
                     .isInstanceOf(ServiceException.class)
@@ -174,7 +176,7 @@ class CartItemUseCaseTest {
         @DisplayName("내 장바구니에서 항목을 삭제한다")
         void removeItem() {
             Cart cart = cartWithItem(10L, 1L, 2);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.removeItem(MEMBER_ID, 10L);
 
@@ -192,7 +194,7 @@ class CartItemUseCaseTest {
             Cart cart = Cart.create(MEMBER_ID);
             cart.addItem(100L, 1L, 2);
             cart.addItem(100L, 2L, 1);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
             cartItemUseCase.clear(MEMBER_ID);
 
@@ -211,9 +213,9 @@ class CartItemUseCaseTest {
             cart.addItem(100L, 1L, 2);
             cart.addItem(100L, 2L, 1);
             cart.addItem(200L, 4L, 3);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            cartItemUseCase.removeOrderedItems(paidEvent("PERSONAL", item(1L, 2), item(4L, 1)));
+            cartItemUseCase.removeOrderedItems(paidEvent(OrderType.PERSONAL, item(1L, 2), item(4L, 1)));
 
             assertThat(cart.getItems())
                     .extracting(CartItem::getInventoryId, CartItem::getQuantity)
@@ -225,9 +227,9 @@ class CartItemUseCaseTest {
         void sumSameInventoryQuantities() {
             Cart cart = Cart.create(MEMBER_ID);
             cart.addItem(100L, 1L, 5);
-            given(cartRepository.findWithItemsByMemberId(MEMBER_ID)).willReturn(Optional.of(cart));
+            given(cartRepository.findByMemberIdForUpdate(MEMBER_ID)).willReturn(Optional.of(cart));
 
-            cartItemUseCase.removeOrderedItems(paidEvent("PERSONAL", item(1L, 2), item(1L, 1)));
+            cartItemUseCase.removeOrderedItems(paidEvent(OrderType.PERSONAL, item(1L, 2), item(1L, 1)));
 
             assertThat(cart.getItems())
                     .extracting(CartItem::getInventoryId, CartItem::getQuantity)
@@ -237,7 +239,7 @@ class CartItemUseCaseTest {
         @Test
         @DisplayName("공동구매 상품 주문이 결제되면 장바구니를 건드리지 않는다")
         void ignoreIndividualGroupOrder() {
-            cartItemUseCase.removeOrderedItems(paidEvent("INDIVIDUAL_GROUP", item(1L, 1)));
+            cartItemUseCase.removeOrderedItems(paidEvent(OrderType.INDIVIDUAL_GROUP, item(1L, 1)));
 
             verifyNoInteractions(cartRepository);
         }
@@ -246,7 +248,7 @@ class CartItemUseCaseTest {
             return new OrderPaidEvent.Item(null, 100L, inventoryId, null, "상품", null, quantity, 10000L);
         }
 
-        private OrderPaidEvent paidEvent(String orderType, OrderPaidEvent.Item... items) {
+        private OrderPaidEvent paidEvent(OrderType orderType, OrderPaidEvent.Item... items) {
             return new OrderPaidEvent(1L, "ORD-1", MEMBER_ID, orderType, null, LocalDateTime.now(), null, List.of(items));
         }
     }

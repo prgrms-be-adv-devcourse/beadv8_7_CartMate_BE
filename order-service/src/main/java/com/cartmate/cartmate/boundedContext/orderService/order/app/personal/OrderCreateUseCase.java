@@ -91,7 +91,7 @@ class OrderCreateUseCase {
                 order.getId(),
                 order.getOrderNumber(),
                 order.getBuyerMemberId(),
-                order.getOrderType().name(),
+                order.getOrderType(),
                 order.getIndividualGroupPurchaseId(),
                 order.getCreatedAt(),
                 order.getItems().stream()

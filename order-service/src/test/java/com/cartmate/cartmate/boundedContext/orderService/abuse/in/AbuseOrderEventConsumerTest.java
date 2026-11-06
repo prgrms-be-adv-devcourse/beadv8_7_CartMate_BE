@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.abuse.in;
 
+import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
+
 import com.cartmate.cartmate.boundedContext.orderService.abuse.app.AbuseFacade;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalType;
@@ -48,7 +50,7 @@ class AbuseOrderEventConsumerTest {
     @Test
     @DisplayName("기한 만료 취소면 미결제 회원 신호를 모두 접수한 뒤 회원마다 한 번씩 판정한다")
     void receivesThenJudgesEachUnpaidMember() {
-        consumer.handle(relayed(canceled("DEADLINE_EXPIRED", Arrays.asList(2L, 3L, 2L))));
+        consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.DEADLINE_EXPIRED, Arrays.asList(2L, 3L, 2L))));
 
         InOrder order = inOrder(abuseFacade, abuseJudgeRunner);
         order.verify(abuseFacade).receive(command(2L));
@@ -64,7 +66,7 @@ class AbuseOrderEventConsumerTest {
     void stopsJudgingOnTransientFailure() {
         given(abuseJudgeRunner.judge(2L)).willReturn(AbuseJudgeOutcome.TRANSIENT_FAILURE);
 
-        consumer.handle(relayed(canceled("DEADLINE_EXPIRED", List.of(2L, 3L))));
+        consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.DEADLINE_EXPIRED, List.of(2L, 3L))));
 
         then(abuseFacade).should().receive(command(2L));
         then(abuseFacade).should().receive(command(3L));
@@ -75,7 +77,7 @@ class AbuseOrderEventConsumerTest {
     @Test
     @DisplayName("잘못된 회원 항목은 건너뛰고 나머지만 접수·판정한다")
     void skipsInvalidMember() {
-        consumer.handle(relayed(canceled("DEADLINE_EXPIRED", Arrays.asList(null, 3L))));
+        consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.DEADLINE_EXPIRED, Arrays.asList(null, 3L))));
 
         then(abuseFacade).should().receive(command(3L));
         then(abuseJudgeRunner).should().judge(3L);
@@ -88,7 +90,7 @@ class AbuseOrderEventConsumerTest {
     void propagatesReceiveFailure() {
         willThrow(new IllegalStateException("abuse DB down")).given(abuseFacade).receive(any());
 
-        assertThatThrownBy(() -> consumer.handle(relayed(canceled("DEADLINE_EXPIRED", List.of(2L)))))
+        assertThatThrownBy(() -> consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.DEADLINE_EXPIRED, List.of(2L)))))
                 .isInstanceOf(IllegalStateException.class);
 
         then(abuseJudgeRunner).shouldHaveNoInteractions();
@@ -97,7 +99,7 @@ class AbuseOrderEventConsumerTest {
     @Test
     @DisplayName("일부 회원 접수가 실패하면 아무도 판정하지 않고, 다시 전달되면 전원을 접수한 뒤 판정한다")
     void judgesAllOnlyAfterRedeliveryWhenReceivePartiallyFails() {
-        OutboxMessageRelayed message = relayed(canceled("DEADLINE_EXPIRED", List.of(2L, 3L, 4L)));
+        OutboxMessageRelayed message = relayed(canceled(SharedGroupOrderCancelReason.DEADLINE_EXPIRED, List.of(2L, 3L, 4L)));
         lenient().doThrow(new IllegalStateException("abuse DB down")).doNothing().when(abuseFacade).receive(command(3L));
 
         assertThatThrownBy(() -> consumer.handle(message)).isInstanceOf(IllegalStateException.class);
@@ -116,15 +118,15 @@ class AbuseOrderEventConsumerTest {
     @Test
     @DisplayName("기한 만료가 아닌 취소, 미결제자 목록이 없는 취소, 다른 이벤트는 무시한다")
     void ignoresOtherMessages() {
-        consumer.handle(relayed(canceled("CREATOR_CANCELED", List.of(2L))));
-        consumer.handle(relayed(canceled("DEADLINE_EXPIRED", null)));
+        consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.CREATOR_CANCELED, List.of(2L))));
+        consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.DEADLINE_EXPIRED, null)));
         consumer.handle(relayed(mock(SharedGroupOrderConfirmedEvent.class)));
 
         then(abuseFacade).shouldHaveNoInteractions();
         then(abuseJudgeRunner).shouldHaveNoInteractions();
     }
 
-    private SharedGroupOrderCanceledEvent canceled(String reason, List<Long> unpaidMemberIds) {
+    private SharedGroupOrderCanceledEvent canceled(SharedGroupOrderCancelReason reason, List<Long> unpaidMemberIds) {
         return new SharedGroupOrderCanceledEvent(100L, 10L, reason, CANCELED_AT, unpaidMemberIds);
     }
 

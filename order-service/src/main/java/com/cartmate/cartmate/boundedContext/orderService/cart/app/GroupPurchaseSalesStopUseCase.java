@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.orderService.cart.app;
 
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupindividual.IndividualGroupPurchaseCloseReason;
+import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual.IndividualGroupPurchaseEvents;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;

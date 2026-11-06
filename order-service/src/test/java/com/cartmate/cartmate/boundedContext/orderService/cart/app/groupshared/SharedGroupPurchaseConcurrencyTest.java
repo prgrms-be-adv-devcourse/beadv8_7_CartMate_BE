@@ -6,7 +6,7 @@ import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupshared.SharedGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchase;
-import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchaseStatus;
+import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
 import org.junit.jupiter.api.BeforeEach;
