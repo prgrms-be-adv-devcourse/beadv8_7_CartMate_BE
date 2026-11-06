@@ -1,8 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderParticipant;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
@@ -30,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.address;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedLine;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CartMateIntegrationTest
@@ -180,11 +180,11 @@ class SharedGroupOrderConcurrencyTest {
     private Long saveOrder(LocalDateTime closedAt, Long creator, List<Long> participants, List<Long> paidMembers) {
         return transactionTemplate.execute(status -> {
             SharedGroupOrder order = SharedGroupOrder.create(nextId(), creator, participants,
-                    List.of(new OrderItemLine(2L, 4L, 1L, "상품", null, 1, 30000L)), closedAt);
+                    List.of(sharedLine(2L, 4L, 1L, 1, 30000L)), closedAt);
             order.markStockReserved();
             LocalDateTime paidAt = closedAt.plusMinutes(1);
             paidMembers.forEach(memberId -> order.pay(memberId, memberId, paidAt,
-                    order.isCreator(memberId) ? DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호") : null));
+                    order.isCreator(memberId) ? address() : null));
             return repository.save(order).getId();
         });
     }

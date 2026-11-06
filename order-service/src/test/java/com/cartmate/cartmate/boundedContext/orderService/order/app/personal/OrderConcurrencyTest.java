@@ -4,9 +4,7 @@ import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividua
 import com.cartmate.cartmate.boundedContext.orderService.cart.app.personal.CartFacade;
 import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.DeliveryAddressRequest;
@@ -38,6 +36,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.ballLine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @CartMateIntegrationTest
@@ -231,9 +231,7 @@ class OrderConcurrencyTest {
     }
 
     private Long saveOrder(Long buyer, LocalDateTime createdAt) {
-        Order order = Order.createPersonal("IT-" + nextId(), buyer,
-                List.of(new OrderLine(2L, 4L, 1L, "축구공", "5호", 25000, 1)),
-                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"), createdAt);
+        Order order = personalOrder("IT-" + nextId(), buyer, List.of(ballLine(1L, 1)), createdAt);
         return repository.save(order).getId();
     }
 

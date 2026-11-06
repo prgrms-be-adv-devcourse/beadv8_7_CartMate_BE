@@ -2,9 +2,7 @@ package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
 
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
@@ -21,9 +19,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 import java.util.Optional;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.ballLine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -54,7 +53,7 @@ class OrderCancelUseCaseTest {
     @Test
     @DisplayName("결제한 주문을 주문자가 취소하면 환불이 필요하다고 알리는 취소 이벤트를 발행한다")
     void cancelPaidOrderByBuyer() {
-        Order order = order();
+        Order order = personalOrder(BUYER, ballLine(null, 1), LocalDateTime.now(CLOCK));
         order.markPaid(1L, LocalDateTime.now(CLOCK));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
 
@@ -72,18 +71,12 @@ class OrderCancelUseCaseTest {
     @Test
     @DisplayName("결제 기한 전에는 기한 만료 취소를 하지 않고 이벤트도 발행하지 않는다")
     void cancelByDeadlineBeforeDeadline() {
-        Order order = order();
+        Order order = personalOrder(BUYER, ballLine(null, 1), LocalDateTime.now(CLOCK));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
 
         cancelUseCase.cancelByDeadline(ORDER_ID);
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
         then(eventPublisher).should(never()).publish(any(DomainEvent.class));
-    }
-
-    private Order order() {
-        return Order.createPersonal("20261019-ABCDEFGH", BUYER,
-                List.of(new OrderLine(2L, 4L, null, "축구공", "5호", 25000, 1)),
-                DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", null), LocalDateTime.now(CLOCK));
     }
 }

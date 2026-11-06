@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.address;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -46,8 +47,7 @@ class OrderCreateUseCaseTest {
     private static final Long PURCHASE_ID = 10L;
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 19, 12, 0);
     private static final String ORDER_NUMBER = "20261019-ABCDEFGH";
-    private static final DeliveryAddress ADDRESS =
-            DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호");
+    private static final DeliveryAddress ADDRESS = address();
 
     @Mock
     private OrderRepository orderRepository;

@@ -10,6 +10,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 
+import static com.cartmate.cartmate.boundedContext.orderService.cart.support.GroupPurchaseFixtures.sharedPurchase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -86,8 +87,7 @@ class SharedGroupPurchaseQuantityAdjustTest {
     }
 
     private SharedGroupPurchase purchaseWithQuantity(int quantity) {
-        SharedGroupPurchase purchase = SharedGroupPurchase.create("FC 훈련용품", CREATOR, 5, "abcdefghijkl", createdAt);
-        purchase.join(PARTICIPANT, createdAt);
+        SharedGroupPurchase purchase = sharedPurchase(CREATOR, PARTICIPANT, createdAt);
         purchase.addItem(CREATOR, 100L, 10L, quantity, createdAt);
         ReflectionTestUtils.setField(purchase.getItems().getFirst(), "id", ITEM_ID);
         return purchase;

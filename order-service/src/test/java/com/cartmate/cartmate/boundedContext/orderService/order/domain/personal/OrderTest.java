@@ -3,7 +3,6 @@ package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.shared.order.OrderType;
-import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -15,6 +14,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.addressWithoutDetail;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -65,10 +65,10 @@ class OrderTest {
     @Test
     @DisplayName("주문 상품이 없으면 주문을 생성할 수 없다")
     void createWithoutLines() {
-        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(), address(), NOW))
+        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(), addressWithoutDetail(), NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NO_ITEMS.getMsg());
-        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, null, address(), NOW))
+        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, null, addressWithoutDetail(), NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NO_ITEMS.getMsg());
     }
@@ -76,10 +76,10 @@ class OrderTest {
     @Test
     @DisplayName("수량이 1 미만이거나 가격이 음수면 주문을 생성할 수 없다")
     void createWithInvalidLine() {
-        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(line(10_000L, 0)), address(), NOW))
+        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(line(10_000L, 0)), addressWithoutDetail(), NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_INVALID_QUANTITY.getMsg());
-        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(line(-1L, 1)), address(), NOW))
+        assertThatThrownBy(() -> Order.createPersonal("ORD-1", BUYER, List.of(line(-1L, 1)), addressWithoutDetail(), NOW))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_INVALID_PRICE.getMsg());
     }
@@ -232,12 +232,12 @@ class OrderTest {
     }
 
     private Order personalOrder() {
-        return Order.createPersonal("ORD-1", BUYER, lines(), address(), NOW);
+        return Order.createPersonal("ORD-1", BUYER, lines(), addressWithoutDetail(), NOW);
     }
 
     private Order individualGroupOrder(LocalDateTime saleDeadlineAt) {
         return Order.createIndividualGroup("ORD-2", BUYER, INDIVIDUAL_GROUP_PURCHASE_ID, saleDeadlineAt,
-                lines(), address(), NOW);
+                lines(), addressWithoutDetail(), NOW);
     }
 
     private List<OrderLine> lines() {
@@ -249,9 +249,5 @@ class OrderTest {
 
     private OrderLine line(long unitPrice, int quantity) {
         return new OrderLine(10L, 11L, 12L, "상품A", null, unitPrice, quantity);
-    }
-
-    private DeliveryAddress address() {
-        return DeliveryAddress.of("홍길동", "010-1234-5678", "12345", "서울시 강남구", null);
     }
 }

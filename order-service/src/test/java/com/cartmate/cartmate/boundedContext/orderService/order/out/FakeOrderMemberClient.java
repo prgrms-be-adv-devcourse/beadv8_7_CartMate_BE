@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out;
 
+import com.cartmate.cartmate.support.TestCatalog;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,7 @@ public class FakeOrderMemberClient implements OrderMemberClient {
         memberIds.stream()
                 .filter(Objects::nonNull)
                 .distinct()
-                .forEach(memberId -> nicknames.put(memberId, "회원" + memberId));
+                .forEach(memberId -> nicknames.put(memberId, TestCatalog.nickname(memberId)));
         return nicknames;
     }
 }
