@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
@@ -20,11 +21,14 @@ class OrderCancelUseCase {
     private final OrderRepository orderRepository;
     private final OrderSupport orderSupport;
     private final DomainEventPublisher eventPublisher;
+    private final OrderCouponClient orderCouponClient;
 
     void cancelByBuyer(Long memberId, Long orderId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         boolean paid = isPaid(order);
-        publishCanceledEventIf(order.cancelByBuyer(memberId, LocalDateTime.now()), order, paid);
+        boolean canceled = order.cancelByBuyer(memberId, LocalDateTime.now());
+        restoreCouponIf(canceled, order);
+        publishCanceledEventIf(canceled, order, paid);
     }
 
     void cancelByDeadline(Long orderId) {
@@ -62,6 +66,8 @@ class OrderCancelUseCase {
         Order order = orderSupport.getOrderForUpdate(orderId);
         LocalDateTime now = LocalDateTime.now();
         long amount = order.cancelSellerItemsBySalesStopped(sellerId, now);
+        // 이 취소로 주문 전체가 한 번에 취소됐으면(앞선 부분 취소 없음) 쿠폰을 돌려준다
+        restoreCouponIf(amount > 0, order);
         if (amount > 0) {
             eventPublisher.publish(new OrderSellerItemsCanceledEvent(
                     orderId, order.getBuyerMemberId(), sellerId, amount, now));
@@ -74,6 +80,13 @@ class OrderCancelUseCase {
 
     List<Long> findIdsToCancelByDeadline(LocalDateTime now) {
         return orderRepository.findIdsToCancelByDeadline(now);
+    }
+
+    // 주문 전체 취소: 쓴 쿠폰을 보유로 돌린다 (부분 취소 뒤의 취소는 돌려주지 않음 — Order.couponRestorable)
+    private void restoreCouponIf(boolean canceled, Order order) {
+        if (canceled && order.couponRestorable()) {
+            orderCouponClient.restore(order.getBuyerMemberId(), order.getMemberCouponId(), order.getId());
+        }
     }
 
     private boolean isPaid(Order order) {

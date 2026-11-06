@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.shared.coupon.dto.CouponQuote;
+import com.cartmate.cartmate.shared.coupon.dto.CouponOption;
+import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.OrderItem;
@@ -32,6 +35,7 @@ class OrderPaymentUseCase {
     private final OrderProductClient orderProductClient;
     private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
     private final OrderPaymentClient orderPaymentClient;
+    private final OrderCouponClient orderCouponClient;
 
     OrderPaymentInfo getPaymentInfo(Long orderId, Long memberId, LocalDateTime now) {
         Order order = orderRepository.findById(orderId)
@@ -48,12 +52,27 @@ class OrderPaymentUseCase {
     }
 
     void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt) {
+        applyPayment(orderId, memberId, paymentId, paidAt, null, null);
+    }
+
+    // memberCouponId: 결제에 쓴 쿠폰 (없으면 null). paidAmount: 실제로 빠진 금액 (모르면 null — 확인 생략)
+    void applyPayment(Long orderId, Long memberId, Long paymentId, LocalDateTime paidAt,
+                      Long memberCouponId, Long paidAmount) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         orderSupport.validateBuyer(order, memberId);
         validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
         // 같은 결제의 재통보(이미 PAID)는 markPaid가 멱등으로 넘기므로 결제 대기일 때만 다시 본다
         if (order.isPaymentPending() && !groupPurchaseAcceptsPayment(order, paidAt, true)) {
             throw new ServiceException(OrderErrorCode.ORDER_GROUP_PURCHASE_PAYMENT_CLOSED);
+        }
+        // 쿠폰: 결제 반영과 같은 트랜잭션에서 사용 처리하고 할인을 기록한다 (반영이 롤백되면 쿠폰도 롤백)
+        if (memberCouponId != null && order.isPaymentPending()) {
+            CouponQuote quote = orderCouponClient.use(memberId, memberCouponId, orderId, order.couponTarget());
+            order.applyCoupon(quote.memberCouponId(), quote.discountAmount(), quote.platformBurden(), quote.sellerId());
+        }
+        // 빠진 금액과 주문 금액(할인 반영)이 다르면 반영하지 않는다 → 결제를 되돌린다 (재시도 때 다른 쿠폰을 고른 경우 등)
+        if (paidAmount != null && order.isPaymentPending() && order.payAmount() != paidAmount) {
+            throw new ServiceException(OrderErrorCode.ORDER_PAYMENT_AMOUNT_MISMATCH);
         }
         if (order.markPaid(paymentId, paidAt)) {
             eventPublisher.publish(toPaidEvent(order));
@@ -121,10 +140,15 @@ class OrderPaymentUseCase {
     // 결제 서버를 나누면 ③과 ④가 다른 트랜잭션이 되므로, ④ 실패 시 보상 환불을 추가한다.
     // ③ 동안 주문을 잠그지 않는 것도 분리 후를 대비한 순서다 (네트워크 대기 중 잠금을 잡지 않음).
     PaymentResult pay(Long orderId, Long memberId, LocalDateTime now) {
+        return pay(orderId, memberId, null, now);
+    }
+
+    // memberCouponId: 결제에 쓸 쿠폰 (없으면 null). 쿠폰은 결제할 때 정한다 → 결제 전 취소·기한 만료면 쿠폰이 묶이지 않는다
+    PaymentResult pay(Long orderId, Long memberId, Long memberCouponId, LocalDateTime now) {
         var existing = orderPaymentClient.findPayment(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
         if (existing.isPresent() && existing.get().isPaid()) {
             // 이미 빠졌다 → 주문 반영만 다시 시도 (이미 반영됐으면 아무것도 안 함). 재시도가 결국 같은 결과로 모인다.
-            return applyOrCompensate(orderId, memberId, existing.get());
+            return applyOrCompensate(orderId, memberId, existing.get(), memberCouponId);
         }
         OrderPaymentInfo info = getPaymentInfo(orderId, memberId, now); // 구매자가 아니면 예외
         if (!info.payable()) {
@@ -133,30 +157,52 @@ class OrderPaymentUseCase {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_FOUND));
         validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList()); // 차감 전에 먼저 확인
+        // 쿠폰은 차감 전에 할인만 계산한다 (쓸 수 없으면 여기서 거절 → 돈이 빠지지 않음). 사용 처리는 반영 때
+        long discount = memberCouponId == null ? 0
+                : orderCouponClient.quote(memberId, memberCouponId, orderId, order.couponTarget()).discountAmount();
         PaymentResult payment = orderPaymentClient.charge(
-                PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId, info.amount());
-        // 이미 빠졌다 → 주문 반영만 다시 시도 (이미 반영됐으면 아무것도 안 함). 재시도가 결국 같은 결과로 모인다.
-        return applyOrCompensate(orderId, memberId, payment);
+                PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId, info.amount() - discount);
+        return applyOrCompensate(orderId, memberId, payment, memberCouponId);
     }
 
-    // 주문 반영이 거절되면(그 사이 기한 만료·취소, 판매 중지 등) 빠진 돈을 되돌린다.
-    // 같은 앱(local)에선 한 트랜잭션이라 롤백으로 충분하고, 서버가 나뉘면(http) 결제 서버에 되돌리기를 요청한다.
+    // 주문 반영이 거절되면(그 사이 기한 만료·취소, 판매 중지, 쿠폰 사용 불가, 금액 불일치 등) 빠진 돈을 되돌린다.
     // 잠금 대기 같은 일시적 오류는 되돌리지 않고 그대로 던진다 → 재시도하면 위의 '이미 빠졌다' 경로로 반영된다.
-    private PaymentResult applyOrCompensate(Long orderId, Long memberId, PaymentResult payment) {
+    private PaymentResult applyOrCompensate(Long orderId, Long memberId, PaymentResult payment, Long memberCouponId) {
         try {
-            applyPayment(orderId, memberId, payment.paymentId(), payment.paidAt());
+            applyPayment(orderId, memberId, payment.paymentId(), payment.paidAt(), memberCouponId, payment.amount());
             return payment;
         } catch (ServiceException e) {
             orderPaymentClient.compensateCharge(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
             throw e;
         }
     }
+
+    // 결제 화면 쿠폰 목록 (구매자만)
+    List<CouponOption> couponOptions(Long orderId, Long memberId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_FOUND));
+        orderSupport.validateBuyer(order, memberId);
+        return orderCouponClient.options(memberId, orderId, order.couponTarget());
+    }
+
     OrderPaymentPreviewResponse preview(Long orderId, Long memberId, LocalDateTime now) {
+        return preview(orderId, memberId, null, now);
+    }
+
+    // memberCouponId를 주면 그 쿠폰의 할인을 반영한 결제 금액을 보여 준다 (쓸 수 없는 쿠폰이면 그 이유로 예외)
+    OrderPaymentPreviewResponse preview(Long orderId, Long memberId, Long memberCouponId, LocalDateTime now) {
         OrderPaymentInfo info = getPaymentInfo(orderId, memberId, now);
         PaymentResult existing = orderPaymentClient
                 .findPayment(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId).orElse(null);
+        long discount = 0;
+        if (memberCouponId != null) {
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new ServiceException(OrderErrorCode.ORDER_NOT_FOUND));
+            discount = orderCouponClient.quote(memberId, memberCouponId, orderId, order.couponTarget()).discountAmount();
+        }
+        long amount = info.amount() - discount;
         long balance = orderPaymentClient.getWalletBalance(memberId);
-        return new OrderPaymentPreviewResponse(orderId, info.amount(), info.payable(), balance,
-                balance - info.amount(), balance >= info.amount(), existing);
+        return new OrderPaymentPreviewResponse(orderId, amount, info.payable(), balance,
+                balance - amount, balance >= amount, existing, info.amount(), discount, memberCouponId);
     }
 }

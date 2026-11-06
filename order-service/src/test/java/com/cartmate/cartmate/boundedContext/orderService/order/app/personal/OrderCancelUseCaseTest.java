@@ -44,7 +44,8 @@ class OrderCancelUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        cancelUseCase = new OrderCancelUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher);
+        cancelUseCase = new OrderCancelUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher,
+                org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
     }
 
     @Test
