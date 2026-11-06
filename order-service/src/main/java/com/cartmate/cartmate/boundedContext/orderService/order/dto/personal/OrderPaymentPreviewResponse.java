@@ -9,6 +9,9 @@ public record OrderPaymentPreviewResponse(
         Long walletBalance,
         Long balanceAfter,
         boolean sufficient,
-        PaymentResult existingPayment
+        PaymentResult existingPayment,
+        Long orderAmount,
+        Long discountAmount,
+        Long memberCouponId
 ) {
 }

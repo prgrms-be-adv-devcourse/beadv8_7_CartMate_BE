@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.in.personal;
 
+import org.springframework.web.bind.annotation.RequestParam;
+import com.cartmate.cartmate.shared.coupon.dto.CouponOption;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderPaymentRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.OrderPaymentRetryService;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.*;
@@ -70,14 +73,26 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/payment")
-    @Operation(operationId = "payOrder", summary = "개인 주문 예치금 결제")
-    public RsData<PaymentResult> pay(@AuthenticationPrincipal SecurityUser user, @PathVariable Long orderId) {
-        return new RsData<>("200-1", "결제가 완료되었습니다.", orderPaymentRetryService.payOrder(user.memberId(), orderId));
+    @Operation(operationId = "payOrder", summary = "개인 주문 예치금 결제 (쿠폰 선택)")
+    public RsData<PaymentResult> pay(@AuthenticationPrincipal SecurityUser user, @PathVariable Long orderId,
+                                     @RequestBody(required = false) OrderPaymentRequest request) {
+        Long memberCouponId = request == null ? null : request.memberCouponId();
+        return new RsData<>("200-1", "결제가 완료되었습니다.",
+                orderPaymentRetryService.payOrder(user.memberId(), orderId, memberCouponId));
     }
+
     @GetMapping("/{orderId}/payment-preview")
-    @Operation(operationId = "preview", summary = "개인 주문 결제 미리보기 (금액·결제 가능 여부·예치금 잔액)")
+    @Operation(operationId = "preview", summary = "개인 주문 결제 미리보기 (금액·쿠폰 할인·결제 가능 여부·예치금 잔액)")
     public RsData<OrderPaymentPreviewResponse> paymentPreview(@AuthenticationPrincipal SecurityUser user,
-    @PathVariable Long orderId) {
-        return new RsData<>("200-1", "결제 정보 조회 성공", orderFacade.getPaymentPreview(user.memberId(), orderId));
+                                                              @PathVariable Long orderId,
+                                                              @RequestParam(required = false) Long memberCouponId) {
+        return new RsData<>("200-1", "결제 정보 조회 성공",
+                orderFacade.getPaymentPreview(user.memberId(), orderId, memberCouponId));
+    }
+
+    @GetMapping("/{orderId}/coupons")
+    @Operation(operationId = "getOrderCouponOptions", summary = "결제 화면 쿠폰 목록 (쓸 수 있는 쿠폰과 예상 할인, 못 쓰는 쿠폰은 이유)")
+    public RsData<List<CouponOption>> couponOptions(@AuthenticationPrincipal SecurityUser user, @PathVariable Long orderId) {
+        return new RsData<>("200-1", "쿠폰 목록 조회 성공", orderFacade.getCouponOptions(user.memberId(), orderId));
     }
 }

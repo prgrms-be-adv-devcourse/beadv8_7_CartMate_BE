@@ -15,7 +15,11 @@ public enum CouponErrorCode implements ErrorCode {
     COUPON_SOLD_OUT("COUPON_SOLD_OUT", "쿠폰이 모두 소진되었습니다.", HttpStatus.CONFLICT),
     COUPON_ALREADY_ISSUED("COUPON_ALREADY_ISSUED", "이미 받은 쿠폰입니다.", HttpStatus.CONFLICT),
     COUPON_NOT_AVAILABLE("COUPON_NOT_AVAILABLE", "사용할 수 없는 쿠폰입니다.", HttpStatus.CONFLICT),
-    COUPON_EXPIRED("COUPON_EXPIRED", "사용 기간이 지난 쿠폰입니다.", HttpStatus.CONFLICT);
+    COUPON_EXPIRED("COUPON_EXPIRED", "사용 기간이 지난 쿠폰입니다.", HttpStatus.CONFLICT),
+    COUPON_NOT_OWNED("COUPON_NOT_OWNED", "내 쿠폰이 아닙니다.", HttpStatus.FORBIDDEN),
+    COUPON_IN_USE("COUPON_IN_USE", "다른 주문에 사용 중인 쿠폰입니다.", HttpStatus.CONFLICT),
+    COUPON_NOT_APPLICABLE("COUPON_NOT_APPLICABLE", "이 주문에 쓸 수 없는 쿠폰입니다.", HttpStatus.CONFLICT),
+    COUPON_BELOW_MINIMUM("COUPON_BELOW_MINIMUM", "최소 주문 금액을 채우지 않았습니다.", HttpStatus.CONFLICT);
 
     private final String code;
     private final String msg;

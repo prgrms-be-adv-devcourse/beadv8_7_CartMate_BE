@@ -21,7 +21,15 @@ public class OrderPaymentRetryService {
             maxRetries = 3, delay = 100, multiplier = 2, jitter = 50, maxDelay = 1000
     )
     public PaymentResult payOrder(Long memberId, Long orderId) {
-        return orderFacade.payOrder(memberId, orderId);
+        return payOrder(memberId, orderId, null);
+    }
+
+    @Retryable(
+            value = {OptimisticLockingFailureException.class, CannotAcquireLockException.class},
+            maxRetries = 3, delay = 100, multiplier = 2, jitter = 50, maxDelay = 1000
+    )
+    public PaymentResult payOrder(Long memberId, Long orderId, Long memberCouponId) {
+        return orderFacade.payOrder(memberId, orderId, memberCouponId);
     }
 
     @Retryable(

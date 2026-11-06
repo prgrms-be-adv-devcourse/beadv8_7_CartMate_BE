@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.coupon.app;
 
+import com.cartmate.cartmate.shared.coupon.dto.CouponQuote;
+import com.cartmate.cartmate.shared.coupon.dto.CouponOrderTarget;
+import com.cartmate.cartmate.shared.coupon.dto.CouponOption;
 import com.cartmate.cartmate.boundedContext.orderService.coupon.dto.AdminCouponResponse;
 import com.cartmate.cartmate.boundedContext.orderService.coupon.dto.CouponCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.coupon.dto.DownloadableCouponResponse;
@@ -20,6 +23,7 @@ public class CouponFacade {
     private final CouponAdminUseCase couponAdminUseCase;
     private final CouponIssueUseCase couponIssueUseCase;
     private final CouponQueryUseCase couponQueryUseCase;
+    private final CouponOrderUseCase couponOrderUseCase;
 
     // ===== 관리자 =====
     @Transactional
@@ -51,6 +55,28 @@ public class CouponFacade {
     @Transactional(readOnly = true)
     public List<DownloadableCouponResponse> downloadable(Long memberId, Long sellerId) {
         return couponQueryUseCase.downloadable(memberId, sellerId, LocalDateTime.now());
+    }
+
+    // ===== 주문에 쓰기 (주문 모듈의 out 어댑터만 부른다) =====
+    @Transactional(readOnly = true)
+    public List<CouponOption> optionsForOrder(Long memberId, String orderType, Long orderId, CouponOrderTarget target) {
+        return couponOrderUseCase.options(memberId, orderType, orderId, target, LocalDateTime.now());
+    }
+
+    @Transactional(readOnly = true)
+    public CouponQuote quoteForOrder(Long memberId, Long memberCouponId, String orderType, Long orderId, CouponOrderTarget target) {
+        return couponOrderUseCase.quote(memberId, memberCouponId, orderType, orderId, target, LocalDateTime.now());
+    }
+
+    // 주문의 결제 반영 트랜잭션에 함께 들어간다 (REQUIRED): 결제 반영이 롤백되면 쿠폰 사용도 롤백
+    @Transactional
+    public CouponQuote useForOrder(Long memberId, Long memberCouponId, String orderType, Long orderId, CouponOrderTarget target) {
+        return couponOrderUseCase.use(memberId, memberCouponId, orderType, orderId, target, LocalDateTime.now());
+    }
+
+    @Transactional
+    public void restoreForOrder(Long memberId, Long memberCouponId, String orderType, Long orderId) {
+        couponOrderUseCase.restore(memberId, memberCouponId, orderType, orderId);
     }
 
     // ===== 이벤트 =====

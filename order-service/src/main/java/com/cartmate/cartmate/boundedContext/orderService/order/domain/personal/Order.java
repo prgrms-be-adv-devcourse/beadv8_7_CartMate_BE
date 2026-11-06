@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
+import java.util.Map;
+import java.util.LinkedHashMap;
+import com.cartmate.cartmate.shared.coupon.dto.CouponOrderTarget;
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.shared.order.OrderType;
@@ -85,6 +88,31 @@ public class Order {
     private LocalDateTime paidAt;
 
     private LocalDateTime canceledAt;
+
+    // ===== 쿠폰 할인 (결제할 때 정해짐) =====
+    // 쓴 쿠폰 (회원 쿠폰 ID). 없으면 null
+    @Column(name = "member_coupon_id")
+    private Long memberCouponId;
+
+    // 할인액. 결제 금액 = totalAmount - discountAmount
+    @Column(name = "discount_amount", nullable = false)
+    private long discountAmount;
+
+    @Column(name = "discount_burden", columnDefinition = "varchar(20)")
+    @Enumerated(EnumType.STRING)
+    private OrderDiscountBurden discountBurden;
+
+    // 판매자 쿠폰이면 그 판매자 (할인 대상 = 그 판매자 상품)
+    @Column(name = "discount_seller_id")
+    private Long discountSellerId;
+
+    // 판매자 상품 일부 취소로 지금까지 환불한 금액 (마지막 취소에서 남은 결제 금액을 정확히 돌려주려고)
+    @Column(name = "item_refunded_amount", nullable = false)
+    private long itemRefundedAmount;
+
+    // 일부 상품만 취소된 적이 있는지 (있으면 나중에 전부 취소돼도 쿠폰을 돌려주지 않는다)
+    @Column(name = "partially_canceled", nullable = false)
+    private boolean partiallyCanceled;
 
     @OrderBy("id")
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -199,21 +227,86 @@ public class Order {
         return true;
     }
 
+
+    public void applyCoupon(Long memberCouponId, long discountAmount, boolean platformBurden, Long sellerId) {
+        if (this.memberCouponId != null) {
+            if (this.memberCouponId.equals(memberCouponId) && this.discountAmount == discountAmount) {
+                return;
+            }
+            throw new ServiceException(OrderErrorCode.ORDER_COUPON_ALREADY_APPLIED);
+        }
+        validatePaymentPending();
+        if (discountAmount < 0 || discountAmount > totalAmount) {
+            throw new ServiceException(OrderErrorCode.ORDER_INVALID_DISCOUNT);
+        }
+        this.memberCouponId = memberCouponId;
+        this.discountAmount = discountAmount;
+        this.discountBurden = platformBurden ? OrderDiscountBurden.PLATFORM : OrderDiscountBurden.SELLER;
+        this.discountSellerId = platformBurden ? null : sellerId;
+    }
+
+    public long payAmount() {
+        return totalAmount - discountAmount;
+    }
+
+    public boolean hasCoupon() {
+        return memberCouponId != null;
+    }
+
+    public CouponOrderTarget couponTarget() {
+        Map<Long, Long> bySeller = new LinkedHashMap<>();
+        for (OrderItem item : items) {
+            if (item.getSellerId() != null) {
+                bySeller.merge(item.getSellerId(), item.amount(), Long::sum);
+            }
+        }
+        return new CouponOrderTarget(totalAmount, bySeller.entrySet().stream()
+                .map(e -> new CouponOrderTarget.SellerAmount(e.getKey(), e.getValue()))
+                .toList());
+    }
+
+    public boolean couponRestorable() {
+        return hasCoupon() && status == OrderStatus.CANCELED && !partiallyCanceled;
+    }
+
+    private long discountShareOf(Long sellerId, long itemsAmount) {
+        if (discountAmount == 0 || itemsAmount == 0) {
+            return 0;
+        }
+        if (discountBurden == OrderDiscountBurden.SELLER) {
+            if (!sellerId.equals(discountSellerId)) {
+                return 0;
+            }
+            long sellerTotal = items.stream().filter(i -> sellerId.equals(i.getSellerId())).mapToLong(OrderItem::amount).sum();
+            return discountAmount * itemsAmount / sellerTotal;
+        }
+        return discountAmount * itemsAmount / totalAmount;
+    }
+
     public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
         if (status != OrderStatus.PAID) {
             return 0;
         }
-        long amount = 0;
+        long itemsAmount = 0;
         for (OrderItem item : items) {
             if (sellerId.equals(item.getSellerId()) && !item.isCanceled()) {
                 item.cancel(now);
-                amount += item.amount();
+                itemsAmount += item.amount();
             }
         }
-        if (amount > 0 && items.stream().allMatch(OrderItem::isCanceled)) {
-            cancel(OrderCancelReason.SALES_STOPPED, now);
+        if (itemsAmount == 0) {
+            return 0;
         }
-        return amount;
+        // 환불 = 상품 금액 - 그 상품에 붙은 쿠폰 할인 몫. 이걸로 모든 상품이 취소되면 남은 결제 금액을 정확히 돌려준다 (나눗셈 끝전 포함)
+        long refund = itemsAmount - discountShareOf(sellerId, itemsAmount);
+        if (items.stream().allMatch(OrderItem::isCanceled)) {
+            refund = payAmount() - itemRefundedAmount;
+            cancel(OrderCancelReason.SALES_STOPPED, now);
+        } else {
+            partiallyCanceled = true;
+        }
+        itemRefundedAmount += refund;
+        return refund;
     }
 
     public boolean isBuyer(Long memberId) {

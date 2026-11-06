@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.coupon.domain;
 
+import com.cartmate.cartmate.shared.coupon.dto.CouponOrderTarget;
 import com.cartmate.cartmate.boundedContext.orderService.coupon.exception.CouponErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
@@ -166,6 +167,11 @@ public class Coupon extends BaseIdAndTime {
             discount = Math.min(discount, maxDiscountAmount);
         }
         return Math.min(discount, eligibleAmount);
+    }
+
+    // 이 주문에서 할인 대상이 되는 금액: 전체 쿠폰은 주문 금액, 판매자 쿠폰은 그 판매자 상품 금액
+    public long eligibleAmount(CouponOrderTarget target) {
+        return scope == CouponScope.ALL ? target.totalAmount() : target.amountOfSeller(sellerId);
     }
 
     public boolean meetsMinimum(long orderAmount) {
