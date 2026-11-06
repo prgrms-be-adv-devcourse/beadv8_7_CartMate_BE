@@ -8,4 +8,6 @@ import java.util.List;
 interface EmbeddingTextBuilder {
 
     List<EmbeddingText> build(List<ProductToIndex> products);
+
+    String version();
 }

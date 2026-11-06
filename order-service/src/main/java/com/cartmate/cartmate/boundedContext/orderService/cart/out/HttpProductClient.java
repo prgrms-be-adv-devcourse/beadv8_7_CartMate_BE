@@ -42,6 +42,13 @@ class HttpProductClient implements ProductClient {
                 .toList();
     }
 
+    @Override
+    public List<CartProductProfile> findAllProductProfiles(Collection<Long> productIds) {
+        return fetch(productIds).stream()
+                .map(product -> new CartProductProfile(product.productId(), product.name(), product.categoryId()))
+                .toList();
+    }
+
     private List<ProductForPurchase> fetch(Collection<Long> ids) {
         String joined = ids == null ? "" : ids.stream()
                 .filter(Objects::nonNull)

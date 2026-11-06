@@ -6,6 +6,8 @@ public interface ProductEmbeddingClient {
 
     Embeddings embed(List<String> texts);
 
+    String primaryModel();
+
     record Embeddings(String model, List<float[]> vectors) {
     }
 }

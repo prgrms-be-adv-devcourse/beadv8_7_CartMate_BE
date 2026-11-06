@@ -62,4 +62,17 @@ class CartDemandQueryDslReader implements CartDemandReader {
                 .map(entry -> new ProductDemand(entry.getKey(), entry.getValue()))
                 .toList();
     }
+
+    @Override
+    public List<Long> findRecentProductIdsByDemand(LocalDateTime since, int limit) {
+        return queryFactory
+                .select(cartItem.productId)
+                .from(cartItem)
+                .join(cartItem.cart, cart)
+                .where(cartItem.updatedAt.goe(since))
+                .groupBy(cartItem.productId)
+                .orderBy(cart.memberId.countDistinct().desc(), cartItem.productId.asc())
+                .limit(limit)
+                .fetch();
+    }
 }

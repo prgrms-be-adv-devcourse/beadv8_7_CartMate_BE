@@ -160,11 +160,20 @@ class DemandCandidateQueryUseCaseTest {
     }
 
     private DemandCandidateQueryUseCase useCaseWith(List<ProductDemand> demands) {
-        CartDemandReader reader = (since, minMemberCount, limit, excludedProductIds) -> {
-            requestedSince.add(since);
-            requestedExcluded.add(excludedProductIds);
-            requestedPool.add(List.of(minMemberCount, limit));
-            return demands;
+        CartDemandReader reader = new CartDemandReader() {
+            @Override
+            public List<ProductDemand> findRecentDemands(LocalDateTime since, int minMemberCount, int limit,
+                                                         Collection<Long> excludedProductIds) {
+                requestedSince.add(since);
+                requestedExcluded.add(excludedProductIds);
+                requestedPool.add(List.of(minMemberCount, limit));
+                return demands;
+            }
+
+            @Override
+            public List<Long> findRecentProductIdsByDemand(LocalDateTime since, int limit) {
+                return List.of();
+            }
         };
         DemandAggregator aggregator = new DemandAggregator(
                 new ProductSimilarityResolver(List.of(ProductSimilarityResolverTest.EXACT)));
