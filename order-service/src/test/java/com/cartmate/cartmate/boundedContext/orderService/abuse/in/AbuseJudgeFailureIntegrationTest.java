@@ -11,6 +11,8 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.support.AbuseTest
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.cartmate.cartmate.support.CartMateTestContainers;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.CannotAcquireLockException;
@@ -30,6 +32,7 @@ import static org.mockito.BDDMockito.willThrow;
 
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
+@ImportTestcontainers(CartMateTestContainers.class)
 class AbuseJudgeFailureIntegrationTest {
 
     @MockitoBean

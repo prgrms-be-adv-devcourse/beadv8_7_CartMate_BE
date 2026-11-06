@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.support;
 
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
@@ -32,6 +33,7 @@ import java.lang.annotation.Target;
 @Inherited
 @SpringBootTest(properties = {"cartmate.scheduling.enabled=false", "custom.outbox.relay.initial-delay=PT1H"})
 @ActiveProfiles("test")
+@ImportTestcontainers(CartMateTestContainers.class)
 @Import(ManualOutboxRelayConfig.class)
 public @interface CartMateIntegrationTest {
 }
