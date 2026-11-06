@@ -5,9 +5,11 @@ spring:
     password: ${ORDER_DB_PASSWORD}
   jpa:
     hibernate:
-      # 운영은 스키마를 자동으로 바꾸지 않고 엔티티와 맞는지만 확인한다.
-      # 첫 배포(빈 DB)나 엔티티 변경 배포 때만 JPA_DDL_AUTO=update를 명시해서 넘긴다(Flyway 도입 전 임시 정책, ARCH-14)
-      ddl-auto: ${JPA_DDL_AUTO:validate}
+      # 운영은 스키마를 자동으로 바꾸지 않고 엔티티와 맞는지만 확인한다. 값을 고정해 JPA_DDL_AUTO 같은
+      # 공용 환경 변수(기존 compose 기본값 update)가 실수로 넘어와도 바뀌지 않게 한다.
+      # 첫 배포(빈 DB)나 엔티티 변경 배포 때만 SPRING_JPA_HIBERNATE_DDL_AUTO=update를 그 배포에 명시한다
+      # (Flyway 도입 전 임시 정책, ARCH-14)
+      ddl-auto: validate
 
 logging:
   level:
