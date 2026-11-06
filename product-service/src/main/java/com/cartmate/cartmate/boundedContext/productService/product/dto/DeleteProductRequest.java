@@ -1,4 +1,4 @@
-package com.cartmate.cartmate.shared.post.dto;
+package com.cartmate.cartmate.boundedContext.productService.product.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

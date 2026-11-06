@@ -6,7 +6,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRe
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.global.GlobalConfig;
-import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.DeleteProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.event.ProductDeletedEvent;

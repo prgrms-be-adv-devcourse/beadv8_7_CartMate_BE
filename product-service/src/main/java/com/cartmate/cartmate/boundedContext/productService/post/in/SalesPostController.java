@@ -51,8 +51,8 @@ public class SalesPostController {
 
     @DeleteMapping("/sellers/{sellerId}/posts/{postId}")
     public ResponseEntity<Void> deleteSalesPost(
-            @RequestParam Long sellerId,
-            @RequestParam Long postId
+            @PathVariable Long sellerId,
+            @PathVariable Long postId
     ) {
         salesPostFacade.deleteSalesPostByUser(postId, sellerId);
         return ResponseEntity.status(HttpStatus.OK).build();

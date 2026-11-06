@@ -8,7 +8,7 @@ import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.shared.post.dto.DeleteProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductListRequest;
@@ -87,7 +87,9 @@ public class SalesPostFacade {
                 salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId));
 
         // 상품 삭제 API가 판매글 쪽 상품 복제본까지 지울 수 있어서, 호출 전에 상품 ID를 모아 둔다
-        List<Long> productIds = salesPostProductRepository.findIdsBySalesPostId(postId);
+        List<Long> productIds = salesPostProductRepository.findBySalesPostId(postId).stream()
+                .map(SalesPostProduct::getId)
+                .toList();
 
         try {
             salesPostApiClient.deleteProducts(post.getId());

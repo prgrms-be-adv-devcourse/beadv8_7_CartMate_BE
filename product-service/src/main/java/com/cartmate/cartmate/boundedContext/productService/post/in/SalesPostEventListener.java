@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.productService.post.in;
 
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostFacade;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductListRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductRequest;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.boundedContext.productService.event.ProductCreatedEvent;
@@ -46,7 +47,8 @@ public class SalesPostEventListener {
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(ProductDeletedEvent event) {
-        salesPostFacade.deleteProductByUser(event.getRequest());
+        // product 쪽 dto를 post 쪽 dto로 바꿔 넘긴다(필드 하나라 생성자로). Kafka로 바꾸면 JSON 역직렬화가 대신하므로 지운다
+        salesPostFacade.deleteProductByUser(new DeleteProductRequest(event.getRequest().getProductId()));
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
