@@ -72,7 +72,8 @@ class OrderPaymentUseCaseTest {
                         .toList();
         // 결제 반영(applyPayment) 테스트라 결제 포트는 쓰지 않는다. 결제 흐름(pay)은 통합 테스트에서 확인
                 paymentUseCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository), eventPublisher, allOnSale,
-                        replicaUseCase, org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderPaymentClient.class));
+                        replicaUseCase, org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderPaymentClient.class),
+                        org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
     }
 
     @Test
@@ -203,7 +204,8 @@ class OrderPaymentUseCaseTest {
             return inventoryIds.stream().map(id -> new OrderProductInfo(id, id, 1L, "상품", null, 1000L, null, true)).toList();
         };
         OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
-                eventPublisher, flaky, replicaUseCase, paymentClient);
+                eventPublisher, flaky, replicaUseCase, paymentClient,
+                org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
         Order order = order();
         given(orderRepository.findById(ORDER_ID)).willReturn(Optional.of(order));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
@@ -225,7 +227,8 @@ class OrderPaymentUseCaseTest {
             throw new InternalServerUnavailableException("PRODUCT", "상품", null);
         };
         OrderPaymentUseCase useCase = new OrderPaymentUseCase(orderRepository, new OrderSupport(orderRepository),
-                eventPublisher, mustNotBeCalled, replicaUseCase, paymentClient);
+                eventPublisher, mustNotBeCalled, replicaUseCase, paymentClient,
+                org.mockito.Mockito.mock(com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient.class));
         Order order = order();
         order.cancelByBuyer(BUYER, CREATED_AT.plusMinutes(1));
         given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));

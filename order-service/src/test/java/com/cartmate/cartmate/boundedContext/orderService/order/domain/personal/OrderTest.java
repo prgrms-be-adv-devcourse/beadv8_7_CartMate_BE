@@ -276,6 +276,115 @@ class OrderTest {
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
     }
 
+    // ===== 쿠폰 할인 =====
+
+    private Order twoSellerOrder() {
+        // 판매자 7: 30,000 / 판매자 8: 20,000 → 50,000
+        return Order.createPersonal("ORD-C", BUYER, List.of(
+                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1),
+                new OrderLine(30L, 31L, 8L, "축구공", null, 20_000L, 1)
+        ), address(), NOW);
+    }
+
+    @Test
+    @DisplayName("쿠폰: 할인을 기록하면 결제 금액이 줄고, 같은 쿠폰·같은 금액으로 다시 와도 그대로, 다른 쿠폰이면 거절")
+    void applyCoupon() {
+        Order order = twoSellerOrder();
+
+        order.applyCoupon(5L, 10_000L, true, null);
+
+        assertThat(order.payAmount()).isEqualTo(40_000L);
+        assertThat(order.getDiscountBurden()).isEqualTo(OrderDiscountBurden.PLATFORM);
+        order.applyCoupon(5L, 10_000L, true, null); // 재시도
+        assertThat(order.payAmount()).isEqualTo(40_000L);
+        assertThatThrownBy(() -> order.applyCoupon(6L, 3_000L, true, null))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_COUPON_ALREADY_APPLIED.getMsg());
+    }
+
+    @Test
+    @DisplayName("쿠폰: 할인이 주문 금액보다 크면 거절")
+    void applyCouponOverTotal() {
+        Order order = twoSellerOrder();
+        assertThatThrownBy(() -> order.applyCoupon(5L, 50_001L, true, null))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_INVALID_DISCOUNT.getMsg());
+    }
+
+    @Test
+    @DisplayName("쿠폰: 쿠폰에 넘기는 금액 정보는 주문 금액과 판매자별 상품 금액")
+    void couponTarget() {
+        var target = twoSellerOrder().couponTarget();
+        assertThat(target.totalAmount()).isEqualTo(50_000L);
+        assertThat(target.amountOfSeller(7L)).isEqualTo(30_000L);
+        assertThat(target.amountOfSeller(8L)).isEqualTo(20_000L);
+    }
+
+    @Test
+    @DisplayName("부분 취소 + 전체 쿠폰: 취소 상품 몫의 할인을 비율로 빼고 환불, 마지막 취소는 남은 결제 금액 전부 (합계 = 낸 돈)")
+    void cancelSellerItemsWithPlatformCoupon() {
+        Order order = twoSellerOrder();
+        order.applyCoupon(5L, 10_000L, true, null); // 50,000 → 40,000
+        order.markPaid(99L, NOW.plusMinutes(1));
+
+        long first = order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2));  // 20,000 - 4,000
+        long second = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3)); // 남은 24,000
+
+        assertThat(first).isEqualTo(16_000L);
+        assertThat(second).isEqualTo(24_000L);
+        assertThat(first + second).isEqualTo(order.payAmount());
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(order.couponRestorable()).isFalse(); // 앞서 부분 취소가 있었으니 쿠폰은 돌려주지 않음
+    }
+
+    @Test
+    @DisplayName("부분 취소 + 판매자 쿠폰: 그 판매자 상품 취소에만 할인을 빼고, 다른 판매자 상품은 전액 환불")
+    void cancelSellerItemsWithSellerCoupon() {
+        Order order = twoSellerOrder();
+        order.applyCoupon(5L, 3_000L, false, 7L); // 판매자 7 쿠폰: 50,000 → 47,000
+        order.markPaid(99L, NOW.plusMinutes(1));
+
+        assertThat(order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2))).isEqualTo(20_000L);
+        assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3))).isEqualTo(27_000L);
+    }
+
+    @Test
+    @DisplayName("부분 취소 + 나눗셈 끝전: 각 취소는 원 미만 버림, 마지막에 남은 금액을 돌려줘 합계가 결제 금액과 같다")
+    void cancelSellerItemsRemainder() {
+        Order order = Order.createPersonal("ORD-R", BUYER, List.of(
+                new OrderLine(10L, 11L, 7L, "A", null, 10_000L, 1),
+                new OrderLine(20L, 21L, 8L, "B", null, 10_000L, 1),
+                new OrderLine(30L, 31L, 9L, "C", null, 10_000L, 1)
+        ), address(), NOW);
+        order.applyCoupon(5L, 1_000L, true, null); // 30,000 → 29,000, 상품당 333.33원
+        order.markPaid(99L, NOW.plusMinutes(1));
+
+        long a = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));
+        long b = order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(3));
+        long c = order.cancelSellerItemsBySalesStopped(9L, NOW.plusMinutes(4));
+
+        assertThat(a).isEqualTo(9_667L);
+        assertThat(b).isEqualTo(9_667L);
+        assertThat(a + b + c).isEqualTo(29_000L);
+    }
+
+    @Test
+    @DisplayName("쿠폰 복구: 한 번에 전부 취소되면 쿠폰을 돌려준다 (구매자 취소, 판매자 하나뿐인 주문의 판매 중지)")
+    void couponRestorableWhenWholeOrderCanceledAtOnce() {
+        Order byBuyer = twoSellerOrder();
+        byBuyer.applyCoupon(5L, 10_000L, true, null);
+        byBuyer.markPaid(99L, NOW.plusMinutes(1));
+        byBuyer.cancelByBuyer(BUYER, NOW.plusMinutes(2));
+        assertThat(byBuyer.couponRestorable()).isTrue();
+
+        Order oneSeller = Order.createPersonal("ORD-S", BUYER, List.of(
+                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1)), address(), NOW);
+        oneSeller.applyCoupon(5L, 3_000L, true, null);
+        oneSeller.markPaid(99L, NOW.plusMinutes(1));
+        assertThat(oneSeller.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2))).isEqualTo(27_000L);
+        assertThat(oneSeller.couponRestorable()).isTrue();
+    }
+
     @Test
     @DisplayName("판매 중지로 판매자 항목을 취소하면 그 판매자 항목 금액을 모두 더해 돌려주고, 다른 판매자 항목은 남는다 (ISS-26)")
     void cancelSellerItemsSumsAllItemsOfSeller() {

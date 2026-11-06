@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.shared.coupon.dto.CouponOption;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;
@@ -63,10 +64,28 @@ public class OrderFacade {
 
     @Transactional
     public PaymentResult payOrder(Long memberId, Long orderId) {
-        return orderPaymentUseCase.pay(orderId, memberId, LocalDateTime.now(clock));
+        return payOrder(memberId, orderId, null);
     }
-    @Transactional(readOnly = true) public OrderPaymentPreviewResponse getPaymentPreview(Long memberId, Long orderId) {
-        return orderPaymentUseCase.preview(orderId, memberId, LocalDateTime.now(clock));
+
+    // 쿠폰 사용은 이 트랜잭션에 함께 들어간다 (결제 반영이 롤백되면 쿠폰 사용도 롤백)
+    @Transactional
+    public PaymentResult payOrder(Long memberId, Long orderId, Long memberCouponId) {
+        return orderPaymentUseCase.pay(orderId, memberId, memberCouponId, LocalDateTime.now(clock));
+    }
+
+    @Transactional(readOnly = true)
+    public OrderPaymentPreviewResponse getPaymentPreview(Long memberId, Long orderId) {
+        return getPaymentPreview(memberId, orderId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderPaymentPreviewResponse getPaymentPreview(Long memberId, Long orderId, Long memberCouponId) {
+        return orderPaymentUseCase.preview(orderId, memberId, memberCouponId, LocalDateTime.now(clock));
+    }
+
+    @Transactional(readOnly = true)
+    public List<CouponOption> getCouponOptions(Long memberId, Long orderId) {
+        return orderPaymentUseCase.couponOptions(orderId, memberId);
     }
 
     @Transactional
