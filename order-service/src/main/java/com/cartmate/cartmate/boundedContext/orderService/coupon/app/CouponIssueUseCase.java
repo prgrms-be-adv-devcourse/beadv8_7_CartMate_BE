@@ -68,8 +68,12 @@ class CouponIssueUseCase {
             try {
                 perCouponTransaction.executeWithoutResult(status -> issue(coupon, memberId, now));
                 issued++;
+            } catch (ServiceException e) {
+                // 예상된 실패: 수량 소진, 이미 발급됨(같은 이벤트가 두 번 옴) 등 → 정상 흐름
+                log.info("가입 쿠폰 자동 발급 건너뜀: 쿠폰 #{} 회원 #{} ({})", coupon.getId(), memberId, e.getMessage());
             } catch (RuntimeException e) {
-                log.warn("가입 쿠폰 자동 발급 건너뜀: 쿠폰 #{} 회원 #{} ({})", coupon.getId(), memberId, e.getMessage());
+                // 예상 못 한 실패: DB 오류, 버그 등 → 사람이 확인해야 함. 다른 쿠폰은 계속 발급한다
+                log.error("가입 쿠폰 자동 발급 실패 — 확인 필요: 쿠폰 #{} 회원 #{}", coupon.getId(), memberId, e);
             }
         }
         return issued;
