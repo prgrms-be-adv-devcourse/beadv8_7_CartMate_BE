@@ -13,7 +13,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-// 상품 서버 내부 API(/internal/products/for-purchase)를 HTTP로 부른다. 통신 공통 처리는 InternalApiClient가 한다.
 @Component
 @RequiredArgsConstructor
 class HttpProductClient implements ProductClient {
@@ -43,7 +42,6 @@ class HttpProductClient implements ProductClient {
                 .toList();
     }
 
-    // 상품 서버의 옵션 모델이 아직 없어 상품 하나 = 재고 하나로 본다 (inventoryId = productId)
     private List<ProductForPurchase> fetch(Collection<Long> ids) {
         String joined = ids == null ? "" : ids.stream()
                 .filter(Objects::nonNull)

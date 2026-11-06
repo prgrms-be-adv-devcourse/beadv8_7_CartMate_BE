@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Collectors;
 
-// 배송 서버 내부 API를 HTTP로 부른다. 통신 공통 처리(시간 제한, 오류 변환, 연결 실패 503)는 InternalApiClient가 한다.
 @Component
 @RequiredArgsConstructor
 public class HttpMemberDeliveryServerClient implements MemberDeliveryServerClient {
@@ -34,7 +33,7 @@ public class HttpMemberDeliveryServerClient implements MemberDeliveryServerClien
     @Override
     public long countUnfinishedOfSharedOrders(List<Long> sharedGroupOrderIds) {
         if (sharedGroupOrderIds == null || sharedGroupOrderIds.isEmpty()) {
-            return 0L; // 확정된 공동 주문이 없으면 물을 것도 없다
+            return 0L;
         }
         String ids = sharedGroupOrderIds.stream().map(String::valueOf).collect(Collectors.joining(","));
         return count(etcServerApiClient.get("/internal/deliveries/unfinished-count/shared-orders?ids={ids}", COUNT, ids));

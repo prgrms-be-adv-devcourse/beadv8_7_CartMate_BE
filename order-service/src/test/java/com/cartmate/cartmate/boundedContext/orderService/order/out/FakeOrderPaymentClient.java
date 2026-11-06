@@ -12,11 +12,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * 결제 서버 대역. 주문 서버가 분리돼 테스트에는 결제 서버가 없다(MSA-3).
- * 실제 결제 서버와 같은 약속만 지킨다: (구분 · 주문 · 회원) 키로 한 번만 차감하고, 같은 키로 다시 오면 기존 결제를 돌려준다.
- * 잔액은 충분하다고 본다 — 잔액 부족 같은 결제 서버 쪽 규칙은 결제 서버 테스트가 맡는다.
- */
 @Component
 @Primary
 @Profile("test")

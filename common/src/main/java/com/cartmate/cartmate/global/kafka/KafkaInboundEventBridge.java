@@ -15,21 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * 다른 서비스가 Kafka로 보낸 이벤트를 이 서비스 안의 Spring 이벤트로 바꿔 주는 다리.
- * {@link InboundEventBinding}으로 선언한 토픽만 구독한다. 선언이 없으면 아무것도 구독하지 않는다.
- *
- * <p>한 메시지 처리:
- * <ol>
- *   <li>값을 {@link EventEnvelope}로 읽고, payload를 바인딩한 이벤트 클래스로 되돌린다</li>
- *   <li>트랜잭션 하나에서 {@code processed_event}에 (kafka:토픽, eventId)를 먼저 기록한다. 이미 있으면 건너뛴다(재전달 · 재처리)</li>
- *   <li>같은 트랜잭션에서 Spring 이벤트로 발행한다. 커밋 뒤 받는 쪽의 AFTER_COMMIT 리스너가 돈다(서버가 나뉘기 전과 같은 시점)</li>
- * </ol>
- * 1 · 2에서 난 예외는 컨테이너의 에러 핸들러로 가서 몇 번 다시 시도한 뒤 DLT로 보낸다({@link KafkaConfig}).
- * 받는 쪽 리스너가 커밋 뒤 실패하는 것은 여기까지 오지 않는다 — 서버를 나누기 전과 같다(각 리스너가 로그 · 대사로 처리).
- *
- * <p>{@code @KafkaListener} 대신 컨테이너를 직접 만든다. 구독할 토픽이 서비스마다 다르고, 없을 수도 있어서다.
- */
 @Slf4j
 public class KafkaInboundEventBridge implements SmartLifecycle {
 
@@ -69,7 +54,6 @@ public class KafkaInboundEventBridge implements SmartLifecycle {
         });
     }
 
-    // processed_event의 받는 쪽 이름. 토픽마다 따로 센다
     static String consumerName(String topic) {
         return "kafka:" + topic;
     }
