@@ -23,6 +23,8 @@ import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import org.springframework.util.backoff.ExponentialBackOff;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
@@ -68,6 +70,13 @@ public class KafkaConfig {
     @Bean
     public InboundEventTypes inboundEventTypes(ObjectProvider<InboundEventBinding> bindings) {
         return InboundEventTypes.of(bindings.orderedStream().toList());
+    }
+
+    @Bean
+    public InboundEvents inboundEvents(EventEnvelopeReader envelopeReader,
+                                       ProcessedEvents processedEvents,
+                                       PlatformTransactionManager transactionManager) {
+        return new InboundEvents(envelopeReader, processedEvents, new TransactionTemplate(transactionManager));
     }
 
     @Bean
