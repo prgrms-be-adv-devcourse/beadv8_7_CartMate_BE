@@ -151,7 +151,8 @@ class SharedGroupOrderPaymentUseCase {
         return applyOrCompensate(sharedGroupOrderId, memberId, payment, teamDeliveryAddress);
     }
 
-    // 반영이 거절되면(그 사이 기한 만료 취소 등) 빠진 분담금을 되돌린다. 일시적 오류는 되돌리지 않고 재시도에 맡긴다.
+    // 반영이 거절되면(그 사이 기한 만료 취소 등) 빠진 분담금을 되돌린다. 일시적 오류(ServiceException이 아닌 예외)는 되돌리지 않고 재시도에 맡긴다.
+    // 주의: 상품 서버 일시 장애(503)도 ServiceException이라 지금은 되돌린다(ISS-27).
     private PaymentResult applyOrCompensate(Long sharedGroupOrderId, Long memberId, PaymentResult payment, TeamDeliveryAddress teamDeliveryAddress) {
         try {
             applyPayment(sharedGroupOrderId, memberId, payment.paymentId(), payment.paidAt(), teamDeliveryAddress);
