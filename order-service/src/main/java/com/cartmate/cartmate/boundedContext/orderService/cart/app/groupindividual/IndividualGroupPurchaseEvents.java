@@ -16,19 +16,19 @@ public final class IndividualGroupPurchaseEvents {
 
     public static IndividualGroupPurchaseOpenedEvent opened(IndividualGroupPurchase purchase, LocalDateTime now) {
         return new IndividualGroupPurchaseOpenedEvent(purchase.getId(), purchase.getDeadlineAt(), purchase.productIds(),
-                purchase.getRevision(), now, purchase.getPaybackMinBuyers(), purchase.getPaybackAmount());
+                purchase.getRevision(), now, purchase.getPaybackOverlapPolicy(), purchase.paybackConditionPayloads());
     }
 
     public static IndividualGroupPurchaseUpdatedEvent updated(IndividualGroupPurchase purchase, LocalDateTime now) {
         return new IndividualGroupPurchaseUpdatedEvent(purchase.getId(), purchase.getDeadlineAt(), purchase.productIds(),
-                purchase.getRevision(), now);
+                purchase.getRevision(), now, purchase.getPaybackOverlapPolicy(), purchase.paybackConditionPayloads());
     }
 
     public static IndividualGroupPurchaseClosedEvent closed(IndividualGroupPurchase purchase,
                                                             IndividualGroupPurchaseCloseReason reason) {
         return new IndividualGroupPurchaseClosedEvent(purchase.getId(), purchase.getOrigin(), reason,
                 purchase.getDeadlineAt(), purchase.getClosedAt(), purchase.getRevision(),
-                purchase.getPaybackMinBuyers(), purchase.getPaybackAmount());
+                purchase.getPaybackOverlapPolicy(), purchase.paybackConditionPayloads());
     }
 
     static IndividualGroupPurchaseSnapshot snapshot(IndividualGroupPurchase purchase) {

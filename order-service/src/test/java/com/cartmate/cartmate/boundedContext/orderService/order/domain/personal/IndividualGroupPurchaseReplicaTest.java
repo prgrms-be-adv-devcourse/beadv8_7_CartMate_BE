@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
+import com.cartmate.cartmate.shared.cart.dto.PaybackConditionPayload;
+import com.cartmate.cartmate.shared.cart.PaybackOverlapPolicy;
+import com.cartmate.cartmate.shared.cart.PaybackFunder;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import org.junit.jupiter.api.DisplayName;
@@ -92,14 +95,18 @@ class IndividualGroupPurchaseReplicaTest {
                 1L, LocalDateTime.of(2026, 11, 10, 12, 0), true, LocalDateTime.of(2026, 11, 9, 12, 0), List.of(), 3);
         assertThat(replica.hasPaybackCondition()).isFalse();
 
-        replica.fillPaybackCondition(null, null);
+        replica.fillPaybackConditions(null, null);
         assertThat(replica.hasPaybackCondition()).isFalse();
 
-        replica.fillPaybackCondition(10, 1_000L);
-        replica.fillPaybackCondition(20, 2_000L);
+        replica.fillPaybackConditions(PaybackOverlapPolicy.ADMIN_ONLY,
+                List.of(new PaybackConditionPayload(5L, PaybackFunder.ADMIN, null, 10, 1_000L)));
+        replica.fillPaybackConditions(PaybackOverlapPolicy.BOTH,
+                List.of(new PaybackConditionPayload(5L, PaybackFunder.ADMIN, null, 20, 2_000L)));
 
         assertThat(replica.hasPaybackCondition()).isTrue();
-        assertThat(replica.getPaybackMinBuyers()).isEqualTo(10);
-        assertThat(replica.getPaybackAmount()).isEqualTo(1_000L);
+        assertThat(replica.getPaybackOverlapPolicy()).isEqualTo(PaybackOverlapPolicy.ADMIN_ONLY);
+        assertThat(replica.getPaybackConditions()).singleElement()
+                .extracting(ReplicaPaybackCondition::getMinQuantity, ReplicaPaybackCondition::getAmountPerUnit)
+                .containsExactly(10, 1_000L);
     }
 }

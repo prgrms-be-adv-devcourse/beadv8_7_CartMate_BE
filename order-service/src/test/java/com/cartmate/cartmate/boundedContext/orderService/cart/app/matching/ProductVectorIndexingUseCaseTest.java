@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,6 +41,11 @@ class ProductVectorIndexingUseCaseTest {
         @Override
         public List<ProductVector> findAll(Collection<Long> productIds) {
             return List.of();
+        }
+
+        @Override
+        public Set<Long> findUpToDate(Collection<Long> productIds, String model, String textVersion) {
+            return Set.of();
         }
     };
 

@@ -141,7 +141,7 @@ class AbuseOrderEventConsumerTest {
         consumer.handle(relayed(canceled(SharedGroupOrderCancelReason.CREATOR_CANCELED, List.of(2L, 3L))));
 
         then(abuseFacade).should().receive(new AbuseSignalCommand(CREATOR, AbuseSignalType.SHARED_PURCHASE_CREATOR_CANCELED,
-                "order:100", CANCELED_AT));
+                "order:100", CANCELED_AT, "sharedGroupPurchase:10"));
         then(abuseJudgeRunner).should().judge(CREATOR);
         then(abuseFacade).shouldHaveNoMoreInteractions();
         then(abuseJudgeRunner).shouldHaveNoMoreInteractions();
@@ -180,7 +180,8 @@ class AbuseOrderEventConsumerTest {
     }
 
     private AbuseSignalCommand command(Long memberId) {
-        return new AbuseSignalCommand(memberId, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "100", CANCELED_AT);
+        return new AbuseSignalCommand(memberId, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED, "100", CANCELED_AT,
+                "sharedGroupPurchase:10");
     }
 
     private OutboxMessageRelayed relayed(DomainEvent event) {

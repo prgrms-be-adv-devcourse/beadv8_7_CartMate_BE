@@ -78,9 +78,9 @@ public class MemberCoupon extends BaseIdAndTime {
 
     // ===== 주문 연결 (1-b에서 결제 흐름이 부른다) =====
 
-    // 결제 전 주문에 고름. 같은 주문에 다시 고르면 그대로(멱등)
+    // 결제 전 주문에 고름. 같은 주문에 다시 고르면 그대로(멱등) — 이미 그 주문에 사용 완료여도 그대로 (결제 재시도)
     public void reserve(String orderType, Long orderId, LocalDateTime now) {
-        if (status == MemberCouponStatus.RESERVED && isSameOrder(orderType, orderId)) {
+        if (status != MemberCouponStatus.AVAILABLE && isSameOrder(orderType, orderId)) {
             return;
         }
         if (status != MemberCouponStatus.AVAILABLE) {
