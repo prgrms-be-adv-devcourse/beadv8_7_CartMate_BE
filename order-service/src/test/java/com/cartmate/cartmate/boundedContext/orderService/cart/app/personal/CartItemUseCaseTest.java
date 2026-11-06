@@ -18,7 +18,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +38,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class CartItemUseCaseTest {
 
     private static final Long MEMBER_ID = 1L;
+    private static final Clock CLOCK = Clock.fixed(
+            LocalDateTime.of(2026, 10, 19, 12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
     private static final CartProductInfo UNIFORM_M = new CartProductInfo(
             1L, 100L, "축구 유니폼", "M / 레드", 39000, "uniform.png", true);
@@ -53,7 +57,7 @@ class CartItemUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        cartItemUseCase = new CartItemUseCase(cartRepository, productClient);
+        cartItemUseCase = new CartItemUseCase(cartRepository, productClient, CLOCK);
     }
 
     @Nested

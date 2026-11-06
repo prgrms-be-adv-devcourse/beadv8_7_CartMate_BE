@@ -12,6 +12,7 @@ import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ class CartItemUseCase {
 
     private final CartRepository cartRepository;
     private final ProductClient productClient;
+    private final Clock clock;
 
     void addItem(Long memberId, Long inventoryId, int quantity) {
         CartProductInfo product = getPurchasableProduct(inventoryId);
@@ -38,7 +40,7 @@ class CartItemUseCase {
     // 방금 커밋된 항목을 놓친다. 그래서 CartFacade.addItem은 READ_COMMITTED다 (문장마다 새 스냅샷)
     private Cart lockCart(Long memberId) {
         if (!cartRepository.existsByMemberId(memberId)) {
-            cartRepository.insertIfAbsent(memberId, LocalDateTime.now());
+            cartRepository.insertIfAbsent(memberId, LocalDateTime.now(clock));
         }
         return cartRepository.findByMemberIdForUpdate(memberId)
                 .orElseThrow(() -> new ServiceException(CartErrorCode.CART_NOT_FOUND));

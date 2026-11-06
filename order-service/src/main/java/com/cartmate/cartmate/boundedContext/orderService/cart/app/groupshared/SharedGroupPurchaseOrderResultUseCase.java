@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,12 +22,15 @@ class SharedGroupPurchaseOrderResultUseCase {
 
     private final SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
     private final Duration orderCreationTimeout;
+    private final Clock clock;
 
     SharedGroupPurchaseOrderResultUseCase(
             SharedGroupPurchaseRepository sharedGroupPurchaseRepository,
-            @Value("${custom.shared-group-purchase.order-creation-timeout:PT10M}") Duration orderCreationTimeout) {
+            @Value("${custom.shared-group-purchase.order-creation-timeout:PT10M}") Duration orderCreationTimeout,
+            Clock clock) {
         this.sharedGroupPurchaseRepository = sharedGroupPurchaseRepository;
         this.orderCreationTimeout = orderCreationTimeout;
+        this.clock = clock;
     }
 
     void markOrderCreated(SharedGroupOrderCreatedEvent event) {
@@ -41,7 +45,7 @@ class SharedGroupPurchaseOrderResultUseCase {
 
     void revertByOrderCreationFailed(SharedGroupOrderCreationFailedEvent event) {
         findForUpdate(event.sharedGroupPurchaseId()).ifPresent(purchase -> {
-            if (purchase.revertToFrozen(LocalDateTime.now())) {
+            if (purchase.revertToFrozen(LocalDateTime.now(clock))) {
                 log.warn("공동 주문 생성 실패로 마감 보류로 돌림: sharedGroupPurchaseId={} reason={}",
                         purchase.getId(), event.reason());
             }
