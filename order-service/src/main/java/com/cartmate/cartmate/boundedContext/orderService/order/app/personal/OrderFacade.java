@@ -30,6 +30,7 @@ public class OrderFacade {
     private final OrderPaymentUseCase orderPaymentUseCase;
     private final OrderCancelUseCase orderCancelUseCase;
     private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
+    private final IndividualGroupPurchasePaybackUseCase individualGroupPurchasePaybackUseCase;
 
     @Transactional
     public OrderCreateResponse createPersonal(Long memberId, OrderCreateRequest request) {
@@ -128,6 +129,21 @@ public class OrderFacade {
     @Transactional
     public void applyIndividualGroupPurchaseClosed(IndividualGroupPurchaseClosedEvent event) {
         individualGroupPurchaseReplicaUseCase.applyClosed(event);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
+    public void recordPurchaseConfirmed(Long orderId, LocalDateTime confirmedAt) {
+        individualGroupPurchasePaybackUseCase.recordConfirmed(orderId, confirmedAt, LocalDateTime.now());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
+    public void judgeIndividualGroupPurchasePayback(Long individualGroupPurchaseId) {
+        individualGroupPurchasePaybackUseCase.judge(individualGroupPurchaseId, LocalDateTime.now());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
+    public void judgeIndividualGroupPurchasePaybackOfOrder(Long orderId) {
+        individualGroupPurchasePaybackUseCase.judgeOfOrder(orderId, LocalDateTime.now());
     }
 
     // 공동구매가 닫힌 뒤 남은 결제 대기 주문 (사본을 닫는 트랜잭션이 커밋된 뒤 부른다)

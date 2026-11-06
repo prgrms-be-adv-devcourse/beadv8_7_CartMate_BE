@@ -31,6 +31,7 @@ public class IndividualGroupPurchaseReplicaListener {
             case IndividualGroupPurchaseClosedEvent event -> {
                 orderFacade.applyIndividualGroupPurchaseClosed(event);
                 cancelPendingOrders(event.individualGroupPurchaseId());
+                orderFacade.judgeIndividualGroupPurchasePayback(event.individualGroupPurchaseId());
             }
             default -> {
             }
