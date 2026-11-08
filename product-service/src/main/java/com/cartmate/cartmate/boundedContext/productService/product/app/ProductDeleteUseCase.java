@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
 import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -53,8 +55,18 @@ public class ProductDeleteUseCase {
         );
     }
 
+    // 판매글 등록 보상: 상품을 DB에서 지우고, 지운 상품의 사진 키를 돌려준다 (행이 사라지면 키도 알 수 없으므로 지우기 전에 모은다)
     @Transactional
-    public void hardDeleteByEvent(Long postId) {
-        productRepository.deleteBySalesPostId(postId);
+    public List<String> hardDeleteByEvent(Long postId) {
+        List<Product> products = productRepository.findBySalesPostId(postId);
+
+        List<String> imageKeys = products.stream()
+                .flatMap(product -> product.getProductImageList().stream())
+                .map(ProductImage::getS3Key)
+                .filter(Objects::nonNull)
+                .toList();
+
+        productRepository.deleteAll(products);
+        return imageKeys;
     }
 }

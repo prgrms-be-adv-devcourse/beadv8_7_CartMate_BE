@@ -149,10 +149,17 @@ public class ProductFacade {
         );
     }
 
-    // api에 의한 보상트랜잭션 처리
-    @Transactional
+    // api에 의한 보상트랜잭션 처리.
+    // 상품 삭제가 커밋된 뒤에 사진 파일을 지운다(먼저 지우면 DB 롤백 시 파일 없는 상품이 남는다). 파일 삭제 실패는 고아 파일로만 남으므로 로그만 남긴다
     public void rollbackByApiFail(RollbackProductRequest rollbackProductRequest) {
-        productDeleteUseCase.hardDeleteByEvent(rollbackProductRequest.getPostId());
+        Long postId = rollbackProductRequest.getPostId();
+        List<String> imageKeys = productDeleteUseCase.hardDeleteByEvent(postId);
+
+        try {
+            productImageFileDeleteUseCase.deleteByKeys(imageKeys);
+        } catch (RuntimeException e) {
+            log.warn("등록 보상 후 이미지 파일 삭제 실패. postId={}", postId, e);
+        }
     }
 
     public void changeStatusByPost(Long postId, ProductStatus status) {
