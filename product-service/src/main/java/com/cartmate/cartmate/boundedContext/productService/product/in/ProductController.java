@@ -31,12 +31,6 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @DeleteMapping("/{postId}")
-    public ResponseEntity<Void> deleteProductByPost(@PathVariable Long postId) {
-        productFacade.deleteProductByPost(postId);
-        return ResponseEntity.status(HttpStatus.OK).build();
-    }
-
     @DeleteMapping("/sellers/{sellerId}/products/{productId}")
     public ResponseEntity<Void> deleteProducts(
             @PathVariable Long sellerId,

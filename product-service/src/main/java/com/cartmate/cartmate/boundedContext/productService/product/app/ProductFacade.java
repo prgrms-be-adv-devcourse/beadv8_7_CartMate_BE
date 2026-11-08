@@ -11,6 +11,8 @@ import com.cartmate.cartmate.shared.product.dto.*;
 import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
 import com.cartmate.cartmate.global.global.GlobalConfig;
+import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
+import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductSyncUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.RollbackProductRequest;
@@ -30,6 +32,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ProductFacade {
+    private final ProcessedEvents processedEvents;
     private final ProductCreateUseCase productCreateUseCase;
     private final ProductUpdateUseCase productUpdateUseCase;
     private final ProductRestoreUseCase productRestoreUseCase;
@@ -73,9 +76,12 @@ public class ProductFacade {
         productDeleteUseCase.deleteProductByUser(productId, sellerId);
     }
 
-    // Post에 의한 삭제
+    // 판매글 삭제(SalesPostDeletedEvent)에 의한 삭제. 같은 이벤트는 한 번만 처리한다
     @Transactional
-    public void deleteProductByPost(Long postId) {
+    public void deleteProductByPost(String eventId, Long postId) {
+        if (!processedEvents.markFirst(ProductServiceConsumers.SALES_POST_DELETED, eventId)) {
+            return;
+        }
         productDeleteUseCase.deleteProductByPost(postId);
     }
 

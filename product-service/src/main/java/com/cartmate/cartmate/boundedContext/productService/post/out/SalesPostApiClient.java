@@ -76,23 +76,6 @@ public class SalesPostApiClient {
         }
     }
 
-    public void deleteProducts(Long postId) {
-        try {
-            restClient.delete()
-                    .uri("/{postId}", postId)
-                    .retrieve()
-                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-                        throw new ServiceException(ProductErrorCode.PRODUCT_DELETE_INVALID);
-                    })
-                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-                        throw new ServiceException(ProductErrorCode.PRODUCT_DELETE_FAILED);
-                    })
-                    .toBodilessEntity();
-        } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
-            throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
-        }
-    }
-
     // 판매글 단위로 상품 판매 상태 변경 (판매자 내림·재개, 관리자 숨김·해제)
     public void changeProductStatus(Long postId, ProductStatus status) {
         try {

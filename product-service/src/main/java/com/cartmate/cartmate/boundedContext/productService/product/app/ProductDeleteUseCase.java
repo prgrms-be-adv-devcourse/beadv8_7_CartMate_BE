@@ -8,10 +8,9 @@ import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.DeleteProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.product.dto.DeleteProductListRequest;
-import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.event.ProductDeletedEvent;
-import com.cartmate.cartmate.boundedContext.productService.event.ProductListDeletedEvent;
+import com.cartmate.cartmate.global.event.DomainEventPublisher;
+import com.cartmate.cartmate.shared.product.event.ProductsDeletedByPostEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +22,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ProductDeleteUseCase {
     private final ProductRepository productRepository;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional
     public void deleteProductByUser(Long productId, Long sellerId) {
@@ -43,16 +43,16 @@ public class ProductDeleteUseCase {
         );
     }
 
+    // 판매글 삭제 요청을 받아 상품을 지우고(소프트 삭제), 같은 트랜잭션으로 삭제 완료 이벤트를 outbox에 남긴다.
+    // 두 번 와도 이미 DELETED인 상품을 다시 DELETED로 바꿀 뿐이라 결과가 같다
     @Transactional
     public void deleteProductByPost(Long postId) {
-        List<SyncProduct> deletedList = productRepository.findBySalesPostId(postId).stream()
+        List<Long> deletedIds = productRepository.findBySalesPostId(postId).stream()
                 .map(Product::delete)
-                .map(Product::toSyncProduct)
+                .map(Product::getId)
                 .toList();
 
-        GlobalConfig.getEventPublisher().publish(
-                new ProductListDeletedEvent(new DeleteProductListRequest(deletedList))
-        );
+        eventPublisher.publish(new ProductsDeletedByPostEvent(postId, deletedIds));
     }
 
     // 판매글 등록 보상: 상품을 DB에서 지우고, 지운 상품의 사진 키를 돌려준다 (행이 사라지면 키도 알 수 없으므로 지우기 전에 모은다)

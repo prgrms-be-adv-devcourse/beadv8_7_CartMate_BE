@@ -17,7 +17,6 @@ import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.ProductSyncUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.event.productSyncCompletedEvent;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductImage;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductOption;
 import lombok.RequiredArgsConstructor;
@@ -85,12 +84,9 @@ public class SalesPostSyncProductUseCase {
         );
     }
 
+    // 판매글 삭제로 product에서 지워진 상품의 복제본을 지운다(소프트 삭제라 다시 와도 결과가 같다)
     @Transactional
-    public void deleteProductByPost(DeleteProductListRequest request) {
-        List<Long> productIds = request.getProductList().stream()
-                .map(SyncProduct::getId)
-                .toList();
-
+    public void deleteProductByPost(List<Long> productIds) {
         salesPostProductRepository.findByIdIn(productIds)
                 .forEach(SalesPostProduct::delete);
     }
