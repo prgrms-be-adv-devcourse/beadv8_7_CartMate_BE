@@ -52,7 +52,7 @@ import static org.mockito.Mockito.reset;
  * SalesPostApiClient는 만들어질 때 주소를 정하는데 그때는 랜덤 포트가 아직 없어서, 빈 포트를 미리 골라 서버와 주소에 같이 넣는다.
  * product 쪽 등록 이벤트 · 복제본 동기화 · 동기화 완료는 모두 HTTP 응답 전에 서버 스레드에서 끝나므로 등록 직후 바로 검증한다.
  *
- * <p>보상 시 사진 파일은 지우지 않는다(스케줄러로 따로 정리할 예정). 그래서 여기서는 DB만 확인한다.
+ * <p>보상 시 product는 상품 삭제가 커밋된 뒤 사진 파일도 지운다. 그래서 DB와 저장소(FakeImageStorage) 모두 비었는지 확인한다.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
         properties = "cartmate.scheduling.enabled=false")
@@ -157,9 +157,9 @@ class SalesPostRegisterFlowTest {
                 .containsExactlyInAnyOrder(tuple(1L, 100L), tuple(2L, 200L));
     }
 
-    // 상품과 복제본이 이미 만들어진 뒤에 실패하는 경우. 보상이 실제로 되돌려야 할 데이터가 있다
+    // 상품과 복제본, 사진 파일이 이미 만들어진 뒤에 실패하는 경우. 보상이 실제로 되돌려야 할 데이터가 있다
     @Test
-    @DisplayName("보상: 상품 저장 후 완료 처리에서 실패하면 판매글 · 상품 · 복제본이 모두 지워진다")
+    @DisplayName("보상: 상품 저장 후 완료 처리에서 실패하면 판매글 · 상품 · 복제본 · 사진 파일이 모두 지워진다")
     void compensateWhenCompleteFailsAfterProductsSaved() {
         doThrow(new RuntimeException("테스트용 완료 처리 실패"))
                 .when(salesPostCreateUseCase).completeSave(anyLong());
@@ -189,6 +189,7 @@ class SalesPostRegisterFlowTest {
         assertThat(salesPostProductRepository.count()).isZero();
         assertThat(salesPostProductImageRepository.count()).isZero();
         assertThat(salesPostProductOptionRepository.count()).isZero();
+        assertThat(storage.savedCount()).isZero();
     }
 
     private CreateSalesPostRequest request() {
