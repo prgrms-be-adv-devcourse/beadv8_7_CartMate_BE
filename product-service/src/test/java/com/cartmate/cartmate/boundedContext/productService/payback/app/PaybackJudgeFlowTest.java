@@ -73,7 +73,7 @@ class PaybackJudgeFlowTest {
     void setUp() {
         eventPublisher.clear();
         productId = productRepository.save(new Product(SELLER_ID, 1L, 1L, "상품", "설명", 10_000L,
-                ProductStatus.ON_SALE, true)).getId();
+                ProductStatus.ON_SALE)).getId();
     }
 
     @Test

@@ -49,6 +49,7 @@ import static com.cartmate.cartmate.boundedContext.productService.post.domain.QS
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -84,6 +85,8 @@ class SalesPostRecoverSchedulerTest {
     SalesPostUpdateUseCase salesPostUpdateUseCase;
     @MockitoSpyBean
     SalesPostApiClient salesPostApiClient;
+    @MockitoSpyBean
+    SalesPostSyncProductUseCase salesPostSyncProductUseCase;
     @Autowired
     TransactionTemplate transactionTemplate;
     @Autowired
@@ -122,7 +125,7 @@ class SalesPostRecoverSchedulerTest {
         productOptionRepository.deleteAll();
         productRepository.deleteAll();
         storage.reset();
-        reset(salesPostUpdateUseCase, salesPostApiClient);
+        reset(salesPostUpdateUseCase, salesPostApiClient, salesPostSyncProductUseCase);
 
         scheduler = new SalesPostRecoverScheduler(salesPostFacade);
     }
@@ -143,6 +146,25 @@ class SalesPostRecoverSchedulerTest {
         assertThat(productRepository.findById(productId).orElseThrow().getName()).isEqualTo("아이폰");
         assertThat(salesPostProductRepository.findById(productId).orElseThrow().getName()).isEqualTo("아이폰");
         assertThat(salesPostRecoveryRepository.findBySalesPostId(postId)).isEmpty();
+    }
+
+    // 상품은 되돌렸는데 복제본을 못 되돌린 경우. 복제본까지 되돌려야 복구 성공이므로 실패로 세고 다시 시도한다
+    @Test
+    @DisplayName("복구에서 복제본 되돌리기가 실패하면 복구 실패로 세어 RECOVERING으로 남는다")
+    void replicaRestoreFailureCountsAsFailure() {
+        Long postId = registerPost("아이폰");
+        leaveRecovering(postId);
+        statusChangedMinutesAgo(postId, 6);
+
+        reset(salesPostApiClient); // 상품 서버는 살아났다
+        doThrow(new RuntimeException("테스트용 복제본 되돌리기 실패"))
+                .when(salesPostSyncProductUseCase).syncProduct(anyList());
+        scheduler.reconcile();
+
+        assertThat(updateStatusOf(postId)).isEqualTo(SalesPostUpdateStatus.RECOVERING);
+        assertThat(retryCountOf(postId)).isEqualTo(2); // 즉시 복구 1번 + 이번 1번
+        // 수정 마무리(복제본 갱신 포함)가 롤백돼서 복제본은 처음부터 수정 전 값이다
+        assertThat(salesPostProductRepository.findById(productIdOf(postId)).orElseThrow().getName()).isEqualTo("아이폰");
     }
 
     // 즉시 복구 1번 + 스케줄러 2번 = 3번째 실패에서 복구를 포기한다

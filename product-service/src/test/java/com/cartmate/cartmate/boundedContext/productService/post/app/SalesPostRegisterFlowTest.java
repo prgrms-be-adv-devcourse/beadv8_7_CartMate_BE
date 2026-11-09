@@ -130,7 +130,6 @@ class SalesPostRegisterFlowTest {
         assertThat(product.getSalesPostId()).isEqualTo(postId);
         assertThat(product.getSellerId()).isEqualTo(SELLER_ID);
         assertThat(product.getName()).isEqualTo("아이폰");
-        assertThat(product.isSyncStatus()).isTrue();
 
         List<ProductImage> productImages = productImageRepository.findAll();
         assertThat(productImages).hasSize(2);
