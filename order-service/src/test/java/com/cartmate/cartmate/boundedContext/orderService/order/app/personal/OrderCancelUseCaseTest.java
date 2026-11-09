@@ -138,6 +138,21 @@ class OrderCancelUseCaseTest {
         then(eventPublisher).should(never()).publish(any(OrderCanceledEvent.class));
     }
 
+    @Test
+    @DisplayName("마지막 발송 뒤 정한 시간이 지난 취소 요청은 같은 번호와 처음 요청 시각으로 다시 발행한다")
+    void resendStaleCancelRequest() {
+        Order order = paidOrder();
+        LocalDateTime firstRequestedAt = LocalDateTime.now(CLOCK).minusMinutes(11);
+        order.cancelByBuyer(BUYER, firstRequestedAt);
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+
+        cancelUseCase.resendCancelRequest(ORDER_ID, Duration.ofMinutes(10));
+        cancelUseCase.resendCancelRequest(ORDER_ID, Duration.ofMinutes(10));
+
+        then(eventPublisher).should().publish(new OrderCancelRequestedEvent(ORDER_ID, BUYER, 1, firstRequestedAt));
+        assertThat(order.getCancelLastSentAt()).isEqualTo(LocalDateTime.now(CLOCK));
+    }
+
     private Order paidOrder() {
         Order order = personalOrder(BUYER, ballLine(null, 1), LocalDateTime.now(CLOCK));
         org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);

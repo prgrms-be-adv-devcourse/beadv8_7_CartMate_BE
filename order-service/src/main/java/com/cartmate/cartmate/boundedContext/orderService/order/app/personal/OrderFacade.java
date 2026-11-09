@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.BuyerCancelResult;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -106,6 +107,16 @@ public class OrderFacade {
     @Transactional
     public void rejectCancelByDelivery(Long orderId, int requestSeq, String rejectCode) {
         orderCancelUseCase.rejectCancelByDelivery(orderId, requestSeq, rejectCode);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findIdsToResendCancelRequest(LocalDateTime lastSentBefore) {
+        return orderCancelUseCase.findIdsToResendCancelRequest(lastSentBefore);
+    }
+
+    @Transactional
+    public void resendCancelRequest(Long orderId, Duration resendAfter) {
+        orderCancelUseCase.resendCancelRequest(orderId, resendAfter);
     }
 
     @Transactional

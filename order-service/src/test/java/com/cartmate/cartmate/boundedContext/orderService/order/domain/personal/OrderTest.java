@@ -232,6 +232,20 @@ class OrderTest {
     }
 
     @Test
+    @DisplayName("재발행은 마지막 발송 뒤 정한 시간이 지난 취소 처리 중 주문만 한다")
+    void resendCancelRequestAfterInterval() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW);
+        Duration resendAfter = Duration.ofMinutes(10);
+
+        assertThat(order.resendCancelRequest(NOW.plusMinutes(9), resendAfter)).isFalse();
+        assertThat(order.resendCancelRequest(NOW.plusMinutes(10), resendAfter)).isTrue();
+        assertThat(order.getCancelLastSentAt()).isEqualTo(NOW.plusMinutes(10));
+        assertThat(order.resendCancelRequest(NOW.plusMinutes(15), resendAfter)).isFalse();
+    }
+
+    @Test
     @DisplayName("배송 취소됨 결과는 현재 요청 번호와 같을 때만 취소를 확정한다")
     void confirmCancelOnlyForCurrentRequest() {
         Order order = personalOrder();

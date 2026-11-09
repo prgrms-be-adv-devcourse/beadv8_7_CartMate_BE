@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -69,6 +70,19 @@ class OrderCancelUseCase {
         if (!order.rejectCancel(requestSeq, rejectCode)) {
             log.info("반영하지 않는 배송 취소 거절: orderId={}, requestSeq={}, status={}, currentSeq={}",
                     orderId, requestSeq, order.getStatus(), order.getCancelRequestSeq());
+        }
+    }
+
+    List<Long> findIdsToResendCancelRequest(LocalDateTime lastSentBefore) {
+        return orderRepository.findIdsByStatusAndCancelLastSentAtBefore(OrderStatus.CANCEL_REQUESTED, lastSentBefore);
+    }
+
+    void resendCancelRequest(Long orderId, Duration resendAfter) {
+        Order order = orderSupport.getOrderForUpdate(orderId);
+        if (order.resendCancelRequest(LocalDateTime.now(clock), resendAfter)) {
+            log.warn("배송 서버 응답이 없어 취소 요청 재발행: orderId={}, requestSeq={}, firstRequestedAt={}",
+                    orderId, order.getCancelRequestSeq(), order.getCancelRequestedAt());
+            publishCancelRequested(order);
         }
     }
 

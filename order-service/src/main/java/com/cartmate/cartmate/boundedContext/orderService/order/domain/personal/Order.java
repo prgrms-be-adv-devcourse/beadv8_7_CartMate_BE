@@ -215,6 +215,15 @@ public class Order {
         return BuyerCancelResult.CANCELED;
     }
 
+    public boolean resendCancelRequest(LocalDateTime now, Duration resendAfter) {
+        if (status != OrderStatus.CANCEL_REQUESTED || cancelLastSentAt == null
+                || cancelLastSentAt.plus(resendAfter).isAfter(now)) {
+            return false;
+        }
+        this.cancelLastSentAt = now;
+        return true;
+    }
+
     public boolean confirmCancel(int requestSeq, LocalDateTime now) {
         if (status != OrderStatus.CANCEL_REQUESTED || requestSeq != cancelRequestSeq) {
             return false;
