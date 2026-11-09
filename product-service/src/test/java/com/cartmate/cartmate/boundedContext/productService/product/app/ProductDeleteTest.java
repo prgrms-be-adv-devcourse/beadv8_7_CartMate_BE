@@ -91,9 +91,10 @@ class ProductDeleteTest {
     @Autowired
     TransactionTemplate transactionTemplate;
 
-    Long productId;
+    Long productId;      // 삭제할 상품 (아이폰: 사진 2, 옵션 2)
+    Long otherProductId; // 같은 판매글에 남는 상품 (충전기: 사진 1, 옵션 1)
 
-    // 판매글 + 상품(사진 2, 옵션 2)을 등록해서 post 복제본까지 만들어 둔다
+    // 판매글 + 상품 2개를 등록해서 post 복제본까지 만들어 둔다(마지막 상품은 지울 수 없으므로 2개)
     @BeforeEach
     void setUp() {
         salesPostProductImageRepository.deleteAll();
@@ -111,14 +112,18 @@ class ProductDeleteTest {
 
         SalesPost post = salesPostCreateUseCase.saveSalesPost(
                 new CreateSalesPostRequest(null, SELLER_ID, "아이폰 팝니다", "상태 좋아요", List.of()));
-        CreateProduct product = new CreateProduct(null, SELLER_ID, post.getId(), 1L, "아이폰", "설명", 10000L,
+        CreateProduct iphone = new CreateProduct(null, SELLER_ID, post.getId(), 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null),
                         new CreateProductImage(null, SELLER_ID, null, null, 1, null)),
                 List.of(new CreateProductOption(1L, 100L), new CreateProductOption(2L, 200L)));
-        productFacade.registerProduct(new CreateProductRequest(post.getId(), List.of(product)),
-                List.of(TestImageFiles.jpeg(), TestImageFiles.png()));
+        CreateProduct charger = new CreateProduct(null, SELLER_ID, post.getId(), 1L, "충전기", "설명", 3000L,
+                List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null)),
+                List.of(new CreateProductOption(3L, 300L)));
+        productFacade.registerProduct(new CreateProductRequest(post.getId(), List.of(iphone, charger)),
+                List.of(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.jpeg()));
 
-        productId = productRepository.findAll().getFirst().getId();
+        productId = productIdOf("아이폰");
+        otherProductId = productIdOf("충전기");
     }
 
     @Test
@@ -126,25 +131,39 @@ class ProductDeleteTest {
     void deleteProductAlsoDeletesCopy() {
         productFacade.deleteProductByUser(productId, SELLER_ID);
 
-        // 상품만 지워지고, 복제본 삭제는 이벤트로 남아 있다
+        // 상품만 지워지고(사진 2장 삭제, 옵션 2개 제거), 복제본 삭제는 이벤트로 남아 있다. 충전기는 그대로
         assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
+        assertThat(productRepository.findById(otherProductId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
         assertThat(productImageRepository.findAll())
-                .hasSize(2)
                 .extracting(ProductImage::getStatus)
-                .containsOnly(ProductStatus.DELETED);
-        assertThat(productOptionRepository.count()).isZero();
+                .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
+        assertThat(productOptionRepository.count()).isEqualTo(1);
         assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
         assertThat(outboxCount(OutboxEventStatus.NEW)).isEqualTo(1);
 
         relay();
 
         assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
+        assertThat(salesPostProductRepository.findById(otherProductId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
         assertThat(salesPostProductImageRepository.findAll())
-                .hasSize(2)
                 .extracting(SalesPostProductImage::getStatus)
-                .containsOnly(ProductStatus.DELETED);
-        assertThat(salesPostProductOptionRepository.count()).isZero();
+                .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
+        assertThat(salesPostProductOptionRepository.count()).isEqualTo(1);
         assertThat(outboxCount(OutboxEventStatus.PUBLISHED)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("판매글의 마지막 상품은 삭제할 수 없고, 판매글을 삭제하라고 안내한다")
+    void cannotDeleteLastProduct() {
+        productFacade.deleteProductByUser(productId, SELLER_ID);
+
+        assertThatThrownBy(() -> productFacade.deleteProductByUser(otherProductId, SELLER_ID))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("PRODUCT_DELETE_LAST")
+                .hasMessageContaining("판매글을 삭제해 주세요");
+
+        assertThat(productRepository.findById(otherProductId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(outboxCount(null)).isEqualTo(1); // 처음 지운 상품의 이벤트만
     }
 
     // 릴레이가 PUBLISHED 기록에 실패하면 같은 이벤트를 다시 보낸다. 복제본 삭제는 두 번 해도 상태가 같아서 처리 기록으로 확인한다
@@ -187,6 +206,14 @@ class ProductDeleteTest {
         assertThatThrownBy(() -> productFacade.deleteProductByUser(productId, SELLER_ID))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining("PRODUCT_NOT_FOUND");
+    }
+
+    private Long productIdOf(String name) {
+        return productRepository.findAll().stream()
+                .filter(p -> p.getName().equals(name))
+                .findFirst()
+                .orElseThrow()
+                .getId();
     }
 
     private void relay() {
