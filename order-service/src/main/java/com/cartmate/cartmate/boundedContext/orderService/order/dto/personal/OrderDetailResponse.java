@@ -56,7 +56,9 @@ public record OrderDetailResponse(
             String optionName,
             long unitPrice,
             int quantity,
-            long amount
+            long amount,
+            @Schema(description = "취소된 항목이면 취소 시각 (판매글 내림으로 인한 취소). 주문 전체 취소는 주문의 canceledAt을 본다")
+            LocalDateTime canceledAt
     ) {
 
         static ItemResponse from(OrderItem item) {
@@ -68,7 +70,8 @@ public record OrderDetailResponse(
                     item.getOptionName(),
                     item.getUnitPrice(),
                     item.getQuantity(),
-                    item.amount()
+                    item.amount(),
+                    item.getCanceledAt()
             );
         }
     }
