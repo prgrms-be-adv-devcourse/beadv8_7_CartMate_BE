@@ -1,0 +1,27 @@
+# 주문 서버 운영 실행. 첫 배포 전에 db/schema.sql → db/before-first-deploy.sql을 MySQL-주문에 1회 실행한다
+name: cartmate-order-service
+
+services:
+  order-service:
+    image: "${ORDER_SERVICE_IMAGE:?ORDER_SERVICE_IMAGE is not set}:${ORDER_SERVICE_TAG:-latest}"
+    restart: unless-stopped
+    ports:
+      - "8986:8986"
+    stop_grace_period: 40s
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      ORDER_DB_URL: ${ORDER_DB_URL:?ORDER_DB_URL is not set}   # jdbc:mysql://<host>:3306/cartmate_order?serverTimezone=Asia/Seoul
+      ORDER_DB_USERNAME: ${ORDER_DB_USERNAME:?ORDER_DB_USERNAME is not set}
+      ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD:?ORDER_DB_PASSWORD is not set}
+      ORDER_DB_POOL_SIZE: ${ORDER_DB_POOL_SIZE:-10}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is not set}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is not set}
+      PAYMENT_BASE_URL: ${PAYMENT_BASE_URL:?PAYMENT_BASE_URL is not set}
+      PRODUCT_SERVICE_BASE_URL: ${PRODUCT_SERVICE_BASE_URL:?PRODUCT_SERVICE_BASE_URL is not set}
+      MEMBER_SERVICE_BASE_URL: ${MEMBER_SERVICE_BASE_URL:?MEMBER_SERVICE_BASE_URL is not set}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+    deploy:
+      resources:
+        limits:
+          memory: 1g
