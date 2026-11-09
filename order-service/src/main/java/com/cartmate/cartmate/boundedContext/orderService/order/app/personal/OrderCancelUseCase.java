@@ -53,6 +53,25 @@ class OrderCancelUseCase {
         return result;
     }
 
+    void confirmCancelByDelivery(Long orderId, int requestSeq) {
+        Order order = orderSupport.getOrderForUpdate(orderId);
+        if (!order.confirmCancel(requestSeq, LocalDateTime.now(clock))) {
+            log.info("반영하지 않는 배송 취소 결과: orderId={}, requestSeq={}, status={}, currentSeq={}",
+                    orderId, requestSeq, order.getStatus(), order.getCancelRequestSeq());
+            return;
+        }
+        eventPublisher.publish(toCanceledEvent(order, true));
+        restoreCouponIf(true, order);
+    }
+
+    void rejectCancelByDelivery(Long orderId, int requestSeq, String rejectCode) {
+        Order order = orderSupport.getOrderForUpdate(orderId);
+        if (!order.rejectCancel(requestSeq, rejectCode)) {
+            log.info("반영하지 않는 배송 취소 거절: orderId={}, requestSeq={}, status={}, currentSeq={}",
+                    orderId, requestSeq, order.getStatus(), order.getCancelRequestSeq());
+        }
+    }
+
     void cancelByDeadline(Long orderId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         boolean paid = isPaid(order);

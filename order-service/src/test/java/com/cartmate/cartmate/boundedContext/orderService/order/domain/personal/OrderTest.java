@@ -232,6 +232,41 @@ class OrderTest {
     }
 
     @Test
+    @DisplayName("배송 취소됨 결과는 현재 요청 번호와 같을 때만 취소를 확정한다")
+    void confirmCancelOnlyForCurrentRequest() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW);
+
+        assertThat(order.confirmCancel(2, NOW.plusMinutes(1))).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCEL_REQUESTED);
+
+        assertThat(order.confirmCancel(1, NOW.plusMinutes(1))).isTrue();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.BUYER_CANCELED);
+        assertThat(order.confirmCancel(1, NOW.plusMinutes(2))).isFalse();
+    }
+
+    @Test
+    @DisplayName("거절되면 결제 완료로 돌아가고, 다시 요청하면 번호가 오르며 이전 요청의 늦은 거절은 무시한다")
+    void rejectThenRequestAgain() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW);
+
+        assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isTrue();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.getCancelRejectCode()).isEqualTo("409-DELIVERY_NOT_CANCELABLE");
+
+        order.cancelByBuyer(BUYER, NOW.plusMinutes(3));
+        assertThat(order.getCancelRequestSeq()).isEqualTo(2);
+        assertThat(order.getCancelRejectCode()).isNull();
+
+        assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCEL_REQUESTED);
+    }
+
+    @Test
     @DisplayName("구매자가 아니면 주문을 취소할 수 없다")
     void cancelByOtherMember() {
         Order order = personalOrder();
@@ -401,6 +436,8 @@ class OrderTest {
         byBuyer.markPaid(99L, NOW.plusMinutes(1));
         byBuyer.cancelByBuyer(BUYER, NOW.plusMinutes(2));
         assertThat(byBuyer.couponRestorable()).isFalse();
+        byBuyer.confirmCancel(1, NOW.plusMinutes(3));
+        assertThat(byBuyer.couponRestorable()).isTrue();
 
         Order oneSeller = Order.createPersonal("ORD-S", BUYER, List.of(
                 new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1)), addressWithoutDetail(), NOW);

@@ -215,6 +215,23 @@ public class Order {
         return BuyerCancelResult.CANCELED;
     }
 
+    public boolean confirmCancel(int requestSeq, LocalDateTime now) {
+        if (status != OrderStatus.CANCEL_REQUESTED || requestSeq != cancelRequestSeq) {
+            return false;
+        }
+        cancel(OrderCancelReason.BUYER_CANCELED, now);
+        return true;
+    }
+
+    public boolean rejectCancel(int requestSeq, String rejectCode) {
+        if (status != OrderStatus.CANCEL_REQUESTED || requestSeq != cancelRequestSeq) {
+            return false;
+        }
+        this.status = OrderStatus.PAID;
+        this.cancelRejectCode = rejectCode;
+        return true;
+    }
+
     public boolean isPaid() {
         return status == OrderStatus.PAID || status == OrderStatus.CANCEL_REQUESTED;
     }

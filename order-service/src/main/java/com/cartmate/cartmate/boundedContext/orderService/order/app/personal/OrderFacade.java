@@ -99,6 +99,16 @@ public class OrderFacade {
     }
 
     @Transactional
+    public void confirmCancelByDelivery(Long orderId, int requestSeq) {
+        orderCancelUseCase.confirmCancelByDelivery(orderId, requestSeq);
+    }
+
+    @Transactional
+    public void rejectCancelByDelivery(Long orderId, int requestSeq, String rejectCode) {
+        orderCancelUseCase.rejectCancelByDelivery(orderId, requestSeq, rejectCode);
+    }
+
+    @Transactional
     public void cancelByDeadline(Long orderId) {
         orderCancelUseCase.cancelByDeadline(orderId);
     }
