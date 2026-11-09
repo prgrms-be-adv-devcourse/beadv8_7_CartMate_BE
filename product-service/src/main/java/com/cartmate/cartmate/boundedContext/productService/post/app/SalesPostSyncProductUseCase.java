@@ -13,16 +13,12 @@ import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.global.GlobalConfig;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.ProductSyncUpdateRequest;
-import com.cartmate.cartmate.boundedContext.productService.event.productSyncCompletedEvent;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductImage;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductOption;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -33,6 +29,8 @@ public class SalesPostSyncProductUseCase {
     private final SalesPostProductImageRepository salesPostProductImageRepository;
     private final SalesPostProductOptionRepository salesPostProductOptionRepository;
 
+    // product의 등록 · 수정 · 복구 응답으로 복제본을 저장한다(같은 ID면 덮어씀).
+    // 부르는 쪽의 마무리 트랜잭션에 합쳐져서, 실패하면 그 작업(등록 · 수정 · 복구)도 실패한다
     @Transactional
     public void syncProduct(List<SyncProduct> syncList) {
         if (syncList == null || syncList.isEmpty()) {
@@ -42,7 +40,6 @@ public class SalesPostSyncProductUseCase {
         SalesPost salesPost = salesPostRepository.findById(syncList.getFirst().getSalesPostId())
                     .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
 
-        List<Long> successList = new ArrayList<>();
         syncList.forEach(product -> {
             SalesPostProduct newProduct = new SalesPostProduct(
                     product.getId(),
@@ -73,14 +70,7 @@ public class SalesPostSyncProductUseCase {
                     salesPostProductOptionRepository.save(newOption);
                 });
             }
-            successList.add(product.getId());
         });
-
-        GlobalConfig.getEventPublisher().publish(
-                new productSyncCompletedEvent(
-                        new ProductSyncUpdateRequest(successList)
-                )
-        );
     }
 
     // 판매글 삭제로 product에서 지워진 상품의 복제본을 지운다(소프트 삭제라 다시 와도 결과가 같다)

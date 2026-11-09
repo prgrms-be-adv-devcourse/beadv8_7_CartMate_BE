@@ -42,22 +42,24 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
+    // 수정한 상품을 응답으로 돌려준다. post가 이걸로 복제본을 갱신한다(복제본 갱신 실패 = 수정 실패 → post가 복구)
     @PatchMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> updateProducts(
+    public ResponseEntity<RsData<List<SyncProduct>>> updateProducts(
             @RequestPart("request") UpdateProductsRequest request,
             @RequestPart(value = "images", required = false) List<MultipartFile> images
     ) {
-        productFacade.updateProducts(request, images);
-        return ResponseEntity.noContent().build();
+        List<SyncProduct> updated = productFacade.updateProducts(request, images);
+        return ResponseEntity.ok(new RsData<>("200-1", "상품 수정에 성공했습니다.", updated));
     }
 
+    // 되돌린 상품을 응답으로 돌려준다. post가 이걸로 복제본도 되돌린다
     @PutMapping("/{postId}/restore")
-    public ResponseEntity<Void> restoreProducts(
+    public ResponseEntity<RsData<List<SyncProduct>>> restoreProducts(
             @PathVariable Long postId,
             @RequestBody RestoreProductsRequest request
     ) {
-        productFacade.restoreProducts(postId, request);
-        return ResponseEntity.noContent().build();
+        List<SyncProduct> restored = productFacade.restoreProducts(postId, request);
+        return ResponseEntity.ok(new RsData<>("200-1", "상품 복구에 성공했습니다.", restored));
     }
 
     @GetMapping("/{postId}")

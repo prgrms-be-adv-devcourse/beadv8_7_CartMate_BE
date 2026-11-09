@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostRecovery;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostRecoveryRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostUpdateStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -34,6 +35,7 @@ public class SalesPostRecoverUseCase {
     private final SalesPostRepository salesPostRepository;
     private final TransactionTemplate transactionTemplate;
     private final SalesPostApiClient salesPostApiClient;
+    private final SalesPostSyncProductUseCase salesPostSyncProductUseCase;
 
     // 수정 복구 대사: 복구 중에 멈춘 판매글 (afterId 다음 ID부터)
     @Transactional(readOnly = true)
@@ -111,19 +113,23 @@ public class SalesPostRecoverUseCase {
                 .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_RECOVERY_NOT_FOUND));
 
         try {
-            // 2. 상품 복구 API 호출 (트랜잭션 밖)
-            salesPostApiClient.restoreProducts(postId, recovery.getSnapshot());
+            // 2. 상품 복구 API 호출 (트랜잭션 밖). 되돌린 상품을 돌려받는다
+            List<SyncProduct> restored = salesPostApiClient.restoreProducts(postId, recovery.getSnapshot());
+
+            // 3. 성공: 복제본 되돌리기 + RECOVERED + 복구 기록 삭제 (한 트랜잭션)
+            //    복제본을 못 되돌리면 복구 실패로 본다(상품만 되돌아간 채 끝나지 않게)
+            transactionTemplate.executeWithoutResult(s -> {
+                if (!restored.isEmpty()) {
+                    salesPostSyncProductUseCase.syncProduct(restored);
+                }
+                salesPostUpdateUseCase.markRecovered(postId);
+                salesPostRecoveryUseCase.delete(postId);
+            });
         } catch (RuntimeException e) {
-            // 3-1. 실패: 재시도 횟수 +1, 한도 도달 시 RECOVERY_FAILED
+            // 4. 실패(복구 API · 복제본 되돌리기 모두): 재시도 횟수 +1, 한도 도달 시 RECOVERY_FAILED
             transactionTemplate.executeWithoutResult(s -> handleRestoreFailure(postId));
             throw e;
         }
-
-        // 3-2. 성공: RECOVERED + 복구 기록 삭제 (한 트랜잭션)
-        transactionTemplate.executeWithoutResult(s -> {
-            salesPostUpdateUseCase.markRecovered(postId);
-            salesPostRecoveryUseCase.delete(postId);
-        });
     }
 
     private void handleRestoreFailure(Long postId) {

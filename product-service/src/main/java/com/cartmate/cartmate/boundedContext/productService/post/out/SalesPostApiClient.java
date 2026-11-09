@@ -99,7 +99,8 @@ public class SalesPostApiClient {
         }
     }
 
-    public void updateProducts(UpdateSalesPostRequest request, List<MultipartFile> images) {
+    // product가 수정한 상품(사진 · 옵션 포함)을 돌려받는다. post는 이걸로 수정 마무리 트랜잭션에서 복제본을 갱신한다
+    public List<SyncProduct> updateProducts(UpdateSalesPostRequest request, List<MultipartFile> images) {
         MultipartBodyBuilder body = new MultipartBodyBuilder();
         body.part("request", request, MediaType.APPLICATION_JSON);   // file은 빠진 채로 JSON
 
@@ -108,7 +109,7 @@ public class SalesPostApiClient {
         }
 
         try {
-            restClient.patch()
+            InternalResponse<List<SyncProduct>> response = restClient.patch()
                     .uri("")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body.build())
@@ -119,7 +120,8 @@ public class SalesPostApiClient {
                     .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
                         throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_FAILED);
                     })
-                    .toBodilessEntity();
+                    .body(new ParameterizedTypeReference<>() {});
+            return response == null ? List.of() : response.data();
         } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
             throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
         }
@@ -144,13 +146,14 @@ public class SalesPostApiClient {
         }
     }
 
-    public void restoreProducts(Long postId, SalesPostSnapshot snapshot) {
+    // product가 되돌린 상품을 돌려받는다. post는 이걸로 복구 성공 트랜잭션에서 복제본도 되돌린다
+    public List<SyncProduct> restoreProducts(Long postId, SalesPostSnapshot snapshot) {
         if (snapshot == null) {
             throw new IllegalStateException("복구할 스냅샷이 없습니다. postId=" + postId);
         }
 
         try {
-            restClient.put()
+            InternalResponse<List<SyncProduct>> response = restClient.put()
                     .uri("/{postId}/restore", postId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(toRestoreRequest(snapshot))
@@ -161,7 +164,8 @@ public class SalesPostApiClient {
                     .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
                         throw new ServiceException(ProductErrorCode.PRODUCT_RESTORE_FAILED);
                     })
-                    .toBodilessEntity();
+                    .body(new ParameterizedTypeReference<>() {});
+            return response == null ? List.of() : response.data();
         } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
             throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
         }

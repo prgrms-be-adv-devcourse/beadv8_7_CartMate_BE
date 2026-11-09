@@ -11,7 +11,6 @@ import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
@@ -103,11 +102,6 @@ public class SalesPostFacade {
         return salesPostDeleteUseCase.republishDelete(postId);
     }
 
-    @Transactional
-    public void syncProduct(SyncProductRequest request) {
-        salesPostSyncProductUseCase.syncProduct(request.getProductList());
-    }
-
     @Transactional(readOnly = true)
     public RsData<PageResponse<SelectSalesPostResponse>> selectSalesPostAll(SelectSalesPostRequest request, Pageable pageable) {
         return new RsData<>(
@@ -174,8 +168,9 @@ public class SalesPostFacade {
             throw e;
         }
 
+        List<SyncProduct> updatedProducts;
         try {
-            salesPostApiClient.updateProducts(request, images);
+            updatedProducts = salesPostApiClient.updateProducts(request, images);
         } catch (ServiceException e) {
             if (e.getResultCode().equals(ProductErrorCode.PRODUCT_UPDATE_INVALID.resultCode())) {
                 // 명확한 실패(상품 쪽 rollback 완료)
@@ -192,8 +187,10 @@ public class SalesPostFacade {
             throw e;
         }
 
+        // 복제본 갱신과 판매글 수정 · 완료를 한 트랜잭션으로. 복제본을 못 맞추면 수정 실패로 보고 상품을 복구한다
         try {
             transactionTemplate.executeWithoutResult(s -> {
+                salesPostSyncProductUseCase.syncProduct(updatedProducts);
                 salesPostUpdateUseCase.markCompleted(postId);
                 salesPostUpdateUseCase.updateSalesPostByUser(request);
                 salesPostRecoveryUseCase.delete(postId);
