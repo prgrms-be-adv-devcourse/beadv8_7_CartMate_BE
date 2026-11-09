@@ -4,14 +4,15 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseAccou
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseAccountLinkRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberIdentityRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.BeanUtils;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.List;
 
@@ -31,8 +32,16 @@ class AbuseAccountRingSupportTest {
     @Mock
     private AbuseAccountLinkRepository abuseAccountLinkRepository;
 
-    @InjectMocks
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     private AbuseAccountRingSupport support;
+
+    @BeforeEach
+    void setUp() {
+        support = new AbuseAccountRingSupport(abuseSignalRepository, abuseMemberIdentityRepository,
+                abuseAccountLinkRepository, transactionManager);
+    }
 
     @Test
     @DisplayName("연결을 따라가 직접 · 간접으로 이어진 계정을 모두 무리로 모으고 자기 자신은 뺀다")
