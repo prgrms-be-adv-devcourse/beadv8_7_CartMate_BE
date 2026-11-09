@@ -129,20 +129,6 @@ public class Delivery {
         this.requestHash = requestHash;
     }
 
-    // 배송요청(판매자 확인 전)을 배송취소로 바꾸고 취소 시각을 기록한다.
-    // 이미 취소됐으면 아무것도 하지 않아 재요청해도 안전하다. 판매자가 확인한 뒤(배송준비 이상)에는 취소할 수 없다.
-    public void cancel() {
-        if (this.status == DeliveryStatus.CANCELED) {
-            return;
-        }
-        if (this.status != DeliveryStatus.REQUESTED) {
-            throw new ServiceException(DeliveryErrorCode.DELIVERY_NOT_CANCELABLE);
-        }
-
-        this.status = DeliveryStatus.CANCELED;
-        this.canceledAt = LocalDateTime.now();
-    }
-
     public BuyerCancelVerdict buyerCancelVerdict(LocalDateTime requestedAt) {
         if (this.status == DeliveryStatus.CANCELED || this.status == DeliveryStatus.REQUESTED) {
             return BuyerCancelVerdict.ALLOWED;
