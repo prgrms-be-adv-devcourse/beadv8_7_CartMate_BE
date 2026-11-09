@@ -9,13 +9,13 @@ import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
+import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductsDeletedByPostEvent;
 import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
@@ -85,7 +85,7 @@ public class SalesPostFacade {
     }
 
     // 판매글을 DELETING으로 바꾸고 SalesPostDeletedEvent를 outbox에 남긴다.
-    // 상품 삭제 → 복제본 삭제 → 삭제 완료는 이벤트로 이어지고, 실패하면 outbox · inbox가 재시도한다
+    // 상품 삭제 → 복제본 삭제 → 삭제 완료는 이벤트로 이어지고, 실패하면 outbox(Kafka를 켜면 컨슈머)가 재시도한다
     @Transactional
     public void deleteSalesPostByUser(Long postId, Long sellerId) {
         salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId);
@@ -139,9 +139,13 @@ public class SalesPostFacade {
                         post, event.productIds(), SalesPostHideType.SELLER_DELETED, null, null));
     }
 
+    // 판매자가 상품 하나를 삭제하면(ProductDeletedEvent) 그 복제본을 지운다. 같은 이벤트는 한 번만 처리한다
     @Transactional
-    public void deleteProductByUser(DeleteProductRequest request) {
-        salesPostSyncProductUseCase.deleteProductByUser(request);
+    public void deleteProductByEvent(String eventId, ProductDeletedEvent event) {
+        if (!processedEvents.markFirst(ProductServiceConsumers.PRODUCT_DELETED, eventId)) {
+            return;
+        }
+        salesPostSyncProductUseCase.deleteProductByUser(event.productId());
     }
 
     public void updateSalesPostByUser(UpdateSalesPostRequest request, List<MultipartFile> images) {

@@ -13,6 +13,9 @@ public final class ProductServiceConsumers {
     // post: 상품 삭제 완료(ProductsDeletedByPostEvent)를 받아 판매글 삭제 완료
     public static final String PRODUCTS_DELETED_BY_POST = "post.products-deleted-by-post";
 
+    // post: 상품 하나 삭제(ProductDeletedEvent)를 받아 복제본 삭제
+    public static final String PRODUCT_DELETED = "post.product-deleted";
+
     private ProductServiceConsumers() {
     }
 }

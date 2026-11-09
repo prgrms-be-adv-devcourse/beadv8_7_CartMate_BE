@@ -6,10 +6,8 @@ import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.global.GlobalConfig;
-import com.cartmate.cartmate.boundedContext.productService.product.dto.DeleteProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.event.ProductDeletedEvent;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
+import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductsDeletedByPostEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,11 +34,8 @@ public class ProductDeleteUseCase {
 
         product.delete();
 
-        GlobalConfig.getEventPublisher().publish(
-                new ProductDeletedEvent(
-                        new DeleteProductRequest(product.getId())
-                )
-        );
+        // 상품 삭제와 같은 트랜잭션으로 outbox에 저장한다. 복제본 삭제는 post가 이벤트를 받아 처리한다
+        eventPublisher.publish(new ProductDeletedEvent(product.getId(), product.getSalesPostId()));
     }
 
     // 판매글 삭제 요청을 받아 상품을 지우고(소프트 삭제), 같은 트랜잭션으로 삭제 완료 이벤트를 outbox에 남긴다.
