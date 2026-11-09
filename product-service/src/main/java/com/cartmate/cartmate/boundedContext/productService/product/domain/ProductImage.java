@@ -33,17 +33,12 @@ public class ProductImage extends BaseIdAndTime {
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
-    @Column(nullable = false)
-    private boolean syncStatus;
-
-    public ProductImage(Long sellerId, Product product, String s3Key, int imageSeq,
-                        ProductStatus status, boolean syncStatus) {
+    public ProductImage(Long sellerId, Product product, String s3Key, int imageSeq, ProductStatus status) {
         this.sellerId = sellerId;
         this.product = product;
         this.s3Key = s3Key;
         this.imageSeq = imageSeq;
         this.status = status;
-        this.syncStatus = syncStatus;
     }
 
     public SyncProductImage toSyncProductImage() {
@@ -63,13 +58,8 @@ public class ProductImage extends BaseIdAndTime {
         return this;
     }
 
-    public void updateSyncStatus() {
-        this.syncStatus = true;
-    }
-
     public void changeSeq(int imageSeq) {
         this.imageSeq = imageSeq;
-        this.syncStatus = false; // 동기화상태 초기화
     }
 
     // 복구: 삭제됐던 이미지도 다시 활성화하고 순서를 되돌림

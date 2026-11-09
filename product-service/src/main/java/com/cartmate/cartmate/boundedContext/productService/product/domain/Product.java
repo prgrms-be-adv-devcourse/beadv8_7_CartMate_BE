@@ -108,8 +108,7 @@ public class Product extends BaseIdAndTime {
                             this,
                             image.getS3Key(),
                             image.getImageSeq(),
-                            ProductStatus.ACTIVE,
-                            false
+                            ProductStatus.ACTIVE
                     )
             );
         }
@@ -124,7 +123,6 @@ public class Product extends BaseIdAndTime {
 
     public Product updateSyncStatus() {
         this.syncStatus = true;
-        productImageList.forEach(ProductImage::updateSyncStatus);
         return this;
     }
 

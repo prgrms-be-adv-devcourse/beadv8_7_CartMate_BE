@@ -101,7 +101,7 @@ public class ProductUpdateUseCase {
             if (imageReq.getId() == null) { // id 없는 경우 : 새 이미지
                 String key = uploadedKeyMap.get(productIndex + ":" + imageReq.getImageSeq());
                 product.addImage(new ProductImage(product.getSellerId(), product, key,
-                        imageReq.getImageSeq(), ProductStatus.ACTIVE, false));
+                        imageReq.getImageSeq(), ProductStatus.ACTIVE));
             } else {
                 ProductImage existing = storedImageList.get(imageReq.getId());
                 if (existing == null) { // 저장되어 있던 이미지가 아닌 경우
