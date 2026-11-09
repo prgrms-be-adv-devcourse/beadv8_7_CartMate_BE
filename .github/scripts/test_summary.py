@@ -25,11 +25,21 @@ def load_suites():
     return suites
 
 
+def print_context_reports():
+    for path in sorted(glob.glob("*/build/reports/test-contexts.md")):
+        with open(path, encoding="utf-8") as report:
+            lines = report.read().splitlines()
+        print()
+        for line in lines:
+            print("##" + line if line.startswith("#") else line)
+
+
 def main():
     suites = load_suites()
     print("## 테스트 요약")
     if not suites:
         print("\n테스트 결과 XML이 없다(컴파일 실패 등으로 테스트가 돌지 않았을 수 있음).")
+        print_context_reports()
         return 0
 
     print("\n| 모듈 | 클래스 | 테스트 | 실패 | 건너뜀 | 클래스 시간 합(초) |")
@@ -50,6 +60,8 @@ def main():
         print("\n### 실패한 클래스")
         for s in failed:
             print(f"- {s['module']} · {s['name']} ({s['failed']}건)")
+
+    print_context_reports()
     return 0
 
 
