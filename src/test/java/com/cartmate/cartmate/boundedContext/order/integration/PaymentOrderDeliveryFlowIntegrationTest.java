@@ -36,13 +36,18 @@ import com.cartmate.cartmate.boundedContext.wallet.out.HoldingRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletRepository;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletTransactionRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
+import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -53,8 +58,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
+@SpringBootTest(properties = {"cartmate.scheduling.enabled=false", "custom.outbox.relay.initial-delay=PT1H"})
 @ActiveProfiles("test")
+@Import(ManualOutboxRelayConfig.class)
 class PaymentOrderDeliveryFlowIntegrationTest {
 
     private static final DeliveryAddressRequest ADDRESS =
@@ -117,6 +123,12 @@ class PaymentOrderDeliveryFlowIntegrationTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private OutboxRelay outboxRelay;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private final List<Long> memberIds = new ArrayList<>();
     private final List<Long> orderIds = new ArrayList<>();
     private final List<Long> sharedGroupOrderIds = new ArrayList<>();
@@ -170,7 +182,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
 
-        PaymentResponse payment = paymentFacade.payOrder(buyer, created.orderId());
+        PaymentResult payment = orderFacade.payOrder(buyer, created.orderId());
 
         Order order = orderRepository.findById(created.orderId()).orElseThrow();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
@@ -189,8 +201,8 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
 
-        PaymentResponse first = paymentFacade.payOrder(buyer, created.orderId());
-        PaymentResponse second = paymentFacade.payOrder(buyer, created.orderId());
+        PaymentResult first = orderFacade.payOrder(buyer, created.orderId());
+        PaymentResult second = orderFacade.payOrder(buyer, created.orderId());
 
         assertThat(second.paymentId()).isEqualTo(first.paymentId());
         assertThat(walletFacade.getWallet(buyer).balance()).isEqualTo(97_000L);
@@ -204,7 +216,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         createWallet(buyer, 10_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
 
-        assertThatThrownBy(() -> paymentFacade.payOrder(buyer, created.orderId()))
+        assertThatThrownBy(() -> orderFacade.payOrder(buyer, created.orderId()))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(WalletErrorCode.WALLET_INSUFFICIENT_BALANCE.getMsg());
 
@@ -230,6 +242,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         sharedGroupPurchaseFacade.join(member, purchase.inviteCode());
         sharedGroupPurchaseFacade.addItem(member, purchase.id(), 4L, 3);
         sharedGroupPurchaseFacade.close(creator, purchase.id());
+        relayUntilSharedGroupOrderCreated(member, purchase.id());
         Long orderId = sharedGroupOrderFacade.getMyList(member).stream()
                 .filter(order -> order.sharedGroupPurchaseId().equals(purchase.id()))
                 .map(SharedGroupOrderSummaryResponse::id)
@@ -239,14 +252,14 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         paymentKeys.add(new PaymentKey(PaymentType.SHARED_GROUP, orderId, creator));
         paymentKeys.add(new PaymentKey(PaymentType.SHARED_GROUP, orderId, member));
 
-        paymentFacade.paySharedGroupOrder(member, orderId, null);
+        sharedGroupOrderFacade.pay(member, orderId, null);
 
         assertThat(sharedGroupOrderFacade.getDetail(creator, orderId).status()).isEqualTo(SharedGroupOrderStatus.PAYING);
         assertThat(deliveriesOf(creator)).isEmpty();
         assertThat(walletFacade.getWallet(member).balance()).isEqualTo(62_500L);
 
-        PaymentResponse last = paymentFacade.paySharedGroupOrder(creator, orderId, TEAM_ADDRESS);
-        PaymentResponse retried = paymentFacade.paySharedGroupOrder(creator, orderId, TEAM_ADDRESS);
+        PaymentResult last = sharedGroupOrderFacade.pay(creator, orderId, TEAM_ADDRESS);
+        PaymentResult retried = sharedGroupOrderFacade.pay(creator, orderId, TEAM_ADDRESS);
 
         assertThat(retried.paymentId()).isEqualTo(last.paymentId());
         assertThat(sharedGroupOrderFacade.getDetail(creator, orderId).status()).isEqualTo(SharedGroupOrderStatus.CONFIRMED);
@@ -262,7 +275,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         long buyer = nextMember();
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
-        PaymentResponse payment = paymentFacade.payOrder(buyer, created.orderId());
+        PaymentResult payment = orderFacade.payOrder(buyer, created.orderId());
 
         orderFacade.cancelByBuyer(buyer, created.orderId());
 
@@ -282,7 +295,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         long buyer = nextMember();
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
-        PaymentResponse payment = paymentFacade.payOrder(buyer, created.orderId());
+        PaymentResult payment = orderFacade.payOrder(buyer, created.orderId());
         transactionTemplate.executeWithoutResult(status -> deliveriesOf(buyer).forEach(delivery -> {
             delivery.prepare("CJ대한통운", "658219384910");
             deliveryRepository.save(delivery);
@@ -323,7 +336,7 @@ class PaymentOrderDeliveryFlowIntegrationTest {
         long buyer = nextMember();
         createWallet(buyer, 200_000L);
         OrderCreateResponse created = createOrderFromCart(buyer);
-        paymentFacade.payOrder(buyer, created.orderId());
+        orderFacade.payOrder(buyer, created.orderId());
         orderFacade.cancelByBuyer(buyer, created.orderId());
 
         assertThatThrownBy(() -> orderFacade.cancelByBuyer(buyer, created.orderId()))
@@ -364,5 +377,19 @@ class PaymentOrderDeliveryFlowIntegrationTest {
     }
 
     private record PaymentKey(PaymentType type, Long orderId, Long memberId) {
+    }
+
+    // 공동 주문은 마감 트랜잭션이 아니라 아웃박스 릴레이 뒤 order consumer가 만든다
+    private void relayUntilSharedGroupOrderCreated(long memberId, Long purchaseId) {
+        for (int i = 0; i < 20; i++) {
+            ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
+            outboxRelay.relay();
+            boolean created = sharedGroupOrderFacade.getMyList(memberId).stream()
+                    .anyMatch(order -> order.sharedGroupPurchaseId().equals(purchaseId));
+            if (created) {
+                return;
+            }
+        }
+        throw new AssertionError("공동 주문이 만들어지지 않았다: sharedGroupPurchaseId=" + purchaseId);
     }
 }

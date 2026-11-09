@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,4 +51,11 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
     Page<Delivery> findBySellerIdAndStatusOrderByCreatedAtDescIdDesc(
             Long sellerId, DeliveryStatus status, Pageable pageable);
+
+    // 회원 탈퇴 확인: 구매자·주문·판매자 기준으로 아직 끝나지 않은 배송 수
+    long countByMemberIdAndPurchaseTypeAndStatusIn(Long memberId, PurchaseType purchaseType, Collection<DeliveryStatus> statuses);
+
+    long countByOrderIdInAndPurchaseTypeAndStatusIn(Collection<Long> orderIds, PurchaseType purchaseType, Collection<DeliveryStatus> statuses);
+
+    long countBySellerIdAndStatusIn(Long sellerId, Collection<DeliveryStatus> statuses);
 }

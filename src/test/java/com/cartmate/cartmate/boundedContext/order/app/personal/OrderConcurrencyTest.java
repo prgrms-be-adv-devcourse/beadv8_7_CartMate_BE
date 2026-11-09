@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.order.app.personal;
 
 import com.cartmate.cartmate.boundedContext.cart.app.groupindividual.IndividualGroupPurchaseFacade;
+import com.cartmate.cartmate.boundedContext.cart.app.personal.CartFacade;
 import com.cartmate.cartmate.boundedContext.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
 import com.cartmate.cartmate.boundedContext.cart.out.groupindividual.IndividualGroupPurchaseRepository;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
@@ -10,6 +11,7 @@ import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderCancelRea
 import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderStatus;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.DeliveryAddressRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.IndividualGroupOrderCreateRequest;
+import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRequest;
 import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
@@ -29,6 +31,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -68,7 +71,13 @@ class OrderConcurrencyTest {
     private IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
 
     @Autowired
+    private CartFacade cartFacade;
+
+    @Autowired
     private IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     private final List<Long> createdIds = new ArrayList<>();
     private final List<Long> buyerIds = new ArrayList<>();
@@ -86,8 +95,13 @@ class OrderConcurrencyTest {
     @AfterEach
     void tearDown() {
         new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(buyerIds);
+        buyerIds.forEach(buyer -> {
+            jdbcTemplate.update("DELETE FROM cart_item WHERE cart_id IN (SELECT id FROM cart WHERE member_id = ?)", buyer);
+            jdbcTemplate.update("DELETE FROM cart WHERE member_id = ?", buyer);
+        });
         createdIds.forEach(repository::deleteById);
         purchaseIds.forEach(individualGroupPurchaseRepository::deleteById);
+        new TestDataCleaner(jdbcTemplate).deleteIndividualGroupPurchaseReplicas(purchaseIds);
     }
 
     @Test
@@ -179,6 +193,74 @@ class OrderConcurrencyTest {
             OrderCreateResponse again = facade.createIndividualGroup(buyer, request);
             createdIds.add(again.orderId());
             assertThat(again.orderId()).isNotEqualTo(created.peek());
+        }
+    }
+
+    @Test
+    @DisplayName("장바구니 행 락 없이도, 같은 장바구니 상품으로 동시에 두 번 주문하면 결제 대기 개인 주문은 하나만 생긴다")
+    void duplicatePersonalOrderWithoutCartLock() throws InterruptedException {
+        for (int round = 0; round < 5; round++) {
+            long buyer = nextId();
+            buyerIds.add(buyer);
+            cartFacade.addItem(buyer, 4L, 1);
+            Long cartItemId = cartFacade.getCart(buyer).items().getFirst().cartItemId();
+            OrderCreateRequest request = new OrderCreateRequest(List.of(cartItemId),
+                    new DeliveryAddressRequest("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+
+            Queue<Long> created = new ConcurrentLinkedQueue<>();
+            Queue<String> rejected = new ConcurrentLinkedQueue<>();
+            Runnable create = () -> {
+                try {
+                    created.add(facade.createPersonal(buyer, request).orderId());
+                } catch (ServiceException e) {
+                    rejected.add(e.getResultCode());
+                }
+            };
+            runConcurrently(List.of(create, create));
+            createdIds.addAll(created);
+
+            assertThat(created).hasSize(1);
+            assertThat(rejected).containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
+        }
+    }
+
+    @Test
+    @DisplayName("개설자가 공동구매 행을 잠그고 있어도(상품 제거 중) 개인물품 주문 생성은 기다리지 않는다 (cart 행 락 없음)")
+    void individualGroupOrderDoesNotWaitForCartRowLock() throws Exception {
+        long creator = nextId();
+        long buyer = nextId();
+        buyerIds.add(buyer);
+        Long purchaseId = individualGroupPurchaseFacade.create(creator,
+                new IndividualGroupPurchaseCreateRequest("행 락 없음", List.of(1L, 2L))).id();
+        purchaseIds.add(purchaseId);
+        IndividualGroupOrderCreateRequest request = new IndividualGroupOrderCreateRequest(purchaseId,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)),
+                new DeliveryAddressRequest("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService holder = Executors.newSingleThreadExecutor();
+        holder.submit(() -> transactionTemplate.executeWithoutResult(status -> {
+            individualGroupPurchaseRepository.findByIdForUpdate(purchaseId).orElseThrow();
+            locked.countDown();
+            try {
+                release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }));
+        try {
+            assertThat(locked.await(5, TimeUnit.SECONDS)).isTrue();
+            long started = System.nanoTime();
+
+            OrderCreateResponse created = facade.createIndividualGroup(buyer, request);
+
+            createdIds.add(created.orderId());
+            assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)).isLessThan(3_000);
+        } finally {
+            release.countDown();
+            holder.shutdown();
+            holder.awaitTermination(10, TimeUnit.SECONDS);
         }
     }
 

@@ -64,4 +64,10 @@ public class PayoutFacade {
     public SettlementInfoResponse getMySettlementInfo(Long memberId) {
         return payoutQueryUseCase.getMySettlementInfo(memberId, LocalDate.now());
     }
+
+    // 회원 탈퇴 확인: 아직 지급되지 않은 정산 수
+    @Transactional(readOnly = true)
+    public long countPendingOfSeller(Long sellerId) {
+        return payoutQueryUseCase.countPendingOfSeller(sellerId);
+    }
 }

@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayException.Fa
 import com.cartmate.cartmate.boundedContext.wallet.out.ChargeGatewayPayment;
 import com.cartmate.cartmate.boundedContext.wallet.out.WalletChargeGateway;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.lock.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class WalletChargeConfirmService {
 
     // 1) 요청을 충전 주문과 대조한다. 2) 결제사에 승인을 요청한다. 3) 승인 결과가 충전 주문과 같은지 확인한다. 4) 충전을 완료한다.
     // 이미 완료된 주문은 같은 결제 키일 때 결제사를 호출하지 않고 정상 종료한다.
+    @DistributedLock(key = "'wallet-charge:' + #orderNumber")
     public void confirm(Long walletId, String orderNumber, String paymentKey, Long amount) {
         WalletChargeOrderInfo order = walletFacade.getChargeOrder(orderNumber);
 

@@ -98,6 +98,18 @@ public class SharedGroupPurchaseRepositoryImpl implements SharedGroupPurchaseRep
     }
 
     @Override
+    public List<Long> findIdsAwaitingOrderClosedBefore(LocalDateTime threshold) {
+        return queryFactory
+                .select(sharedGroupPurchase.id)
+                .from(sharedGroupPurchase)
+                .where(
+                        sharedGroupPurchase.status.eq(SharedGroupPurchaseStatus.CLOSED),
+                        sharedGroupPurchase.closedAt.loe(threshold)
+                )
+                .fetch();
+    }
+
+    @Override
     public Map<Long, String> findTitlesByIds(Collection<Long> ids) {
         if (ids.isEmpty()) {
             return Map.of();

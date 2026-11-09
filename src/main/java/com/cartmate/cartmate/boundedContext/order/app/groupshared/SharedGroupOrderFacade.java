@@ -1,10 +1,12 @@
 package com.cartmate.cartmate.boundedContext.order.app.groupshared;
 
+import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.shared.cart.event.SharedGroupPurchaseClosedEvent;
 import com.cartmate.cartmate.shared.order.dto.SharedGroupOrderPaymentInfo;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
+import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -22,14 +24,26 @@ public class SharedGroupOrderFacade {
     private final SharedGroupOrderPaymentUseCase sharedGroupOrderPaymentUseCase;
     private final SharedGroupOrderCancelUseCase sharedGroupOrderCancelUseCase;
 
+    // 아웃박스 consumer(SharedGroupOrderEventListener)가 부른다. 마감 트랜잭션과 따로, order 자기 트랜잭션에서 만든다
     @Transactional
     public void createFromClosedPurchase(SharedGroupPurchaseClosedEvent event) {
-        sharedGroupOrderCreateUseCase.createFromClosedPurchase(event);
+        sharedGroupOrderCreateUseCase.createFromClosedPurchase(event, LocalDateTime.now());
+    }
+
+    @Transactional
+    public void reportCreationFailed(Long sharedGroupPurchaseId, String reason) {
+        sharedGroupOrderCreateUseCase.reportCreationFailed(sharedGroupPurchaseId, reason);
     }
 
     @Transactional(readOnly = true)
     public SharedGroupOrderPaymentInfo getPaymentInfo(Long sharedGroupOrderId, Long memberId, LocalDateTime now) {
         return sharedGroupOrderPaymentUseCase.getPaymentInfo(sharedGroupOrderId, memberId, now);
+    }
+
+    // 분담금 결제: 주문이 지휘한다 (주문 → 결제)
+    @Transactional
+    public PaymentResult pay(Long memberId, Long sharedGroupOrderId, TeamDeliveryAddress teamDeliveryAddress) {
+        return sharedGroupOrderPaymentUseCase.pay(sharedGroupOrderId, memberId, teamDeliveryAddress, LocalDateTime.now());
     }
 
     @Transactional
@@ -88,5 +102,17 @@ public class SharedGroupOrderFacade {
     @Transactional(readOnly = true)
     public SharedGroupOrderDetailResponse getDetail(Long memberId, Long sharedGroupOrderId) {
         return sharedGroupOrderQueryUseCase.getDetail(memberId, sharedGroupOrderId);
+    }
+
+    // 회원 탈퇴 확인: 참여 중인 결제 중 공동 주문
+    @Transactional(readOnly = true)
+    public List<Long> findPayingIdsOfParticipant(Long memberId) {
+        return sharedGroupOrderQueryUseCase.findIdsOfParticipant(memberId, List.of(SharedGroupOrderStatus.PAYING));
+    }
+
+    // 회원 탈퇴 확인: 참여 중인 확정 공동 주문 (배송이 구매확정까지 끝났는지는 delivery가 판단)
+    @Transactional(readOnly = true)
+    public List<Long> findConfirmedIdsOfParticipant(Long memberId) {
+        return sharedGroupOrderQueryUseCase.findIdsOfParticipant(memberId, List.of(SharedGroupOrderStatus.CONFIRMED));
     }
 }

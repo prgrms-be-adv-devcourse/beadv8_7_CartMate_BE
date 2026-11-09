@@ -9,6 +9,8 @@ import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
+import com.cartmate.cartmate.shared.event.DomainEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +18,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,7 +44,7 @@ class SharedGroupOrderCancelUseCaseTest {
     private SharedGroupOrderSupport sharedGroupOrderSupport;
 
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private DomainEventPublisher eventPublisher;
 
     @InjectMocks
     private SharedGroupOrderCancelUseCase cancelUseCase;
@@ -57,7 +58,7 @@ class SharedGroupOrderCancelUseCaseTest {
         cancelUseCase.cancelByCreator(CREATOR, ORDER_ID);
 
         ArgumentCaptor<SharedGroupOrderCanceledEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCanceledEvent.class);
-        then(eventPublisher).should().publishEvent(captor.capture());
+        then(eventPublisher).should().publish(captor.capture());
         SharedGroupOrderCanceledEvent event = captor.getValue();
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
         assertThat(event.sharedGroupPurchaseId()).isEqualTo(PURCHASE_ID);
@@ -74,7 +75,7 @@ class SharedGroupOrderCancelUseCaseTest {
         assertThatThrownBy(() -> cancelUseCase.cancelByCreator(MEMBER, ORDER_ID))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_CREATOR_ONLY.getMsg());
-        then(eventPublisher).should(never()).publishEvent(any(Object.class));
+        then(eventPublisher).should(never()).publish(any(DomainEvent.class));
     }
 
     @Test
@@ -90,7 +91,7 @@ class SharedGroupOrderCancelUseCaseTest {
         cancelUseCase.cancelByDeadline(ORDER_ID);
 
         ArgumentCaptor<SharedGroupOrderCanceledEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCanceledEvent.class);
-        then(eventPublisher).should().publishEvent(captor.capture());
+        then(eventPublisher).should().publish(captor.capture());
         assertThat(captor.getValue().cancelReason()).isEqualTo(SharedGroupOrderCancelReason.DEADLINE_EXPIRED.name());
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
     }
@@ -111,7 +112,7 @@ class SharedGroupOrderCancelUseCaseTest {
         cancelUseCase.cancelByDeadline(ORDER_ID);
 
         ArgumentCaptor<SharedGroupOrderCanceledEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCanceledEvent.class);
-        then(eventPublisher).should().publishEvent(captor.capture());
+        then(eventPublisher).should().publish(captor.capture());
         assertThat(captor.getValue().unpaidMemberIds()).containsExactly(MEMBER);
     }
 
@@ -123,7 +124,7 @@ class SharedGroupOrderCancelUseCaseTest {
 
         cancelUseCase.cancelByDeadline(ORDER_ID);
 
-        then(eventPublisher).should(never()).publishEvent(any(Object.class));
+        then(eventPublisher).should(never()).publish(any(DomainEvent.class));
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.PAYING);
     }
 
@@ -140,7 +141,7 @@ class SharedGroupOrderCancelUseCaseTest {
 
         cancelUseCase.cancelByDeadline(ORDER_ID);
 
-        then(eventPublisher).should(never()).publishEvent(any(Object.class));
+        then(eventPublisher).should(never()).publish(any(DomainEvent.class));
         assertThat(order.getCancelReason()).isEqualTo(SharedGroupOrderCancelReason.OUT_OF_STOCK);
     }
 
@@ -153,7 +154,7 @@ class SharedGroupOrderCancelUseCaseTest {
         cancelUseCase.cancelByOutOfStock(ORDER_ID);
 
         ArgumentCaptor<SharedGroupOrderCanceledEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCanceledEvent.class);
-        then(eventPublisher).should().publishEvent(captor.capture());
+        then(eventPublisher).should().publish(captor.capture());
         assertThat(captor.getValue().cancelReason()).isEqualTo(SharedGroupOrderCancelReason.OUT_OF_STOCK.name());
     }
 

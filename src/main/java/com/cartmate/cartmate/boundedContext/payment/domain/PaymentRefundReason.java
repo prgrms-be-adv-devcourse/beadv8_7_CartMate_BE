@@ -11,7 +11,8 @@ public enum PaymentRefundReason {
     BUYER_CANCEL("판매자 확인 전 구매자 취소"),
     SHARED_GROUP_CANCEL("공동 주문 무산·취소"),
     ADMIN("관리자 수동 환불"),
-    PRODUCT_HIDDEN("판매글 판매 중지로 발송 전 주문 자동 환불");
+    PRODUCT_HIDDEN("판매글 판매 중지로 발송 전 주문 자동 환불"),
+    CHARGE_COMPENSATION("차감 후 주문 반영 실패로 자동 취소");
 
     // 화면·로그에 쓰는 설명. 새 값을 추가할 때 설명이 없으면 컴파일되지 않는다.
     private final String description;

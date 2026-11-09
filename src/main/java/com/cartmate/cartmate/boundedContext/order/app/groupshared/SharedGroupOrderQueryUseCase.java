@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.order.app.groupshared;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderItem;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderParticipant;
+import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.order.dto.groupshared.SharedGroupOrderSummaryResponse;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -61,5 +63,9 @@ class SharedGroupOrderQueryUseCase {
                 .toList();
         return orderProductClient.findAllByInventoryIds(inventoryIds).stream()
                 .collect(Collectors.toMap(OrderProductInfo::inventoryId, Function.identity()));
+    }
+
+    List<Long> findIdsOfParticipant(Long memberId, Collection<SharedGroupOrderStatus> statuses) {
+        return sharedGroupOrderRepository.findIdsByParticipantAndStatusIn(memberId, statuses);
     }
 }

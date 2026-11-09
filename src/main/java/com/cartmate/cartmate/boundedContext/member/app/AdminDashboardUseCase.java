@@ -1,12 +1,11 @@
 package com.cartmate.cartmate.boundedContext.member.app;
 
-import com.cartmate.cartmate.boundedContext.member.domain.MemberRole;
-import com.cartmate.cartmate.boundedContext.member.domain.MemberStatus;
 import com.cartmate.cartmate.boundedContext.member.dto.AdminDashboardResponse;
 import com.cartmate.cartmate.boundedContext.member.dto.AdminDashboardResponse.AdminMemberStats;
 import com.cartmate.cartmate.boundedContext.member.dto.AdminDashboardResponse.AdminPaymentStats;
 import com.cartmate.cartmate.boundedContext.member.dto.AdminDashboardResponse.AdminRecentMember;
-import com.cartmate.cartmate.boundedContext.member.out.AdminDashboardPaymentClient;
+import com.cartmate.cartmate.boundedContext.member.out.MemberCounts;
+import com.cartmate.cartmate.boundedContext.member.out.MemberPaymentServerClient;
 import com.cartmate.cartmate.boundedContext.member.out.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,24 +17,23 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AdminDashboardUseCase {
     private final MemberRepository memberRepository;
-    private final AdminDashboardPaymentClient paymentClient;
+    private final MemberPaymentServerClient paymentServerClient;
 
     public AdminDashboardResponse getDashboard() {
         LocalDate today = LocalDate.now();
 
+        // 회원 집계 1번 + 결제 집계 2번(결제·환불) + 최근 가입 회원 1번 = 조회 4번
+        MemberCounts counts = memberRepository.countForDashboard(today.atStartOfDay());
         AdminMemberStats members = new AdminMemberStats(
-                memberRepository.count(),
-                memberRepository.countByCreateDateGreaterThanEqual(today.atStartOfDay()),
-                memberRepository.countByRole(MemberRole.BUYER),
-                memberRepository.countByRole(MemberRole.SELLER),
-                memberRepository.countByStatus(MemberStatus.SUSPENDED));
+                counts.total(), counts.joinedToday(), counts.buyers(), counts.sellers(), counts.suspended());
 
-        AdminDashboardPaymentClient.PaymentStats p = paymentClient.getDailyStats(today);
-        AdminPaymentStats payments = new AdminPaymentStats(p.paidCount(), p.paidAmount(), p.refundCount(), p.refundAmount());
+        MemberPaymentServerClient.PaymentStats paymentStats = paymentServerClient.getDailyPaymentStats(today);
+        AdminPaymentStats payments = new AdminPaymentStats(
+                paymentStats.paidCount(), paymentStats.paidAmount(), paymentStats.refundCount(), paymentStats.refundAmount());
 
         var recent = memberRepository.findTop5ByOrderByIdDesc().stream()
-                .map(m -> new AdminRecentMember(m.getId(), m.getEmail(), m.getNickname(),
-                        m.getRole().name(), m.getStatus().name(), m.getCreateDate()))
+                .map(member -> new AdminRecentMember(member.getId(), member.getEmail(), member.getNickname(),
+                        member.getRole().name(), member.getStatus().name(), member.getCreateDate()))
                 .toList();
 
         return new AdminDashboardResponse(members, payments, recent, LocalDateTime.now());

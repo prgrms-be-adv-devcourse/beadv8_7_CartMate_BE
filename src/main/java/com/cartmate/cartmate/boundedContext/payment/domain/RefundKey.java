@@ -40,4 +40,9 @@ public final class RefundKey {
     public static String admin(Long paymentId, long requestedAtMillis) {
         return "ADMIN-%d-%d".formatted(paymentId, requestedAtMillis);
     }
+
+    // 차감은 됐는데 주문 반영이 실패해 되돌림 (결제당 한 번)
+    public static String chargeCompensation(Long paymentId) {
+        return "CHARGE-COMPENSATION-" + paymentId;
+    }
 }

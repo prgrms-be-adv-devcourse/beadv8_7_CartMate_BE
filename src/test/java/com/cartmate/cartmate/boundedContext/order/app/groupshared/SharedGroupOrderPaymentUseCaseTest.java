@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroup
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrder.OrderItemLine;
 import com.cartmate.cartmate.boundedContext.order.domain.groupshared.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.order.exception.OrderErrorCode;
+import com.cartmate.cartmate.boundedContext.order.out.OrderPaymentClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductClient;
 import com.cartmate.cartmate.boundedContext.order.out.OrderProductInfo;
 import com.cartmate.cartmate.boundedContext.order.out.groupshared.SharedGroupOrderRepository;
@@ -11,6 +12,8 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.order.dto.SharedGroupOrderPaymentInfo;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
+import com.cartmate.cartmate.shared.event.DomainEvent;
+import com.cartmate.cartmate.shared.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +22,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -53,10 +55,13 @@ class SharedGroupOrderPaymentUseCaseTest {
     private SharedGroupOrderSupport sharedGroupOrderSupport;
 
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private DomainEventPublisher eventPublisher;
 
     @Mock
     private OrderProductClient orderProductClient;
+
+    @Mock
+    private OrderPaymentClient orderPaymentClient;
 
     @InjectMocks
     private SharedGroupOrderPaymentUseCase paymentUseCase;
@@ -169,7 +174,7 @@ class SharedGroupOrderPaymentUseCaseTest {
 
         assertThat(order.getParticipant(MEMBER).isPaid()).isTrue();
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.PAYING);
-        then(eventPublisher).should(never()).publishEvent(any(Object.class));
+        then(eventPublisher).should(never()).publish(any(DomainEvent.class));
     }
 
     @Test
@@ -183,7 +188,7 @@ class SharedGroupOrderPaymentUseCaseTest {
         paymentUseCase.applyPayment(ORDER_ID, CREATOR, CREATOR_PAYMENT_ID, paidAt, ADDRESS);
 
         ArgumentCaptor<SharedGroupOrderConfirmedEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderConfirmedEvent.class);
-        then(eventPublisher).should().publishEvent(captor.capture());
+        then(eventPublisher).should().publish(captor.capture());
         SharedGroupOrderConfirmedEvent event = captor.getValue();
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CONFIRMED);
         assertThat(event.sharedGroupPurchaseId()).isEqualTo(PURCHASE_ID);
@@ -210,7 +215,7 @@ class SharedGroupOrderPaymentUseCaseTest {
         paymentUseCase.applyPayment(ORDER_ID, CREATOR, CREATOR_PAYMENT_ID, paidAt, ADDRESS);
         paymentUseCase.applyPayment(ORDER_ID, CREATOR, CREATOR_PAYMENT_ID, paidAt, ADDRESS);
 
-        then(eventPublisher).should(times(1)).publishEvent(any(SharedGroupOrderConfirmedEvent.class));
+        then(eventPublisher).should(times(1)).publish(any(SharedGroupOrderConfirmedEvent.class));
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CONFIRMED);
         assertThat(order.getParticipant(MEMBER).getPaymentId()).isEqualTo(MEMBER_PAYMENT_ID);
     }
@@ -238,7 +243,7 @@ class SharedGroupOrderPaymentUseCaseTest {
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_NOT_PAYABLE.getMsg());
         assertThat(order.getParticipant(MEMBER).isPaid()).isFalse();
-        then(eventPublisher).should(never()).publishEvent(any(Object.class));
+        then(eventPublisher).should(never()).publish(any(DomainEvent.class));
     }
 
     @Test
@@ -251,7 +256,7 @@ class SharedGroupOrderPaymentUseCaseTest {
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining(OrderErrorCode.ORDER_TEAM_ADDRESS_REQUIRED.getMsg());
         assertThat(order.getParticipant(CREATOR).isPaid()).isFalse();
-        then(eventPublisher).should(never()).publishEvent(any(Object.class));
+        then(eventPublisher).should(never()).publish(any(DomainEvent.class));
     }
 
     @Test

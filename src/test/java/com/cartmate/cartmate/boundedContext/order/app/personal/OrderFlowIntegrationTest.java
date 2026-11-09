@@ -16,11 +16,14 @@ import com.cartmate.cartmate.boundedContext.order.dto.personal.OrderCreateRespon
 import com.cartmate.cartmate.boundedContext.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.boundedContext.order.support.TestDataCleaner;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
+import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -32,7 +35,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
+// 다른 스케줄러는 끈 채 아웃박스 릴레이 빈만 넣고, 자동 폴링은 1시간 뒤로 미뤄 테스트가 직접 돌린다
+@SpringBootTest(properties = {"cartmate.scheduling.enabled=false", "custom.outbox.relay.initial-delay=PT1H"})
+@Import(ManualOutboxRelayConfig.class)
 @ActiveProfiles("test")
 class OrderFlowIntegrationTest {
 
@@ -60,6 +65,9 @@ class OrderFlowIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private OutboxRelay outboxRelay;
+
     private final List<Long> orderIds = new ArrayList<>();
     private final List<Long> memberIds = new ArrayList<>();
     private final List<Long> purchaseIds = new ArrayList<>();
@@ -70,6 +78,10 @@ class OrderFlowIntegrationTest {
 
     @AfterEach
     void cleanUp() {
+        orderIds.forEach(orderId -> {
+            jdbcTemplate.update("DELETE FROM individual_group_purchase_order_line WHERE order_id = ?", orderId);
+            jdbcTemplate.update("DELETE FROM individual_group_purchase_order WHERE order_id = ?", orderId);
+        });
         new TestDataCleaner(jdbcTemplate).deleteDeliveriesOf(memberIds);
         orderIds.forEach(orderRepository::deleteById);
         memberIds.forEach(memberId -> cartRepository.findByMemberId(memberId).ifPresent(cartRepository::delete));
@@ -117,12 +129,30 @@ class OrderFlowIntegrationTest {
         assertThat(individualGroupPurchaseFacade.getDashboard(creator, purchaseId).orderCount()).isZero();
 
         orderFacade.applyPayment(created.orderId(), buyer, created.orderId(), LocalDateTime.now());
+        // 현황판은 order 이벤트로 채우는 cart 읽기 모델이다. 결제 직후엔 아직 비어 있고, 릴레이가 돌면 나온다
+        assertThat(individualGroupPurchaseFacade.getDashboard(creator, purchaseId).orderCount()).isZero();
+        relayUntilPublished(created.orderId());
 
         IndividualGroupPurchaseDashboardResponse dashboard = individualGroupPurchaseFacade.getDashboard(creator, purchaseId);
         assertThat(dashboard.orderCount()).isEqualTo(1);
         assertThat(dashboard.buyerCount()).isEqualTo(1);
         assertThat(dashboard.totalQuantity()).isEqualTo(2);
         assertThat(dashboard.totalAmount()).isEqualTo(50000L);
+    }
+
+    // 같은 DB를 쓰는 다른 테스트가 남긴 NEW 행이 앞에 있을 수 있어, 이 주문의 이벤트가 모두 넘어갈 때까지 돌린다
+    private void relayUntilPublished(Long orderId) {
+        for (int i = 0; i < 20; i++) {
+            ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
+            outboxRelay.relay();
+            Integer pending = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM outbox_event WHERE aggregate_type = 'Order' AND aggregate_id = ? AND status = 'NEW'",
+                    Integer.class, String.valueOf(orderId));
+            if (pending == 0) {
+                return;
+            }
+        }
+        throw new AssertionError("아웃박스 이벤트가 릴레이되지 않았다: orderId=" + orderId);
     }
 
     private long nextMember() {

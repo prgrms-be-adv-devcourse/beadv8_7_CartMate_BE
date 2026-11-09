@@ -16,9 +16,18 @@ custom:
     toss:
       base-url: https://api.tosspayments.com
       secret-key: ${TOSS_SECRET_KEY:} # 결제위젯 연동 키의 시크릿 키. 저장소에는 비워 두고 환경 변수 TOSS_SECRET_KEY로 넣는다
+  openbanking:
+    mode: ${OPENBANKING_MODE:fake} # 승인 전에는 fake(실제 계좌 검증 없음). live 구현체는 이용기관 승인 후 추가한다
+    client-id: ${OPENBANKING_CLIENT_ID:} # 저장소에는 비워 두고 환경 변수로 넣는다. live일 때만 필요하다
+    client-secret: ${OPENBANKING_CLIENT_SECRET:}
+    org-code: ${OPENBANKING_ORG_CODE:}
   member:
     seller:
       minAge: 19
+    seller-account:
+      verified-ttl: 10m # 계좌 확인 통과 표시 유효시간. 이 안에 판매자 등록을 마쳐야 한다
+      max-attempts: 5 # 회원당 계좌 확인 호출 횟수 한도
+      attempt-window: 10m # 위 횟수를 세는 시간 창
     phone:
       codeTtlSeconds: 180
       verifiedTtlSeconds: 600
@@ -39,3 +48,12 @@ custom:
     core:
       host: ${REDIS_CORE_HOST:localhost}
       port: ${REDIS_CORE_PORT:6380}
+
+cartmate:
+  payment:
+    # 주문이 결제를 부르는 방식. local: 같은 앱 결제 Facade (차감·주문 반영 한 트랜잭션)
+    #                          http : 결제 서버 내부 API (서버 분리 후와 같음, 차감·반영이 다른 트랜잭션)
+    client: ${PAYMENT_CLIENT:local}
+    base-url: ${PAYMENT_BASE_URL:}   # http 모드에서 비우면 같은 앱 자신을 부른다
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-key}   # /internal/** 서버 간 호출 키. 운영은 반드시 환경 변수로

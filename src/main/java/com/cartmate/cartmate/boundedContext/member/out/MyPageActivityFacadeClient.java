@@ -5,7 +5,6 @@ import com.cartmate.cartmate.boundedContext.cart.app.groupshared.SharedGroupPurc
 import com.cartmate.cartmate.boundedContext.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.order.app.groupshared.SharedGroupOrderFacade;
 import com.cartmate.cartmate.boundedContext.order.app.personal.OrderFacade;
-import com.cartmate.cartmate.boundedContext.wallet.app.WalletFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
@@ -18,7 +17,7 @@ import java.util.List;
 public class MyPageActivityFacadeClient implements MyPageActivityClient {
     private static final int DELIVERY_PAGE_SIZE = 100;
 
-    private final WalletFacade walletFacade;
+    private final MemberPaymentServerClient paymentServerClient; // 예치금은 결제 서버
     private final SharedGroupPurchaseFacade sharedGroupPurchaseFacade;
     private final SharedGroupOrderFacade sharedGroupOrderFacade;
     private final IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
@@ -27,8 +26,7 @@ public class MyPageActivityFacadeClient implements MyPageActivityClient {
 
     @Override
     public long getWalletBalance(Long memberId) {
-        Long balance = walletFacade.getWallet(memberId).balance();
-        return balance == null ? 0L : balance;
+        return paymentServerClient.getWalletBalance(memberId);
     }
 
     @Override

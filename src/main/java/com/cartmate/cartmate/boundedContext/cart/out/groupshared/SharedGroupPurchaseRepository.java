@@ -19,4 +19,13 @@ public interface SharedGroupPurchaseRepository extends JpaRepository<SharedGroup
             "com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus.FROZEN) " +
             "and i.productId in :productIds")
     List<Long> findEditableIdsByProductIds(@Param("productIds") Collection<Long> productIds);
+
+    // 회원 탈퇴 확인: 멤버로 참여 중인 모집 중(편집 가능·보류) · 공동 주문 생성 대기(CLOSED) 공동구매 수.
+    // 주문이 만들어진 뒤(ORDER_CREATED)는 order 쪽 결제 중 공동 주문 확인이 맡는다
+    @Query("select count(distinct g.id) from SharedGroupPurchase g join g.members m " +
+            "where m.memberId = :memberId and g.status in (" +
+            "com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus.OPEN, " +
+            "com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus.FROZEN, " +
+            "com.cartmate.cartmate.boundedContext.cart.domain.groupshared.SharedGroupPurchaseStatus.CLOSED)")
+    long countActiveOfMember(@Param("memberId") Long memberId);
 }

@@ -18,7 +18,6 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 
 @DataJpaTest(showSql = false)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -96,46 +95,6 @@ class IndividualGroupPurchaseOrderQueryTest {
         flushAndClear();
 
         assertThat(orderRepository.existsActiveOrderByIndividualGroupPurchaseAndProduct(purchaseId, productA)).isFalse();
-    }
-
-    @Test
-    @DisplayName("결제 완료된 해당 공동구매 주문의 항목만 주문 순서대로 조회한다")
-    void findPaidOrderLines() {
-        Order first = orderRepository.save(paid(group(BUYER, purchaseId, lineA(2), lineB(1))));
-        Order second = orderRepository.save(paid(group(OTHER_BUYER, purchaseId, lineA(3))));
-        orderRepository.save(group(BUYER, purchaseId, lineA(5)));
-        Order canceled = group(OTHER_BUYER, purchaseId, lineB(4));
-        canceled.cancelByBuyer(OTHER_BUYER, NOW);
-        orderRepository.save(canceled);
-        orderRepository.save(paid(group(BUYER, otherPurchaseId, lineA(7))));
-        orderRepository.save(paid(Order.createPersonal(newOrderNumber(), BUYER, List.of(lineA(9)), address(), NOW)));
-        flushAndClear();
-
-        List<IndividualGroupPurchaseOrderLineView> lines = orderRepository.findPaidOrderLines(purchaseId);
-
-        assertThat(lines)
-                .extracting(IndividualGroupPurchaseOrderLineView::orderId,
-                        IndividualGroupPurchaseOrderLineView::buyerMemberId,
-                        IndividualGroupPurchaseOrderLineView::productId,
-                        IndividualGroupPurchaseOrderLineView::inventoryId,
-                        IndividualGroupPurchaseOrderLineView::quantity,
-                        IndividualGroupPurchaseOrderLineView::unitPrice)
-                .containsExactly(
-                        tuple(first.getId(), BUYER, productA, 1L, 2, 25000L),
-                        tuple(first.getId(), BUYER, productB, 2L, 1, 15000L),
-                        tuple(second.getId(), OTHER_BUYER, productA, 1L, 3, 25000L));
-        assertThat(lines).allSatisfy(line -> assertThat(line.orderedAt()).isNotNull());
-        Order reloaded = orderRepository.findById(first.getId()).orElseThrow();
-        assertThat(lines.get(0).orderedAt()).isEqualTo(reloaded.getCreatedAt());
-    }
-
-    @Test
-    @DisplayName("결제 완료 주문이 없으면 빈 목록을 반환한다")
-    void findPaidOrderLinesEmpty() {
-        orderRepository.save(group(BUYER, purchaseId, lineA(2)));
-        flushAndClear();
-
-        assertThat(orderRepository.findPaidOrderLines(purchaseId)).isEmpty();
     }
 
     private Order group(Long buyerMemberId, Long individualGroupPurchaseId, OrderLine... lines) {

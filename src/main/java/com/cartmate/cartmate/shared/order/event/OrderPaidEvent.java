@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.shared.order.event;
 
+import com.cartmate.cartmate.shared.event.DomainEvent;
 import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
 
 import java.time.LocalDateTime;
@@ -14,7 +15,17 @@ public record OrderPaidEvent(
         LocalDateTime paidAt,
         DeliveryAddressInfo deliveryAddress,
         List<Item> items
-) {
+) implements DomainEvent {
+
+    @Override
+    public String aggregateType() {
+        return "Order";
+    }
+
+    @Override
+    public String aggregateId() {
+        return String.valueOf(orderId);
+    }
 
     public record Item(
             Long orderItemId,

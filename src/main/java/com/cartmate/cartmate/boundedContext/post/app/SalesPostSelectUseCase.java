@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.post.app;
 import com.cartmate.cartmate.boundedContext.post.domain.*;
 import com.cartmate.cartmate.boundedContext.post.dto.*;
 import com.cartmate.cartmate.boundedContext.post.out.SalesPostRepository;
+import com.cartmate.cartmate.boundedContext.post.out.SalesPostSellerTrustRepository;
 import com.cartmate.cartmate.boundedContext.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.product.out.ImageStorage;
 import com.cartmate.cartmate.global.code.SalesPostErrorCode;
@@ -15,17 +16,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class SalesPostSelectUseCase {
     private final SalesPostRepository salesPostRepository;
+    private final SalesPostSellerTrustRepository salesPostSellerTrustRepository;
     private final ImageStorage imageStorage;
 
+    // 목록은 페이지에 나온 판매자들의 신뢰도를 한 번에 조회해 붙인다.
     @Transactional(readOnly = true)
     public PageResponse<SelectSalesPostResponse> selectSalesPostAll(SelectSalesPostRequest request, Pageable pageable) {
-        Page<SelectSalesPostResponse> page = salesPostRepository.selectSalesPostAll(request, pageable)
-                .map(this::toSelectResultDto);
+        Page<SalesPost> posts = salesPostRepository.selectSalesPostAll(request, pageable);
+        Map<Long, SalesPostSellerTrust> trustBySeller = findTrustBySeller(posts.getContent());
+
+        Page<SelectSalesPostResponse> page = posts.map(post ->
+                toSelectResultDto(post, trustBySeller.get(post.getSellerId())));
         return PageResponse.of(page);
     }
 
@@ -35,10 +45,18 @@ public class SalesPostSelectUseCase {
                 .filter(p -> p.getStatus() != SalesPostSaleStatus.DELETED && p.getStatus() != SalesPostSaleStatus.SUSPENDED)
                 .orElseThrow(() -> new ServiceException(SalesPostErrorCode.POST_NOT_FOUND));
 
-        return this.toSelectResultDto(post);
+        SalesPostSellerTrust trust = salesPostSellerTrustRepository.findById(post.getSellerId()).orElse(null);
+        return this.toSelectResultDto(post, trust);
     }
 
-    private SelectSalesPostResponse toSelectResultDto(SalesPost post) {
+    private Map<Long, SalesPostSellerTrust> findTrustBySeller(List<SalesPost> posts) {
+        Set<Long> sellerIds = posts.stream().map(SalesPost::getSellerId).collect(Collectors.toSet());
+        return salesPostSellerTrustRepository.findAllBySellerIdIn(sellerIds).stream()
+                .collect(Collectors.toMap(SalesPostSellerTrust::getSellerId, Function.identity()));
+    }
+
+    // 신뢰도 복제본이 없는 판매자(거래 이력이 아직 없는 판매자)는 점수 없는 NEW로 응답한다.
+    private SelectSalesPostResponse toSelectResultDto(SalesPost post, SalesPostSellerTrust trust) {
         List<SelectSalesPostProduct> resultList = post.getProductList()
                 .stream()
                 .map(this::toSelectProductDto)
@@ -46,6 +64,8 @@ public class SalesPostSelectUseCase {
         return new SelectSalesPostResponse(
                 post.getId(),
                 post.getSellerId(),
+                trust == null ? null : trust.getScore(),
+                trust == null ? SellerTrustLevel.NEW : trust.getLevel(),
                 post.getTitle(),
                 post.getContent(),
                 post.getViewCount(),

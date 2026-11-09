@@ -28,6 +28,7 @@ public enum CartErrorCode implements ErrorCode {
     CART_INVITE_CODE_GENERATION_FAILED("CART_INVITE_CODE_GENERATION_FAILED", "초대 코드를 생성하지 못했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
     CART_CREATOR_ONLY("CART_CREATOR_ONLY", "공동구매 생성자만 할 수 있습니다.", HttpStatus.FORBIDDEN),
     CART_CREATOR_ONLY_VIEW("CART_CREATOR_ONLY_VIEW", "공동구매 생성자만 볼 수 있습니다.", HttpStatus.FORBIDDEN),
+    CART_MEMBER_RESTRICTED("CART_MEMBER_RESTRICTED", "결제 기한 내 미결제가 반복되어 공동구매 생성·참여가 제한되었습니다.", HttpStatus.FORBIDDEN),
     CART_INVALID_TITLE("CART_INVALID_TITLE", "제목은 1자 이상 50자 이하여야 합니다.", HttpStatus.BAD_REQUEST),
 
     // 공동구매-공동물품: 참여
@@ -65,7 +66,16 @@ public enum CartErrorCode implements ErrorCode {
     CART_INDIVIDUAL_DEADLINE_IN_PAST("CART_INDIVIDUAL_DEADLINE_IN_PAST", "판매 마감 시각은 지금 이후여야 합니다.", HttpStatus.BAD_REQUEST),
     CART_INDIVIDUAL_DEADLINE_TOO_LATE("CART_INDIVIDUAL_DEADLINE_TOO_LATE", "판매 마감 시각은 지금으로부터 48시간 이내여야 합니다.", HttpStatus.BAD_REQUEST),
     CART_INDIVIDUAL_ALREADY_CLOSED("CART_INDIVIDUAL_ALREADY_CLOSED", "이미 마감된 공동구매입니다.", HttpStatus.CONFLICT),
-    CART_INDIVIDUAL_SALE_CLOSED("CART_INDIVIDUAL_SALE_CLOSED", "판매가 마감된 공동구매입니다.", HttpStatus.CONFLICT);
+    CART_INDIVIDUAL_ADMIN_DEMAND_ONLY("CART_INDIVIDUAL_ADMIN_DEMAND_ONLY", "어드민이 연 공동구매만 어드민 권한으로 다룰 수 있습니다.", HttpStatus.FORBIDDEN),
+    CART_INDIVIDUAL_SALE_CLOSED("CART_INDIVIDUAL_SALE_CLOSED", "판매가 마감된 공동구매입니다.", HttpStatus.CONFLICT),
+
+    CART_DEMAND_INVALID_MIN_MEMBERS("CART_DEMAND_INVALID_MIN_MEMBERS", "최소 인원은 1명 이상 1000명 이하여야 합니다.", HttpStatus.BAD_REQUEST),
+    CART_DEMAND_INVALID_DAYS("CART_DEMAND_INVALID_DAYS", "집계 기간은 1일 이상 90일 이하여야 합니다.", HttpStatus.BAD_REQUEST),
+    CART_DEMAND_INVALID_SIZE("CART_DEMAND_INVALID_SIZE", "조회 개수는 1개 이상 100개 이하여야 합니다.", HttpStatus.BAD_REQUEST),
+    CART_DEMAND_INVALID_COOLDOWN("CART_DEMAND_INVALID_COOLDOWN", "재개설 제한 기간은 0일 이상 90일 이하여야 합니다.", HttpStatus.BAD_REQUEST),
+    CART_DEMAND_ALREADY_OPEN("CART_DEMAND_ALREADY_OPEN", "이 상품으로 이미 열린 공동구매가 있습니다.", HttpStatus.CONFLICT),
+    CART_DEMAND_DEADLINE_TOO_LATE("CART_DEMAND_DEADLINE_TOO_LATE", "판매 마감 시각은 지금으로부터 7일 이내여야 합니다.", HttpStatus.BAD_REQUEST),
+    CART_DEMAND_INVALID_PAYBACK("CART_DEMAND_INVALID_PAYBACK", "페이백 기준 인원은 2명 이상 1000명 이하, 금액은 1원 이상 100,000원 이하여야 합니다.", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String msg;

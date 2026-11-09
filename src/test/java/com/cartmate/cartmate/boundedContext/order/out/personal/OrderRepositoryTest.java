@@ -3,7 +3,9 @@ package com.cartmate.cartmate.boundedContext.order.out.personal;
 import com.cartmate.cartmate.boundedContext.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.order.domain.personal.Order.OrderLine;
+import com.cartmate.cartmate.boundedContext.order.domain.personal.OrderItem;
 import jakarta.persistence.EntityManager;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 @DataJpaTest(showSql = false)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -107,6 +110,97 @@ class OrderRepositoryTest {
             orderRepository.save(personal(orderNumber, OTHER_BUYER));
             em.flush();
         }).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("같은 회원이 같은 재고 상품의 결제 대기 개인 주문을 둘 만들면 DB가 거절한다 (조회와 저장 사이 경쟁 대비)")
+    void uniquePendingPersonalItem() {
+        Long buyer = uniqueMemberId();
+        orderRepository.save(personal(newOrderNumber(), buyer));
+        flushAndClear();
+
+        DataIntegrityViolationException e = catchThrowableOfType(DataIntegrityViolationException.class,
+                () -> orderRepository.saveAndFlush(Order.createPersonal(newOrderNumber(), buyer,
+                        List.of(new OrderLine(11L, 2L, 7L, "상품B", null, 15000, 1)), address(), NOW)));
+
+        // OrderCreateUseCase가 판별에 쓰는 두 경로(Hibernate 제약 이름, 가장 안쪽 DB 메시지)를 실제 MySQL에서 확인한다
+        assertThat(e).isNotNull();
+        assertThat(e.getCause()).isInstanceOf(ConstraintViolationException.class);
+        assertThat(((ConstraintViolationException) e.getCause()).getConstraintName())
+                .contains(OrderItem.PENDING_BUYER_INVENTORY_UNIQUE);
+        assertThat(e.getMostSpecificCause().getMessage()).contains(OrderItem.PENDING_BUYER_INVENTORY_UNIQUE);
+    }
+
+    @Test
+    @DisplayName("앞 주문이 결제 · 취소되면 같은 상품으로 다시 결제 대기 주문을 만들 수 있고, 다른 회원 · 개인물품 공동구매 주문은 겹쳐도 된다")
+    void pendingUniqueReleasedAfterPaidOrCanceled() {
+        Long buyer = uniqueMemberId();
+        Order paid = orderRepository.save(personal(newOrderNumber(), buyer));
+        flushAndClear();
+        Order loadedPaid = orderRepository.findWithItemsById(paid.getId()).orElseThrow();
+        loadedPaid.markPaid(1L, NOW);
+        flushAndClear();
+
+        Order canceled = orderRepository.saveAndFlush(personal(newOrderNumber(), buyer));
+        Order loadedCanceled = orderRepository.findWithItemsById(canceled.getId()).orElseThrow();
+        loadedCanceled.cancelByBuyer(buyer, NOW);
+        flushAndClear();
+
+        orderRepository.saveAndFlush(personal(newOrderNumber(), buyer));
+        orderRepository.saveAndFlush(personal(newOrderNumber(), buyer + 1));
+        orderRepository.saveAndFlush(individualGroup(buyer, uniqueMemberId()));
+        orderRepository.saveAndFlush(individualGroup(buyer, uniqueMemberId()));
+        flushAndClear();
+
+        assertThat(orderRepository.findWithItemsById(loadedPaid.getId()).orElseThrow().getItems())
+                .allSatisfy(item -> assertThat(item.getPendingBuyerMemberId()).isNull());
+        assertThat(orderRepository.findWithItemsById(loadedCanceled.getId()).orElseThrow().getItems())
+                .allSatisfy(item -> assertThat(item.getPendingBuyerMemberId()).isNull());
+    }
+
+    @Test
+    @DisplayName("같은 회원이 같은 공동구매에 결제 대기 주문을 둘 만들면 DB가 거절한다 (공동구매 행 락 대신)")
+    void uniquePendingIndividualGroupOrder() {
+        Long buyer = uniqueMemberId();
+        Long purchaseId = uniqueMemberId();
+        Order first = orderRepository.saveAndFlush(individualGroup(buyer, purchaseId));
+        assertThat(first.getPendingIndividualGroupPurchaseId()).isEqualTo(purchaseId);
+        flushAndClear();
+
+        DataIntegrityViolationException e = catchThrowableOfType(DataIntegrityViolationException.class,
+                () -> orderRepository.saveAndFlush(individualGroup(buyer, purchaseId)));
+
+        // OrderCreateUseCase가 판별에 쓰는 두 경로(Hibernate 제약 이름, 가장 안쪽 DB 메시지)를 실제 MySQL에서 확인한다
+        assertThat(e).isNotNull();
+        assertThat(((ConstraintViolationException) e.getCause()).getConstraintName())
+                .contains(Order.PENDING_BUYER_INDIVIDUAL_GROUP_UNIQUE);
+        assertThat(e.getMostSpecificCause().getMessage()).contains(Order.PENDING_BUYER_INDIVIDUAL_GROUP_UNIQUE);
+    }
+
+    @Test
+    @DisplayName("결제 · 취소된 개인물품 주문은 unique 대상에서 빠지고, 다른 회원 · 다른 공동구매 · 개인 주문은 겹쳐도 된다")
+    void pendingIndividualGroupUniqueReleased() {
+        Long buyer = uniqueMemberId();
+        Long purchaseId = uniqueMemberId();
+        Order paid = orderRepository.saveAndFlush(individualGroup(buyer, purchaseId));
+        flushAndClear();
+        Order loadedPaid = orderRepository.findWithItemsById(paid.getId()).orElseThrow();
+        loadedPaid.markPaid(1L, NOW);
+        flushAndClear();
+        Order canceled = orderRepository.saveAndFlush(individualGroup(buyer, purchaseId));
+        Order loadedCanceled = orderRepository.findWithItemsById(canceled.getId()).orElseThrow();
+        loadedCanceled.cancelByBuyer(buyer, NOW);
+        flushAndClear();
+
+        orderRepository.saveAndFlush(individualGroup(buyer, purchaseId));
+        orderRepository.saveAndFlush(individualGroup(buyer + 1, purchaseId));
+        orderRepository.saveAndFlush(individualGroup(buyer, purchaseId + 1));
+        Order personal = orderRepository.saveAndFlush(personal(newOrderNumber(), buyer));
+        flushAndClear();
+
+        assertThat(orderRepository.findById(loadedPaid.getId()).orElseThrow().getPendingIndividualGroupPurchaseId()).isNull();
+        assertThat(orderRepository.findById(loadedCanceled.getId()).orElseThrow().getPendingIndividualGroupPurchaseId()).isNull();
+        assertThat(orderRepository.findById(personal.getId()).orElseThrow().getPendingIndividualGroupPurchaseId()).isNull();
     }
 
     @Test

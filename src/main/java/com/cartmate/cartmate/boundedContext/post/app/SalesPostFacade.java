@@ -15,6 +15,7 @@ import com.cartmate.cartmate.shared.post.event.PostApiCallFailedEvent;
 import com.cartmate.cartmate.shared.product.dto.CreateProductRequest;
 import com.cartmate.cartmate.shared.product.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.shared.product.dto.SyncProductRequest;
+import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -49,10 +50,17 @@ public class SalesPostFacade {
     private final AdminSalesPostUseCase adminSalesPostUseCase;
     private final SalesPostHideUseCase salesPostHideUseCase;
     private final SalesPostProductRepository salesPostProductRepository;
+    private final SalesPostSyncSellerTrustUseCase salesPostSyncSellerTrustUseCase;
 
     @Transactional
     public SalesPostSeller syncSeller(SellerRegisteredEvent seller) {
         return salesPostSyncSellerUseCase.syncSeller(seller);
+    }
+
+    // 신뢰도 변경 이벤트를 받아 판매자의 신뢰도 복제본을 동기화한다.
+    @Transactional
+    public void syncSellerTrust(SellerTrustScoreChangedEvent event) {
+        salesPostSyncSellerTrustUseCase.syncSellerTrust(event);
     }
 
     public void registerSalesPost(CreateSalesPostRequest request, List<MultipartFile> images) {
@@ -215,6 +223,12 @@ public class SalesPostFacade {
 
     public void resumeSalesPostBySeller(Long postId, Long sellerId) {
         salesPostHideUseCase.resumeBySeller(postId, sellerId);
+    }
+
+    // 회원 탈퇴 신청: 판매자의 판매 중인 판매글 ID
+    @Transactional(readOnly = true)
+    public List<Long> findOnSalePostIdsOfSeller(Long sellerId) {
+        return salesPostHideUseCase.findOnSalePostIdsOfSeller(sellerId);
     }
 
 }
