@@ -94,7 +94,8 @@ public class Product extends BaseIdAndTime {
             productOptionList.add(new ProductOption(
                     this,
                     option.getProductTypeId(),
-                    option.getProductOptionId()
+                    option.getProductOptionId(),
+                    ProductStatus.ACTIVE
             ));
         }
     }
@@ -107,8 +108,7 @@ public class Product extends BaseIdAndTime {
                             this,
                             image.getS3Key(),
                             image.getImageSeq(),
-                            ProductStatus.ACTIVE,
-                            false
+                            ProductStatus.ACTIVE
                     )
             );
         }
@@ -117,13 +117,12 @@ public class Product extends BaseIdAndTime {
     public Product delete() {
         this.status = ProductStatus.DELETED;
         this.productImageList.forEach(ProductImage::delete);
-        productOptionList.clear();
+        this.productOptionList.forEach(ProductOption::delete);
         return this;
     }
 
     public Product updateSyncStatus() {
         this.syncStatus = true;
-        productImageList.forEach(ProductImage::updateSyncStatus);
         return this;
     }
 

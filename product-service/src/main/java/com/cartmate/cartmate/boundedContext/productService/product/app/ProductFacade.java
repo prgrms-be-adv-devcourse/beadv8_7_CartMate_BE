@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
@@ -45,6 +46,7 @@ public class ProductFacade {
     private final ProductSupport productSupport;
     private final TransactionTemplate transactionTemplate;
     private final ProductStatusChangeUseCase productStatusChangeUseCase;
+    private final ProductImageOrphanCleanUseCase productImageOrphanCleanUseCase;
 
     public void registerProduct(CreateProductRequest request, List<MultipartFile> images) {
         productSupport.validateProductCount(request.getProductList());
@@ -170,5 +172,10 @@ public class ProductFacade {
 
     public void changeStatusByPost(Long postId, ProductStatus status) {
         productStatusChangeUseCase.changeStatusByPost(postId, status);
+    }
+
+    // 고아 사진 파일 정리. 고아 파일 수를 돌려준다(dryRun이면 지우지 않고 세기만)
+    public int cleanUpOrphanImages(Instant uploadedBefore, boolean dryRun) {
+        return productImageOrphanCleanUseCase.cleanUp(uploadedBefore, dryRun);
     }
 }

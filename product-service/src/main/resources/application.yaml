@@ -66,6 +66,9 @@ custom:
 cartmate:
   kafka:
     enabled: ${KAFKA_ENABLED:false}   # 켜면 outbox 이벤트(페이백 요청)를 Kafka로도 내보내고, 공동구매 · 주문 · 구매확정 · wallet 결과를 Kafka로 받는다
+  image-cleanup:   # 고아 사진 파일 정리(ProductImageOrphanCleanScheduler, 매일 새벽 5시)
+    dry-run: ${IMAGE_CLEANUP_DRY_RUN:true}   # 기본은 지울 대상만 로그로 남긴다. 결과를 확인한 뒤 false로 켠다
+    grace-period: P1D                         # 올린 지 이만큼 지난 파일만 대상(업로드 중인 정상 파일 보호)
   payment:
     # 주문이 결제를 부르는 방식. local: 같은 앱 결제 Facade (차감·주문 반영 한 트랜잭션)
     #                          http : 결제 서버 내부 API (서버 분리 후와 같음, 차감·반영이 다른 트랜잭션)

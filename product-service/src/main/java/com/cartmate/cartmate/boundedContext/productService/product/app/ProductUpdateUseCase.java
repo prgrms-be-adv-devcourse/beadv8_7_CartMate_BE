@@ -101,7 +101,7 @@ public class ProductUpdateUseCase {
             if (imageReq.getId() == null) { // id 없는 경우 : 새 이미지
                 String key = uploadedKeyMap.get(productIndex + ":" + imageReq.getImageSeq());
                 product.addImage(new ProductImage(product.getSellerId(), product, key,
-                        imageReq.getImageSeq(), ProductStatus.ACTIVE, false));
+                        imageReq.getImageSeq(), ProductStatus.ACTIVE));
             } else {
                 ProductImage existing = storedImageList.get(imageReq.getId());
                 if (existing == null) { // 저장되어 있던 이미지가 아닌 경우
@@ -113,7 +113,9 @@ public class ProductUpdateUseCase {
     }
 
     private void updateOptions(Product product, List<UpdateProductOption> reqOptionList) {
+        // 이미 삭제된 옵션은 수정 대상이 아니다(요청에 그 ID가 오면 PRODUCT_OPTION_NOT_FOUND)
         Map<Long, ProductOption> storedIdMap = product.getProductOptionList().stream()
+                .filter(ProductOption::isActive)
                 .collect(Collectors.toMap(ProductOption::getId, Function.identity()));
 
         Set<Long> keepOptionIds = reqOptionList.stream()
@@ -121,12 +123,15 @@ public class ProductUpdateUseCase {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // 요청에 없는 기존 옵션 삭제
-        product.getProductOptionList().removeIf(o -> !keepOptionIds.contains(o.getId()));
+        // 요청에 없는 기존 옵션은 삭제 상태로 바꾼다(행을 지우지 않아 옵션 ID가 남는다)
+        storedIdMap.values().stream()
+                .filter(o -> !keepOptionIds.contains(o.getId()))
+                .forEach(ProductOption::delete);
 
         for (UpdateProductOption option : reqOptionList) {
             if (option.getId() == null) {
-                ProductOption newOption = new ProductOption(product, option.getProductTypeId(), option.getProductOptionId());
+                ProductOption newOption = new ProductOption(product, option.getProductTypeId(), option.getProductOptionId(),
+                        ProductStatus.ACTIVE);
                 product.addOption(newOption);
             } else {
                 ProductOption existing = storedIdMap.get(option.getId());

@@ -8,6 +8,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.cartmate.cartmate.boundedContext.productService.post.domain.QSalesPost.salesPost;
@@ -176,6 +178,15 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
                         .collect(Collectors.toMap(
                                 row -> row.get(salesPost.status),
                                 row -> row.get(count)));
+    }
+
+    @Override
+    public Optional<SalesPost> findLatestById(Long id) {
+        return Optional.ofNullable(queryFactory
+                .selectFrom(salesPost)
+                .where(salesPost.id.eq(id))
+                .setLockMode(LockModeType.PESSIMISTIC_READ)
+                .fetchOne());
     }
 
 }

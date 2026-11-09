@@ -12,10 +12,12 @@ import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -61,5 +63,21 @@ public class S3ImageStorage implements ImageStorage {
     @Override
     public String toUrl(String key) {
         return publicUrl + "/" + key;
+    }
+
+    // S3는 키를 사전 순으로 돌려주고, startAfter 다음 키부터 읽을 수 있다(s3:ListBucket 권한 필요)
+    @Override
+    public List<StoredFile> list(String prefix, String startAfter, int limit) {
+        ListObjectsV2Request.Builder request = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(prefix)
+                .maxKeys(limit);
+        if (startAfter != null) {
+            request.startAfter(startAfter);
+        }
+
+        return s3Client.listObjectsV2(request.build()).contents().stream()
+                .map(object -> new StoredFile(object.key(), object.lastModified()))
+                .toList();
     }
 }

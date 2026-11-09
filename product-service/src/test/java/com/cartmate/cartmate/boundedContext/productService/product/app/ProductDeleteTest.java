@@ -4,12 +4,14 @@ import com.cartmate.cartmate.boundedContext.productService.config.ProductService
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductImage;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductOption;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductOption;
@@ -131,13 +133,15 @@ class ProductDeleteTest {
     void deleteProductAlsoDeletesCopy() {
         productFacade.deleteProductByUser(productId, SELLER_ID);
 
-        // 상품만 지워지고(사진 2장 삭제, 옵션 2개 제거), 복제본 삭제는 이벤트로 남아 있다. 충전기는 그대로
+        // 상품만 지워지고(사진 2장 · 옵션 2개 삭제 상태), 복제본 삭제는 이벤트로 남아 있다. 충전기는 그대로
         assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
         assertThat(productRepository.findById(otherProductId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
         assertThat(productImageRepository.findAll())
                 .extracting(ProductImage::getStatus)
                 .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
-        assertThat(productOptionRepository.count()).isEqualTo(1);
+        assertThat(productOptionRepository.findAll())
+                .extracting(ProductOption::getStatus)
+                .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
         assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
         assertThat(outboxCount(OutboxEventStatus.NEW)).isEqualTo(1);
 
@@ -148,7 +152,9 @@ class ProductDeleteTest {
         assertThat(salesPostProductImageRepository.findAll())
                 .extracting(SalesPostProductImage::getStatus)
                 .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
-        assertThat(salesPostProductOptionRepository.count()).isEqualTo(1);
+        assertThat(salesPostProductOptionRepository.findAll())
+                .extracting(SalesPostProductOption::getStatus)
+                .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
         assertThat(outboxCount(OutboxEventStatus.PUBLISHED)).isEqualTo(1);
     }
 

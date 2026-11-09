@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.productService.post.app;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductImage;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductOption;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostUpdateStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption;
@@ -16,6 +17,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRep
 import com.cartmate.cartmate.boundedContext.productService.product.app.TestImageFiles;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
@@ -173,7 +175,11 @@ class SalesPostDeleteFlowTest {
         assertThat(productImageRepository.findAll())
                 .extracting(ProductImage::getStatus)
                 .containsOnly(ProductStatus.DELETED);
-        assertThat(productOptionRepository.count()).isZero();
+        // 옵션은 논리 삭제라 행이 남고 상태만 DELETED
+        assertThat(productOptionRepository.findAll())
+                .hasSize(2)
+                .extracting(ProductOption::getStatus)
+                .containsOnly(ProductStatus.DELETED);
 
         assertThat(salesPostProductRepository.findAll())
                 .hasSize(2)
@@ -182,7 +188,10 @@ class SalesPostDeleteFlowTest {
         assertThat(salesPostProductImageRepository.findAll())
                 .extracting(SalesPostProductImage::getStatus)
                 .containsOnly(ProductStatus.DELETED);
-        assertThat(salesPostProductOptionRepository.count()).isZero();
+        assertThat(salesPostProductOptionRepository.findAll())
+                .hasSize(2)
+                .extracting(SalesPostProductOption::getStatus)
+                .containsOnly(ProductStatus.DELETED);
 
         assertThat(outboxCount(SALES_POST_DELETED, OutboxEventStatus.PUBLISHED)).isEqualTo(1);
         assertThat(outboxCount(PRODUCTS_DELETED_BY_POST, OutboxEventStatus.PUBLISHED)).isEqualTo(1);
