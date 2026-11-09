@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public interface SalesPostQueryRepository {
     Page<SalesPost> selectSalesPostAll(SelectSalesPostRequest request, Pageable pageable);
@@ -30,4 +31,6 @@ public interface SalesPostQueryRepository {
 
     // 상태별 판매글 수를 한 번의 GROUP BY 조회로 (없는 상태는 결과에 없음)
     Map<SalesPostSaleStatus, Long> countByStatuses(Collection<SalesPostSaleStatus> statuses);
+
+    Optional<SalesPost> findLatestById(Long id);
 }
