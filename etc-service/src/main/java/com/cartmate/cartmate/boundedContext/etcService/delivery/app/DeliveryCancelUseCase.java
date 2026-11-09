@@ -1,26 +1,64 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.app;
 
+import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.BuyerCancelVerdict;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
+import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryOrderState;
+import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryRepository;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryOrderCancelRejectedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryOrderCanceledEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class DeliveryCancelUseCase {
 
     private final DeliveryRepository deliveryRepository;
+    private final DeliveryOrderStates deliveryOrderStates;
+    private final DomainEventPublisher eventPublisher;
 
-    // 주문 취소에 맞춰 그 주문의 배송을 모두 취소한다. 하나라도 판매자가 확인한 뒤라면 예외로 전체가 취소되지 않는다.
-    // 호출하는 쪽의 트랜잭션에 참여하므로 예외가 나면 주문 취소까지 함께 롤백된다.
-    public void cancelByOrder(Long orderId) {
+    public void cancelByBuyerRequest(Long orderId, int requestSeq, LocalDateTime requestedAt) {
+        DeliveryOrderStates.Locked locked = deliveryOrderStates.lockForCancel(orderId, PurchaseType.INDIVIDUAL_GROUP);
+        DeliveryOrderState state = locked.state();
+        if (state.isCanceled() && !locked.inserted()) {
+            eventPublisher.publish(new DeliveryOrderCanceledEvent(orderId, requestSeq));
+            return;
+        }
+
         List<Delivery> deliveries = deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(
                 orderId, PurchaseType.INDIVIDUAL_GROUP);
-        deliveries.forEach(Delivery::cancel);
+        Optional<BuyerCancelVerdict> rejection = rejectionOf(deliveries, requestedAt);
+        if (rejection.isPresent()) {
+            state.markCreated();
+            eventPublisher.publish(new DeliveryOrderCancelRejectedEvent(
+                    orderId, requestSeq, rejection.get().getRejectCode().resultCode()));
+            return;
+        }
+
+        LocalDateTime canceledAt = LocalDateTime.now();
+        deliveries.forEach(delivery -> delivery.cancelByBuyerRequest(requestedAt, canceledAt));
+        deliveryRepository.saveAll(deliveries);
+        state.markCanceled();
+        eventPublisher.publish(new DeliveryOrderCanceledEvent(orderId, requestSeq));
+    }
+
+    private Optional<BuyerCancelVerdict> rejectionOf(List<Delivery> deliveries, LocalDateTime requestedAt) {
+        List<BuyerCancelVerdict> verdicts = deliveries.stream()
+                .map(delivery -> delivery.buyerCancelVerdict(requestedAt))
+                .toList();
+        if (verdicts.contains(BuyerCancelVerdict.NOT_CANCELABLE)) {
+            return Optional.of(BuyerCancelVerdict.NOT_CANCELABLE);
+        }
+        if (verdicts.contains(BuyerCancelVerdict.SHIPPED_AFTER_REQUEST)) {
+            return Optional.of(BuyerCancelVerdict.SHIPPED_AFTER_REQUEST);
+        }
+        return Optional.empty();
     }
 
     // 판매글 판매 중지: 한 주문에서 한 판매자 배송만 취소 (발송됐으면 예외).

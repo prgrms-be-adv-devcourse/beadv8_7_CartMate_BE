@@ -5,6 +5,7 @@ import com.cartmate.cartmate.shared.coupon.dto.CouponOption;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderPaymentRequest;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.OrderPaymentRetryService;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.BuyerCancelResult;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.*;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.global.security.SecurityUser;
@@ -68,8 +69,10 @@ public class OrderController {
             @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long id
     ) {
-        orderFacade.cancelByBuyer(user.memberId(), id);
-        return new RsData<>("200-1", "주문을 취소했습니다.");
+        if (orderFacade.cancelByBuyer(user.memberId(), id) == BuyerCancelResult.CANCELED) {
+            return new RsData<>("200-1", "주문을 취소했습니다.");
+        }
+        return new RsData<>("200-1", "취소 요청을 접수했습니다. 판매자 배송 확인 후 취소됩니다.");
     }
 
     @PostMapping("/{orderId}/payment")

@@ -46,8 +46,8 @@ public class DeliveryFacade {
     }
 
     @Transactional
-    public void cancelByOrder(Long orderId) {
-        deliveryCancelUseCase.cancelByOrder(orderId);
+    public void cancelByBuyerRequest(Long orderId, int requestSeq, LocalDateTime requestedAt) {
+        deliveryCancelUseCase.cancelByBuyerRequest(orderId, requestSeq, requestedAt);
     }
 
     // 판매글 판매 중지: order 이벤트와 같은 트랜잭션에서 실행 (실패하면 주문 처리·환불까지 롤백)

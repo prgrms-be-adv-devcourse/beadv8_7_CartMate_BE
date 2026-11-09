@@ -180,6 +180,16 @@ CREATE TABLE `delivery_claim_item` (
 	`quantity`	BIGINT	NOT NULL
 );
 
+CREATE TABLE `delivery_order_state` (
+	`id`	BIGINT	NOT NULL,
+	`order_id`	BIGINT	NOT NULL,
+	`purchase_type`	VARCHAR(20)	NOT NULL,
+	`status`	VARCHAR(20)	NOT NULL,
+	`created_at`	DATETIME	NOT NULL,
+	`updated_at`	DATETIME	NOT NULL,
+	UNIQUE KEY `uk_delivery_order_state_order` (`order_id`, `purchase_type`)
+);
+
 CREATE TABLE `PRODUCT_PRODUCT` (
 	`id`	BIGINT	NOT NULL,
 	`seller_id`	BIGINT	NOT NULL,

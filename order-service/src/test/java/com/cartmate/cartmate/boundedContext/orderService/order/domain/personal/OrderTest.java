@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -184,22 +185,133 @@ class OrderTest {
         assertThat(order.getPaidAt()).isEqualTo(NOW);
     }
 
-    @ParameterizedTest(name = "{0} 상태의 주문")
-    @EnumSource(value = OrderStatus.class, names = {"PAYMENT_PENDING", "PAID"})
-    @DisplayName("구매자는 결제 대기 · 결제 완료된 주문을 취소할 수 있다")
-    void cancelByBuyer(OrderStatus status) {
+    @Test
+    @DisplayName("구매자가 결제 대기 주문을 취소하면 바로 취소된다")
+    void cancelPendingByBuyer() {
         Order order = personalOrder();
-        if (status == OrderStatus.PAID) {
-            order.markPaid(1L, NOW);
-        }
         LocalDateTime canceledAt = NOW.plusMinutes(1);
 
-        boolean canceled = order.cancelByBuyer(BUYER, canceledAt);
+        BuyerCancelResult result = order.cancelByBuyer(BUYER, canceledAt);
 
-        assertThat(canceled).isTrue();
+        assertThat(result).isEqualTo(BuyerCancelResult.CANCELED);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
         assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.BUYER_CANCELED);
         assertThat(order.getCanceledAt()).isEqualTo(canceledAt);
+    }
+
+    @Test
+    @DisplayName("구매자가 결제 완료 주문을 취소하면 취소 처리 중이 되고 요청 번호와 요청 시각이 남는다")
+    void requestCancelOfPaidOrder() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        LocalDateTime requestedAt = NOW.plusMinutes(1);
+
+        BuyerCancelResult result = order.cancelByBuyer(BUYER, requestedAt);
+
+        assertThat(result).isEqualTo(BuyerCancelResult.REQUESTED);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCEL_REQUESTED);
+        assertThat(order.getCancelRequestSeq()).isEqualTo(1);
+        assertThat(order.getCancelRequestedAt()).isEqualTo(requestedAt);
+        assertThat(order.getCancelLastSentAt()).isEqualTo(requestedAt);
+        assertThat(order.isPaid()).isTrue();
+    }
+
+    @Test
+    @DisplayName("취소 처리 중에 다시 요청하면 번호와 처음 요청 시각은 그대로 두고 발송 시각만 갱신한다")
+    void resendWhileCancelRequested() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
+
+        BuyerCancelResult result = order.cancelByBuyer(BUYER, NOW.plusMinutes(5));
+
+        assertThat(result).isEqualTo(BuyerCancelResult.RESENT);
+        assertThat(order.getCancelRequestSeq()).isEqualTo(1);
+        assertThat(order.getCancelRequestedAt()).isEqualTo(NOW.plusMinutes(1));
+        assertThat(order.getCancelLastSentAt()).isEqualTo(NOW.plusMinutes(5));
+    }
+
+    @Test
+    @DisplayName("재발행은 마지막 발송 뒤 정한 시간이 지난 취소 처리 중 주문만 한다")
+    void resendCancelRequestAfterInterval() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW);
+        Duration resendAfter = Duration.ofMinutes(10);
+
+        assertThat(order.resendCancelRequest(NOW.plusMinutes(9), resendAfter)).isFalse();
+        assertThat(order.resendCancelRequest(NOW.plusMinutes(10), resendAfter)).isTrue();
+        assertThat(order.getCancelLastSentAt()).isEqualTo(NOW.plusMinutes(10));
+        assertThat(order.resendCancelRequest(NOW.plusMinutes(15), resendAfter)).isFalse();
+    }
+
+    @Test
+    @DisplayName("배송 취소됨 결과는 현재 요청 번호와 같을 때만 취소를 확정한다")
+    void confirmCancelOnlyForCurrentRequest() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW);
+
+        assertThat(order.confirmCancel(2, NOW.plusMinutes(1))).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCEL_REQUESTED);
+
+        assertThat(order.confirmCancel(1, NOW.plusMinutes(1))).isTrue();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.BUYER_CANCELED);
+        assertThat(order.confirmCancel(1, NOW.plusMinutes(2))).isFalse();
+    }
+
+    @Test
+    @DisplayName("거절되면 결제 완료로 돌아가고, 다시 요청하면 번호가 오르며 이전 요청의 늦은 거절은 무시한다")
+    void rejectThenRequestAgain() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW);
+
+        assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isTrue();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.getCancelRejectCode()).isEqualTo("409-DELIVERY_NOT_CANCELABLE");
+
+        order.cancelByBuyer(BUYER, NOW.plusMinutes(3));
+        assertThat(order.getCancelRequestSeq()).isEqualTo(2);
+        assertThat(order.getCancelRejectCode()).isNull();
+
+        assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCEL_REQUESTED);
+    }
+
+    @Test
+    @DisplayName("취소 처리 중에 판매 중지로 모든 항목이 취소되면, 늦게 온 거절과 취소됨 결과는 모두 무시한다")
+    void ignoreResultAfterWholeSalesStop() {
+        Order order = Order.createPersonal("ORD-S", BUYER, List.of(
+                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1)), addressWithoutDetail(), NOW);
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
+
+        order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isFalse();
+        assertThat(order.confirmCancel(1, NOW.plusMinutes(3))).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.SALES_STOPPED);
+        assertThat(order.getCancelRejectCode()).isNull();
+    }
+
+    @Test
+    @DisplayName("취소 처리 중에 판매 중지로 일부 항목만 취소되고 거절이 오면, 일부 취소된 결제 완료 주문으로 돌아간다")
+    void rejectAfterPartialSalesStop() {
+        Order order = twoSellerOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
+
+        assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2))).isEqualTo(30_000L);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCEL_REQUESTED);
+
+        assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isTrue();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.isPartiallyCanceled()).isTrue();
+        assertThat(order.getCancelRejectCode()).isEqualTo("409-DELIVERY_NOT_CANCELABLE");
     }
 
     @Test
@@ -371,6 +483,8 @@ class OrderTest {
         byBuyer.applyCoupon(5L, 10_000L, true, null);
         byBuyer.markPaid(99L, NOW.plusMinutes(1));
         byBuyer.cancelByBuyer(BUYER, NOW.plusMinutes(2));
+        assertThat(byBuyer.couponRestorable()).isFalse();
+        byBuyer.confirmCancel(1, NOW.plusMinutes(3));
         assertThat(byBuyer.couponRestorable()).isTrue();
 
         Order oneSeller = Order.createPersonal("ORD-S", BUYER, List.of(

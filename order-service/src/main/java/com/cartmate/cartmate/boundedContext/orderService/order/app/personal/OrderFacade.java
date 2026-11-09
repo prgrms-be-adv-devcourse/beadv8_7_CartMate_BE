@@ -19,7 +19,9 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.BuyerCancelResult;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -93,8 +95,28 @@ public class OrderFacade {
     }
 
     @Transactional
-    public void cancelByBuyer(Long memberId, Long orderId) {
-        orderCancelUseCase.cancelByBuyer(memberId, orderId);
+    public BuyerCancelResult cancelByBuyer(Long memberId, Long orderId) {
+        return orderCancelUseCase.cancelByBuyer(memberId, orderId);
+    }
+
+    @Transactional
+    public void confirmCancelByDelivery(Long orderId, int requestSeq) {
+        orderCancelUseCase.confirmCancelByDelivery(orderId, requestSeq);
+    }
+
+    @Transactional
+    public void rejectCancelByDelivery(Long orderId, int requestSeq, String rejectCode) {
+        orderCancelUseCase.rejectCancelByDelivery(orderId, requestSeq, rejectCode);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findIdsToResendCancelRequest(LocalDateTime lastSentBefore) {
+        return orderCancelUseCase.findIdsToResendCancelRequest(lastSentBefore);
+    }
+
+    @Transactional
+    public void resendCancelRequest(Long orderId, Duration resendAfter) {
+        orderCancelUseCase.resendCancelRequest(orderId, resendAfter);
     }
 
     @Transactional
@@ -119,7 +141,7 @@ public class OrderFacade {
 
     @Transactional(readOnly = true)
     public List<Long> findPaidIdsByProductIds(List<Long> productIds) {
-        return orderCancelUseCase.findIdsByStatusAndProductIds(OrderStatus.PAID, productIds);
+        return orderCancelUseCase.findPaidIdsByProductIds(productIds);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

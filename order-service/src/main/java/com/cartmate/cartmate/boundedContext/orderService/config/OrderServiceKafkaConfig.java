@@ -1,7 +1,10 @@
 package com.cartmate.cartmate.boundedContext.orderService.config;
 
 import com.cartmate.cartmate.global.kafka.InboundEventBinding;
+import com.cartmate.cartmate.global.outbox.OutboxTopics;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryOrderCancelRejectedEvent;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryOrderCanceledEvent;
 import com.cartmate.cartmate.shared.post.event.SalesPostHiddenEvent;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -23,5 +26,16 @@ public class OrderServiceKafkaConfig {
     @Bean
     public InboundEventBinding deliveryConfirmedBinding() {
         return new InboundEventBinding(DELIVERY_CONFIRMED_TOPIC, DeliveryConfirmedEvent.class);
+    }
+
+    @Bean
+    public InboundEventBinding deliveryOrderCanceledBinding() {
+        return new InboundEventBinding(OutboxTopics.of(DeliveryOrderCanceledEvent.class), DeliveryOrderCanceledEvent.class);
+    }
+
+    @Bean
+    public InboundEventBinding deliveryOrderCancelRejectedBinding() {
+        return new InboundEventBinding(
+                OutboxTopics.of(DeliveryOrderCancelRejectedEvent.class), DeliveryOrderCancelRejectedEvent.class);
     }
 }
