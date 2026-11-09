@@ -12,10 +12,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-@ConditionalOnProperty(name = "custom.matching.embedding-text", havingValue = "rule", matchIfMissing = true)
+@ConditionalOnProperty(name = "custom.matching.embedding-text", havingValue = "rule")
 class RuleBasedEmbeddingTextBuilder implements EmbeddingTextBuilder {
 
-    static final String VERSION = "rule-v1";
+    static final String VERSION = "rule-v2";
 
     private static final String WORD_START = "(?<![가-힣A-Za-z0-9])";
     private static final String WORD_END = "(?![가-힣A-Za-z0-9])";
@@ -40,8 +40,6 @@ class RuleBasedEmbeddingTextBuilder implements EmbeddingTextBuilder {
     private static final Map<Pattern, String> SYNONYMS = new LinkedHashMap<>();
 
     static {
-        synonym("풋살공", "축구공");
-        synonym("풋살볼", "축구공");
         synonym("풋살화", "축구화");
         synonym("터프화", "축구화");
         synonym("신가드", "정강이 보호대");

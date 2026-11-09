@@ -101,7 +101,7 @@ class ProductVectorIndexingUseCaseTest {
         assertThat(count).isEqualTo(2);
         assertThat(saved).extracting(ProductVector::productId, ProductVector::categoryId)
                 .containsExactly(tuple(1L, 10L), tuple(3L, 12L));
-        assertThat(embeddedTexts).containsExactly("축구화", "축구공");
+        assertThat(embeddedTexts).containsExactly("축구화", "풋살공");
     }
 
     @Test
@@ -148,7 +148,7 @@ class ProductVectorIndexingUseCaseTest {
         useCase.index(List.of(new ProductToIndex(3L, 12L, "스타 축구공 5호"), new ProductToIndex(4L, 12L, "몰텐 축구공"),
                 new ProductToIndex(5L, 12L, "풋살공")));
 
-        assertThat(embeddedTexts).containsExactly("축구화", "정강이 보호대", "축구공", "축구공", "축구공");
+        assertThat(embeddedTexts).containsExactly("축구화", "정강이 보호대", "축구공", "축구공", "풋살공");
         assertThat(saved).extracting(ProductVector::textVersion).containsExactly(
                 LlmLabelEmbeddingTextBuilder.VERSION, LlmLabelEmbeddingTextBuilder.VERSION,
                 RuleBasedEmbeddingTextBuilder.VERSION, RuleBasedEmbeddingTextBuilder.VERSION,

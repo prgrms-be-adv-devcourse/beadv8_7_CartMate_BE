@@ -19,14 +19,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
-@ConditionalOnProperty(name = "custom.matching.vector.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "custom.matching.vector.enabled", havingValue = "true", matchIfMissing = true)
 class VectorProductSimilarityFinder implements ProductSimilarityFinder {
 
     private final ProductVectorIndex productVectorIndex;
     private final double threshold;
 
     VectorProductSimilarityFinder(ProductVectorIndex productVectorIndex,
-                                  @Value("${custom.matching.vector.threshold:0.82}") double threshold) {
+                                  @Value("${custom.matching.vector.threshold:0.90}") double threshold) {
         this.productVectorIndex = productVectorIndex;
         this.threshold = threshold;
     }
