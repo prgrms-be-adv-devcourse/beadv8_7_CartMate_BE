@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.paymentService.payout.in;
 
 import com.cartmate.cartmate.boundedContext.paymentService.payout.app.PayoutFacade;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -16,5 +17,10 @@ public class PayoutEventListener {
     @EventListener
     public void handle(SellerRegisteredEvent event) {
         payoutFacade.registerSeller(event);
+    }
+
+    @EventListener
+    public void handle(DeliveryConfirmedEvent event) {
+        payoutFacade.createPayouts(event);
     }
 }
