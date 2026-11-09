@@ -23,7 +23,9 @@ import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.util.backoff.FixedBackOff;
+import org.springframework.transaction.support.TransactionTemplate;
+import com.cartmate.cartmate.global.inbox.ProcessedEvents;
+import org.springframework.util.backoff.ExponentialBackOff;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -50,13 +52,21 @@ public class KafkaConfig {
     }
 
     @Bean
-    public CommonErrorHandler kafkaErrorHandler(KafkaTemplate<String, String> kafkaTemplate) {
+    public CommonErrorHandler kafkaErrorHandler(KafkaTemplate<String, String> kafkaTemplate,
+            @Value("${cartmate.kafka.retry-timeout:1m}") Duration retryTimeout) {
+        return errorHandler(kafkaTemplate, retryTimeout);
+    }
+
+    static DefaultErrorHandler errorHandler(KafkaTemplate<String, String> kafkaTemplate, Duration retryTimeout) {
         DeadLetterPublishingRecoverer toDeadLetter = new DeadLetterPublishingRecoverer(kafkaTemplate);
+        ExponentialBackOff backOff = new ExponentialBackOff(1_000L, 2.0);
+        backOff.setMaxInterval(30_000L);
+        backOff.setMaxElapsedTime(retryTimeout.toMillis());
         DefaultErrorHandler handler = new DefaultErrorHandler((record, exception) -> {
             log.error("Kafka 메시지 처리 실패 → DLT: topic={}, partition={}, offset={}, key={}",
                     record.topic(), record.partition(), record.offset(), record.key(), exception);
             toDeadLetter.accept(record, exception);
-        }, new FixedBackOff(1_000L, 2L));
+        }, backOff);
         handler.addNotRetryableExceptions(JacksonException.class);
         return handler;
     }
@@ -67,16 +77,27 @@ public class KafkaConfig {
     }
 
     @Bean
+    public InboundEvents inboundEvents(EventEnvelopeReader envelopeReader,
+                                       ProcessedEvents processedEvents,
+                                       PlatformTransactionManager transactionManager) {
+        return new InboundEvents(envelopeReader, processedEvents, new TransactionTemplate(transactionManager));
+    }
+
+    @Bean
     @SuppressWarnings("unchecked")
     public KafkaInboundEventBridge kafkaInboundEventBridge(ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory,
                                                            InboundEventTypes inboundEventTypes,
                                                            EventEnvelopeReader envelopeReader,
-                                                           InboxWriter inboxWriter) {
+                                                           InboxWriter inboxWriter,
+                                                           ObjectProvider<InboundEventBinding> bindings,
+                                                           KafkaTemplate<String, String> kafkaTemplate,
+                                                           @Value("${cartmate.kafka.retry-timeout:1m}") Duration retryTimeout) {
         return new KafkaInboundEventBridge(
                 (ConcurrentKafkaListenerContainerFactory<String, String>) kafkaListenerContainerFactory,
                 inboundEventTypes,
                 envelopeReader,
-                inboxWriter);
+                inboxWriter, bindings.orderedStream().toList(),
+                timeout -> errorHandler(kafkaTemplate, timeout), retryTimeout);
     }
 
     @Bean

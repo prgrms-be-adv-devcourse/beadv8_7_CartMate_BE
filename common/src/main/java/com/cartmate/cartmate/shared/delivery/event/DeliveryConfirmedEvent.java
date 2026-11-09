@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.shared.delivery.event;
 
+import com.cartmate.cartmate.global.event.DomainEvent;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 
 import java.time.LocalDateTime;
@@ -14,7 +15,18 @@ public record DeliveryConfirmedEvent(
         LocalDateTime orderedAt, // 주문 시각. 배송이 만들어진 시각을 쓴다.
         LocalDateTime confirmedAt,
         List<Item> items
-) {
+) implements DomainEvent {
+
+    @Override
+    public String aggregateType() {
+        return "Delivery";
+    }
+
+    @Override
+    public String aggregateId() {
+        return String.valueOf(deliveryId);
+    }
+
     public record Item(
             Long orderItemId,
             String productName, // 주문 시점의 상품명 스냅샷

@@ -117,7 +117,7 @@ public class PaybackOrder {
         }
         return switch (status) {
             case PAYMENT_PENDING -> 1;
-            case PAID -> 2;
+            case PAID, CANCEL_REQUESTED -> 2;
             case CANCELED -> 3;
         };
     }

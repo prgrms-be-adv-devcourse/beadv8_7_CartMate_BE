@@ -13,7 +13,9 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import org.springframework.beans.factory.annotation.Value;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
@@ -30,11 +32,21 @@ public class OrderScheduler {
     private final OrderFacade orderFacade;
     private final Clock clock;
 
+    @Value("${custom.order.cancel-resend-after:PT10M}")
+    private Duration cancelResendAfter;
+
     @Scheduled(fixedDelay = INTERVAL_MILLIS, initialDelay = INTERVAL_MILLIS)
     @SchedulerLock(name = "order.cancelExpired", lockAtMostFor = LOCK_AT_MOST, lockAtLeastFor = LOCK_AT_LEAST)
     public void cancelExpired() {
         List<Long> ids = orderFacade.findIdsToCancelByDeadline(LocalDateTime.now(clock));
         processEach(ids, orderFacade::cancelByDeadline, "결제 기한 만료 취소");
+    }
+
+    @Scheduled(fixedDelay = INTERVAL_MILLIS, initialDelay = INTERVAL_MILLIS)
+    @SchedulerLock(name = "order.resendCancelRequest", lockAtMostFor = LOCK_AT_MOST, lockAtLeastFor = LOCK_AT_LEAST)
+    public void resendCancelRequests() {
+        List<Long> ids = orderFacade.findIdsToResendCancelRequest(LocalDateTime.now(clock).minus(cancelResendAfter));
+        processEach(ids, id -> orderFacade.resendCancelRequest(id, cancelResendAfter), "취소 요청 재발행");
     }
 
     private void processEach(List<Long> ids, Consumer<Long> action, String taskName) {

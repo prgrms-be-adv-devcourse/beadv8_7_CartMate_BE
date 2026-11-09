@@ -9,11 +9,14 @@ import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductListRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
+import com.cartmate.cartmate.global.inbox.ProcessedEvents;
+import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
+import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductsDeletedByPostEvent;
 import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -25,14 +28,13 @@ import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost
 import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminSalesPostCountResponse;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminSalesPostDetailResponse;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminSalesPostSummaryResponse;
-import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
-import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class SalesPostFacade {
+    private final ProcessedEvents processedEvents;
     private final SalesPostSyncSellerUseCase salesPostSyncSellerUseCase;
     private final SalesPostSyncProductUseCase salesPostSyncProductUseCase;
     private final SalesPostCreateUseCase salesPostCreateUseCase;
@@ -46,7 +48,6 @@ public class SalesPostFacade {
     private final SalesPostSupport salesPostSupport;
     private final AdminSalesPostUseCase adminSalesPostUseCase;
     private final SalesPostHideUseCase salesPostHideUseCase;
-    private final SalesPostProductRepository salesPostProductRepository;
     private final SalesPostSyncSellerTrustUseCase salesPostSyncSellerTrustUseCase;
 
     @Transactional
@@ -83,25 +84,21 @@ public class SalesPostFacade {
         }
     }
 
+    // 판매글을 DELETING으로 바꾸고 SalesPostDeletedEvent를 outbox에 남긴다.
+    // 상품 삭제 → 복제본 삭제 → 삭제 완료는 이벤트로 이어지고, 실패하면 outbox(Kafka를 켜면 컨슈머)가 재시도한다
+    @Transactional
     public void deleteSalesPostByUser(Long postId, Long sellerId) {
-        SalesPost post = transactionTemplate.execute(status ->
-                salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId));
+        salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId);
+    }
 
-        // 상품 삭제 API가 판매글 쪽 상품 복제본까지 지울 수 있어서, 호출 전에 상품 ID를 모아 둔다
-        List<Long> productIds = salesPostProductRepository.findBySalesPostId(postId).stream()
-                .map(SalesPostProduct::getId)
-                .toList();
+    // 삭제 대사: 오래 DELETING에 멈춘 판매글
+    public List<Long> findStuckDeletingPostIds(int limit) {
+        return salesPostDeleteUseCase.findStuckDeletingIds(limit);
+    }
 
-        try {
-            salesPostApiClient.deleteProducts(post.getId());
-            transactionTemplate.executeWithoutResult(status -> {
-                SalesPost deleted = salesPostDeleteUseCase.completeDelete(post.getId());
-                // 삭제도 진행 중 거래 입장에서는 숨김과 같다
-                salesPostHideUseCase.publishHidden(deleted, productIds, SalesPostHideType.SELLER_DELETED, null, null);
-            });
-        } catch (ServiceException e) {
-            throw e;
-        }
+    // 삭제 대사: 삭제 이벤트 재발행. 그 사이 삭제가 끝났으면 false
+    public boolean republishStuckDelete(Long postId) {
+        return salesPostDeleteUseCase.republishDelete(postId);
     }
 
     @Transactional
@@ -127,14 +124,28 @@ public class SalesPostFacade {
         );
     }
 
+    // product가 상품 삭제를 마치면(ProductsDeletedByPostEvent) 복제본을 지우고 판매글 삭제를 완료한다.
+    // 같은 이벤트는 한 번만 처리하고, 판매글이 DELETING이 아니면(이미 완료 등) 아무것도 하지 않는다
     @Transactional
-    public void deleteProductByPost(DeleteProductListRequest request) {
-        salesPostSyncProductUseCase.deleteProductByPost(request);
+    public void completeDeleteByEvent(String eventId, ProductsDeletedByPostEvent event) {
+        if (!processedEvents.markFirst(ProductServiceConsumers.PRODUCTS_DELETED_BY_POST, eventId)) {
+            return;
+        }
+
+        salesPostSyncProductUseCase.deleteProductByPost(event.productIds());
+        salesPostDeleteUseCase.completeDelete(event.postId())
+                // 삭제도 진행 중 거래 입장에서는 숨김과 같다
+                .ifPresent(post -> salesPostHideUseCase.publishHidden(
+                        post, event.productIds(), SalesPostHideType.SELLER_DELETED, null, null));
     }
 
+    // 판매자가 상품 하나를 삭제하면(ProductDeletedEvent) 그 복제본을 지운다. 같은 이벤트는 한 번만 처리한다
     @Transactional
-    public void deleteProductByUser(DeleteProductRequest request) {
-        salesPostSyncProductUseCase.deleteProductByUser(request);
+    public void deleteProductByEvent(String eventId, ProductDeletedEvent event) {
+        if (!processedEvents.markFirst(ProductServiceConsumers.PRODUCT_DELETED, eventId)) {
+            return;
+        }
+        salesPostSyncProductUseCase.deleteProductByUser(event.productId());
     }
 
     public void updateSalesPostByUser(UpdateSalesPostRequest request, List<MultipartFile> images) {

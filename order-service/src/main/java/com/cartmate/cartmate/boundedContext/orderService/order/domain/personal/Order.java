@@ -89,6 +89,18 @@ public class Order {
 
     private LocalDateTime canceledAt;
 
+    @Column(name = "cancel_request_seq", nullable = false, columnDefinition = "int not null default 0")
+    private int cancelRequestSeq;
+
+    @Column(name = "cancel_requested_at")
+    private LocalDateTime cancelRequestedAt;
+
+    @Column(name = "cancel_last_sent_at")
+    private LocalDateTime cancelLastSentAt;
+
+    @Column(name = "cancel_reject_code", length = 100)
+    private String cancelRejectCode;
+
     @Column(name = "member_coupon_id")
     private Long memberCouponId;
 
@@ -180,15 +192,57 @@ public class Order {
         return true;
     }
 
-    public boolean cancelByBuyer(Long requesterId, LocalDateTime now) {
+    public BuyerCancelResult cancelByBuyer(Long requesterId, LocalDateTime now) {
         if (!isBuyer(requesterId)) {
             throw new ServiceException(OrderErrorCode.ORDER_BUYER_ONLY);
         }
         if (status == OrderStatus.CANCELED) {
             throw new ServiceException(OrderErrorCode.ORDER_ALREADY_CANCELED);
         }
+        if (status == OrderStatus.CANCEL_REQUESTED) {
+            this.cancelLastSentAt = now;
+            return BuyerCancelResult.RESENT;
+        }
+        if (status == OrderStatus.PAID) {
+            this.status = OrderStatus.CANCEL_REQUESTED;
+            this.cancelRequestSeq++;
+            this.cancelRequestedAt = now;
+            this.cancelLastSentAt = now;
+            this.cancelRejectCode = null;
+            return BuyerCancelResult.REQUESTED;
+        }
+        cancel(OrderCancelReason.BUYER_CANCELED, now);
+        return BuyerCancelResult.CANCELED;
+    }
+
+    public boolean resendCancelRequest(LocalDateTime now, Duration resendAfter) {
+        if (status != OrderStatus.CANCEL_REQUESTED || cancelLastSentAt == null
+                || cancelLastSentAt.plus(resendAfter).isAfter(now)) {
+            return false;
+        }
+        this.cancelLastSentAt = now;
+        return true;
+    }
+
+    public boolean confirmCancel(int requestSeq, LocalDateTime now) {
+        if (status != OrderStatus.CANCEL_REQUESTED || requestSeq != cancelRequestSeq) {
+            return false;
+        }
         cancel(OrderCancelReason.BUYER_CANCELED, now);
         return true;
+    }
+
+    public boolean rejectCancel(int requestSeq, String rejectCode) {
+        if (status != OrderStatus.CANCEL_REQUESTED || requestSeq != cancelRequestSeq) {
+            return false;
+        }
+        this.status = OrderStatus.PAID;
+        this.cancelRejectCode = rejectCode;
+        return true;
+    }
+
+    public boolean isPaid() {
+        return status == OrderStatus.PAID || status == OrderStatus.CANCEL_REQUESTED;
     }
 
     public boolean cancelByDeadline(LocalDateTime now) {
@@ -277,7 +331,7 @@ public class Order {
     }
 
     public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
-        if (status != OrderStatus.PAID) {
+        if (!isPaid()) {
             return 0;
         }
         long itemsAmount = 0;

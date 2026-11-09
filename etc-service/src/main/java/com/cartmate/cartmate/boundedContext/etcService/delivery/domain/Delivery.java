@@ -72,6 +72,9 @@ public class Delivery {
     @Column(name = "request_hash", nullable = false, length = 64, updatable = false)
     private String requestHash;     //요청 내용 SHA-256 해시 (멱등키 재요청 비교용)
 
+    @Column(name = "prepared_at")
+    private LocalDateTime preparedAt;
+
     @Column(name = "shipped_at")
     private LocalDateTime shippedAt;    //배송출발시간
 
@@ -126,18 +129,29 @@ public class Delivery {
         this.requestHash = requestHash;
     }
 
-    // 배송요청(판매자 확인 전)을 배송취소로 바꾸고 취소 시각을 기록한다.
-    // 이미 취소됐으면 아무것도 하지 않아 재요청해도 안전하다. 판매자가 확인한 뒤(배송준비 이상)에는 취소할 수 없다.
-    public void cancel() {
+    public BuyerCancelVerdict buyerCancelVerdict(LocalDateTime requestedAt) {
+        if (this.status == DeliveryStatus.CANCELED || this.status == DeliveryStatus.REQUESTED) {
+            return BuyerCancelVerdict.ALLOWED;
+        }
+        if (requestedAt == null || this.preparedAt == null || !this.preparedAt.isAfter(requestedAt)) {
+            return BuyerCancelVerdict.NOT_CANCELABLE;
+        }
+        if (this.status == DeliveryStatus.PREPARING) {
+            return BuyerCancelVerdict.ALLOWED;
+        }
+        return BuyerCancelVerdict.SHIPPED_AFTER_REQUEST;
+    }
+
+    public void cancelByBuyerRequest(LocalDateTime requestedAt, LocalDateTime canceledAt) {
         if (this.status == DeliveryStatus.CANCELED) {
             return;
         }
-        if (this.status != DeliveryStatus.REQUESTED) {
+        if (buyerCancelVerdict(requestedAt) != BuyerCancelVerdict.ALLOWED) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_NOT_CANCELABLE);
         }
 
         this.status = DeliveryStatus.CANCELED;
-        this.canceledAt = LocalDateTime.now();
+        this.canceledAt = canceledAt;
     }
 
     // 판매글 판매 중지로 취소: 판매자가 판매를 멈춘 것이라 배송준비중(판매자 확인 후)까지 취소한다.
@@ -181,6 +195,7 @@ public class Delivery {
         this.carrier = newCarrier;
         this.trackingNumber = newTrackingNumber;
         this.status = DeliveryStatus.PREPARING;
+        this.preparedAt = LocalDateTime.now();
     }
 
     // 배송준비를 배송중으로 바꾸고 출발 시각을 기록한다. 이미 배송중이면 아무것도 하지 않아 재요청해도 안전하다.

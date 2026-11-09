@@ -1,14 +1,13 @@
 package com.cartmate.cartmate.boundedContext.productService.post.in;
 
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostFacade;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductListRequest;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.DeleteProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductRequest;
+import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.boundedContext.productService.event.ProductCreatedEvent;
-import com.cartmate.cartmate.boundedContext.productService.event.ProductDeletedEvent;
-import com.cartmate.cartmate.boundedContext.productService.event.ProductListDeletedEvent;
 import com.cartmate.cartmate.boundedContext.productService.event.ProductUpdatedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
+import com.cartmate.cartmate.shared.product.event.ProductsDeletedByPostEvent;
 import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -44,17 +43,18 @@ public class SalesPostEventListener {
         salesPostFacade.syncProduct(objectMapper.convertValue(event.syncProductRequest(), SyncProductRequest.class));
     }
 
-    @TransactionalEventListener(phase = AFTER_COMMIT)
-    @Transactional(propagation = REQUIRES_NEW)
-    public void handle(ProductDeletedEvent event) {
-        // product 쪽 dto를 post 쪽 dto로 바꿔 넘긴다(필드 하나라 생성자로). Kafka로 바꾸면 JSON 역직렬화가 대신하므로 지운다
-        salesPostFacade.deleteProductByUser(new DeleteProductRequest(event.getRequest().getProductId()));
-    }
-
-    @TransactionalEventListener(phase = AFTER_COMMIT)
-    @Transactional(propagation = REQUIRES_NEW)
-    public void handle(ProductListDeletedEvent event) {
-        salesPostFacade.deleteProductByPost(objectMapper.convertValue(event.getRequest(), DeleteProductListRequest.class));
+    // product가 보낸 삭제 이벤트. outbox 릴레이로 받는다
+    // Kafka가 켜져 있으면 Kafka로 온 것만, 꺼져 있으면 같은 앱 안에서 온 것만 받는다(같은 이벤트를 두 번 처리하지 않게)
+    @TransactionalEventListener(fallbackExecution = true, condition = "@relayedEventRouting.accepts(#message)")
+    public void handle(OutboxMessageRelayed message) {
+        // 판매글 삭제로 상품 삭제가 끝났을 때
+        if (message.event() instanceof ProductsDeletedByPostEvent event) {
+            salesPostFacade.completeDeleteByEvent(message.envelope().eventId(), event);
+        }
+        // 판매자가 상품 하나를 삭제했을 때
+        if (message.event() instanceof ProductDeletedEvent event) {
+            salesPostFacade.deleteProductByEvent(message.envelope().eventId(), event);
+        }
     }
 
     // 신뢰도 점수가 커밋된 뒤 판매글에 보여줄 판매자 신뢰도를 복제한다. 복제가 실패해도 점수 계산은 롤백되지 않는다.

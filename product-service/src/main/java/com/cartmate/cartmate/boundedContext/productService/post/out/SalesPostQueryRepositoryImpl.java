@@ -103,10 +103,28 @@ public class SalesPostQueryRepositoryImpl implements SalesPostQueryRepository {
         long updated = queryFactory
                 .update(salesPost)
                 .set(salesPost.status, SalesPostSaleStatus.DELETING)
+                // 일괄 update는 @LastModifiedDate가 채워지지 않는다. 삭제 대사 스케줄러가 삭제 시작 시각으로 쓴다
+                .set(salesPost.modifyDate, LocalDateTime.now())
                 .where(
                         salesPost.id.eq(salesPostId),
                         salesPost.updateStatus.in(editable),
                         salesPost.status.notIn(SalesPostSaleStatus.PENDING, SalesPostSaleStatus.DELETING, SalesPostSaleStatus.DELETED)
+                )
+                .execute();
+
+        em.flush();
+        em.clear();
+        return updated;
+    }
+
+    @Override
+    public Long refreshDeleting(Long salesPostId, LocalDateTime now) {
+        long updated = queryFactory
+                .update(salesPost)
+                .set(salesPost.modifyDate, now)
+                .where(
+                        salesPost.id.eq(salesPostId),
+                        salesPost.status.eq(SalesPostSaleStatus.DELETING)
                 )
                 .execute();
 

@@ -55,10 +55,15 @@ public enum DeliveryErrorCode implements ErrorCode {
     DELIVERY_CLAIM_INVALID_STATUS("DELIVERY_CLAIM_INVALID_STATUS", "현재 교환·환불 상태에서는 처리할 수 없습니다.", HttpStatus.CONFLICT),
     DELIVERY_ALREADY_PREPARED("DELIVERY_ALREADY_PREPARED", "이미 다른 송장 정보로 배송 준비 처리되었습니다.", HttpStatus.CONFLICT),
     DELIVERY_NOT_CANCELABLE("DELIVERY_NOT_CANCELABLE", "판매자가 이미 배송을 확인해 취소할 수 없습니다. 환불은 교환·환불 요청으로 진행해주세요.", HttpStatus.CONFLICT),
+    DELIVERY_CANCEL_DELAYED("DELIVERY_CANCEL_DELAYED", "취소 요청이 처리되기 전에 발송되어 취소하지 못했습니다. 불편을 드려 죄송합니다. 환불은 교환·환불 요청으로 진행해주세요.", HttpStatus.CONFLICT),
 
     // 클레임 접수
     DELIVERY_CLAIM_ALREADY_EXISTS("DELIVERY_CLAIM_ALREADY_EXISTS", "이미 처리 중인 교환·환불 요청이 있습니다.", HttpStatus.CONFLICT),
     DELIVERY_CLAIM_IN_PROGRESS("DELIVERY_CLAIM_IN_PROGRESS", "처리 중인 교환·환불 요청이 있어 구매확정할 수 없습니다.", HttpStatus.CONFLICT),
+    DELIVERY_CLAIM_REFUND_NOT_ALLOWED("DELIVERY_CLAIM_REFUND_NOT_ALLOWED", "공동물품 구매는 환불을 접수할 수 없습니다.", HttpStatus.CONFLICT),
+    DELIVERY_CLAIM_REFUND_PENDING("DELIVERY_CLAIM_REFUND_PENDING", "환불이 진행 중이라 처리 완료할 수 없습니다.", HttpStatus.CONFLICT),
+    DELIVERY_CLAIM_REFUND_FAILED("DELIVERY_CLAIM_REFUND_FAILED", "환불에 실패해 처리 완료할 수 없습니다.", HttpStatus.CONFLICT),
+    DELIVERY_CLAIM_REFUND_NOT_REQUIRED("DELIVERY_CLAIM_REFUND_NOT_REQUIRED", "환불이 필요 없는 교환·환불 요청입니다.", HttpStatus.CONFLICT),
 
     // 기존 요청과의 충돌
     DELIVERY_IDEMPOTENCY_CONFLICT("DELIVERY_IDEMPOTENCY_CONFLICT", "동일한 멱등키에 다른 배송 요청이 전달되었습니다.", HttpStatus.CONFLICT);

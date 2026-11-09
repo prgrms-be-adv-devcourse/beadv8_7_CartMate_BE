@@ -166,6 +166,7 @@ CREATE TABLE `delivery_claim` (
 	`reason`	VARCHAR(255)	NOT NULL,
 	`detail`	VARCHAR(1000)	NULL,
 	`status`	VARCHAR(255)	NOT NULL,
+	`refund_status`	VARCHAR(20)	NOT NULL	DEFAULT 'NONE',
 	`processed_at`	DATETIME	NULL,
 	`completed_at`	DATETIME	NULL,
 	`created_at`	DATETIME	NOT NULL,
@@ -177,6 +178,16 @@ CREATE TABLE `delivery_claim_item` (
 	`claim_id`	BIGINT	NOT NULL,
 	`delivery_item_id`	BIGINT	NOT NULL,
 	`quantity`	BIGINT	NOT NULL
+);
+
+CREATE TABLE `delivery_order_state` (
+	`id`	BIGINT	NOT NULL,
+	`order_id`	BIGINT	NOT NULL,
+	`purchase_type`	VARCHAR(20)	NOT NULL,
+	`status`	VARCHAR(20)	NOT NULL,
+	`created_at`	DATETIME	NOT NULL,
+	`updated_at`	DATETIME	NOT NULL,
+	UNIQUE KEY `uk_delivery_order_state_order` (`order_id`, `purchase_type`)
 );
 
 CREATE TABLE `PRODUCT_PRODUCT` (

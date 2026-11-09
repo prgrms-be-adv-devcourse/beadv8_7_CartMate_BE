@@ -5,7 +5,7 @@ import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryCreateCommand;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
-import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderCancelRequestedEvent;
 import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
@@ -50,15 +50,9 @@ public class DeliveryOrderEventListener {
         )));
     }
 
-    // 결제된 주문을 구매자가 취소하면 배송도 취소한다. 판매자가 이미 확인한 배송이면 예외로 주문 취소까지 롤백된다.
-    // 결제 전 취소(paid=false)는 만들어진 배송이 없으므로 무시한다. 환불보다 먼저 실행되어야 한다.
-    @Order(Ordered.HIGHEST_PRECEDENCE)
     @EventListener
-    public void handle(OrderCanceledEvent event) {
-        if (!event.paid()) {
-            return;
-        }
-        deliveryFacade.cancelByOrder(event.orderId());
+    public void handle(OrderCancelRequestedEvent event) {
+        deliveryFacade.cancelByBuyerRequest(event.orderId(), event.requestSeq(), event.requestedAt());
     }
 
     // 판매글 판매 중지: 결제 완료 주문의 한 판매자 항목 취소 → 그 판매자 배송 취소 (주문 취소와 같은 시각).

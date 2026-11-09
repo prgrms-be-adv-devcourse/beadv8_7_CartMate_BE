@@ -37,6 +37,7 @@ public class DeliveryFacade {
     private final DeliveryClaimApproveUseCase deliveryClaimApproveUseCase;
     private final DeliveryClaimRejectUseCase deliveryClaimRejectUseCase;
     private final DeliveryClaimCompleteUseCase deliveryClaimCompleteUseCase;
+    private final DeliveryClaimRefundResultUseCase deliveryClaimRefundResultUseCase;
     private final DeliveryWithdrawalQueryUseCase deliveryWithdrawalQueryUseCase;
 
     @Transactional
@@ -45,8 +46,8 @@ public class DeliveryFacade {
     }
 
     @Transactional
-    public void cancelByOrder(Long orderId) {
-        deliveryCancelUseCase.cancelByOrder(orderId);
+    public void cancelByBuyerRequest(Long orderId, int requestSeq, LocalDateTime requestedAt) {
+        deliveryCancelUseCase.cancelByBuyerRequest(orderId, requestSeq, requestedAt);
     }
 
     // 판매글 판매 중지: order 이벤트와 같은 트랜잭션에서 실행 (실패하면 주문 처리·환불까지 롤백)
@@ -103,6 +104,16 @@ public class DeliveryFacade {
     @Transactional
     public SellerClaimResponse completeClaim(Long claimId, Long memberId) {
         return deliveryClaimCompleteUseCase.complete(claimId, memberId);
+    }
+
+    @Transactional
+    public void completeClaimRefund(Long claimId) {
+        deliveryClaimRefundResultUseCase.complete(claimId);
+    }
+
+    @Transactional
+    public void failClaimRefund(Long claimId) {
+        deliveryClaimRefundResultUseCase.fail(claimId);
     }
 
     @Transactional(readOnly = true)
