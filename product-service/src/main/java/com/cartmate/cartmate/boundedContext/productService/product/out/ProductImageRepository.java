@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public interface ProductImageRepository extends JpaRepository<ProductImage, Long> {
+public interface ProductImageRepository extends JpaRepository<ProductImage, Long>, ProductImageQueryRepository {
     List<ProductImage> findByProductIdIn(List<Long> productIds);
 
     List<ProductImage> findByProduct(Product product);
