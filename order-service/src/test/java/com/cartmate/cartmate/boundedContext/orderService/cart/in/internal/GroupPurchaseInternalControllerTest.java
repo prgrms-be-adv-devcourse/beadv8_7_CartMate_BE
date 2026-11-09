@@ -97,7 +97,7 @@ class GroupPurchaseInternalControllerTest {
     }
 
     @Test
-    @DisplayName("모집 중인 공동구매 수는 참가한 공동물품 공동구매 중 모집 중·보류·마감(주문 생성 전)과 개설한 개인물품 공동구매 중 모집 상태인 것을 더한 값이다")
+    @DisplayName("모집 중인 공동구매 수는 참가한 공동물품 공동구매 중 모집 중·보류·마감(주문 생성 전)과 개설한 개인물품 공동구매 중 모집 상태이면서 판매 기한 전인 것을 더한 값이다")
     void activeCount() throws Exception {
         sharedGroupPurchaseRepository.save(sharedPurchase(CREATOR, MEMBER, "shared000001", PAST));
         sharedGroupPurchaseRepository.save(frozen("shared000002"));
@@ -115,6 +115,7 @@ class GroupPurchaseInternalControllerTest {
         closedIndividual.close(MEMBER, FUTURE);
         individualGroupPurchaseRepository.save(closedIndividual);
         individualGroupPurchaseRepository.save(memberPurchase(OTHER_CREATOR, "indiv0000003", List.of(1L), FUTURE));
+        individualGroupPurchaseRepository.save(memberPurchase(MEMBER, "indiv0000004", List.of(1L), PAST));
 
         call("/internal/group-purchases/active-count", MEMBER)
                 .andExpect(jsonPath("$.data", equalTo(4)));

@@ -101,6 +101,7 @@ class IndividualGroupPurchaseQueryUseCase {
     }
 
     long countOpenOfCreator(Long creatorMemberId) {
-        return individualGroupPurchaseRepository.countByCreatorMemberIdAndStatus(creatorMemberId, IndividualGroupPurchaseStatus.OPEN);
+        return individualGroupPurchaseRepository.countByCreatorMemberIdAndStatusAndDeadlineAtAfter(
+                creatorMemberId, IndividualGroupPurchaseStatus.OPEN, LocalDateTime.now(clock));
     }
 }
