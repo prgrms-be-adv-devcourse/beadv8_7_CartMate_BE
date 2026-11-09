@@ -7,6 +7,8 @@ import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
 @Component
 @RequiredArgsConstructor
 public class DeliveryOrderStates {
@@ -23,7 +25,7 @@ public class DeliveryOrderStates {
 
     private Locked lock(Long orderId, PurchaseType purchaseType, DeliveryOrderStatus initial) {
         boolean inserted = deliveryOrderStateRepository.insertIfAbsent(
-                orderId, purchaseType.name(), initial.name()) == 1;
+                orderId, purchaseType.name(), initial.name(), LocalDateTime.now()) == 1;
         DeliveryOrderState state = deliveryOrderStateRepository.findForUpdate(orderId, purchaseType)
                 .orElseThrow(() -> new IllegalStateException(
                         "주문 단위 배송 상태를 찾을 수 없다: orderId=" + orderId + ", purchaseType=" + purchaseType));
