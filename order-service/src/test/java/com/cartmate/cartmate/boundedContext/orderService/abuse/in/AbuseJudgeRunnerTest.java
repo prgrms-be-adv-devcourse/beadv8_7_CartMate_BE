@@ -3,11 +3,11 @@ package com.cartmate.cartmate.boundedContext.orderService.abuse.in;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.app.AbuseFacade;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.exception.AbuseErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.CannotAcquireLockException;
@@ -32,8 +32,12 @@ class AbuseJudgeRunnerTest {
     @Mock
     private AbuseFacade abuseFacade;
 
-    @InjectMocks
     private AbuseJudgeRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        runner = new AbuseJudgeRunner(abuseFacade);
+    }
 
     @Test
     @DisplayName("판정이 성공하면 실패를 기록하지 않는다")

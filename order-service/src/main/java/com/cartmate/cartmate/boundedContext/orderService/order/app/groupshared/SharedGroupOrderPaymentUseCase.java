@@ -153,8 +153,14 @@ class SharedGroupOrderPaymentUseCase {
         } catch (InternalServerUnavailableException e) {
             throw e;
         } catch (ServiceException e) {
-            orderPaymentClient.compensateCharge(PaymentOrderType.SHARED_GROUP, sharedGroupOrderId, memberId);
+            if (!isMissingTeamAddress(e)) {
+                orderPaymentClient.compensateCharge(PaymentOrderType.SHARED_GROUP, sharedGroupOrderId, memberId);
+            }
             throw e;
         }
+    }
+
+    private static boolean isMissingTeamAddress(ServiceException e) {
+        return OrderErrorCode.ORDER_TEAM_ADDRESS_REQUIRED.resultCode().equals(e.getResultCode());
     }
 }

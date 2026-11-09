@@ -246,6 +246,11 @@ class OrderApiContractTest extends ExternalApiTestSupport {
                 .andExpect(jsonPath("$.data.type").value("SHARED_GROUP"))
                 .andExpect(jsonPath("$.data.status").value("PAID"));
 
+        mvc.perform(json(post("/api/group-orders/shared/{id}/payment", order.id()),
+                        "{\"teamDeliveryAddress\":" + ADDRESS_JSON.replace("홍길동", "가".repeat(51)) + "}")
+                        .with(buyer(CREATOR)))
+                .andExpect(status().isBadRequest());
+
         ok(json(post("/api/group-orders/shared/{id}/payment", order.id()), "{\"teamDeliveryAddress\":" + ADDRESS_JSON + "}")
                 .with(buyer(CREATOR)))
                 .andExpect(jsonPath("$.data.amount", equalTo(25_001)));
