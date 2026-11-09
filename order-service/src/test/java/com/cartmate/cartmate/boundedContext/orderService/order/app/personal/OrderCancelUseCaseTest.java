@@ -41,6 +41,7 @@ import java.util.Optional;
 
 import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.ballLine;
 import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.productBLine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -268,6 +269,39 @@ class OrderCancelUseCaseTest {
 
         assertThatThrownBy(() -> cancelUseCase.confirmCancelByDelivery(ORDER_ID, 1))
                 .isInstanceOf(InternalServerUnavailableException.class);
+    }
+
+    @Test
+    @DisplayName("판매글 내림으로 한 판매자 몫이 먼저 환불된 주문을 취소 확정하면 남은 금액만 환불 금액으로 싣는다")
+    void confirmCancelCarriesRemainingRefundAmount() {
+        Order order = personalOrder("20261019-TWOSELLR", BUYER,
+                java.util.List.of(ballLine(10L, 1), productBLine(3L, 1)), LocalDateTime.now(CLOCK));
+        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.markPaid(1L, LocalDateTime.now(CLOCK));
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        order.cancelSellerItemsBySalesStopped(7L, LocalDateTime.now(CLOCK));
+        cancelUseCase.cancelByBuyer(BUYER, ORDER_ID);
+
+        cancelUseCase.confirmCancelByDelivery(ORDER_ID, 1);
+
+        ArgumentCaptor<OrderCanceledEvent> captor = ArgumentCaptor.forClass(OrderCanceledEvent.class);
+        then(eventPublisher).should().publish(captor.capture());
+        assertThat(captor.getValue().refundAmount()).isEqualTo(25_000L);
+    }
+
+    @Test
+    @DisplayName("결제 전 주문의 취소 이벤트에는 환불 금액이 없다")
+    void unpaidCancelHasNoRefundAmount() {
+        Order order = order();
+        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        given(paymentClient.findPayment(PaymentOrderType.INDIVIDUAL_GROUP, ORDER_ID, BUYER)).willReturn(Optional.empty());
+
+        cancelUseCase.cancelByBuyer(BUYER, ORDER_ID);
+
+        ArgumentCaptor<OrderCanceledEvent> captor = ArgumentCaptor.forClass(OrderCanceledEvent.class);
+        then(eventPublisher).should().publish(captor.capture());
+        assertThat(captor.getValue().refundAmount()).isNull();
     }
 
     private Order couponPaidOrder() {

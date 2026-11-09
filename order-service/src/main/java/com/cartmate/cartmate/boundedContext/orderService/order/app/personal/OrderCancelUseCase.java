@@ -184,7 +184,8 @@ class OrderCancelUseCase {
                 order.getOrderType(),
                 order.getCancelReason(),
                 paid,
-                order.getCanceledAt()
+                order.getCanceledAt(),
+                paid ? order.remainingRefundAmount() : null
         );
     }
 }

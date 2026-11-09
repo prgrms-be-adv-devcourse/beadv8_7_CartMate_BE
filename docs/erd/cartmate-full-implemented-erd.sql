@@ -190,6 +190,15 @@ CREATE TABLE `delivery_order_state` (
 	UNIQUE KEY `uk_delivery_order_state_order` (`order_id`, `purchase_type`)
 );
 
+CREATE TABLE `delivery_seller_cancel` (
+	`id`	BIGINT	NOT NULL,
+	`order_id`	BIGINT	NOT NULL,
+	`purchase_type`	VARCHAR(20)	NOT NULL,
+	`seller_id`	BIGINT	NOT NULL,
+	`created_at`	DATETIME	NOT NULL,
+	UNIQUE KEY `uk_delivery_seller_cancel` (`order_id`, `purchase_type`, `seller_id`)
+);
+
 CREATE TABLE `PRODUCT_PRODUCT` (
 	`id`	BIGINT	NOT NULL,
 	`seller_id`	BIGINT	NOT NULL,
@@ -395,6 +404,18 @@ CREATE TABLE `orders` (
 	`canceled_at`	DATETIME	NULL,
 	`created_at`	DATETIME	NOT NULL,
 	`updated_at`	DATETIME	NOT NULL
+);
+
+CREATE TABLE `sales_stop_cancel_request` (
+	`id`	BIGINT	NOT NULL,
+	`purchase_type`	VARCHAR(20)	NOT NULL,
+	`order_id`	BIGINT	NOT NULL,
+	`seller_id`	BIGINT	NOT NULL,
+	`status`	VARCHAR(20)	NOT NULL,
+	`requested_at`	DATETIME	NOT NULL,
+	`last_sent_at`	DATETIME	NOT NULL,
+	`reject_code`	VARCHAR(100)	NULL,
+	UNIQUE KEY `uk_sales_stop_cancel_request` (`purchase_type`, `order_id`, `seller_id`)
 );
 
 CREATE TABLE `order_item` (

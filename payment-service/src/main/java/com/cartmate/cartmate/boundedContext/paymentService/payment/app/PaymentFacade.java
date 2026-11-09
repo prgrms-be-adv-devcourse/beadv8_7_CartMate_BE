@@ -86,8 +86,8 @@ public class PaymentFacade {
 
     // 주문 취소 트랜잭션에 참여한다 (이벤트 리스너에서 호출)
     @Transactional
-    public void refundByBuyerCancel(Long orderId, Long memberId) {
-        paymentRefundUseCase.refundByBuyerCancel(orderId, memberId);
+    public void refundByBuyerCancel(Long orderId, Long memberId, Long refundAmount) {
+        paymentRefundUseCase.refundByBuyerCancel(orderId, memberId, refundAmount);
     }
 
     @Transactional

@@ -4,6 +4,7 @@ import com.cartmate.cartmate.global.kafka.InboundEventBinding;
 import com.cartmate.cartmate.global.outbox.OutboxTopics;
 import com.cartmate.cartmate.shared.order.event.OrderCancelRequestedEvent;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSalesStopCancelRequestedEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
 import com.cartmate.cartmate.shared.payment.event.ClaimRefundCompletedEvent;
 import com.cartmate.cartmate.shared.payment.event.ClaimRefundFailedEvent;
@@ -28,6 +29,11 @@ public class EtcServiceKafkaConfig {
     @Bean
     public InboundEventBinding orderCancelRequestedBinding() {
         return binding(OrderCancelRequestedEvent.class);
+    }
+
+    @Bean
+    public InboundEventBinding orderSalesStopCancelRequestedBinding() {
+        return binding(OrderSalesStopCancelRequestedEvent.class);
     }
 
     @Bean
