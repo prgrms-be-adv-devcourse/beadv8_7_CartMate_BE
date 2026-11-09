@@ -23,9 +23,14 @@ public class DeliveryCreateUseCase {
     private final DeliveryRepository deliveryRepository;
     private final DeliveryItemRepository deliveryItemRepository;
     private final DeliveryItemOptionRepository deliveryItemOptionRepository;
+    private final DeliveryOrderStates deliveryOrderStates;
 
     public void create(DeliveryCreateCommand createCommand) {
         validatedCreate(createCommand);
+
+        if (!deliveryOrderStates.acceptCreation(createCommand.orderId(), createCommand.purchaseType())) {
+            return;
+        }
 
         String requestHash = DeliveryRequestHasher.hash(createCommand);
 
