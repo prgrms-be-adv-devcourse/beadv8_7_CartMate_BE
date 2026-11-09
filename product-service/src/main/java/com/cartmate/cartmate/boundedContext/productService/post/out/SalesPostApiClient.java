@@ -11,6 +11,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProdu
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductImage;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductOption;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductsRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
@@ -50,7 +51,8 @@ public class SalesPostApiClient {
         return factory;
     }
 
-    public void registerProducts(CreateProductRequest request, List<MultipartFile> images) {
+    // product가 저장한 상품(사진 · 옵션 포함)을 돌려받는다. post는 이걸로 마무리 트랜잭션에서 복제본을 만든다
+    public List<SyncProduct> registerProducts(CreateProductRequest request, List<MultipartFile> images) {
         MultipartBodyBuilder body = new MultipartBodyBuilder();
         body.part("request", request, MediaType.APPLICATION_JSON);   // file은 빠진 채로 JSON
 
@@ -59,7 +61,7 @@ public class SalesPostApiClient {
         }
 
         try {
-            restClient.post()
+            InternalResponse<List<SyncProduct>> response = restClient.post()
                     .uri("")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body.build())
@@ -70,7 +72,8 @@ public class SalesPostApiClient {
                     .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
                         throw new ServiceException(ProductErrorCode.PRODUCT_CREATE_FAILED);
                     })
-                    .toBodilessEntity();
+                    .body(new ParameterizedTypeReference<>() {});
+            return response == null ? List.of() : response.data();
         } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
             throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
         }

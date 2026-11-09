@@ -5,6 +5,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFa
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.RestoreProductsRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,11 +25,13 @@ import java.util.List;
 public class ProductController {
     private final ProductFacade productFacade;
 
+    // 저장한 상품을 응답으로 돌려준다. post가 이걸로 복제본을 만든다(복제본 저장 실패 = 등록 실패 → post가 보상)
     @PostMapping
-    public ResponseEntity<Void> registerProducts(@RequestPart("request") CreateProductRequest request,
-                                                @RequestPart(value = "images") List<MultipartFile> images) {
-        productFacade.registerProduct(request, images);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<RsData<List<SyncProduct>>> registerProducts(@RequestPart("request") CreateProductRequest request,
+                                                                      @RequestPart(value = "images") List<MultipartFile> images) {
+        List<SyncProduct> saved = productFacade.registerProduct(request, images);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new RsData<>("201-1", "상품 등록에 성공했습니다.", saved));
     }
 
     @DeleteMapping("/sellers/{sellerId}/products/{productId}")

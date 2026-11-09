@@ -68,11 +68,13 @@ public class SalesPostFacade {
 
         try{
             CreateProductRequest productRequest = new CreateProductRequest(post.getId(), request.toCreateProductList());
-            salesPostApiClient.registerProducts(productRequest, images);
+            List<SyncProduct> savedProducts = salesPostApiClient.registerProducts(productRequest, images);
 
-            transactionTemplate.executeWithoutResult(status ->
-                    salesPostCreateUseCase.completeSave(post.getId())
-            );
+            // 복제본 생성과 판매 시작을 한 트랜잭션으로. 복제본을 못 만들면 등록 실패로 보고 아래에서 보상한다
+            transactionTemplate.executeWithoutResult(status -> {
+                salesPostSyncProductUseCase.syncProduct(savedProducts);
+                salesPostCreateUseCase.completeSave(post.getId());
+            });
         } catch(Exception e) {
             salesPostDeleteUseCase.deleteSalesPostByEvent(post.getId());
             GlobalConfig.getEventPublisher().publish(

@@ -16,7 +16,6 @@ import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductSyncUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.RollbackProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.event.ProductCreatedEvent;
 import com.cartmate.cartmate.boundedContext.productService.event.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,24 +47,16 @@ public class ProductFacade {
     private final ProductStatusChangeUseCase productStatusChangeUseCase;
     private final ProductImageOrphanCleanUseCase productImageOrphanCleanUseCase;
 
-    public void registerProduct(CreateProductRequest request, List<MultipartFile> images) {
+    // 저장한 상품(사진 · 옵션 포함)을 돌려준다. post가 이 응답으로 자기 마무리 트랜잭션에서 복제본을 만든다
+    public List<SyncProduct> registerProduct(CreateProductRequest request, List<MultipartFile> images) {
         productSupport.validateProductCount(request.getProductList());
         productSupport.includeFileData(request, images);
         productSupport.validateProductFormat(request.getProductList());
 
         List<UploadedImage> uploadedImageList = productImageFileUploadUseCase.uploadAll(request);
         try {
-            List<SyncProduct> syncProductList = transactionTemplate.execute(status -> {
-                List<SyncProduct> productList = productCreateUseCase.saveProduct(request, uploadedImageList);
-
-                GlobalConfig.getEventPublisher().publish(
-                        new ProductCreatedEvent(
-                                new SyncProductRequest(productList)
-                        )
-                );
-
-                return productList;
-            });
+            return transactionTemplate.execute(status ->
+                    productCreateUseCase.saveProduct(request, uploadedImageList));
         } catch (RuntimeException e) {
             productImageFileDeleteUseCase.deleteImageByException(uploadedImageList);
             throw e;

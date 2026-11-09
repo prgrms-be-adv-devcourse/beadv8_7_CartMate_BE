@@ -4,7 +4,6 @@ import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostFac
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductRequest;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.boundedContext.productService.event.ProductCreatedEvent;
 import com.cartmate.cartmate.boundedContext.productService.event.ProductUpdatedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductsDeletedByPostEvent;
@@ -29,12 +28,6 @@ public class SalesPostEventListener {
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(SellerRegisteredEvent event) {
         salesPostFacade.syncSeller(event);
-    }
-
-    @TransactionalEventListener(phase = AFTER_COMMIT)
-    @Transactional(propagation = REQUIRES_NEW)
-    public void handle(ProductCreatedEvent event) {
-        salesPostFacade.syncProduct(objectMapper.convertValue(event.getRequest(), SyncProductRequest.class));
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
