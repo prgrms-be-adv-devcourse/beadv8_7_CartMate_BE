@@ -202,6 +202,23 @@ public class SalesPostFacade {
         }
     }
 
+    // ===== 수정 복구 대사 =====
+    public List<Long> findStaleRecoveringPostIds(Long afterId, int limit) {
+        return salesPostRecoverUseCase.findStaleRecoveringIds(afterId, limit);
+    }
+
+    public List<Long> findStalePendingUpdatePostIds(Long afterId, int limit) {
+        return salesPostRecoverUseCase.findStalePendingIds(afterId, limit);
+    }
+
+    public void retryRecovering(Long postId) {
+        salesPostRecoverUseCase.retryRecovering(postId);
+    }
+
+    public void recoverStalePendingUpdate(Long postId) {
+        salesPostRecoverUseCase.recoverStalePending(postId);
+    }
+
     // ===== 관리자 =====
     @Transactional(readOnly = true)
     public PageResponse<AdminSalesPostSummaryResponse> getAdminSalesPosts(SalesPostSaleStatus status, String keyword, Pageable pageable) {
