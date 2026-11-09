@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> {
 
@@ -50,6 +51,10 @@ public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> 
     long countByMemberIdAndStatusAndUpdatedAt(Long memberId, AbuseSignalStatus status, LocalDateTime updatedAt);
 
     List<AbuseSignal> findByMemberIdOrderByOccurredAtAsc(Long memberId);
+
+    List<AbuseSignal> findByMemberIdOrderByOccurredAtDescIdDesc(Long memberId, Limit limit);
+
+    Optional<AbuseSignal> findFirstByMemberIdAndStatusOrderByJudgedAtDescIdDesc(Long memberId, AbuseSignalStatus status);
 
     List<AbuseSignal> findByMemberIdAndStatusOrderByOccurredAtAscIdAsc(Long memberId, AbuseSignalStatus status);
 
