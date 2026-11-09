@@ -141,7 +141,7 @@ public class OrderFacade {
 
     @Transactional(readOnly = true)
     public List<Long> findPaidIdsByProductIds(List<Long> productIds) {
-        return orderCancelUseCase.findIdsByStatusAndProductIds(OrderStatus.PAID, productIds);
+        return orderCancelUseCase.findPaidIdsByProductIds(productIds);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

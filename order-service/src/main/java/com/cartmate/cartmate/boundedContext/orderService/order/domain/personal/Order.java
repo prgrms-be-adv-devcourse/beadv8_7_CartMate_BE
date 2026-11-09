@@ -331,7 +331,7 @@ public class Order {
     }
 
     public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
-        if (status != OrderStatus.PAID) {
+        if (!isPaid()) {
             return 0;
         }
         long itemsAmount = 0;

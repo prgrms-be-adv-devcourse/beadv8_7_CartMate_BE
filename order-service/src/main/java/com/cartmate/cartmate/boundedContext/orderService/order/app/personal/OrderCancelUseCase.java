@@ -86,6 +86,11 @@ class OrderCancelUseCase {
         }
     }
 
+    List<Long> findPaidIdsByProductIds(Collection<Long> productIds) {
+        return orderRepository.findIdsByStatusInAndProductIds(
+                List.of(OrderStatus.PAID, OrderStatus.CANCEL_REQUESTED), productIds);
+    }
+
     void cancelByDeadline(Long orderId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         boolean paid = isPaid(order);
