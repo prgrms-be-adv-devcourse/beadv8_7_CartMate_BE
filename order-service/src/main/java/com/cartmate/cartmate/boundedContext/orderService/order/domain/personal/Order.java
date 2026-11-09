@@ -178,7 +178,7 @@ public class Order {
         if (paymentId == null) {
             throw new ServiceException(OrderErrorCode.ORDER_PAYMENT_ID_REQUIRED);
         }
-        if (status == OrderStatus.PAID && paymentId.equals(this.paymentId)) {
+        if (isPaid() && paymentId.equals(this.paymentId)) {
             return false;
         }
         validatePaymentPending();
