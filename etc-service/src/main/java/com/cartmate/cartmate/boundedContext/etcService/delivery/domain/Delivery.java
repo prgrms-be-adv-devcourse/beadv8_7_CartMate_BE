@@ -154,18 +154,23 @@ public class Delivery {
         this.canceledAt = canceledAt;
     }
 
-    // 판매글 판매 중지로 취소: 판매자가 판매를 멈춘 것이라 배송준비중(판매자 확인 후)까지 취소한다.
-    // 발송(배송중) 이후면 예외 → 호출한 주문 처리까지 롤백되고 클레임으로 넘어간다. 이미 취소면 그대로(멱등).
-    // 취소 시각은 밖에서 받는다. 한 번의 판매 중지로 여러 배송이 취소될 때 같은 시각으로 남기고,
-    // 주문 취소 시각과도 맞추기 위해서다.
+    // 판매글 내림으로 인한 취소: 판매자가 판매를 멈춘 것이라 요청 시각과 상관없이 배송준비중(판매자 확인 후)까지 취소한다.
+    // 발송(배송중) 이후면 취소할 수 없다. 이미 취소된 배송은 취소된 것으로 본다 (ADR 0008).
+    public boolean isCancelableByPostHidden() {
+        return this.status == DeliveryStatus.CANCELED
+                || this.status == DeliveryStatus.REQUESTED
+                || this.status == DeliveryStatus.PREPARING;
+    }
+
+    // 취소 시각은 밖에서 받는다. 한 번의 판매글 내림으로 여러 배송이 취소될 때 같은 시각으로 남기기 위해서다.
     public void cancelByPostHidden(LocalDateTime canceledAt) {
         if (this.status == DeliveryStatus.CANCELED) {
             return;
         }
-        if (this.status != DeliveryStatus.REQUESTED && this.status != DeliveryStatus.PREPARING) {
+        if (!isCancelableByPostHidden()) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_NOT_CANCELABLE);
         }
-        
+
         this.status = DeliveryStatus.CANCELED;
         this.canceledAt = canceledAt;
     }

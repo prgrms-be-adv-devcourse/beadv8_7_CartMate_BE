@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.etcService.config;
 
 import com.cartmate.cartmate.global.kafka.InboundEventBinding;
 import com.cartmate.cartmate.global.outbox.OutboxTopics;
+import com.cartmate.cartmate.shared.order.event.OrderSalesStopCancelRequestedEvent;
 import com.cartmate.cartmate.shared.payment.event.ClaimRefundCompletedEvent;
 import com.cartmate.cartmate.shared.payment.event.ClaimRefundFailedEvent;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +23,13 @@ class EtcServiceKafkaConfigTest {
         assertThat(bindings())
                 .contains(new InboundEventBinding(OutboxTopics.of(ClaimRefundCompletedEvent.class), ClaimRefundCompletedEvent.class))
                 .contains(new InboundEventBinding(OutboxTopics.of(ClaimRefundFailedEvent.class), ClaimRefundFailedEvent.class));
+    }
+
+    @Test
+    @DisplayName("주문 서버의 판매글 내림으로 인한 취소 요청을 인박스로 받도록 바인딩한다")
+    void bindsSalesStopCancelRequest() {
+        assertThat(bindings()).contains(new InboundEventBinding(
+                OutboxTopics.of(OrderSalesStopCancelRequestedEvent.class), OrderSalesStopCancelRequestedEvent.class));
     }
 
     private static List<InboundEventBinding> bindings() {
