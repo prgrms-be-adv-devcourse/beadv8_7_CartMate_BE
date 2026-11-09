@@ -406,6 +406,18 @@ CREATE TABLE `orders` (
 	`updated_at`	DATETIME	NOT NULL
 );
 
+CREATE TABLE `sales_stop_cancel_request` (
+	`id`	BIGINT	NOT NULL,
+	`purchase_type`	VARCHAR(20)	NOT NULL,
+	`order_id`	BIGINT	NOT NULL,
+	`seller_id`	BIGINT	NOT NULL,
+	`status`	VARCHAR(20)	NOT NULL,
+	`requested_at`	DATETIME	NOT NULL,
+	`last_sent_at`	DATETIME	NOT NULL,
+	`reject_code`	VARCHAR(100)	NULL,
+	UNIQUE KEY `uk_sales_stop_cancel_request` (`purchase_type`, `order_id`, `seller_id`)
+);
+
 CREATE TABLE `order_item` (
 	`id`	BIGINT	NOT NULL,
 	`order_id`	BIGINT	NOT NULL,

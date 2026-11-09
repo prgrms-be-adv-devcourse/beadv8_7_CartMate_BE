@@ -53,9 +53,8 @@ class SharedGroupOrderCancelUseCase {
         }
     }
 
-    List<Long> findActiveIdsByProductIds(Collection<Long> productIds) {
-        return sharedGroupOrderRepository.findIdsByStatusInAndProductIds(
-                List.of(SharedGroupOrderStatus.PAYING, SharedGroupOrderStatus.CONFIRMED), productIds);
+    List<Long> findIdsByStatusAndProductIds(SharedGroupOrderStatus status, Collection<Long> productIds) {
+        return sharedGroupOrderRepository.findIdsByStatusInAndProductIds(List.of(status), productIds);
     }
 
     List<Long> findIdsToCancelByDeadline(LocalDateTime now) {

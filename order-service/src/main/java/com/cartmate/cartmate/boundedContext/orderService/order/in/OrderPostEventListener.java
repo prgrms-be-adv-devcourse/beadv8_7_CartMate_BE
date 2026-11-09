@@ -6,7 +6,10 @@ import com.cartmate.cartmate.global.http.InternalApiClient.InternalServerUnavail
 
 import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
+import com.cartmate.cartmate.boundedContext.orderService.order.app.salesstop.SalesStopCancelFacade;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.shared.post.event.SalesPostHiddenEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +27,7 @@ public class OrderPostEventListener {
 
     private final OrderFacade orderFacade;
     private final SharedGroupOrderFacade sharedGroupOrderFacade;
+    private final SalesStopCancelFacade salesStopCancelFacade;
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void handle(SalesPostHiddenEvent event) {
@@ -39,25 +43,20 @@ public class OrderPostEventListener {
 
         for (Long orderId : orderFacade.findPaidIdsByProductIds(productIds)) {
             run(event, "결제 완료 주문", orderId,
-                    () -> orderFacade.cancelSellerItemsBySalesStopped(orderId, event.sellerId()), failures);
+                    () -> salesStopCancelFacade.request(PurchaseType.INDIVIDUAL_GROUP, orderId, event.sellerId()), failures);
         }
 
-        for (Long orderId : sharedGroupOrderFacade.findActiveIdsByProductIds(productIds)) {
-            run(event, "공동 주문", orderId, () -> cancelSharedGroupOrder(event, orderId), failures);
+        for (Long orderId : sharedGroupOrderFacade.findIdsByStatusAndProductIds(SharedGroupOrderStatus.PAYING, productIds)) {
+            run(event, "결제 중 공동 주문", orderId, () -> sharedGroupOrderFacade.cancelBySalesStopped(orderId), failures);
+        }
+
+        for (Long orderId : sharedGroupOrderFacade.findIdsByStatusAndProductIds(SharedGroupOrderStatus.CONFIRMED, productIds)) {
+            run(event, "확정 공동 주문", orderId,
+                    () -> salesStopCancelFacade.request(PurchaseType.SHARED_GROUP, orderId, event.sellerId()), failures);
         }
 
         if (!failures.isEmpty()) {
             throw failures.getFirst();
-        }
-    }
-
-    private void cancelSharedGroupOrder(SalesPostHiddenEvent event, Long orderId) {
-        try {
-            sharedGroupOrderFacade.cancelBySalesStopped(orderId);
-        } catch (InternalServerUnavailableException e) {
-            throw e;
-        } catch (ServiceException wholeRefused) {
-            sharedGroupOrderFacade.cancelSellerItemsBySalesStopped(orderId, event.sellerId());
         }
     }
 
