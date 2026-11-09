@@ -32,7 +32,7 @@ public class PaymentOrderEventListener {
         if (!event.paid()) {
             return;
         }
-        paymentFacade.refundByBuyerCancel(event.orderId(), event.memberId());
+        paymentFacade.refundByBuyerCancel(event.orderId(), event.memberId(), event.refundAmount());
     }
 
     @EventListener

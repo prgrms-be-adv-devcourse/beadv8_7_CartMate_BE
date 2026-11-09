@@ -35,16 +35,28 @@ public class PaymentRefundUseCase {
                 PaymentRefundReason.CLAIM_REFUND, "판매자 승인 환불 (클레임 #" + claimId + ")");
     }
 
-    // 판매자 확인 전 구매자가 주문을 취소 → 결제 금액 전액 환불
-    public void refundByBuyerCancel(Long orderId, Long memberId) {
+    // 주문 취소 → order가 정해 보낸 금액을 환불한다 (결제 금액 − 판매글 내림으로 인한 취소로 이미 환불한 금액).
+    // 남은 금액 전부를 쓰면 판매글 내림 환불 이벤트보다 먼저 처리됐을 때 그 몫까지 돌려주고, 뒤에 온 이벤트가 실패한다 (ADR 0008).
+    // 금액이 없는 옛 이벤트는 남은 금액 전부를 환불한다.
+    public void refundByBuyerCancel(Long orderId, Long memberId, Long refundAmount) {
         Payment payment = paymentRepository.findByTypeAndOrderIdAndMemberId(PaymentType.INDIVIDUAL_GROUP, orderId, memberId)
                 .orElseThrow(() -> new ServiceException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
-        refund(payment, payment.refundableAmount(), RefundKey.orderCancel(payment.getId()),
+        long amount = refundAmount != null ? refundAmount : payment.refundableAmount();
+        if (amount == 0) {
+            log.info("주문 #{} 취소: 환불할 금액이 남아 있지 않음", orderId);
+            return;
+        }
+        validateRefundAmount(amount);
+        refund(payment, amount, RefundKey.orderCancel(payment.getId()),
                 PaymentRefundReason.BUYER_CANCEL, "구매자 주문 취소 (주문 #" + orderId + ")");
     }
 
-    // 공동물품 무산 → 이미 낸 분담금 전원 환불
+    // 공동물품 무산 → 이미 낸 분담금 전원 환불.
+    // 개인 주문 취소와 달리 남은 금액 전부를 써도 된다. 공동구매에는 결제 후 구매자 취소가 없고,
+    // 판매글 내림으로 그 판매자 몫만 취소됐다면 다른 판매자 배송이 이미 발송된 것이라 이후 전체 취소가 나오지 않는다.
+    // 그래서 판매자 몫 환불과 전체 취소 환불이 한 공동구매에 함께 오지 않는다 (ADR 0008).
+    // 판매자 몫 취소 뒤에도 전체 취소가 가능하도록 규칙이 바뀌면, 개인 주문처럼 order가 금액을 정해 보내야 한다.
     public int refundCanceledSharedGroupOrder(Long sharedGroupOrderId, String cancelReason) {
         List<Payment> payments = paymentRepository.findAllByTypeAndOrderIdAndStatusIn(
                 PaymentType.SHARED_GROUP, sharedGroupOrderId,

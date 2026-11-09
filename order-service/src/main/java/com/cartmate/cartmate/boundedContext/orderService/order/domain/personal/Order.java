@@ -296,6 +296,10 @@ public class Order {
         return totalAmount - discountAmount;
     }
 
+    public long remainingRefundAmount() {
+        return payAmount() - itemRefundedAmount;
+    }
+
     public boolean hasCoupon() {
         return memberCouponId != null;
     }
