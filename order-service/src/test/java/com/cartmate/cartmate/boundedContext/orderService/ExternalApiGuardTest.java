@@ -48,7 +48,9 @@ class ExternalApiGuardTest extends ExternalApiTestSupport {
             "POST, /api/orders",
             "GET, /api/group-orders/shared/me",
             "GET, /api/admin/carts/demands",
-            "POST, /api/admin/carts/group-purchases/individual/1/close"
+            "POST, /api/admin/carts/group-purchases/individual/1/close",
+            "GET, /api/admin/abuse/members",
+            "GET, /api/admin/abuse/members/1"
     })
     @DisplayName("로그인하지 않고 부르면 컨트롤러에 닿기 전에 401과 인증 필요 응답을 준다")
     void unauthenticated(String method, String path) throws Exception {
@@ -97,7 +99,9 @@ class ExternalApiGuardTest extends ExternalApiTestSupport {
             "BUYER, GET, /api/admin/carts/demands",
             "SELLER, POST, /api/admin/carts/demands/1/group-purchases",
             "BUYER, POST, /api/admin/carts/group-purchases/individual/1/close",
-            "SELLER, GET, /api/admin/carts/group-purchases/individual/1/dashboard"
+            "SELLER, GET, /api/admin/carts/group-purchases/individual/1/dashboard",
+            "BUYER, GET, /api/admin/abuse/members",
+            "SELLER, GET, /api/admin/abuse/members/1"
     })
     @DisplayName("어드민 API를 구매자 · 판매자가 부르면 403과 권한 없음 응답을 준다")
     void adminOnly(String role, String method, String path) throws Exception {
