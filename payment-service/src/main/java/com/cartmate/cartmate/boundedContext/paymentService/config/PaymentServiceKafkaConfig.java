@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.paymentService.config;
 
 import com.cartmate.cartmate.global.kafka.InboundEventBinding;
 import com.cartmate.cartmate.global.outbox.OutboxTopics;
+import com.cartmate.cartmate.shared.delivery.event.DeliveryConfirmedEvent;
 import com.cartmate.cartmate.shared.member.event.MemberSignedUpEvent;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
@@ -40,6 +41,11 @@ public class PaymentServiceKafkaConfig {
     @Bean
     public InboundEventBinding sharedGroupOrderSellerItemsCanceledBinding() {
         return binding(SharedGroupOrderSellerItemsCanceledEvent.class);
+    }
+
+    @Bean
+    public InboundEventBinding deliveryConfirmedBinding() {
+        return binding(DeliveryConfirmedEvent.class);
     }
 
     @Bean
