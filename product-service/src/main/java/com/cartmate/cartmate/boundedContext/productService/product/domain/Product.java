@@ -94,7 +94,8 @@ public class Product extends BaseIdAndTime {
             productOptionList.add(new ProductOption(
                     this,
                     option.getProductTypeId(),
-                    option.getProductOptionId()
+                    option.getProductOptionId(),
+                    ProductStatus.ACTIVE
             ));
         }
     }
@@ -117,7 +118,7 @@ public class Product extends BaseIdAndTime {
     public Product delete() {
         this.status = ProductStatus.DELETED;
         this.productImageList.forEach(ProductImage::delete);
-        productOptionList.clear();
+        this.productOptionList.forEach(ProductOption::delete);
         return this;
     }
 

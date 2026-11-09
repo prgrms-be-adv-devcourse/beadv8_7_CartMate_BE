@@ -84,6 +84,7 @@ public class ProductQueryUseCase {
                 .map(this::toSelectProductImage)
                 .toList();
         List<SelectProductOption> options = product.getProductOptionList().stream()
+                .filter(ProductOption::isActive)
                 .map(this::toSelectProductOption)
                 .toList();
         return new SelectProductResponse(

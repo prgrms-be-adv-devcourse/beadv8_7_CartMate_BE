@@ -81,14 +81,25 @@ public class ProductRestoreUseCase {
         }
     }
 
+    // 스냅샷과 같은 옵션 구성으로 되돌린다. 값(종류 · 옵션)으로 짝을 지어
+    // 1) 살아 있는 옵션 중 짝이 있으면 그대로 두고, 없으면 삭제 상태로
+    // 2) 남은 스냅샷 옵션은 수정 때 삭제된 같은 값의 옵션을 되살리고(같은 ID), 그래도 없을 때만 새로 만든다
     private void restoreOptions(Product product, List<RestoreProductOption> reqOptionList) {
-        // 옵션은 수정 시 삭제되면 id가 사라지므로 값으로 비교한다
         List<RestoreProductOption> remaining = new ArrayList<>(reqOptionList);
 
-        product.getProductOptionList().removeIf(option -> !removeMatching(remaining, option));
+        product.getProductOptionList().stream()
+                .filter(ProductOption::isActive)
+                .filter(option -> !removeMatching(remaining, option))
+                .forEach(ProductOption::delete);
+
+        product.getProductOptionList().stream()
+                .filter(option -> !option.isActive())
+                .filter(option -> removeMatching(remaining, option))
+                .forEach(ProductOption::restore);
 
         for (RestoreProductOption option : remaining) {
-            product.addOption(new ProductOption(product, option.getProductTypeId(), option.getProductOptionId()));
+            product.addOption(new ProductOption(product, option.getProductTypeId(), option.getProductOptionId(),
+                    ProductStatus.ACTIVE));
         }
     }
 
