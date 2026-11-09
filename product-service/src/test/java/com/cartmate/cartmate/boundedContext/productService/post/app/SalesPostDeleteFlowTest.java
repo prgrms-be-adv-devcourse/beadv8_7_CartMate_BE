@@ -66,7 +66,11 @@ import static org.mockito.Mockito.reset;
  * 판매글 · 상품 · 복제본은 실제 등록 흐름(상품 API를 실제 HTTP로 부름)으로 만들어 두므로 웹 서버를 빈 포트로 띄운다.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
-        properties = "cartmate.scheduling.enabled=false")
+        properties = {
+        "cartmate.scheduling.enabled=false",
+        // ManualOutboxRelayConfig의 릴레이도 @Scheduled가 붙어 있어 저절로 돈다. 테스트가 직접 돌리도록 첫 실행을 미룬다(order-service와 같은 방식)
+        "custom.outbox.relay.initial-delay=PT1H"
+})
 @ActiveProfiles("test")
 @RecordApplicationEvents
 @Import(ManualOutboxRelayConfig.class)

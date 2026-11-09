@@ -67,6 +67,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT, properties = {
         "cartmate.scheduling.enabled=false",
+        // ManualOutboxRelayConfig의 릴레이도 @Scheduled가 붙어 있어 저절로 돈다. 테스트가 직접 돌리도록 첫 실행을 미룬다(order-service와 같은 방식)
+        "custom.outbox.relay.initial-delay=PT1H",
         "cartmate.kafka.enabled=true"
 })
 @ActiveProfiles("test")

@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductImage;
@@ -18,28 +19,46 @@ import com.cartmate.cartmate.boundedContext.productService.product.out.ProductIm
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
+import com.cartmate.cartmate.global.outbox.OutboxEventStatus;
+import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 
+import static com.cartmate.cartmate.global.inbox.QProcessedEvent.processedEvent;
+import static com.cartmate.cartmate.global.outbox.QOutboxEvent.outboxEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * 상품 단건 삭제: product에서 삭제 → ProductDeletedEvent(product dto) → post 리스너가 post dto로 바꿔 복제본 삭제.
+ * 상품 단건 삭제: product 상품 삭제 + ProductDeletedEvent(outbox) → post 복제본 삭제.
+ *
+ * <p>테스트는 스케줄링을 끄므로 outbox 릴레이를 직접 돌린다. Kafka는 꺼져 있어 같은 앱 안으로 전달된다.
  */
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
+@SpringBootTest(properties = {
+        "cartmate.scheduling.enabled=false",
+        // ManualOutboxRelayConfig의 릴레이도 @Scheduled가 붙어 있어 저절로 돈다. 테스트가 직접 돌리도록 첫 실행을 미룬다(order-service와 같은 방식)
+        "custom.outbox.relay.initial-delay=PT1H"
+})
 @ActiveProfiles("test")
+@Import(ManualOutboxRelayConfig.class)
 class ProductDeleteTest {
 
     private static final Long SELLER_ID = 7L;
     private static final Long OTHER_SELLER_ID = 8L;
+
+    private static final String PRODUCT_DELETED = "ProductDeletedEvent";
 
     @Autowired
     ProductFacade productFacade;
@@ -63,6 +82,15 @@ class ProductDeleteTest {
     @Autowired
     SalesPostProductOptionRepository salesPostProductOptionRepository;
 
+    @Autowired
+    OutboxRelay outboxRelay;
+    @Autowired
+    JdbcTemplate jdbcTemplate; // global의 릴레이 잠금 풀기(ManualOutboxRelayConfig)에만 넘긴다
+    @Autowired
+    JPAQueryFactory queryFactory;
+    @Autowired
+    TransactionTemplate transactionTemplate;
+
     Long productId;
 
     // 판매글 + 상품(사진 2, 옵션 2)을 등록해서 post 복제본까지 만들어 둔다
@@ -75,6 +103,10 @@ class ProductDeleteTest {
         productImageRepository.deleteAll();
         productOptionRepository.deleteAll();
         productRepository.deleteAll();
+        transactionTemplate.executeWithoutResult(status -> {
+            queryFactory.delete(outboxEvent).execute();
+            queryFactory.delete(processedEvent).execute();
+        });
         storage.reset();
 
         SalesPost post = salesPostCreateUseCase.saveSalesPost(
@@ -90,16 +122,21 @@ class ProductDeleteTest {
     }
 
     @Test
-    @DisplayName("판매자가 상품을 삭제하면 post 복제본도 삭제 상태가 된다")
+    @DisplayName("판매자가 상품을 삭제하면 상품이 먼저 지워지고, 이벤트가 전달되면 post 복제본도 삭제 상태가 된다")
     void deleteProductAlsoDeletesCopy() {
         productFacade.deleteProductByUser(productId, SELLER_ID);
 
+        // 상품만 지워지고, 복제본 삭제는 이벤트로 남아 있다
         assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
         assertThat(productImageRepository.findAll())
                 .hasSize(2)
                 .extracting(ProductImage::getStatus)
                 .containsOnly(ProductStatus.DELETED);
         assertThat(productOptionRepository.count()).isZero();
+        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(outboxCount(OutboxEventStatus.NEW)).isEqualTo(1);
+
+        relay();
 
         assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
         assertThat(salesPostProductImageRepository.findAll())
@@ -107,6 +144,27 @@ class ProductDeleteTest {
                 .extracting(SalesPostProductImage::getStatus)
                 .containsOnly(ProductStatus.DELETED);
         assertThat(salesPostProductOptionRepository.count()).isZero();
+        assertThat(outboxCount(OutboxEventStatus.PUBLISHED)).isEqualTo(1);
+    }
+
+    // 릴레이가 PUBLISHED 기록에 실패하면 같은 이벤트를 다시 보낸다. 복제본 삭제는 두 번 해도 상태가 같아서 처리 기록으로 확인한다
+    @Test
+    @DisplayName("같은 이벤트가 다시 와도 한 번만 처리된다")
+    void sameEventIsProcessedOnce() {
+        productFacade.deleteProductByUser(productId, SELLER_ID);
+        relay();
+
+        transactionTemplate.executeWithoutResult(status -> queryFactory.update(outboxEvent)
+                .set(outboxEvent.status, OutboxEventStatus.NEW)
+                .setNull(outboxEvent.publishedAt)
+                .execute());
+        relay();
+
+        assertThat(queryFactory.select(processedEvent.count())
+                .from(processedEvent)
+                .where(processedEvent.consumer.eq(ProductServiceConsumers.PRODUCT_DELETED))
+                .fetchOne()).isEqualTo(1);
+        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
     }
 
     @Test
@@ -118,6 +176,7 @@ class ProductDeleteTest {
 
         assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
         assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(outboxCount(null)).isZero();
     }
 
     @Test
@@ -128,5 +187,19 @@ class ProductDeleteTest {
         assertThatThrownBy(() -> productFacade.deleteProductByUser(productId, SELLER_ID))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining("PRODUCT_NOT_FOUND");
+    }
+
+    private void relay() {
+        ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
+        outboxRelay.relay();
+    }
+
+    // 상품 삭제 이벤트 수. status가 null이면 상태와 관계없이 센다
+    private long outboxCount(OutboxEventStatus status) {
+        return queryFactory.select(outboxEvent.count())
+                .from(outboxEvent)
+                .where(outboxEvent.eventType.eq(PRODUCT_DELETED),
+                        status == null ? null : outboxEvent.status.eq(status))
+                .fetchOne();
     }
 }
