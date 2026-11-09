@@ -2,10 +2,10 @@ package com.cartmate.cartmate.boundedContext.productService.product.app;
 
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
-import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
-import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductImage;
-import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductOption;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProductOption;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
@@ -180,10 +180,10 @@ class ProductRegisterTest {
         assertThat(storage.savedCount()).isZero();
     }
 
-    // 등록 이벤트(product dto) → post 리스너가 post dto로 바꿔 복제본 저장 → 동기화 완료 이벤트(post dto) → product가 product dto로 바꿔 동기화 표시
+    // 복제본은 post가 이 응답으로 자기 마무리 트랜잭션에서 만든다(SalesPostRegisterFlowTest). product는 복제본을 만들지 않는다
     @Test
-    @DisplayName("동기화: 등록이 커밋되면 post에 같은 값의 상품 복제본이 생기고 product의 동기화 상태가 켜진다")
-    void syncToPostAfterRegister() {
+    @DisplayName("응답: 등록은 저장한 상품(사진 · 옵션 포함)을 그대로 돌려주고, post 복제본은 만들지 않는다")
+    void returnSavedProducts() {
         SalesPost post = salesPostCreateUseCase.saveSalesPost(
                 new CreateSalesPostRequest(null, SELLER_ID, "아이폰 팝니다", "상태 좋아요", List.of()));
         List<CreateProductOption> options = List.of(new CreateProductOption(1L, 100L), new CreateProductOption(2L, 200L));
@@ -195,32 +195,32 @@ class ProductRegisterTest {
                 TestImageFiles.png()
         );
 
-        productFacade.registerProduct(request, imageList);
+        List<SyncProduct> saved = productFacade.registerProduct(request, imageList);
 
         Product product = productRepository.findAll().getFirst();
         List<ProductImage> productImages = productImageRepository.findAll();
 
-        List<SalesPostProduct> copies = salesPostProductRepository.findAll();
-        assertThat(copies).hasSize(1);
-        SalesPostProduct copy = copies.getFirst();
-        assertThat(copy.getId()).isEqualTo(product.getId());
-        assertThat(copy.getSellerId()).isEqualTo(SELLER_ID);
-        assertThat(copy.getCategoryId()).isEqualTo(product.getCategoryId());
-        assertThat(copy.getName()).isEqualTo("아이폰");
-        assertThat(copy.getDescription()).isEqualTo(product.getDescription());
-        assertThat(copy.getBasePrice()).isEqualTo(product.getBasePrice());
+        assertThat(saved).hasSize(1);
+        SyncProduct returned = saved.getFirst();
+        assertThat(returned.getId()).isEqualTo(product.getId());
+        assertThat(returned.getSellerId()).isEqualTo(SELLER_ID);
+        assertThat(returned.getSalesPostId()).isEqualTo(post.getId());
+        assertThat(returned.getCategoryId()).isEqualTo(product.getCategoryId());
+        assertThat(returned.getName()).isEqualTo("아이폰");
+        assertThat(returned.getDescription()).isEqualTo(product.getDescription());
+        assertThat(returned.getBasePrice()).isEqualTo(product.getBasePrice());
 
-        assertThat(salesPostProductImageRepository.findAll())
-                .extracting(SalesPostProductImage::getId, SalesPostProductImage::getS3Key,
-                        SalesPostProductImage::getImageSeq, SalesPostProductImage::getStatus)
+        assertThat(returned.getProductImageList())
+                .extracting(SyncProductImage::getId, SyncProductImage::getS3Key,
+                        SyncProductImage::getImageSeq, SyncProductImage::getStatus)
                 .containsExactlyInAnyOrderElementsOf(productImages.stream()
                         .map(i -> tuple(i.getId(), i.getS3Key(), i.getImageSeq(), i.getStatus()))
                         .toList());
-        assertThat(salesPostProductOptionRepository.findAll())
-                .extracting(SalesPostProductOption::getProductTypeId, SalesPostProductOption::getProductOptionId)
+        assertThat(returned.getProductOptionList())
+                .extracting(SyncProductOption::getProductTypeId, SyncProductOption::getProductOptionId)
                 .containsExactlyInAnyOrder(tuple(1L, 100L), tuple(2L, 200L));
 
-        assertThat(productRepository.findById(product.getId()).orElseThrow().isSyncStatus()).isTrue();
+        assertThat(salesPostProductRepository.count()).isZero();
     }
 
     private CreateProductRequest request(Long postId, CreateProduct... products) {

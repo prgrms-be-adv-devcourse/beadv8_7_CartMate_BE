@@ -41,6 +41,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
@@ -72,6 +73,8 @@ class SalesPostRegisterFlowTest {
     SalesPostFacade salesPostFacade;
     @MockitoSpyBean
     SalesPostCreateUseCase salesPostCreateUseCase;
+    @MockitoSpyBean
+    SalesPostSyncProductUseCase salesPostSyncProductUseCase;
 
     @Autowired
     SalesPostRepository salesPostRepository;
@@ -101,7 +104,7 @@ class SalesPostRegisterFlowTest {
         productOptionRepository.deleteAll();
         productRepository.deleteAll();
         storage.reset();
-        reset(salesPostCreateUseCase);
+        reset(salesPostCreateUseCase, salesPostSyncProductUseCase);
     }
 
     @Test
@@ -167,6 +170,20 @@ class SalesPostRegisterFlowTest {
         assertThatThrownBy(() -> salesPostFacade.registerSalesPost(request(), images()))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("테스트용 완료 처리 실패");
+
+        assertNothingLeft();
+    }
+
+    // 상품은 저장됐는데 post가 응답으로 복제본을 만들지 못한 경우. 복제본 생성 실패도 등록 실패로 보고 모두 되돌린다
+    @Test
+    @DisplayName("보상: 복제본 생성이 실패하면 판매글 · 상품 · 사진 파일이 모두 지워진다")
+    void compensateWhenReplicaSyncFails() {
+        doThrow(new RuntimeException("테스트용 복제본 생성 실패"))
+                .when(salesPostSyncProductUseCase).syncProduct(anyList());
+
+        assertThatThrownBy(() -> salesPostFacade.registerSalesPost(request(), images()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("테스트용 복제본 생성 실패");
 
         assertNothingLeft();
     }

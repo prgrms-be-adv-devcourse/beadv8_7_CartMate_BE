@@ -2,7 +2,9 @@ package com.cartmate.cartmate.boundedContext.productService.post.app;
 
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
@@ -20,6 +22,7 @@ import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = "cartmate.scheduling.enabled=false")
 @ActiveProfiles("test")
@@ -69,6 +73,14 @@ class SalesPostCompensationTest {
     @Test
     @DisplayName("상품 API가 성공하면 글이 남는다")
     void keepPostWhenProductApiSucceeds() {
+        // 상품 API 대역도 실제처럼 저장한 상품을 돌려줘야 post가 복제본을 만들고 등록을 끝낸다
+        when(salesPostApiClient.registerProducts(any(), any())).thenAnswer(invocation -> {
+            CreateProductRequest productRequest = invocation.getArgument(0);
+            LocalDateTime now = LocalDateTime.now();
+            return List.of(new SyncProduct(1L, 7L, productRequest.getPostId(), 1L, "아이폰", "설명", 10000L,
+                    now, now, List.of(), List.of()));
+        });
+
         List<MultipartFile> images = getDummyImages(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.png());
         salesPostFacade.registerSalesPost(request(), images);
 
