@@ -4,7 +4,6 @@ import com.cartmate.cartmate.boundedContext.paymentService.payment.app.PaymentFa
 import com.cartmate.cartmate.boundedContext.paymentService.payment.exception.PaymentErrorCode;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.kafka.InboundEvents;
 import com.cartmate.cartmate.global.lock.LockErrorCode;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryClaimApprovedEvent;
@@ -22,11 +21,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-class PaymentDeliveryKafkaConsumerTest {
+class PaymentDeliveryEventListenerTest {
 
     private final PaymentFacade paymentFacade = mock(PaymentFacade.class);
     private final DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-    private final PaymentDeliveryKafkaConsumer listener = new PaymentDeliveryKafkaConsumer(paymentFacade, eventPublisher, mock(InboundEvents.class));
+    private final PaymentDeliveryEventListener listener = new PaymentDeliveryEventListener(paymentFacade, eventPublisher);
 
     private DeliveryClaimApprovedEvent event(PurchaseType purchaseType, String claimType, Long amount) {
         return new DeliveryClaimApprovedEvent(7L, 3L, 100L, purchaseType, 10L, 5L, claimType, amount);
