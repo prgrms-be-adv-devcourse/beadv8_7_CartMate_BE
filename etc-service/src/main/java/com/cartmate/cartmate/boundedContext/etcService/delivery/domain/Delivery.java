@@ -72,6 +72,9 @@ public class Delivery {
     @Column(name = "request_hash", nullable = false, length = 64, updatable = false)
     private String requestHash;     //요청 내용 SHA-256 해시 (멱등키 재요청 비교용)
 
+    @Column(name = "prepared_at")
+    private LocalDateTime preparedAt;
+
     @Column(name = "shipped_at")
     private LocalDateTime shippedAt;    //배송출발시간
 
@@ -181,6 +184,7 @@ public class Delivery {
         this.carrier = newCarrier;
         this.trackingNumber = newTrackingNumber;
         this.status = DeliveryStatus.PREPARING;
+        this.preparedAt = LocalDateTime.now();
     }
 
     // 배송준비를 배송중으로 바꾸고 출발 시각을 기록한다. 이미 배송중이면 아무것도 하지 않아 재요청해도 안전하다.
