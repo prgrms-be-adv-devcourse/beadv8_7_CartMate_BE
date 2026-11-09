@@ -1,44 +1,48 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.in;
 
-import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupshared.SharedGroupPurchaseFacade;
+import com.cartmate.cartmate.boundedContext.orderService.cart.domain.groupshared.SharedGroupPurchase;
 import com.cartmate.cartmate.boundedContext.orderService.cart.in.groupshared.SharedGroupPurchaseScheduler;
-import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
-import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
+import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupshared.SharedGroupPurchaseRepository;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
 import com.cartmate.cartmate.boundedContext.orderService.order.in.groupshared.SharedGroupOrderScheduler;
 import com.cartmate.cartmate.boundedContext.orderService.order.in.personal.OrderScheduler;
+import com.cartmate.cartmate.boundedContext.orderService.order.out.groupshared.SharedGroupOrderRepository;
+import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
+import com.cartmate.cartmate.shared.cart.SharedGroupPurchaseStatus;
+import com.cartmate.cartmate.shared.order.OrderStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import com.cartmate.cartmate.support.CartMateTestContainers;
-import com.cartmate.cartmate.support.DatabaseCleaner;
-import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.ballLine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.sharedLine;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
-@ActiveProfiles("test")
-@ImportTestcontainers(CartMateTestContainers.class)
-@ExtendWith(DatabaseCleaner.class)
+@CartMateIntegrationTest
 class CartOrderSchedulerLockTest {
 
     private static final String OTHER_NODE = "other-node";
     private static final Duration LOCK_AT_LEAST = Duration.ofSeconds(5);
+    private static final Long INVENTORY_ID = 4L;
 
     @Autowired
     private OrderScheduler orderScheduler;
@@ -49,17 +53,24 @@ class CartOrderSchedulerLockTest {
     @Autowired
     private SharedGroupPurchaseScheduler sharedGroupPurchaseScheduler;
 
-    @MockitoSpyBean
-    private OrderFacade orderFacade;
+    @Autowired
+    private OrderRepository orderRepository;
 
-    @MockitoSpyBean
-    private SharedGroupOrderFacade sharedGroupOrderFacade;
+    @Autowired
+    private SharedGroupOrderRepository sharedGroupOrderRepository;
 
-    @MockitoSpyBean
-    private SharedGroupPurchaseFacade sharedGroupPurchaseFacade;
+    @Autowired
+    private SharedGroupPurchaseRepository sharedGroupPurchaseRepository;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    private final long base = 9_700_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
+
+    private long sequence;
 
     @BeforeEach
     void setUp() {
@@ -68,26 +79,28 @@ class CartOrderSchedulerLockTest {
                         + "VALUES (?, UTC_TIMESTAMP(3) - INTERVAL 1 MINUTE, UTC_TIMESTAMP(3) - INTERVAL 1 MINUTE, 'test-reset') "
                         + "ON DUPLICATE KEY UPDATE lock_until = VALUES(lock_until), locked_at = VALUES(locked_at), "
                         + "locked_by = VALUES(locked_by)", name));
-        clearInvocations(orderFacade, sharedGroupOrderFacade, sharedGroupPurchaseFacade);
     }
 
     static Stream<Arguments> jobs() {
         return Stream.of(
-                Arguments.of("order.cancelExpired"),
-                Arguments.of("sharedGroupOrder.cancelExpired"),
-                Arguments.of("sharedGroupPurchase.closeExpired"),
-                Arguments.of("sharedGroupPurchase.closeFrozenTimeout"),
-                Arguments.of("sharedGroupPurchase.revertOrderTimeout")
+                Arguments.of("order.cancelExpired", OrderStatus.PAYMENT_PENDING.name(), OrderStatus.CANCELED.name()),
+                Arguments.of("sharedGroupOrder.cancelExpired", SharedGroupOrderStatus.PAYING.name(), SharedGroupOrderStatus.CANCELED.name()),
+                Arguments.of("sharedGroupPurchase.closeExpired", SharedGroupPurchaseStatus.OPEN.name(), SharedGroupPurchaseStatus.CLOSED.name()),
+                Arguments.of("sharedGroupPurchase.closeFrozenTimeout", SharedGroupPurchaseStatus.FROZEN.name(), SharedGroupPurchaseStatus.CLOSED.name()),
+                Arguments.of("sharedGroupPurchase.revertOrderTimeout", SharedGroupPurchaseStatus.CLOSED.name(), SharedGroupPurchaseStatus.FROZEN.name())
         );
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("jobs")
-    @DisplayName("한 번 돌면 이름별 락 행이 남고, 빨리 끝나도 최소 유지 시간 동안 잡혀 있다")
-    void runLeavesLockRow(String lockName) {
+    @DisplayName("락이 비어 있으면 처리 대상을 처리하고, 이름별 락 행이 남아 빨리 끝나도 최소 유지 시간 동안 잡혀 있다")
+    void runProcessesTargetAndLeavesLockRow(String lockName, String before, String after) {
+        Long targetId = seedTarget(lockName);
+        assertThat(statusOf(lockName, targetId)).isEqualTo(before);
+
         run(lockName);
 
-        verifyQueried(lockName, 1);
+        assertThat(statusOf(lockName, targetId)).isEqualTo(after);
         Map<String, Object> row = jdbcTemplate.queryForMap(
                 "SELECT locked_by, TIMESTAMPDIFF(MICROSECOND, locked_at, lock_until) AS held_micros "
                         + "FROM shedlock WHERE name = ?", lockName);
@@ -97,14 +110,15 @@ class CartOrderSchedulerLockTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("jobs")
-    @DisplayName("다른 인스턴스가 락을 잡고 있으면 대상 조회조차 하지 않고 건너뛴다")
-    void skipWhenOtherNodeHoldsLock(String lockName) {
+    @DisplayName("다른 인스턴스가 락을 잡고 있으면 처리 대상이 있어도 건드리지 않고 건너뛴다")
+    void skipWhenOtherNodeHoldsLock(String lockName, String before, String after) {
+        Long targetId = seedTarget(lockName);
         jdbcTemplate.update("UPDATE shedlock SET lock_until = UTC_TIMESTAMP(3) + INTERVAL 1 HOUR, "
                 + "locked_at = UTC_TIMESTAMP(3), locked_by = ? WHERE name = ?", OTHER_NODE, lockName);
 
         run(lockName);
 
-        verifyQueried(lockName, 0);
+        assertThat(statusOf(lockName, targetId)).isEqualTo(before);
         assertThat(jdbcTemplate.queryForObject("SELECT locked_by FROM shedlock WHERE name = ?", String.class, lockName))
                 .isEqualTo(OTHER_NODE);
     }
@@ -120,14 +134,59 @@ class CartOrderSchedulerLockTest {
         }
     }
 
-    private void verifyQueried(String lockName, int times) {
-        switch (lockName) {
-            case "order.cancelExpired" -> verify(orderFacade, times(times)).findIdsToCancelByDeadline(any());
-            case "sharedGroupOrder.cancelExpired" -> verify(sharedGroupOrderFacade, times(times)).findIdsToCancelByDeadline(any());
-            case "sharedGroupPurchase.closeExpired" -> verify(sharedGroupPurchaseFacade, times(times)).findIdsToCloseByDeadline(any());
-            case "sharedGroupPurchase.closeFrozenTimeout" -> verify(sharedGroupPurchaseFacade, times(times)).findIdsToReleaseFrozen(any());
-            case "sharedGroupPurchase.revertOrderTimeout" -> verify(sharedGroupPurchaseFacade, times(times)).findIdsAwaitingOrderTooLong(any());
+    private Long seedTarget(String lockName) {
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        return switch (lockName) {
+            case "order.cancelExpired" -> expiredOrder(now);
+            case "sharedGroupOrder.cancelExpired" -> expiredSharedGroupOrder(now);
+            case "sharedGroupPurchase.closeExpired" -> sharedGroupPurchase(now, purchase -> {
+            });
+            case "sharedGroupPurchase.closeFrozenTimeout" -> sharedGroupPurchase(now, purchase ->
+                    purchase.closeByDeadline(Set.of(INVENTORY_ID),
+                            now.minus(SharedGroupPurchase.FROZEN_PERIOD).minusHours(1)));
+            case "sharedGroupPurchase.revertOrderTimeout" -> sharedGroupPurchase(now, purchase ->
+                    purchase.closeByDeadline(Set.of(), now.minusHours(1)));
             default -> throw new IllegalArgumentException(lockName);
-        }
+        };
+    }
+
+    private Long expiredOrder(LocalDateTime now) {
+        LocalDateTime createdAt = now.minus(Order.PAYMENT_PERIOD).minusMinutes(5);
+        return orderRepository.save(personalOrder("LOCK-" + nextId(), nextId(), List.of(ballLine(1L, 1)), createdAt)).getId();
+    }
+
+    private Long expiredSharedGroupOrder(LocalDateTime now) {
+        LocalDateTime closedAt = now.minus(SharedGroupOrder.PAYMENT_PERIOD).minus(SharedGroupOrder.GRACE_PERIOD).minusMinutes(5);
+        long creator = nextId();
+        return transactionTemplate.execute(status -> {
+            SharedGroupOrder order = SharedGroupOrder.create(nextId(), creator, List.of(creator, nextId()),
+                    List.of(sharedLine(2L, INVENTORY_ID, 1L, 1, 30000L)), closedAt);
+            order.markStockReserved();
+            return sharedGroupOrderRepository.save(order).getId();
+        });
+    }
+
+    private Long sharedGroupPurchase(LocalDateTime now, Consumer<SharedGroupPurchase> prepare) {
+        LocalDateTime createdAt = now.minus(SharedGroupPurchase.EDIT_PERIOD)
+                .minus(SharedGroupPurchase.FROZEN_PERIOD).minusHours(2);
+        long creator = nextId();
+        return transactionTemplate.execute(status -> {
+            SharedGroupPurchase purchase = SharedGroupPurchase.create("락 확인", creator, 5, "lk" + nextId() % 10_000_000_000L, createdAt);
+            purchase.addItem(creator, 2L, INVENTORY_ID, 1, createdAt);
+            prepare.accept(purchase);
+            return sharedGroupPurchaseRepository.save(purchase).getId();
+        });
+    }
+
+    private String statusOf(String lockName, Long id) {
+        return switch (lockName) {
+            case "order.cancelExpired" -> orderRepository.findById(id).orElseThrow().getStatus().name();
+            case "sharedGroupOrder.cancelExpired" -> sharedGroupOrderRepository.findById(id).orElseThrow().getStatus().name();
+            default -> sharedGroupPurchaseRepository.findById(id).orElseThrow().getStatus().name();
+        };
+    }
+
+    private long nextId() {
+        return base + sequence++;
     }
 }
