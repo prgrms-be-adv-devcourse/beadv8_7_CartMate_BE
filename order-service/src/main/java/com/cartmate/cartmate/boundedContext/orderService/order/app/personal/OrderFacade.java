@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.BuyerCancelResult;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -93,8 +94,8 @@ public class OrderFacade {
     }
 
     @Transactional
-    public void cancelByBuyer(Long memberId, Long orderId) {
-        orderCancelUseCase.cancelByBuyer(memberId, orderId);
+    public BuyerCancelResult cancelByBuyer(Long memberId, Long orderId) {
+        return orderCancelUseCase.cancelByBuyer(memberId, orderId);
     }
 
     @Transactional

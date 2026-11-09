@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -184,22 +185,50 @@ class OrderTest {
         assertThat(order.getPaidAt()).isEqualTo(NOW);
     }
 
-    @ParameterizedTest(name = "{0} 상태의 주문")
-    @EnumSource(value = OrderStatus.class, names = {"PAYMENT_PENDING", "PAID"})
-    @DisplayName("구매자는 결제 대기 · 결제 완료된 주문을 취소할 수 있다")
-    void cancelByBuyer(OrderStatus status) {
+    @Test
+    @DisplayName("구매자가 결제 대기 주문을 취소하면 바로 취소된다")
+    void cancelPendingByBuyer() {
         Order order = personalOrder();
-        if (status == OrderStatus.PAID) {
-            order.markPaid(1L, NOW);
-        }
         LocalDateTime canceledAt = NOW.plusMinutes(1);
 
-        boolean canceled = order.cancelByBuyer(BUYER, canceledAt);
+        BuyerCancelResult result = order.cancelByBuyer(BUYER, canceledAt);
 
-        assertThat(canceled).isTrue();
+        assertThat(result).isEqualTo(BuyerCancelResult.CANCELED);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
         assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.BUYER_CANCELED);
         assertThat(order.getCanceledAt()).isEqualTo(canceledAt);
+    }
+
+    @Test
+    @DisplayName("구매자가 결제 완료 주문을 취소하면 취소 처리 중이 되고 요청 번호와 요청 시각이 남는다")
+    void requestCancelOfPaidOrder() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        LocalDateTime requestedAt = NOW.plusMinutes(1);
+
+        BuyerCancelResult result = order.cancelByBuyer(BUYER, requestedAt);
+
+        assertThat(result).isEqualTo(BuyerCancelResult.REQUESTED);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCEL_REQUESTED);
+        assertThat(order.getCancelRequestSeq()).isEqualTo(1);
+        assertThat(order.getCancelRequestedAt()).isEqualTo(requestedAt);
+        assertThat(order.getCancelLastSentAt()).isEqualTo(requestedAt);
+        assertThat(order.isPaid()).isTrue();
+    }
+
+    @Test
+    @DisplayName("취소 처리 중에 다시 요청하면 번호와 처음 요청 시각은 그대로 두고 발송 시각만 갱신한다")
+    void resendWhileCancelRequested() {
+        Order order = personalOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
+
+        BuyerCancelResult result = order.cancelByBuyer(BUYER, NOW.plusMinutes(5));
+
+        assertThat(result).isEqualTo(BuyerCancelResult.RESENT);
+        assertThat(order.getCancelRequestSeq()).isEqualTo(1);
+        assertThat(order.getCancelRequestedAt()).isEqualTo(NOW.plusMinutes(1));
+        assertThat(order.getCancelLastSentAt()).isEqualTo(NOW.plusMinutes(5));
     }
 
     @Test
@@ -371,7 +400,7 @@ class OrderTest {
         byBuyer.applyCoupon(5L, 10_000L, true, null);
         byBuyer.markPaid(99L, NOW.plusMinutes(1));
         byBuyer.cancelByBuyer(BUYER, NOW.plusMinutes(2));
-        assertThat(byBuyer.couponRestorable()).isTrue();
+        assertThat(byBuyer.couponRestorable()).isFalse();
 
         Order oneSeller = Order.createPersonal("ORD-S", BUYER, List.of(
                 new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1)), addressWithoutDetail(), NOW);

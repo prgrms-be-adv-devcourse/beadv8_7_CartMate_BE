@@ -13,7 +13,9 @@ import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
 
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderPaymentClient;
 
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.BuyerCancelResult;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
+import com.cartmate.cartmate.shared.order.event.OrderCancelRequestedEvent;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
@@ -39,12 +41,16 @@ class OrderCancelUseCase {
     private final OrderPaymentClient orderPaymentClient;
     private final Clock clock;
 
-    void cancelByBuyer(Long memberId, Long orderId) {
+    BuyerCancelResult cancelByBuyer(Long memberId, Long orderId) {
         Order order = orderSupport.getOrderForUpdate(orderId);
-        boolean paid = isPaid(order);
-        boolean canceled = order.cancelByBuyer(memberId, LocalDateTime.now(clock));
-        publishCanceledEventIf(canceled, order, paid);
-        restoreCouponIf(canceled, order);
+        BuyerCancelResult result = order.cancelByBuyer(memberId, LocalDateTime.now(clock));
+        if (result == BuyerCancelResult.CANCELED) {
+            publishCanceledEventIf(true, order, false);
+            restoreCouponIf(true, order);
+        } else {
+            publishCancelRequested(order);
+        }
+        return result;
     }
 
     void cancelByDeadline(Long orderId) {
@@ -100,7 +106,12 @@ class OrderCancelUseCase {
     }
 
     private boolean isPaid(Order order) {
-        return order.getStatus() == OrderStatus.PAID;
+        return order.isPaid();
+    }
+
+    private void publishCancelRequested(Order order) {
+        eventPublisher.publish(new OrderCancelRequestedEvent(
+                order.getId(), order.getBuyerMemberId(), order.getCancelRequestSeq(), order.getCancelRequestedAt()));
     }
 
     private void publishCanceledEventIf(boolean canceled, Order order, boolean paid) {
