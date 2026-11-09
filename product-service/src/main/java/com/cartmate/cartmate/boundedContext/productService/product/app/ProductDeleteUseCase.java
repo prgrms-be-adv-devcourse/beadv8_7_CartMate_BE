@@ -24,12 +24,26 @@ public class ProductDeleteUseCase {
 
     @Transactional
     public void deleteProductByUser(Long productId, Long sellerId) {
-        Product product = productRepository.findById(productId)
-                .filter(p -> p.getStatus() != ProductStatus.DELETED)
+        Long salesPostId = productRepository.findSalesPostIdById(productId)
+                .orElseThrow(() -> new ServiceException(ProductErrorCode.PRODUCT_NOT_FOUND));
+
+        // 같은 판매글의 상품을 잠그고 최신 상태로 읽는다
+        List<Product> postProducts = productRepository.findForUpdateBySalesPostId(salesPostId);
+        Product product = postProducts.stream()
+                .filter(p -> p.getId().equals(productId) && p.getStatus() != ProductStatus.DELETED)
+                .findFirst()
                 .orElseThrow(() -> new ServiceException(ProductErrorCode.PRODUCT_NOT_FOUND));
 
         if (!product.getSellerId().equals(sellerId)) {
             throw new ServiceException(ProductErrorCode.PRODUCT_ACCESS_DENIED);
+        }
+
+        // 판매글에 상품이 0개가 되지 않게, 마지막 상품은 상품 삭제 대신 판매글 삭제로 안내한다
+        long remaining = postProducts.stream()
+                .filter(p -> p.getStatus() != ProductStatus.DELETED)
+                .count();
+        if (remaining <= 1) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_DELETE_LAST);
         }
 
         product.delete();

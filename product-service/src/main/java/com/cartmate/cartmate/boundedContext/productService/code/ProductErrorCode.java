@@ -16,6 +16,7 @@ public enum ProductErrorCode implements ErrorCode {
     PRODUCT_RESTORE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PRODUCT_RESTORE_FAILED", "상품정보 복구에 실패했습니다."),
     PRODUCT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "PRODUCT_ACCESS_DENIED", "상품정보 수정 권한이 없습니다."),
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_NOT_FOUND", "상품 정보가 없습니다."),
+    PRODUCT_DELETE_LAST(HttpStatus.BAD_REQUEST, "PRODUCT_DELETE_LAST", "판매글의 마지막 상품은 삭제할 수 없습니다. 판매글을 삭제해 주세요."),
     PRODUCT_SELECT_INVALID(HttpStatus.BAD_REQUEST, "PRODUCT_SELECT_INVALID", "잘못된 상품조회 요청입니다."),
     PRODUCT_SELECT_FAILED(HttpStatus.BAD_REQUEST, "PRODUCT_SELECT_FAILED", "상품정보 조회에 실패했습니다."),
 
