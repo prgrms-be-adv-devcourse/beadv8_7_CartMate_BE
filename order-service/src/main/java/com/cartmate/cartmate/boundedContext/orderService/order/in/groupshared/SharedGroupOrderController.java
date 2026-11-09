@@ -10,6 +10,7 @@ import com.cartmate.cartmate.global.security.SecurityUser;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -58,7 +59,7 @@ public class SharedGroupOrderController {
     @PostMapping("/{id}/payment")
     @Operation(operationId = "paySharedGroupOrder", summary = "공동 주문 분담금 예치금 결제")
     public RsData<PaymentResult> pay(@AuthenticationPrincipal SecurityUser user, @PathVariable Long id,
-                                     @RequestBody(required = false) SharedGroupPaymentRequest request) {
+                                     @Valid @RequestBody(required = false) SharedGroupPaymentRequest request) {
         TeamDeliveryAddress address = request == null ? null : request.teamDeliveryAddress();
         return new RsData<>("200-1", "분담금 결제가 완료되었습니다.",
                 orderPaymentRetryService.paySharedGroupOrder(user.memberId(), id, address));
