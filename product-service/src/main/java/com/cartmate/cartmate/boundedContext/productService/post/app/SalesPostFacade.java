@@ -91,6 +91,16 @@ public class SalesPostFacade {
         salesPostDeleteUseCase.deleteSalesPostByUser(postId, sellerId);
     }
 
+    // 삭제 대사: 오래 DELETING에 멈춘 판매글
+    public List<Long> findStuckDeletingPostIds(int limit) {
+        return salesPostDeleteUseCase.findStuckDeletingIds(limit);
+    }
+
+    // 삭제 대사: 삭제 이벤트 재발행. 그 사이 삭제가 끝났으면 false
+    public boolean republishStuckDelete(Long postId) {
+        return salesPostDeleteUseCase.republishDelete(postId);
+    }
+
     @Transactional
     public void syncProduct(SyncProductRequest request) {
         salesPostSyncProductUseCase.syncProduct(request.getProductList());

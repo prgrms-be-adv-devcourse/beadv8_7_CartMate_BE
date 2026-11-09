@@ -23,6 +23,9 @@ public interface SalesPostQueryRepository {
 
     Long startDelete(Long salesPostId, Collection<SalesPostUpdateStatus> editable);
 
+    // 삭제 대사: DELETING인 판매글의 삭제 시작 시각(modifyDate)을 지금으로 다시 잡는다. DELETING이 아니면 0
+    Long refreshDeleting(Long salesPostId, LocalDateTime now);
+
     Page<SalesPost> selectForAdmin(SalesPostSaleStatus status, String keyword, Pageable pageable);
 
     // 상태별 판매글 수를 한 번의 GROUP BY 조회로 (없는 상태는 결과에 없음)
