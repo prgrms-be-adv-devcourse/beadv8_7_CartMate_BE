@@ -31,4 +31,7 @@ public interface SalesPostRepository extends JpaRepository<SalesPost, Long>, Sal
     // 회원 탈퇴 신청: 판매자의 특정 상태 판매글 ID
     @Query("select p.id from SalesPost p where p.sellerId = :sellerId and p.status = :status order by p.id")
     List<Long> findIdsBySellerIdAndStatus(@Param("sellerId") Long sellerId, @Param("status") SalesPostSaleStatus status);
+
+    List<SalesPost> findByStatusAndCreateDateBeforeOrderByIdAsc(
+            SalesPostSaleStatus status, LocalDateTime before, Limit limit);
 }

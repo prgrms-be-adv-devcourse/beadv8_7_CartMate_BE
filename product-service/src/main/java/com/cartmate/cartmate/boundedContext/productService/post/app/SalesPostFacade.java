@@ -219,6 +219,17 @@ public class SalesPostFacade {
         salesPostRecoverUseCase.recoverStalePending(postId);
     }
 
+    // ===== 등록 대사 =====
+    // 트랜잭션을 걸지 않는다: 상품 정리(PostApiCallFailedEvent → ProductFacade.rollbackByApiFail)가 사진 파일까지 지우므로,
+    // 상품 정리와 판매글 삭제가 각자 커밋돼야 DB 롤백과 파일 삭제가 어긋나지 않는다
+    public List<Long> findStaleRegisteringPostIds(int limit) {
+        return salesPostCreateUseCase.findStalePendingIds(limit);
+    }
+
+    public void cleanUpStaleRegistering(Long postId) {
+        salesPostCreateUseCase.cleanUpStalePending(postId);
+    }
+
     // ===== 관리자 =====
     @Transactional(readOnly = true)
     public PageResponse<AdminSalesPostSummaryResponse> getAdminSalesPosts(SalesPostSaleStatus status, String keyword, Pageable pageable) {
