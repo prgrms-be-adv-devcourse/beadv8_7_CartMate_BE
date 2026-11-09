@@ -281,6 +281,40 @@ class OrderTest {
     }
 
     @Test
+    @DisplayName("취소 처리 중에 판매 중지로 모든 항목이 취소되면, 늦게 온 거절과 취소됨 결과는 모두 무시한다")
+    void ignoreResultAfterWholeSalesStop() {
+        Order order = Order.createPersonal("ORD-S", BUYER, List.of(
+                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1)), addressWithoutDetail(), NOW);
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
+
+        order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isFalse();
+        assertThat(order.confirmCancel(1, NOW.plusMinutes(3))).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.SALES_STOPPED);
+        assertThat(order.getCancelRejectCode()).isNull();
+    }
+
+    @Test
+    @DisplayName("취소 처리 중에 판매 중지로 일부 항목만 취소되고 거절이 오면, 일부 취소된 결제 완료 주문으로 돌아간다")
+    void rejectAfterPartialSalesStop() {
+        Order order = twoSellerOrder();
+        order.markPaid(1L, NOW);
+        order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
+
+        assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2))).isEqualTo(30_000L);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCEL_REQUESTED);
+
+        assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isTrue();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.isPartiallyCanceled()).isTrue();
+        assertThat(order.getCancelRejectCode()).isEqualTo("409-DELIVERY_NOT_CANCELABLE");
+    }
+
+    @Test
     @DisplayName("구매자가 아니면 주문을 취소할 수 없다")
     void cancelByOtherMember() {
         Order order = personalOrder();
