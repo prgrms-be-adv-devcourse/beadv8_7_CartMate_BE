@@ -10,6 +10,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.SellerDe
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimStatus;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryStatus;
+import com.cartmate.cartmate.global.lock.DistributedLock;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DeliveryFacade {
+
+    // 사용자 요청·배치로 배송을 바꾸는 경로는 배송 키 분산락을 잡는다(ADR 0002·0009).
+    // 락은 트랜잭션 바깥에서 잡혀 커밋 뒤에 풀린다(DistributedLockAspect의 순서).
+    // 이벤트로 들어오는 경로(배송 생성, 취소 판정, 환불 결과)는 Inbox 트랜잭션 안이라 행 락을 그대로 쓴다.
+    public static final String LOCK_KEY_PREFIX = "delivery:";
 
     private final DeliveryCreateUseCase deliveryCreateUseCase;
     private final DeliveryQueryUseCase deliveryQueryUseCase;
@@ -55,26 +61,31 @@ public class DeliveryFacade {
         deliveryCancelUseCase.cancelBySalesStop(purchaseType, orderId, sellerId);
     }
 
+    @DistributedLock(key = "'delivery:' + #deliveryId")
     @Transactional
     public DeliveryResponse readyDelivery(Long deliveryId, Long memberId, String carrier, String trackingNumber) {
         return deliveryReadyUseCase.ready(deliveryId, memberId, carrier, trackingNumber);
     }
 
+    @DistributedLock(key = "'delivery:' + #deliveryId")
     @Transactional
     public DeliveryResponse shipDelivery(Long deliveryId, Long memberId) {
         return deliveryShipUseCase.ship(deliveryId, memberId);
     }
 
+    @DistributedLock(key = "'delivery:' + #deliveryId")
     @Transactional
     public DeliveryResponse confirmDelivery(Long deliveryId, Long memberId) {
         return deliveryConfirmUseCase.confirm(deliveryId, memberId);
     }
 
+    @DistributedLock(key = "'delivery:' + #command.deliveryId()")
     @Transactional
     public DeliveryClaimResponse createClaim(DeliveryClaimCreateCommand command) {
         return deliveryClaimCreateUseCase.create(command);
     }
 
+    @DistributedLock(key = "'delivery:' + #deliveryId")
     @Transactional
     public void autoConfirmDelivery(Long deliveryId) {
         deliveryAutoConfirmUseCase.confirm(deliveryId);
