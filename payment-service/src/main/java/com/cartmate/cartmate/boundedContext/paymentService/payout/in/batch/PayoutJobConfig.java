@@ -32,7 +32,7 @@ public class PayoutJobConfig {
     }
 
     // 정산 한 건씩 지급을 요청한다. 한 건이 실패해도 건너뛰고 나머지를 계속 처리하며, 실패한 정산은 대기 상태로 남아 다음 실행 때 다시 대상이 된다.
-    // 스텝은 DB 트랜잭션 없이 돈다(ResourcelessTransactionManager, ADR 0002 "정산 배치 스텝은 트랜잭션 없이 돌린다").
+    // 스텝은 DB 트랜잭션 없이 돈다(ResourcelessTransactionManager).
     // chunk 트랜잭션 안에서 분산락을 잡으면 커밋 전에 락이 풀리므로, 지급마다 "락 → 자기 트랜잭션 → 커밋 → 락 해제" 순서가 되게 한다.
     // 락을 기다리는 동안 DB 연결도 잡지 않는다. 배치 진행 기록(JobRepository)은 지급 커밋과 따로 저장된다.
     @Bean

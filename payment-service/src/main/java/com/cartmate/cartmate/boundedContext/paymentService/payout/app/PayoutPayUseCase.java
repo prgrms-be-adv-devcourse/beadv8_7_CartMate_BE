@@ -26,7 +26,7 @@ public class PayoutPayUseCase {
     // 대기 중인 정산의 정산금을 판매자 지갑에 입금하고 지급 완료로 바꾼다.
     // 이미 처리된 정산은 건너뛰고, 정산 금액이 0원이면 입금할 돈이 없으므로 입금 없이 바로 완료 처리한다.
     // 입금이 실패하면 예외가 전파되어 정산은 대기 상태로 남고 다음 실행 때 다시 시도한다.
-    // 주문 키 분산락을 얻은 뒤 연 트랜잭션에서 정산서를 읽어야 아래 "대기가 아니면 반환" 검사가 의미 있다(ADR 0002).
+    // 주문 키 분산락을 얻은 뒤 연 트랜잭션에서 정산서를 읽어야 아래 "대기가 아니면 반환" 검사가 의미 있다.
     public void pay(Long payoutId, LocalDateTime now) {
         Payout payout = payoutRepository.findById(payoutId)
                 .orElseThrow(() -> new ServiceException(PayoutErrorCode.PAYOUT_NOT_FOUND));

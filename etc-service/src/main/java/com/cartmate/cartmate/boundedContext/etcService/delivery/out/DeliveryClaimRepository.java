@@ -17,7 +17,7 @@ import java.util.Optional;
 
 public interface DeliveryClaimRepository extends JpaRepository<DeliveryClaim, Long> {
 
-    // 클레임 행을 잠그고 조회한다. 환불 결과 반영(이벤트 경로, Inbox 트랜잭션 안)이 쓴다. 승인·거절·완료는 배송 키 분산락을 쓴다(ADR 0009).
+    // 클레임 행을 잠그고 조회한다. 환불 결과 반영(이벤트 경로, Inbox 트랜잭션 안)이 쓴다. 승인·거절·완료는 배송 키 분산락을 쓴다.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from DeliveryClaim c where c.id = :id")
     Optional<DeliveryClaim> findByIdForUpdate(@Param("id") Long id);

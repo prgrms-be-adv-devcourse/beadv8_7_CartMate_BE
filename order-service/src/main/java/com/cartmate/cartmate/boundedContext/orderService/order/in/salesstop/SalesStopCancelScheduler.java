@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 배송 서버 응답이 없는 판매글 내림 취소 요청을 다시 보낸다 (ADR 0008).
+ * 배송 서버 응답이 없는 판매글 내림 취소 요청을 다시 보낸다.
  * outbox·Inbox가 재시도를 다 쓰면 FAILED로 남고 되살리지 않으며, 판매글 내림에는 다시 누를 사람이 없어서다.
  * 간격은 구매자 취소 재발행과 같은 설정값을 쓴다.
  */

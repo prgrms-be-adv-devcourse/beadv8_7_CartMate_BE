@@ -60,7 +60,7 @@ public class DeliveryClaim {
     @Column(name = "refund_status", nullable = false, columnDefinition = "varchar(20) not null default 'NONE'")
     private RefundStatus refundStatus = RefundStatus.NONE;
 
-    // 같은 클레임의 승인·거절·완료가 분산락 없이 겹칠 때 늦게 커밋한 쪽을 실패시킨다(ADR 0002).
+    // 같은 클레임의 승인·거절·완료가 분산락 없이 겹칠 때 늦게 커밋한 쪽을 실패시킨다.
     // 이미 있는 행은 컬럼이 추가될 때 0으로 채워진다(기본값). null이면 버전 비교가 맞지 않아 수정이 모두 실패한다.
     @Version
     @Column(name = "version", nullable = false, columnDefinition = "bigint not null default 0")

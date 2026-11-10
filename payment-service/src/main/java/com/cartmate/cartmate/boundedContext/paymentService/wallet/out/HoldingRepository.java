@@ -21,7 +21,7 @@ public interface HoldingRepository extends JpaRepository<Holding, Long> {
     Optional<Holding> findByOrderId(Long orderId);
 
     // 주문의 홀딩을 ID 순으로 조회한다. 개인 주문과 공동물품 주문은 주문 ID가 겹칠 수 있어 구매 유형까지 같이 조회한다.
-    // 같은 주문의 정산끼리는 주문 키 분산락(holding-order)으로 줄을 선다(ADR 0002·0009).
+    // 같은 주문의 정산끼리는 주문 키 분산락(holding-order)으로 줄을 선다.
     // 커밋할 때 홀딩 버전을 강제로 올린다. 부분 정산은 홀딩 행을 바꾸지 않고 정산 기록만 남기므로, 버전을 올리지 않으면
     // 락 없이 들어오는 환불이 아직 커밋되지 않은 정산을 모른 채 남은 금액을 계산해 홀딩 금액보다 더 꺼낼 수 있다.
     @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)

@@ -25,7 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DeliveryFacade {
 
-    // 사용자 요청·배치로 배송을 바꾸는 경로는 배송 키 분산락을 잡는다(ADR 0002·0009).
+    // 사용자 요청·배치로 배송을 바꾸는 경로는 배송 키 분산락을 잡는다.
     // 락은 트랜잭션 바깥에서 잡혀 커밋 뒤에 풀린다(DistributedLockAspect의 순서).
     // 이벤트로 들어오는 경로(배송 생성, 취소 판정, 환불 결과)는 Inbox 트랜잭션 안이라 행 락을 그대로 쓴다.
     public static final String LOCK_KEY_PREFIX = "delivery:";
