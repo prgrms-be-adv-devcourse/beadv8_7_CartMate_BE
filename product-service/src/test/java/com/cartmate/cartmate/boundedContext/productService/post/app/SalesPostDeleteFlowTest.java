@@ -29,7 +29,8 @@ import com.cartmate.cartmate.global.outbox.OutboxEventStatus;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.cartmate.cartmate.shared.post.event.SalesPostHiddenEvent;
 import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -184,14 +185,14 @@ class SalesPostDeleteFlowTest {
         assertThat(salesPostProductRepository.findAll())
                 .hasSize(2)
                 .extracting(SalesPostProduct::getStatus)
-                .containsOnly(ProductStatus.DELETED);
+                .containsOnly(SalesPostProductStatus.DELETED);
         assertThat(salesPostProductImageRepository.findAll())
                 .extracting(SalesPostProductImage::getStatus)
-                .containsOnly(ProductStatus.DELETED);
+                .containsOnly(SalesPostProductStatus.DELETED);
         assertThat(salesPostProductOptionRepository.findAll())
                 .hasSize(2)
                 .extracting(SalesPostProductOption::getStatus)
-                .containsOnly(ProductStatus.DELETED);
+                .containsOnly(SalesPostProductStatus.DELETED);
 
         assertThat(outboxCount(SALES_POST_DELETED, OutboxEventStatus.PUBLISHED)).isEqualTo(1);
         assertThat(outboxCount(PRODUCTS_DELETED_BY_POST, OutboxEventStatus.PUBLISHED)).isEqualTo(1);
@@ -252,7 +253,7 @@ class SalesPostDeleteFlowTest {
 
         // 복제본 삭제 · 처리 기록이 함께 롤백되고, 이벤트는 다시 보낼 상태로 남는다
         assertThat(salesPostRepository.findById(postId).orElseThrow().getStatus()).isEqualTo(SalesPostSaleStatus.DELETING);
-        assertThat(salesPostProductRepository.findAll()).extracting(SalesPostProduct::getStatus).containsOnly(ProductStatus.ON_SALE);
+        assertThat(salesPostProductRepository.findAll()).extracting(SalesPostProduct::getStatus).containsOnly(SalesPostProductStatus.ON_SALE);
         assertThat(queryFactory.select(outboxEvent.attempts)
                 .from(outboxEvent)
                 .where(outboxEvent.eventType.eq(PRODUCTS_DELETED_BY_POST),
@@ -267,7 +268,7 @@ class SalesPostDeleteFlowTest {
         relay();
 
         assertThat(salesPostRepository.findById(postId).orElseThrow().getStatus()).isEqualTo(SalesPostSaleStatus.DELETED);
-        assertThat(salesPostProductRepository.findAll()).extracting(SalesPostProduct::getStatus).containsOnly(ProductStatus.DELETED);
+        assertThat(salesPostProductRepository.findAll()).extracting(SalesPostProduct::getStatus).containsOnly(SalesPostProductStatus.DELETED);
         assertThat(outboxCount(PRODUCTS_DELETED_BY_POST, OutboxEventStatus.PUBLISHED)).isEqualTo(1);
     }
 

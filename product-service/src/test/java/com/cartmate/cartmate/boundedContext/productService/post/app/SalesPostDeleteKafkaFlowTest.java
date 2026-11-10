@@ -24,7 +24,8 @@ import com.cartmate.cartmate.global.outbox.OutboxEvent;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.global.outbox.OutboxTopics;
 import com.cartmate.cartmate.shared.post.event.SalesPostDeletedEvent;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import com.cartmate.cartmate.support.ProductServiceKafkaContainer;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -161,7 +162,7 @@ class SalesPostDeleteKafkaFlowTest {
         assertThat(salesPostProductRepository.findAll())
                 .hasSize(2)
                 .extracting(SalesPostProduct::getStatus)
-                .containsOnly(ProductStatus.DELETED);
+                .containsOnly(SalesPostProductStatus.DELETED);
         // 같은 앱 안 전달까지 처리했다면 product가 상품 삭제 완료 이벤트를 두 번 남긴다
         assertThat(outboxCount(PRODUCTS_DELETED_BY_POST)).isEqualTo(1);
     }

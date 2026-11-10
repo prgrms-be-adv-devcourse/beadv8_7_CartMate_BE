@@ -1,16 +1,15 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
-import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostUpdateStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductUpdateStatus;
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.global.GlobalConfig;
+import com.cartmate.cartmate.global.event.DomainEventPublisher;
+import com.cartmate.cartmate.shared.post.event.SalesPostRegisterFailedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
@@ -26,6 +25,7 @@ import java.util.List;
 public class SalesPostCreateUseCase {
     private final SalesPostRepository salesPostRepository;
     private final TransactionTemplate transactionTemplate;
+    private final DomainEventPublisher domainEventPublisher;
 
     static final Duration REGISTER_STALE_AFTER = Duration.ofMinutes(30);
 
@@ -69,8 +69,8 @@ public class SalesPostCreateUseCase {
         }
 
         // 2. 상품 · 사진 행 삭제 + 사진 파일 삭제 (등록 실패 보상과 같은 이벤트)
-        GlobalConfig.getEventPublisher().publish(
-                new PostApiCallFailedEvent(new RollbackProductRequest(postId)));
+        transactionTemplate.executeWithoutResult(s ->
+                domainEventPublisher.publish(new SalesPostRegisterFailedEvent(postId)));
 
         // 3. 판매글 삭제 (복제본은 cascade로 함께). 아직 PENDING일 때만
         transactionTemplate.executeWithoutResult(s ->

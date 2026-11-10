@@ -1,6 +1,6 @@
-package com.cartmate.cartmate.shared.product;
+package com.cartmate.cartmate.boundedContext.productService.post.domain;
 
-public enum ProductStatus {
+public enum SalesPostProductStatus {
     ON_SALE,    // 판매중
     PAUSED,     // 판매 중지 (판매자가 직접 중지)
     SUSPENDED,  // 운영 중지 (관리자에 의한 판매자 정지)

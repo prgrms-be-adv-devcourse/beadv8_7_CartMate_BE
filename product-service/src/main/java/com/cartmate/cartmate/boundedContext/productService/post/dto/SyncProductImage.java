@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.dto;
 
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,7 +15,7 @@ public class SyncProductImage {
     private Long sellerId;
     private String s3Key;
     private int imageSeq;
-    private ProductStatus status;
+    private SalesPostProductStatus status;
     private LocalDateTime createDate;
     private LocalDateTime modifyDate;
 }

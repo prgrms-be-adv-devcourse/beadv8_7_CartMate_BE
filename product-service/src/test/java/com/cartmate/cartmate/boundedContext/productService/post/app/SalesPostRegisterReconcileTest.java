@@ -19,12 +19,16 @@ import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImage
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
+import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
+import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.core.type.TypeReference;
@@ -34,6 +38,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.cartmate.cartmate.boundedContext.productService.post.domain.QSalesPost.salesPost;
+import static com.cartmate.cartmate.global.inbox.QProcessedEvent.processedEvent;
+import static com.cartmate.cartmate.global.outbox.QOutboxEvent.outboxEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -41,9 +47,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>"등록 중 멈춤"은 판매글 저장(PENDING)과 상품 등록까지만 하고 판매글 완료(ON_SALE)를 하지 않아 만든다.
  * "오래된" 것은 판매글 생성 시각(createDate)을 과거로 돌려 만든다. 테스트는 스케줄링을 끄므로 스케줄러를 직접 만들어 부른다.
+ * 상품 정리는 등록 실패 이벤트(outbox)로 product에 전달되므로 릴레이도 직접 돌린다.
  */
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
+@SpringBootTest(properties = {
+        "cartmate.scheduling.enabled=false",
+        // ManualOutboxRelayConfig의 릴레이도 @Scheduled가 붙어 있어 저절로 돈다. 테스트가 직접 돌리도록 첫 실행을 미룬다
+        "custom.outbox.relay.initial-delay=PT1H"
+})
 @ActiveProfiles("test")
+@Import(ManualOutboxRelayConfig.class)
 class SalesPostRegisterReconcileTest {
 
     private static final Long SELLER_ID = 7L;
@@ -80,6 +92,10 @@ class SalesPostRegisterReconcileTest {
     ProductOptionRepository productOptionRepository;
     @Autowired
     FakeImageStorage storage;
+    @Autowired
+    OutboxRelay outboxRelay;
+    @Autowired
+    JdbcTemplate jdbcTemplate; // global의 릴레이 잠금 풀기(ManualOutboxRelayConfig)에만 넘긴다
 
     SalesPostRegisterReconcileScheduler scheduler;
 
@@ -92,6 +108,10 @@ class SalesPostRegisterReconcileTest {
         productImageRepository.deleteAll();
         productOptionRepository.deleteAll();
         productRepository.deleteAll();
+        transactionTemplate.executeWithoutResult(status -> {
+            queryFactory.delete(outboxEvent).execute();
+            queryFactory.delete(processedEvent).execute();
+        });
         storage.reset();
 
         scheduler = new SalesPostRegisterReconcileScheduler(salesPostFacade);
@@ -108,6 +128,7 @@ class SalesPostRegisterReconcileTest {
         createdMinutesAgo(postId, 31);
 
         scheduler.reconcile();
+        relay(); // 등록 실패 이벤트 → product 상품 · 사진 정리
 
         assertThat(salesPostRepository.findById(postId)).isEmpty();
         assertThat(productRepository.count()).isZero();
@@ -184,6 +205,11 @@ class SalesPostRegisterReconcileTest {
                     new TypeReference<List<com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct>>() {}));
             salesPostCreateUseCase.completeSave(postId);
         });
+    }
+
+    private void relay() {
+        ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
+        outboxRelay.relay();
     }
 
     private void createdMinutesAgo(Long postId, int minutes) {
