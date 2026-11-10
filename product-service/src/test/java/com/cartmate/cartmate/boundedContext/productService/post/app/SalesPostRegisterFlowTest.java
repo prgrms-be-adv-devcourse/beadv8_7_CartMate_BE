@@ -22,15 +22,21 @@ import com.cartmate.cartmate.boundedContext.productService.product.out.ProductIm
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
+import com.cartmate.cartmate.global.outbox.OutboxRelay;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -38,6 +44,8 @@ import java.io.UncheckedIOException;
 import java.net.ServerSocket;
 import java.util.List;
 
+import static com.cartmate.cartmate.global.inbox.QProcessedEvent.processedEvent;
+import static com.cartmate.cartmate.global.outbox.QOutboxEvent.outboxEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -53,11 +61,17 @@ import static org.mockito.Mockito.reset;
  * SalesPostApiClient는 만들어질 때 주소를 정하는데 그때는 랜덤 포트가 아직 없어서, 빈 포트를 미리 골라 서버와 주소에 같이 넣는다.
  * product 쪽 등록 이벤트 · 복제본 동기화 · 동기화 완료는 모두 HTTP 응답 전에 서버 스레드에서 끝나므로 등록 직후 바로 검증한다.
  *
- * <p>보상 시 product는 상품 삭제가 커밋된 뒤 사진 파일도 지운다. 그래서 DB와 저장소(FakeImageStorage) 모두 비었는지 확인한다.
+ * <p>보상은 등록 실패 이벤트(outbox)로 product에 전달되므로, 보상 테스트는 릴레이를 직접 돌린 뒤 확인한다.
+ * product는 상품 삭제가 커밋된 뒤 사진 파일도 지운다. 그래서 DB와 저장소(FakeImageStorage) 모두 비었는지 확인한다.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
-        properties = "cartmate.scheduling.enabled=false")
+        properties = {
+        "cartmate.scheduling.enabled=false",
+        // ManualOutboxRelayConfig의 릴레이도 @Scheduled가 붙어 있어 저절로 돈다. 테스트가 직접 돌리도록 첫 실행을 미룬다
+        "custom.outbox.relay.initial-delay=PT1H"
+})
 @ActiveProfiles("test")
+@Import(ManualOutboxRelayConfig.class)
 class SalesPostRegisterFlowTest {
 
     private static final int PORT = freePort();
@@ -94,6 +108,15 @@ class SalesPostRegisterFlowTest {
     @Autowired
     FakeImageStorage storage;
 
+    @Autowired
+    OutboxRelay outboxRelay;
+    @Autowired
+    JdbcTemplate jdbcTemplate; // global의 릴레이 잠금 풀기(ManualOutboxRelayConfig)에만 넘긴다
+    @Autowired
+    JPAQueryFactory queryFactory;
+    @Autowired
+    TransactionTemplate transactionTemplate;
+
     @BeforeEach
     void setUp() {
         salesPostProductImageRepository.deleteAll();
@@ -103,6 +126,10 @@ class SalesPostRegisterFlowTest {
         productImageRepository.deleteAll();
         productOptionRepository.deleteAll();
         productRepository.deleteAll();
+        transactionTemplate.executeWithoutResult(status -> {
+            queryFactory.delete(outboxEvent).execute();
+            queryFactory.delete(processedEvent).execute();
+        });
         storage.reset();
         reset(salesPostCreateUseCase, salesPostSyncProductUseCase);
     }
@@ -198,7 +225,10 @@ class SalesPostRegisterFlowTest {
         assertNothingLeft();
     }
 
+    // 보상 이벤트를 product에 전달한 뒤 모두 비었는지 확인한다
     private void assertNothingLeft() {
+        relay();
+
         assertThat(salesPostRepository.count()).isZero();
         assertThat(productRepository.count()).isZero();
         assertThat(productImageRepository.count()).isZero();
@@ -207,6 +237,11 @@ class SalesPostRegisterFlowTest {
         assertThat(salesPostProductImageRepository.count()).isZero();
         assertThat(salesPostProductOptionRepository.count()).isZero();
         assertThat(storage.savedCount()).isZero();
+    }
+
+    private void relay() {
+        ManualOutboxRelayConfig.releaseRelayLock(jdbcTemplate);
+        outboxRelay.relay();
     }
 
     private CreateSalesPostRequest request() {
