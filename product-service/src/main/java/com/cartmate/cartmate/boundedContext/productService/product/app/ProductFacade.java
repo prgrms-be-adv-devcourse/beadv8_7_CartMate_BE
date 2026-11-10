@@ -2,7 +2,6 @@ package com.cartmate.cartmate.boundedContext.productService.product.app;
 
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
@@ -10,14 +9,10 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.RestorePr
 import com.cartmate.cartmate.shared.product.dto.*;
 import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
-import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductSyncUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.RollbackProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.event.ProductCreatedEvent;
-import com.cartmate.cartmate.boundedContext.productService.event.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,31 +36,22 @@ public class ProductFacade {
     private final ProductImageFileUpdateUseCase productImageFileUpdateUseCase;
     private final ProductImageFileDeleteUseCase productImageFileDeleteUseCase;
     private final ProductDeleteUseCase productDeleteUseCase;
-    private final ProductUpdateSyncStatusUseCase productUpdateSyncStatusUseCase;
     private final ProductQueryUseCase productQueryUseCase;
     private final ProductSupport productSupport;
     private final TransactionTemplate transactionTemplate;
     private final ProductStatusChangeUseCase productStatusChangeUseCase;
     private final ProductImageOrphanCleanUseCase productImageOrphanCleanUseCase;
 
-    public void registerProduct(CreateProductRequest request, List<MultipartFile> images) {
+    // 저장한 상품(사진 · 옵션 포함)을 돌려준다. post가 이 응답으로 자기 마무리 트랜잭션에서 복제본을 만든다
+    public List<SyncProduct> registerProduct(CreateProductRequest request, List<MultipartFile> images) {
         productSupport.validateProductCount(request.getProductList());
         productSupport.includeFileData(request, images);
         productSupport.validateProductFormat(request.getProductList());
 
         List<UploadedImage> uploadedImageList = productImageFileUploadUseCase.uploadAll(request);
         try {
-            List<SyncProduct> syncProductList = transactionTemplate.execute(status -> {
-                List<SyncProduct> productList = productCreateUseCase.saveProduct(request, uploadedImageList);
-
-                GlobalConfig.getEventPublisher().publish(
-                        new ProductCreatedEvent(
-                                new SyncProductRequest(productList)
-                        )
-                );
-
-                return productList;
-            });
+            return transactionTemplate.execute(status ->
+                    productCreateUseCase.saveProduct(request, uploadedImageList));
         } catch (RuntimeException e) {
             productImageFileDeleteUseCase.deleteImageByException(uploadedImageList);
             throw e;
@@ -87,12 +73,8 @@ public class ProductFacade {
         productDeleteUseCase.deleteProductByPost(postId);
     }
 
-    @Transactional
-    public void updateSyncStatus(ProductSyncUpdateRequest request) {
-        productUpdateSyncStatusUseCase.updateSyncStatus(request.getSuccessList());
-    }
-
-    public void updateProducts(UpdateProductsRequest request, List<MultipartFile> images) {
+    // 수정한 상품(사진 · 옵션 포함)을 돌려준다. post가 이 응답으로 수정 마무리 트랜잭션에서 복제본을 갱신한다
+    public List<SyncProduct> updateProducts(UpdateProductsRequest request, List<MultipartFile> images) {
         productSupport.validateUpdateProductCount(request.getProductList());
         productSupport.includeFileDataUpdate(request, images);
         productSupport.validateUpdateProductFormat(request.getProductList());
@@ -101,46 +83,33 @@ public class ProductFacade {
 
         ProductUpdateResult result;
         try {
-            result = transactionTemplate.execute(status -> {
-                ProductUpdateResult updateResult = productUpdateUseCase.updateProduct(request, uploadedImageList);
-
-                GlobalConfig.getEventPublisher().publish(
-                        new ProductUpdatedEvent(
-                                new SyncProductRequest(updateResult.syncProductList())
-                        )
-                );
-                return updateResult;
-            });
+            result = transactionTemplate.execute(status ->
+                    productUpdateUseCase.updateProduct(request, uploadedImageList));
         } catch (RuntimeException e) {
             productImageFileDeleteUseCase.deleteImageByException(uploadedImageList);
             throw e;
         }
 
         productImageFileDeleteUseCase.deleteByKeys(result.deletedKeys());
+        return result.syncProductList();
     }
 
-    // 판매글 수정 실패 시 스냅샷으로 복구 (이미지 파일은 복구하지 않음)
-    public void restoreProducts(Long postId, RestoreProductsRequest request) {
+    // 판매글 수정 실패 시 스냅샷으로 복구 (이미지 파일은 복구하지 않음).
+    // 되돌린 상품을 돌려준다. post가 이 응답으로 복구 성공 트랜잭션에서 복제본도 되돌린다
+    public List<SyncProduct> restoreProducts(Long postId, RestoreProductsRequest request) {
         if (request.getProductList() == null || request.getProductList().isEmpty()) {
-            return;
+            return List.of();
         }
 
-        ProductUpdateResult result = transactionTemplate.execute(status -> {
-            ProductUpdateResult restoreResult = productRestoreUseCase.restoreProduct(postId, request);
-
-            GlobalConfig.getEventPublisher().publish(
-                    new ProductUpdatedEvent(
-                            new SyncProductRequest(restoreResult.syncProductList())
-                    )
-            );
-            return restoreResult;
-        });
+        ProductUpdateResult result = transactionTemplate.execute(status ->
+                productRestoreUseCase.restoreProduct(postId, request));
 
         try {
             productImageFileDeleteUseCase.deleteByKeys(result.deletedKeys());
         } catch (RuntimeException e) {
             log.warn("복구 후 이미지 파일 삭제 실패. postId={}", postId, e);
         }
+        return result.syncProductList();
     }
 
     @Transactional(readOnly = true)

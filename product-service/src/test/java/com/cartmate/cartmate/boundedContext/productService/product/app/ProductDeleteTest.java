@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.productService.product.app;
 
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
+import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostSyncProductUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductImage;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductOption;
@@ -16,6 +17,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.CreatePro
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
@@ -35,6 +37,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -92,6 +96,10 @@ class ProductDeleteTest {
     JPAQueryFactory queryFactory;
     @Autowired
     TransactionTemplate transactionTemplate;
+    @Autowired
+    SalesPostSyncProductUseCase salesPostSyncProductUseCase;
+    @Autowired
+    ObjectMapper objectMapper;
 
     Long productId;      // 삭제할 상품 (아이폰: 사진 2, 옵션 2)
     Long otherProductId; // 같은 판매글에 남는 상품 (충전기: 사진 1, 옵션 1)
@@ -121,11 +129,18 @@ class ProductDeleteTest {
         CreateProduct charger = new CreateProduct(null, SELLER_ID, post.getId(), 1L, "충전기", "설명", 3000L,
                 List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null)),
                 List.of(new CreateProductOption(3L, 300L)));
-        productFacade.registerProduct(new CreateProductRequest(post.getId(), List.of(iphone, charger)),
+        List<SyncProduct> saved = productFacade.registerProduct(new CreateProductRequest(post.getId(), List.of(iphone, charger)),
                 List.of(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.jpeg()));
+        createReplicas(saved);
 
         productId = productIdOf("아이폰");
         otherProductId = productIdOf("충전기");
+    }
+
+    // post가 상품 등록 응답으로 복제본을 만드는 것과 같게: 응답(product dto)을 JSON처럼 post dto로 바꿔 복제본을 저장한다
+    private void createReplicas(List<SyncProduct> saved) {
+        salesPostSyncProductUseCase.syncProduct(objectMapper.convertValue(saved,
+                new TypeReference<List<com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct>>() {}));
     }
 
     @Test

@@ -14,6 +14,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.CreatePro
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
@@ -26,6 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -53,6 +56,10 @@ class SalesPostRegisterReconcileTest {
     ProductFacade productFacade;
     @Autowired
     TransactionTemplate transactionTemplate;
+    @Autowired
+    SalesPostSyncProductUseCase salesPostSyncProductUseCase;
+    @Autowired
+    ObjectMapper objectMapper;
     @Autowired
     JPAQueryFactory queryFactory;
 
@@ -96,7 +103,7 @@ class SalesPostRegisterReconcileTest {
         Long postId = savePendingPost("아이폰 팝니다");
         registerProduct(postId);
         assertThat(productRepository.count()).isEqualTo(1);
-        assertThat(salesPostProductRepository.count()).isEqualTo(1);
+        assertThat(salesPostProductRepository.count()).isZero(); // 복제본은 완료 트랜잭션에서 만들어지므로 아직 없다
         assertThat(storage.savedCount()).isEqualTo(2);
         createdMinutesAgo(postId, 31);
 
@@ -141,8 +148,8 @@ class SalesPostRegisterReconcileTest {
     @DisplayName("등록이 끝난(ON_SALE) 판매글은 오래됐어도 건드리지 않는다")
     void ignoreCompleted() {
         Long postId = savePendingPost("아이폰 팝니다");
-        registerProduct(postId);
-        salesPostCreateUseCase.completeSave(postId);
+        List<SyncProduct> saved = registerProduct(postId);
+        complete(postId, saved);
         createdMinutesAgo(postId, 31);
 
         scheduler.reconcile();
@@ -160,14 +167,23 @@ class SalesPostRegisterReconcileTest {
         return post.getId();
     }
 
-    // 등록 흐름의 ② 상품 등록(사진 2장, 옵션 1개). post 복제본까지 만들어진다
-    private void registerProduct(Long postId) {
+    // 등록 흐름의 ② 상품 등록(사진 2장, 옵션 1개). 저장한 상품을 돌려준다(복제본은 아직 없음)
+    private List<SyncProduct> registerProduct(Long postId) {
         CreateProduct product = new CreateProduct(null, SELLER_ID, postId, 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null),
                         new CreateProductImage(null, SELLER_ID, null, null, 1, null)),
                 List.of(new CreateProductOption(1L, 100L)));
-        productFacade.registerProduct(new CreateProductRequest(postId, List.of(product)),
+        return productFacade.registerProduct(new CreateProductRequest(postId, List.of(product)),
                 List.of(TestImageFiles.jpeg(), TestImageFiles.png()));
+    }
+
+    // 등록 흐름의 ③ 완료: post가 상품 등록 응답으로 복제본을 만들고 판매를 시작한다(한 트랜잭션)
+    private void complete(Long postId, List<SyncProduct> saved) {
+        transactionTemplate.executeWithoutResult(s -> {
+            salesPostSyncProductUseCase.syncProduct(objectMapper.convertValue(saved,
+                    new TypeReference<List<com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct>>() {}));
+            salesPostCreateUseCase.completeSave(postId);
+        });
     }
 
     private void createdMinutesAgo(Long postId, int minutes) {

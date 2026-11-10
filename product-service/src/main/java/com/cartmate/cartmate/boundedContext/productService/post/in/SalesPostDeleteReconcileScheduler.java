@@ -18,6 +18,8 @@ import org.springframework.stereotype.Component;
  *   <li>Kafka 수신 재시도를 모두 실패해 DLT로 간 경우</li>
  * </ul>
  * 이후 단계는 모두 멱등이라 다시 돌려도 안전하다. 재발행은 무언가 실패했다는 뜻이라 error 로그를 남긴다.
+ *
+ * <p>DELETING 판매글은 사용자에게 보이지 않고 outbox 재시도로 대부분 끝나므로, 사용량이 적은 새벽 3시에 하루 한 번 돈다.
  */
 @Slf4j
 @Component
@@ -26,13 +28,12 @@ import org.springframework.stereotype.Component;
 public class SalesPostDeleteReconcileScheduler {
 
     static final String LOCK_NAME = "post.reconcileSalesPostDelete";
-    private static final long INTERVAL_MILLIS = 10 * 60_000L;
-    private static final int BATCH_SIZE = 100;
+    private static final int BATCH_SIZE = 1000;
 
     private final SalesPostFacade salesPostFacade;
 
-    @Scheduled(fixedDelay = INTERVAL_MILLIS, initialDelay = INTERVAL_MILLIS)
-    @SchedulerLock(name = LOCK_NAME, lockAtMostFor = "PT5M", lockAtLeastFor = "PT5S")
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
+    @SchedulerLock(name = LOCK_NAME, lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     public void reconcile() {
         for (Long postId : salesPostFacade.findStuckDeletingPostIds(BATCH_SIZE)) {
             try {

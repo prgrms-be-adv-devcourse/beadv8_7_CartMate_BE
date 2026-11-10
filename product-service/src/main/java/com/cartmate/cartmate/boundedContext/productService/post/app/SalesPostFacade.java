@@ -11,7 +11,6 @@ import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
@@ -68,11 +67,13 @@ public class SalesPostFacade {
 
         try{
             CreateProductRequest productRequest = new CreateProductRequest(post.getId(), request.toCreateProductList());
-            salesPostApiClient.registerProducts(productRequest, images);
+            List<SyncProduct> savedProducts = salesPostApiClient.registerProducts(productRequest, images);
 
-            transactionTemplate.executeWithoutResult(status ->
-                    salesPostCreateUseCase.completeSave(post.getId())
-            );
+            // 복제본 생성과 판매 시작을 한 트랜잭션으로. 복제본을 못 만들면 등록 실패로 보고 아래에서 보상한다
+            transactionTemplate.executeWithoutResult(status -> {
+                salesPostSyncProductUseCase.syncProduct(savedProducts);
+                salesPostCreateUseCase.completeSave(post.getId());
+            });
         } catch(Exception e) {
             salesPostDeleteUseCase.deleteSalesPostByEvent(post.getId());
             GlobalConfig.getEventPublisher().publish(
@@ -99,11 +100,6 @@ public class SalesPostFacade {
     // 삭제 대사: 삭제 이벤트 재발행. 그 사이 삭제가 끝났으면 false
     public boolean republishStuckDelete(Long postId) {
         return salesPostDeleteUseCase.republishDelete(postId);
-    }
-
-    @Transactional
-    public void syncProduct(SyncProductRequest request) {
-        salesPostSyncProductUseCase.syncProduct(request.getProductList());
     }
 
     @Transactional(readOnly = true)
@@ -172,8 +168,9 @@ public class SalesPostFacade {
             throw e;
         }
 
+        List<SyncProduct> updatedProducts;
         try {
-            salesPostApiClient.updateProducts(request, images);
+            updatedProducts = salesPostApiClient.updateProducts(request, images);
         } catch (ServiceException e) {
             if (e.getResultCode().equals(ProductErrorCode.PRODUCT_UPDATE_INVALID.resultCode())) {
                 // 명확한 실패(상품 쪽 rollback 완료)
@@ -190,8 +187,10 @@ public class SalesPostFacade {
             throw e;
         }
 
+        // 복제본 갱신과 판매글 수정 · 완료를 한 트랜잭션으로. 복제본을 못 맞추면 수정 실패로 보고 상품을 복구한다
         try {
             transactionTemplate.executeWithoutResult(s -> {
+                salesPostSyncProductUseCase.syncProduct(updatedProducts);
                 salesPostUpdateUseCase.markCompleted(postId);
                 salesPostUpdateUseCase.updateSalesPostByUser(request);
                 salesPostRecoveryUseCase.delete(postId);
