@@ -31,7 +31,7 @@ public class WalletSettlementUseCase {
 
     // 정산 한 건을 처리한다. 홀딩에서 꺼낸 판매 금액이 판매자 정산금과 플랫폼 수수료로 나뉘어 입금된다.
     // 1) 같은 정산 ID로 이미 처리됐으면 아무것도 바꾸지 않고 종료한다(금액이 다르면 예외).
-    // 2) 주문의 홀딩을 잠그고, 남은 금액 비율로 판매 금액을 홀딩별로 나눠 꺼내 HoldingSettlement로 기록한다.
+    // 2) 주문의 홀딩을 조회하고(커밋할 때 홀딩 버전을 강제로 올린다), 남은 금액 비율로 판매 금액을 홀딩별로 나눠 꺼내 HoldingSettlement로 기록한다.
     // 3) 판매자 지갑에 정산금(SETTLEMENT)을 입금하고, 수수료가 있으면 플랫폼 지갑에 수수료(FEE)를 입금한다.
     // 어느 단계에서든 실패하면 예외가 발생하며, 같은 트랜잭션이라 모두 롤백된다.
     public void settleAndDeposit(SettleAndDepositRequest request) {
@@ -50,12 +50,12 @@ public class WalletSettlementUseCase {
             return;
         }
 
-        // 2) 판매자 지갑과 주문의 홀딩(정산이 끝나거나 취소된 것은 제외)을 조회한다. 홀딩은 락을 걸어 동시 정산을 막는다.
+        // 2) 판매자 지갑과 주문의 홀딩(정산이 끝나거나 취소된 것은 제외)을 조회한다. 동시 정산은 호출하는 쪽의 주문 키 분산락이 막는다.
         Wallet sellerWallet = walletRepository.findByMemberId(request.sellerMemberId())
                 .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
 
         List<Holding> holdings = holdingRepository
-                .findAllByOrderIdAndPurchaseTypeForUpdate(request.orderId(), request.purchaseType()).stream()
+                .findAllByOrderIdAndPurchaseType(request.orderId(), request.purchaseType()).stream()
                 .filter(holding -> holding.getStatus() == HoldingStatus.RESERVED)
                 .toList();
 

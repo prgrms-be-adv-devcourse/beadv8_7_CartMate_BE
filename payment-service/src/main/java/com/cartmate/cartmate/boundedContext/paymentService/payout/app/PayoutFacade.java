@@ -35,6 +35,12 @@ public class PayoutFacade {
         payoutPayUseCase.pay(payoutId, LocalDateTime.now());
     }
 
+    // 정산 지급 전에 잡을 주문 키 분산락 이름을 만든다. PayoutPayService가 락을 잡기 전에 부른다.
+    @Transactional(readOnly = true)
+    public String getHoldingLockKey(Long payoutId) {
+        return payoutPayUseCase.holdingLockKey(payoutId);
+    }
+
     // 판매자 등록 이벤트를 받아 지급에 필요한 판매자의 회원 ID를 복제한다.
     @Transactional
     public void registerSeller(SellerRegisteredEvent event) {

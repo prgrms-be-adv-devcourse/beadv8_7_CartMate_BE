@@ -29,6 +29,12 @@ public class DeliveryClaimQueryUseCase {
     private final DeliveryClaimItemRepository deliveryClaimItemRepository;
     private final SellerQuery sellerQuery;
 
+    // 클레임이 속한 배송 ID를 조회한다. 없는 클레임이면 처리할 때와 같은 오류를 낸다.
+    public Long getDeliveryId(Long claimId) {
+        return deliveryClaimRepository.findDeliveryIdById(claimId)
+                .orElseThrow(() -> new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_NOT_FOUND));
+    }
+
     // 내가 접수한 교환·환불을 최신순으로 조회한다. 상품은 페이지 단위로 한 번에 가져온다.
     public Page<DeliveryClaimResponse> getMyClaims(Long memberId, Pageable pageable) {
         if (memberId == null) {

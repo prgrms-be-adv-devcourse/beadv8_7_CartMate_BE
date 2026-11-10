@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.in;
 
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryFacade;
+import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryRetryService;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryDetailResponse;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryReadyRequest;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryResponse;
@@ -32,6 +33,7 @@ import java.util.List;
 public class DeliveryController {
 
     private final DeliveryFacade deliveryFacade;
+    private final DeliveryRetryService deliveryRetryService;
 
     @GetMapping("/me")
     public RsData<Page<DeliveryResponse>> getMyDeliveries(
@@ -77,7 +79,7 @@ public class DeliveryController {
             @Valid @RequestBody DeliveryReadyRequest request
     ) {
         return new RsData<>("200-1", "배송 준비 처리되었습니다.",
-                deliveryFacade.readyDelivery(deliveryId, user.memberId(), request.carrier(), request.trackingNumber()));
+                deliveryRetryService.readyDelivery(deliveryId, user.memberId(), request.carrier(), request.trackingNumber()));
     }
 
     // 판매자가 배송준비 상태의 배송을 배송중으로 처리한다.
@@ -87,7 +89,7 @@ public class DeliveryController {
             @PathVariable Long deliveryId
     ) {
         return new RsData<>("200-1", "배송 출발 처리되었습니다.",
-                deliveryFacade.shipDelivery(deliveryId, user.memberId()));
+                deliveryRetryService.shipDelivery(deliveryId, user.memberId()));
     }
 
     // 수령인(구매자) 본인이 배송완료된 배송을 구매확정한다.

@@ -21,7 +21,7 @@ public class DeliveryAutoConfirmUseCase {
     // 조회 이후 구매자가 먼저 확정했으면 이미 구매확정이라 아무것도 하지 않고 이벤트도 다시 발행하지 않는다.
     // 처리 중인 교환·환불이 있으면 확정하지 않고 건너뛴다. 클레임이 끝난 뒤 다음 실행에서 확정된다.
     public void confirm(Long deliveryId) {
-        Delivery delivery = deliveryRepository.findByIdForUpdate(deliveryId)
+        Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new ServiceException(DeliveryErrorCode.DELIVERY_NOT_FOUND));
 
         if (delivery.getStatus() == DeliveryStatus.DELIVERED && deliveryClaimRepository.hasActiveClaim(delivery.getId())) {

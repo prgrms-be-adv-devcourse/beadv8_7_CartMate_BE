@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.in;
 
+import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryClaimLockService;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryClaimCreateRequest;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryClaimRejectRequest;
@@ -34,6 +35,7 @@ import java.util.List;
 public class ClaimController {
 
     private final DeliveryFacade deliveryFacade;
+    private final DeliveryClaimLockService deliveryClaimLockService;
 
     // 내가 접수한 교환·환불 목록과 진행 상태를 최신순으로 조회한다.
     @GetMapping("/me")
@@ -65,7 +67,7 @@ public class ClaimController {
             @PathVariable Long claimId
     ) {
         return new RsData<>("200-1", "교환·환불이 수락되었습니다.",
-                deliveryFacade.approveClaim(claimId, user.memberId()));
+                deliveryClaimLockService.approve(claimId, user.memberId()));
     }
 
     // 판매자가 접수된 교환·환불을 사유와 함께 거절한다.
@@ -76,7 +78,7 @@ public class ClaimController {
             @Valid @RequestBody DeliveryClaimRejectRequest request
     ) {
         return new RsData<>("200-1", "교환·환불이 거절되었습니다.",
-                deliveryFacade.rejectClaim(claimId, user.memberId(), request.reason()));
+                deliveryClaimLockService.reject(claimId, user.memberId(), request.reason()));
     }
 
     // 판매자가 수락한 교환·환불을 처리 완료로 바꾼다.
@@ -86,7 +88,7 @@ public class ClaimController {
             @PathVariable Long claimId
     ) {
         return new RsData<>("200-1", "교환·환불이 완료 처리되었습니다.",
-                deliveryFacade.completeClaim(claimId, user.memberId()));
+                deliveryClaimLockService.complete(claimId, user.memberId()));
     }
 
     // 수령인(구매자) 본인이 배송완료된 배송에서 상품을 골라 교환·환불을 접수한다.
