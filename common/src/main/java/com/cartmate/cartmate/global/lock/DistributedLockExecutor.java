@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 @Component
 public class DistributedLockExecutor {
@@ -27,6 +28,17 @@ public class DistributedLockExecutor {
                 action.run();
                 return null;
             });
+        } catch (RuntimeException | Error e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    // run과 같지만 결과를 돌려준다. 락 키를 만들려고 먼저 조회해야 하는 곳(예: 클레임 → 배송)에서 쓴다.
+    public <T> T get(String key, Supplier<T> action) {
+        try {
+            return call(KEY_PREFIX + key, DEFAULT_WAIT_SECONDS, action::get);
         } catch (RuntimeException | Error e) {
             throw e;
         } catch (Throwable e) {
