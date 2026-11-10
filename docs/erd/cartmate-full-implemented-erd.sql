@@ -137,6 +137,7 @@ CREATE TABLE `delivery` (
 	`delivered_at`	DATETIME	NULL,
 	`confirmed_at`	DATETIME	NULL,
 	`canceled_at`	DATETIME	NULL,
+	`version`	BIGINT	NOT NULL	DEFAULT 0,
 	`created_at`	DATETIME	NOT NULL,
 	`updated_at`	DATETIME	NOT NULL
 );
@@ -169,6 +170,7 @@ CREATE TABLE `delivery_claim` (
 	`refund_status`	VARCHAR(20)	NOT NULL	DEFAULT 'NONE',
 	`processed_at`	DATETIME	NULL,
 	`completed_at`	DATETIME	NULL,
+	`version`	BIGINT	NOT NULL	DEFAULT 0,
 	`created_at`	DATETIME	NOT NULL,
 	`updated_at`	DATETIME	NOT NULL
 );

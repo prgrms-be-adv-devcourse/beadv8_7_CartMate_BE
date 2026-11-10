@@ -87,6 +87,12 @@ public class Delivery {
     @Column(name = "canceled_at")
     private LocalDateTime canceledAt;
 
+    // 분산락이 뚫리거나 행 락을 쓰는 이벤트 경로(취소 판정)와 겹칠 때 늦게 커밋한 쪽을 실패시킨다(ADR 0002·0009).
+    // 이미 있는 행은 컬럼이 추가될 때 0으로 채워진다(기본값). null이면 버전 비교가 맞지 않아 수정이 모두 실패한다.
+    @Version
+    @Column(name = "version", nullable = false, columnDefinition = "bigint not null default 0")
+    private Long version;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;    //배송생성시간

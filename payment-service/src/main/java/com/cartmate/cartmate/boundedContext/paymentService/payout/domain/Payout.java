@@ -75,6 +75,12 @@ public class Payout {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    // 분산락이 뚫려 같은 정산을 동시에 지급할 때의 마지막 안전망(ADR 0002). 배치는 다음 실행에서 다시 시도한다.
+    // 이미 있는 행은 컬럼이 추가될 때 0으로 채워진다(기본값). null이면 버전 비교가 맞지 않아 수정이 모두 실패한다.
+    @Version
+    @Column(name = "version", nullable = false, columnDefinition = "bigint not null default 0")
+    private Long version;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
