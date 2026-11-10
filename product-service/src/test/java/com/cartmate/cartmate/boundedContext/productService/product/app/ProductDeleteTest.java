@@ -26,7 +26,8 @@ import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxEventStatus;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -157,19 +158,19 @@ class ProductDeleteTest {
         assertThat(productOptionRepository.findAll())
                 .extracting(ProductOption::getStatus)
                 .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
-        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(SalesPostProductStatus.ON_SALE);
         assertThat(outboxCount(OutboxEventStatus.NEW)).isEqualTo(1);
 
         relay();
 
-        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
-        assertThat(salesPostProductRepository.findById(otherProductId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(SalesPostProductStatus.DELETED);
+        assertThat(salesPostProductRepository.findById(otherProductId).orElseThrow().getStatus()).isEqualTo(SalesPostProductStatus.ON_SALE);
         assertThat(salesPostProductImageRepository.findAll())
                 .extracting(SalesPostProductImage::getStatus)
-                .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
+                .containsExactlyInAnyOrder(SalesPostProductStatus.DELETED, SalesPostProductStatus.DELETED, SalesPostProductStatus.ACTIVE);
         assertThat(salesPostProductOptionRepository.findAll())
                 .extracting(SalesPostProductOption::getStatus)
-                .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
+                .containsExactlyInAnyOrder(SalesPostProductStatus.DELETED, SalesPostProductStatus.DELETED, SalesPostProductStatus.ACTIVE);
         assertThat(outboxCount(OutboxEventStatus.PUBLISHED)).isEqualTo(1);
     }
 
@@ -204,7 +205,7 @@ class ProductDeleteTest {
                 .from(processedEvent)
                 .where(processedEvent.consumer.eq(ProductServiceConsumers.PRODUCT_DELETED))
                 .fetchOne()).isEqualTo(1);
-        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
+        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(SalesPostProductStatus.DELETED);
     }
 
     @Test
@@ -215,7 +216,7 @@ class ProductDeleteTest {
                 .hasMessageContaining("PRODUCT_ACCESS_DENIED");
 
         assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
-        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(SalesPostProductStatus.ON_SALE);
         assertThat(outboxCount(null)).isZero();
     }
 

@@ -148,11 +148,12 @@ class SalesPostRegisterFlowTest {
         assertThat(copy.getDescription()).isEqualTo(product.getDescription());
         assertThat(copy.getBasePrice()).isEqualTo(product.getBasePrice());
 
+        // 복제본 상태(SalesPostProductStatus)와 상품 상태(ProductStatus)는 다른 enum이라 값 이름으로 비교한다
         assertThat(salesPostProductImageRepository.findAll())
                 .extracting(SalesPostProductImage::getId, SalesPostProductImage::getS3Key,
-                        SalesPostProductImage::getImageSeq, SalesPostProductImage::getStatus)
+                        SalesPostProductImage::getImageSeq, i -> i.getStatus().name())
                 .containsExactlyInAnyOrderElementsOf(productImages.stream()
-                        .map(i -> tuple(i.getId(), i.getS3Key(), i.getImageSeq(), i.getStatus()))
+                        .map(i -> tuple(i.getId(), i.getS3Key(), i.getImageSeq(), i.getStatus().name()))
                         .toList());
         assertThat(salesPostProductOptionRepository.findAll())
                 .extracting(SalesPostProductOption::getProductTypeId, SalesPostProductOption::getProductOptionId)

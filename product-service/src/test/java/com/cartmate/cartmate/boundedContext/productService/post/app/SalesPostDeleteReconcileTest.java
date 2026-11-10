@@ -20,7 +20,8 @@ import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRe
 import com.cartmate.cartmate.global.outbox.ManualOutboxRelayConfig;
 import com.cartmate.cartmate.global.outbox.OutboxEventStatus;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -187,7 +188,7 @@ class SalesPostDeleteReconcileTest {
         assertThat(salesPostProductRepository.findAll())
                 .hasSize(2)
                 .extracting(SalesPostProduct::getStatus)
-                .containsOnly(ProductStatus.DELETED);
+                .containsOnly(SalesPostProductStatus.DELETED);
     }
 
     // 재시도를 모두 써서 릴레이가 더는 보내지 않는 상태로 만든다

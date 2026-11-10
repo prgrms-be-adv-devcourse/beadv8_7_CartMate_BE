@@ -16,7 +16,7 @@ import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEven
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
 import com.cartmate.cartmate.shared.product.PaybackFunder;
 import com.cartmate.cartmate.shared.product.PaybackOverlapPolicy;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.support.ProductServiceJpaTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
