@@ -96,6 +96,13 @@ public class DeliveryFacade {
         deliveryDeliverUseCase.deliver(deliveryId);
     }
 
+    // 클레임 승인·거절·완료는 클레임의 배송 키로 잠근다. 락을 잡기 전에 배송 ID를 알아야 해서
+    // DeliveryClaimLockService가 이 조회 → 락 → 아래 메서드 순서로 부른다.
+    @Transactional(readOnly = true)
+    public Long getClaimDeliveryId(Long claimId) {
+        return deliveryClaimQueryUseCase.getDeliveryId(claimId);
+    }
+
     @Transactional
     public SellerClaimResponse approveClaim(Long claimId, Long memberId) {
         return deliveryClaimApproveUseCase.approve(claimId, memberId);
