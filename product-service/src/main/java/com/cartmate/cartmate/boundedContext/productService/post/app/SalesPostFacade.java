@@ -5,12 +5,11 @@ import com.cartmate.cartmate.boundedContext.productService.post.domain.*;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.*;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
+import com.cartmate.cartmate.global.event.DomainEventPublisher;
+import com.cartmate.cartmate.shared.post.event.SalesPostRegisterFailedEvent;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
@@ -43,6 +42,7 @@ public class SalesPostFacade {
     private final SalesPostRecoverUseCase salesPostRecoverUseCase;
     private final SalesPostDeleteUseCase salesPostDeleteUseCase;
     private final TransactionTemplate transactionTemplate;
+    private final DomainEventPublisher domainEventPublisher;
     private final SalesPostApiClient salesPostApiClient;
     private final SalesPostSupport salesPostSupport;
     private final AdminSalesPostUseCase adminSalesPostUseCase;
@@ -75,12 +75,11 @@ public class SalesPostFacade {
                 salesPostCreateUseCase.completeSave(post.getId());
             });
         } catch(Exception e) {
-            salesPostDeleteUseCase.deleteSalesPostByEvent(post.getId());
-            GlobalConfig.getEventPublisher().publish(
-                    new PostApiCallFailedEvent(
-                            new RollbackProductRequest(post.getId())
-                    )
-            );
+            // 판매글 삭제와 상품 정리 이벤트(outbox)를 한 트랜잭션으로. 커밋되면 outbox가 product까지 전달을 책임진다
+            transactionTemplate.executeWithoutResult(status -> {
+                salesPostDeleteUseCase.deleteSalesPostByEvent(post.getId());
+                domainEventPublisher.publish(new SalesPostRegisterFailedEvent(post.getId()));
+            });
             throw e;
         }
     }

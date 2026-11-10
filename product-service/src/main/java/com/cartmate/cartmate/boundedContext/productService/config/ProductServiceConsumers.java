@@ -10,6 +10,9 @@ public final class ProductServiceConsumers {
     // product: 판매글 삭제(SalesPostDeletedEvent)를 받아 상품 삭제
     public static final String SALES_POST_DELETED = "product.sales-post-deleted";
 
+    // product: 판매글 등록 실패(SalesPostRegisterFailedEvent)를 받아 상품 hard delete
+    public static final String SALES_POST_REGISTER_FAILED = "product.sales-post-register-failed";
+
     // post: 상품 삭제 완료(ProductsDeletedByPostEvent)를 받아 판매글 삭제 완료
     public static final String PRODUCTS_DELETED_BY_POST = "post.products-deleted-by-post";
 

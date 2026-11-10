@@ -12,7 +12,6 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedI
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.global.rsData.RsData;
-import com.cartmate.cartmate.boundedContext.productService.product.dto.RollbackProductRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -126,11 +125,16 @@ public class ProductFacade {
         );
     }
 
-    // api에 의한 보상트랜잭션 처리.
-    // 상품 삭제가 커밋된 뒤에 사진 파일을 지운다(먼저 지우면 DB 롤백 시 파일 없는 상품이 남는다). 파일 삭제 실패는 고아 파일로만 남으므로 로그만 남긴다
-    public void rollbackByApiFail(RollbackProductRequest rollbackProductRequest) {
-        Long postId = rollbackProductRequest.getPostId();
-        List<String> imageKeys = productDeleteUseCase.hardDeleteByEvent(postId);
+    // 판매글 등록 실패(SalesPostRegisterFailedEvent)에 의한 보상. 같은 이벤트는 한 번만 처리한다
+    // 처리 기록 + 상품 삭제를 한 트랜잭션으로 커밋한 뒤에 사진 파일을 지운다(먼저 지우면 DB 롤백 시 파일 없는 상품이 남는다).
+    // 파일 삭제 실패는 고아 파일로만 남으므로 로그만 남긴다
+    public void rollbackByApiFail(String eventId, Long postId) {
+        List<String> imageKeys = transactionTemplate.execute(status -> {
+            if (!processedEvents.markFirst(ProductServiceConsumers.SALES_POST_REGISTER_FAILED, eventId)) {
+                return List.<String>of();
+            }
+            return productDeleteUseCase.hardDeleteByEvent(postId);
+        });
 
         try {
             productImageFileDeleteUseCase.deleteByKeys(imageKeys);
