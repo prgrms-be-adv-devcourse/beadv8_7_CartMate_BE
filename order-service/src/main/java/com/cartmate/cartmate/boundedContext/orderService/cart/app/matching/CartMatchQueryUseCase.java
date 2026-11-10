@@ -70,7 +70,8 @@ class CartMatchQueryUseCase {
                     return CartMatchResponse.of(purchaseByProductId.get(entry.getKey()), products.get(entry.getKey()),
                             match.best.similarity(), match.best.matchType(), new ArrayList<>(match.cartProductIds));
                 })
-                .sorted(Comparator.comparingDouble(CartMatchResponse::similarity).reversed()
+                .sorted(Comparator.comparing(CartMatchResponse::matchType)
+                        .thenComparing(Comparator.comparingDouble(CartMatchResponse::similarity).reversed())
                         .thenComparing(CartMatchResponse::deadlineAt)
                         .thenComparing(CartMatchResponse::individualGroupPurchaseId))
                 .toList();

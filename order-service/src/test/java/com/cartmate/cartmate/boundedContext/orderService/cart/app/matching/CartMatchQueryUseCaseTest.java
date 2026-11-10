@@ -60,7 +60,7 @@ class CartMatchQueryUseCaseTest {
     }
 
     @Test
-    @DisplayName("유사 매칭이 섞이면 유사도 높은 순, 같으면 마감 임박 순이고, 한 공동구매에 맞은 내 상품을 모두 보여준다")
+    @DisplayName("정확 매칭이 먼저, 유사 매칭은 유사도 높은 순이고 유사도가 1.0이어도 정확 매칭보다 뒤이며, 한 공동구매에 맞은 내 상품을 모두 보여준다")
     void similarAndOrder() {
         Long otherBall = 50L;
         givenCart(UNIFORM, otherBall);
@@ -69,7 +69,7 @@ class CartMatchQueryUseCaseTest {
         given(purchaseRepository.findOpenDemandPurchases(NOW)).willReturn(List.of(ball, uniform));
         ProductSimilarityFinder vector = (sources, candidates) -> Map.of(
                 UNIFORM, List.of(new ProductSimilarity(BALL, 0.86, MatchType.VECTOR)),
-                otherBall, List.of(new ProductSimilarity(BALL, 0.91, MatchType.VECTOR))
+                otherBall, List.of(new ProductSimilarity(BALL, 1.0, MatchType.VECTOR))
         );
 
         List<CartMatchResponse> matches =
@@ -78,7 +78,7 @@ class CartMatchQueryUseCaseTest {
         assertThat(matches)
                 .extracting(CartMatchResponse::individualGroupPurchaseId, CartMatchResponse::matchType,
                         CartMatchResponse::similarity)
-                .containsExactly(tuple(11L, MatchType.EXACT, 1.0), tuple(10L, MatchType.VECTOR, 0.91));
+                .containsExactly(tuple(11L, MatchType.EXACT, 1.0), tuple(10L, MatchType.VECTOR, 1.0));
         assertThat(matches.get(1).matchedCartProductIds()).containsExactly(UNIFORM, otherBall);
     }
 
