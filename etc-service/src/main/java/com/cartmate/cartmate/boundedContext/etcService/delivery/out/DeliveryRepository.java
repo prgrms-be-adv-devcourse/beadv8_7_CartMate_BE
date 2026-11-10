@@ -18,6 +18,12 @@ import java.util.Optional;
 
 public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
+    // 클레임 접수용 조회. 배송 행은 바꾸지 않고 클레임만 새로 저장하므로, 커밋할 때 배송 버전을 강제로 올려
+    // 분산락이 뚫렸을 때 구매확정 × 접수, 접수 × 접수가 버전 충돌로 실패하게 한다(ADR 0002).
+    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+    @Query("select d from Delivery d where d.id = :id")
+    Optional<Delivery> findByIdForClaim(@Param("id") Long id);
+
     // 한 주문의 배송을 모두 잠그고 조회한다. 주문 취소와 판매자의 배송준비 처리가 동시에 들어와도 한쪽만 성공하게 한다.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from Delivery d where d.orderId = :orderId and d.purchaseType = :purchaseType order by d.id")
