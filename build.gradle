@@ -32,5 +32,15 @@ subprojects {
 	dependencies {
 		compileOnly 'org.projectlombok:lombok'
 		annotationProcessor 'org.projectlombok:lombok'
+		// 소스 파일은 UTF-8. Windows 기본 인코딩(MS949)으로 읽으면 한글 문자열·로그가 깨진다
+		tasks.withType(JavaCompile).configureEach {
+			options.encoding = 'UTF-8'
+		}
+		tasks.withType(Javadoc).configureEach {
+			options.encoding = 'UTF-8'
+		}
+		tasks.withType(Test).configureEach {
+			systemProperty 'file.encoding', 'UTF-8'
+		}
 	}
 }
