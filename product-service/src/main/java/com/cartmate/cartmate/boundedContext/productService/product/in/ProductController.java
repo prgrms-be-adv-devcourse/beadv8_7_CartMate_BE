@@ -13,7 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.cartmate.cartmate.shared.product.dto.ProductStatusChangeRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductStatusChangeRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 

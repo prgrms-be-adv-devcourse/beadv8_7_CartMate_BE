@@ -2,7 +2,6 @@ package com.cartmate.cartmate.boundedContext.productService.product.domain;
 
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProductOption;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
-import com.cartmate.cartmate.shared.product.ProductStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

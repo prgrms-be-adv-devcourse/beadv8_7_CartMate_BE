@@ -1,6 +1,5 @@
 package com.cartmate.cartmate.boundedContext.productService.product.domain;
 
-import com.cartmate.cartmate.shared.product.ProductStatus;
 
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProductImage;

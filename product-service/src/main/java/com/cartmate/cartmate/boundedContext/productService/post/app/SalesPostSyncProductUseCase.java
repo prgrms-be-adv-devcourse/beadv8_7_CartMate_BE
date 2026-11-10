@@ -9,7 +9,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostPro
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -49,7 +49,7 @@ public class SalesPostSyncProductUseCase {
                     product.getName(),
                     product.getDescription(),
                     product.getBasePrice(),
-                    ProductStatus.ON_SALE,
+                    SalesPostProductStatus.ON_SALE,
                     product.getCreateDate(),
                     product.getModifyDate()
             );

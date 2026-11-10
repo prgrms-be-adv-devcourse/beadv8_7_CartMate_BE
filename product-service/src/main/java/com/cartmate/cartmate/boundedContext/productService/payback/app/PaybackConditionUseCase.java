@@ -10,7 +10,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.Produc
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.product.PaybackFunder;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

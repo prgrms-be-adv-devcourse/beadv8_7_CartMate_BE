@@ -6,7 +6,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.eventPublisher.EventPublisher;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -38,7 +38,7 @@ public class SalesPostHideUseCase {
         SalesPost post = findOwnedPost(postId, sellerId);
         post.validatePausable();
 
-        salesPostApiClient.changeProductStatus(postId, ProductStatus.PAUSED);
+        salesPostApiClient.changeProductStatus(postId, SalesPostProductStatus.PAUSED);
 
         post.pauseBySeller();
         publishHidden(post, SalesPostHideType.SELLER_PAUSED, actorMemberId, null);
@@ -50,7 +50,7 @@ public class SalesPostHideUseCase {
         SalesPost post = findOwnedPost(postId, sellerId);
         post.validateResumableBySeller();
 
-        salesPostApiClient.changeProductStatus(postId, ProductStatus.ON_SALE);
+        salesPostApiClient.changeProductStatus(postId, SalesPostProductStatus.ON_SALE);
 
         post.resumeBySeller();
     }

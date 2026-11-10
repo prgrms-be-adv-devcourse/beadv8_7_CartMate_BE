@@ -7,7 +7,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUp
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.RestoreProductsRequest;
 import com.cartmate.cartmate.shared.product.dto.*;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;

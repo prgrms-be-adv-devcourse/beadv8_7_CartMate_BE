@@ -10,7 +10,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApi
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostSanctionRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostSellerRepository;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -94,7 +94,7 @@ public class AdminSalesPostUseCase {
         SalesPost post = findVisiblePost(postId);
         post.validateSuspendable();
 
-        salesPostApiClient.changeProductStatus(postId, ProductStatus.SUSPENDED);
+        salesPostApiClient.changeProductStatus(postId, SalesPostProductStatus.SUSPENDED);
 
         post.suspendByAdmin();
         String trimmed = reason.trim();
@@ -108,7 +108,7 @@ public class AdminSalesPostUseCase {
         SalesPost post = findVisiblePost(postId);
         post.validateResumable();
 
-        salesPostApiClient.changeProductStatus(postId, ProductStatus.ON_SALE);
+        salesPostApiClient.changeProductStatus(postId, SalesPostProductStatus.ON_SALE);
 
         post.resumeByAdmin();
         salesPostSanctionRepository.save(new SalesPostSanction(postId, adminId, SalesPostSanctionAction.RESUME, reason.trim()));

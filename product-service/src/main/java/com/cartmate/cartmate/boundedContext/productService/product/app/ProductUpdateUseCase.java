@@ -9,7 +9,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdatePro
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductOption;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;

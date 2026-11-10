@@ -1,6 +1,5 @@
 package com.cartmate.cartmate.boundedContext.productService.post.domain;
 
-import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -36,7 +35,7 @@ public class SalesPostProduct extends BaseManualIdAndTime {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private ProductStatus status;
+    private SalesPostProductStatus status;
 
     @OneToMany(mappedBy = "salesPostProduct", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     @SQLRestriction("status in ('ACTIVE')")
@@ -49,7 +48,7 @@ public class SalesPostProduct extends BaseManualIdAndTime {
 
 
     public SalesPostProduct(Long id, Long sellerId, SalesPost salesPost, Long categoryId, String name, String description,
-                            Long basePrice, ProductStatus status, LocalDateTime createDate, LocalDateTime modifyDate) {
+                            Long basePrice, SalesPostProductStatus status, LocalDateTime createDate, LocalDateTime modifyDate) {
         super(id, createDate, modifyDate);
         this.sellerId = sellerId;
         this.salesPost = salesPost;
@@ -61,7 +60,7 @@ public class SalesPostProduct extends BaseManualIdAndTime {
     }
 
     public SalesPostProduct delete() {
-        this.status = ProductStatus.DELETED;
+        this.status = SalesPostProductStatus.DELETED;
         imageList.forEach(SalesPostProductImage::delete);
         optionList.forEach(SalesPostProductOption::delete);
         return this;

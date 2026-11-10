@@ -3,7 +3,6 @@ package com.cartmate.cartmate.boundedContext.productService.post.domain;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SelectSalesPostProductOption;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductOption;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
-import com.cartmate.cartmate.shared.product.ProductStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -38,10 +37,10 @@ public class SalesPostProductOption extends BaseManualIdAndTime {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @ColumnDefault("'ACTIVE'")
-    private ProductStatus status;
+    private SalesPostProductStatus status;
 
     public SalesPostProductOption(Long id, SalesPostProduct salesPostProduct, Long productTypeId, Long productOptionId,
-                                  ProductStatus status, LocalDateTime createDate, LocalDateTime modifyDate) {
+                                  SalesPostProductStatus status, LocalDateTime createDate, LocalDateTime modifyDate) {
         super(id, createDate, modifyDate);
         this.salesPostProduct = salesPostProduct;
         this.productTypeId = productTypeId;
@@ -56,14 +55,14 @@ public class SalesPostProductOption extends BaseManualIdAndTime {
                 option.getProductTypeId(),
                 option.getProductOptionId(),
                 // 상태 없이 온 옛 형식의 동기화 데이터는 ACTIVE로 본다
-                option.getStatus() == null ? ProductStatus.ACTIVE : option.getStatus(),
+                option.getStatus() == null ? SalesPostProductStatus.ACTIVE : option.getStatus(),
                 option.getCreateDate(),
                 option.getModifyDate()
         );
     }
 
     public SalesPostProductOption delete() {
-        this.status = ProductStatus.DELETED;
+        this.status = SalesPostProductStatus.DELETED;
         return this;
     }
 

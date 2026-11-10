@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.product.dto;
 
 import lombok.AllArgsConstructor;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

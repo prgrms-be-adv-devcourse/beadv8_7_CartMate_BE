@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.post.dto;
 
 import lombok.AllArgsConstructor;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -16,5 +16,5 @@ public class SyncProductOption {
     private Long productOptionId;
     private LocalDateTime createDate;
     private LocalDateTime modifyDate;
-    private ProductStatus status; // ACTIVE / DELETED (옵션은 논리 삭제)
+    private SalesPostProductStatus status; // ACTIVE / DELETED (옵션은 논리 삭제)
 }

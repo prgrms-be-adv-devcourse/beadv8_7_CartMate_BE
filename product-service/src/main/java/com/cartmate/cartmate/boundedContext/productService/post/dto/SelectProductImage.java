@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.dto;
 
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,7 +14,7 @@ public class SelectProductImage {
     private Long id;
     private String s3key;
     private int imageSeq;
-    private ProductStatus status;
+    private SalesPostProductStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
