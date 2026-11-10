@@ -59,6 +59,27 @@ class AbuseAccountRingJudgeIntegrationTest {
         assertThat(level(13L)).isEqualTo(AbuseLevel.SUSPICIOUS);
     }
 
+    @Test
+    @DisplayName("무리 안 다른 계정이 아직 한 번도 판정되지 않았어도(상태 행 없음) 그 계정의 신호를 무리 가산에 넣는다")
+    void ringBoostCountsMembersNotYetJudged() {
+        identity(21L, "010-6666-7777");
+        identity(22L, "010-6666-7777");
+        for (long purchase : List.of(300L, 400L)) {
+            abuseFacade.receive(new AbuseSignalCommand(22L, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
+                    "order-" + purchase, LocalDateTime.now(), AbuseSignalCommand.sharedGroupPurchaseContext(purchase)));
+            abuseFacade.receive(new AbuseSignalCommand(21L, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
+                    "order-" + purchase, LocalDateTime.now(), AbuseSignalCommand.sharedGroupPurchaseContext(purchase)));
+        }
+
+        abuseFacade.confirmLinks(21L);
+        abuseFacade.judgePending(21L);
+
+        assertThat(abuseMemberStateRepository.findById(22L)).isEmpty();
+        AbuseSignal last = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(21L).getLast();
+        assertThat(last.getRuleResults()).contains(new AbuseRuleResult("ACCOUNT_RING", 1, 34));
+        assertThat(level(21L)).isEqualTo(AbuseLevel.RESTRICTED);
+    }
+
     private void actTogether(List<Long> members) {
         for (long purchase : List.of(100L, 200L)) {
             for (Long member : members) {

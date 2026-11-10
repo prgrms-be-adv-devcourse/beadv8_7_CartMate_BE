@@ -9,6 +9,7 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.boundedContext.orderService.abuse.dto.AbuseMemberCaseResponse;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.dto.AbuseMemberSummaryResponse;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseAccountLinkRepository;
+import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseAdminActionRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberStateRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseRestrictionRepository;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
@@ -36,6 +37,7 @@ class AbuseCaseQueryUseCase {
     private final AbuseRestrictionRepository abuseRestrictionRepository;
     private final AbuseAccountLinkRepository abuseAccountLinkRepository;
     private final AbuseAccountRingSupport abuseAccountRingSupport;
+    private final AbuseAdminActionRepository abuseAdminActionRepository;
 
     List<AbuseMemberSummaryResponse> findFlaggedMembers(AbuseLevel minLevel, int limit, LocalDateTime now) {
         List<AbuseLevel> levels = Arrays.stream(AbuseLevel.values())
@@ -61,6 +63,7 @@ class AbuseCaseQueryUseCase {
                 isRestricted(restrictedUntil, now),
                 restrictedUntil,
                 state.map(AbuseMemberState::getLastJudgedAt).orElse(null),
+                state.map(AbuseMemberState::getScoreResetAt).orElse(null),
                 latestJudged.map(AbuseSignal::getTotalScore).orElse(null),
                 latestJudged.map(this::ruleScores).orElse(List.of()),
                 signals.stream().map(this::signal).toList(),
@@ -70,7 +73,12 @@ class AbuseCaseQueryUseCase {
                 abuseAccountLinkRepository.findByMember(memberId).stream()
                         .map(link -> link(link, memberId))
                         .toList(),
-                ring(memberId)
+                ring(memberId),
+                abuseAdminActionRepository.findByMemberIdOrderByCreatedAtDescIdDesc(memberId).stream()
+                        .map(action -> new AbuseMemberCaseResponse.AdminAction(action.getId(), action.getActionType(),
+                                action.getAdminMemberId(), action.getReason(), action.getRestrictionId(),
+                                action.getAffectedSignalCount(), action.getCreatedAt()))
+                        .toList()
         );
     }
 
@@ -89,7 +97,7 @@ class AbuseCaseQueryUseCase {
     private AbuseMemberCaseResponse.Restriction restriction(AbuseRestriction restriction, LocalDateTime now) {
         return new AbuseMemberCaseResponse.Restriction(restriction.getId(), restriction.getStartedAt(),
                 restriction.getEndsAt(), restriction.getExtendedCount(), restriction.getLastSignalId(),
-                restriction.getEndsAt().isAfter(now));
+                restriction.getSource(), restriction.getReleasedAt(), restriction.getEndsAt().isAfter(now));
     }
 
     private AbuseMemberCaseResponse.Link link(AbuseAccountLink link, Long memberId) {

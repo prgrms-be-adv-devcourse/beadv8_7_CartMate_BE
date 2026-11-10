@@ -3,6 +3,19 @@
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+CREATE TABLE IF NOT EXISTS `abuse_admin_action` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `action_type` varchar(20) NOT NULL,
+  `admin_member_id` bigint NOT NULL,
+  `affected_signal_count` int DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `member_id` bigint NOT NULL,
+  `reason` varchar(500) NOT NULL,
+  `restriction_id` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_abuse_admin_action_member_created` (`member_id`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `abuse_account_link` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `confirmed_at` datetime(6) NOT NULL,
@@ -33,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `abuse_member_state` (
   `current_level` varchar(20) NOT NULL,
   `last_judged_at` datetime(6) DEFAULT NULL,
   `restricted_until` datetime(6) DEFAULT NULL,
+  `score_reset_at` datetime(6) DEFAULT NULL,
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`member_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -42,8 +56,10 @@ CREATE TABLE IF NOT EXISTS `abuse_restriction_history` (
   `created_at` datetime(6) NOT NULL,
   `ends_at` datetime(6) NOT NULL,
   `extended_count` int NOT NULL,
-  `last_signal_id` bigint NOT NULL,
+  `last_signal_id` bigint DEFAULT NULL,
   `member_id` bigint NOT NULL,
+  `released_at` datetime(6) DEFAULT NULL,
+  `source` varchar(20) NOT NULL DEFAULT 'AUTO',
   `started_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),

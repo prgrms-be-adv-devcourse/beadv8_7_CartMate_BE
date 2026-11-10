@@ -37,6 +37,14 @@ public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> 
     @Modifying
     @Query(value = """
             UPDATE abuse_signal
+            SET status = 'RECEIVED', attempt_count = 0, last_error = NULL, updated_at = :now
+            WHERE member_id = :memberId AND status = 'FAILED'
+            """, nativeQuery = true)
+    int resetFailedToReceived(@Param("memberId") Long memberId, @Param("now") LocalDateTime now);
+
+    @Modifying
+    @Query(value = """
+            UPDATE abuse_signal
             SET status = CASE WHEN attempt_count + 1 >= :maxAttempts THEN 'FAILED' ELSE status END,
                 attempt_count = attempt_count + 1,
                 last_error = :error,

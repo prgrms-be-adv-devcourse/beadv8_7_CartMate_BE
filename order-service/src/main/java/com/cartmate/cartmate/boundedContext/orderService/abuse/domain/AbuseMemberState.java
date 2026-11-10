@@ -32,6 +32,8 @@ public class AbuseMemberState {
 
     private Long activeRestrictionId;
 
+    private LocalDateTime scoreResetAt;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -48,7 +50,7 @@ public class AbuseMemberState {
     }
 
     public void applyJudgment(AbuseLevel level, LocalDateTime judgedAt) {
-        this.currentLevel = level;
+        this.currentLevel = isRestricted(judgedAt) ? AbuseLevel.RESTRICTED : level;
         this.lastJudgedAt = judgedAt;
         this.updatedAt = judgedAt;
     }
@@ -57,6 +59,23 @@ public class AbuseMemberState {
         this.activeRestrictionId = restrictionId;
         this.restrictedUntil = endsAt;
         this.updatedAt = now;
+    }
+
+    public void restrictManually(Long restrictionId, LocalDateTime endsAt, LocalDateTime now) {
+        restrict(restrictionId, endsAt, now);
+        this.currentLevel = AbuseLevel.RESTRICTED;
+    }
+
+    public void release(LocalDateTime now) {
+        this.activeRestrictionId = null;
+        this.restrictedUntil = null;
+        this.scoreResetAt = now;
+        this.currentLevel = AbuseLevel.NONE;
+        this.updatedAt = now;
+    }
+
+    public static LocalDateTime scoreWindowStart(LocalDateTime windowStart, LocalDateTime scoreResetAt) {
+        return scoreResetAt != null && scoreResetAt.isAfter(windowStart) ? scoreResetAt : windowStart;
     }
 
     public boolean isRestricted(LocalDateTime now) {

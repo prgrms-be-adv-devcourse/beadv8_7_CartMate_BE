@@ -20,9 +20,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -38,9 +41,10 @@ class AbuseJudgeUseCase {
     private final AbuseRestrictionRepository abuseRestrictionRepository;
     private final List<AbuseRule> abuseRules;
     private final AbuseAccountRingSupport abuseAccountRingSupport;
+    private final AbuseMemberStateLocker abuseMemberStateLocker;
 
     int judgePending(Long memberId, Supplier<LocalDateTime> clock) {
-        AbuseMemberState state = lockMemberState(memberId, clock.get());
+        AbuseMemberState state = abuseMemberStateLocker.lock(memberId, clock.get());
         LocalDateTime now = clock.get();
         List<AbuseSignal> pending = abuseSignalRepository
                 .findByMemberIdAndStatusOrderByOccurredAtAscIdAsc(memberId, AbuseSignalStatus.RECEIVED);
@@ -49,15 +53,10 @@ class AbuseJudgeUseCase {
         return pending.size();
     }
 
-    private AbuseMemberState lockMemberState(Long memberId, LocalDateTime now) {
-        abuseMemberStateRepository.insertIfAbsent(memberId, now);
-        return abuseMemberStateRepository.findForUpdate(memberId)
-                .orElseThrow(() -> new ServiceException(AbuseErrorCode.ABUSE_MEMBER_STATE_NOT_FOUND));
-    }
-
     private void judge(AbuseMemberState state, AbuseSignal signal, Optional<AbuseRuleResult> ringResult,
                        LocalDateTime now) {
-        List<AbuseRuleResult> results = new ArrayList<>(evaluateRules(state.getMemberId(), now));
+        List<AbuseRuleResult> results = new ArrayList<>(
+                evaluateRules(state.getMemberId(), state.getScoreResetAt(), now));
         ringResult.ifPresent(results::add);
         AbuseVerdict verdict = AbuseVerdict.of(results, SCORE_THRESHOLD);
         signal.judge(verdict, now);
@@ -72,17 +71,22 @@ class AbuseJudgeUseCase {
         if (ring.isEmpty()) {
             return Optional.empty();
         }
+        Map<Long, AbuseMemberState> states = abuseMemberStateRepository.findAllById(ring).stream()
+                .collect(Collectors.toMap(AbuseMemberState::getMemberId, Function.identity()));
         int othersScore = ring.stream()
-                .mapToInt(other -> evaluateRules(other, now).stream().mapToInt(AbuseRuleResult::score).sum())
+                .mapToInt(other -> evaluateRules(other, Optional.ofNullable(states.get(other))
+                        .map(AbuseMemberState::getScoreResetAt).orElse(null), now)
+                        .stream().mapToInt(AbuseRuleResult::score).sum())
                 .sum();
         int boost = Math.min(othersScore * RING_BOOST_PERCENT / 100, SCORE_THRESHOLD.restrictedScore());
         return Optional.of(new AbuseRuleResult(ACCOUNT_RING_CODE, ring.size(), boost));
     }
 
-    private List<AbuseRuleResult> evaluateRules(Long memberId, LocalDateTime now) {
+    private List<AbuseRuleResult> evaluateRules(Long memberId, LocalDateTime scoreResetAt, LocalDateTime now) {
         return abuseRules.stream()
-                .map(rule -> rule.evaluate(abuseSignalRepository.countInWindow(
-                        memberId, rule.signalType(), now.minus(rule.weight().window()), now), SCORE_THRESHOLD))
+                .map(rule -> rule.evaluate(abuseSignalRepository.countInWindow(memberId, rule.signalType(),
+                        AbuseMemberState.scoreWindowStart(now.minus(rule.weight().window()), scoreResetAt), now),
+                        SCORE_THRESHOLD))
                 .toList();
     }
 
