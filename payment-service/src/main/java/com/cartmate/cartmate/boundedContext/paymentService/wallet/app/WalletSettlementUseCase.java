@@ -50,12 +50,12 @@ public class WalletSettlementUseCase {
             return;
         }
 
-        // 2) 판매자 지갑과 주문의 홀딩(정산이 끝나거나 취소된 것은 제외)을 조회한다. 홀딩은 락을 걸어 동시 정산을 막는다.
+        // 2) 판매자 지갑과 주문의 홀딩(정산이 끝나거나 취소된 것은 제외)을 조회한다. 동시 정산은 호출하는 쪽의 주문 키 분산락이 막는다.
         Wallet sellerWallet = walletRepository.findByMemberId(request.sellerMemberId())
                 .orElseThrow(() -> new ServiceException(WalletErrorCode.WALLET_NOT_FOUND));
 
         List<Holding> holdings = holdingRepository
-                .findAllByOrderIdAndPurchaseTypeForUpdate(request.orderId(), request.purchaseType()).stream()
+                .findAllByOrderIdAndPurchaseType(request.orderId(), request.purchaseType()).stream()
                 .filter(holding -> holding.getStatus() == HoldingStatus.RESERVED)
                 .toList();
 
