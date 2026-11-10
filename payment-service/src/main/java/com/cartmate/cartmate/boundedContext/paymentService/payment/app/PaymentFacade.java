@@ -78,7 +78,9 @@ public class PaymentFacade {
     }
 
     // ===== 환불 =====
-// 주문 취소 트랜잭션에 참여한다 (이벤트 리스너에서 호출)
+    // 클레임 환불은 Inbox 트랜잭션과 따로 커밋한다(REQUIRES_NEW). 환불이 업무 오류로 실패해도 그것만 롤백하고,
+    // 바깥(Inbox) 트랜잭션에서 "환불 실패" 결과 이벤트를 커밋해 배송 서버에 돌려주기 위해서다(ADR 0004·0009).
+    // 분산락은 잡지 않는다. 바깥 트랜잭션의 커넥션을 잡은 채 기다리게 되므로 버전으로 막는다(ADR 0009).
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void refundByClaim(Long claimId, Long orderId, Long memberId, Long amount) {
         paymentRefundUseCase.refundByClaim(claimId, orderId, memberId, amount);
