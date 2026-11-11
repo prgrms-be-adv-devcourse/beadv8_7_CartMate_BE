@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryFaca
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryRepository;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,8 @@ public class DeliveryScheduler {
 
     private static final long COMPLETE_INTERVAL_MILLIS = 10_000L;
     private static final long CONFIRM_INTERVAL_MILLIS = 600_000L;
+    private static final String COMPLETE_LOCK_NAME = "delivery.completeShipped";
+    private static final String CONFIRM_LOCK_NAME = "delivery.confirmDelivered";
 
     private final DeliveryRepository deliveryRepository;
     private final DeliveryFacade deliveryFacade;
@@ -37,7 +40,9 @@ public class DeliveryScheduler {
     }
 
     // 택배사 연동 전까지 출발 후 일정 시간이 지난 배송중 건을 배송완료로 바꾼다. 택배사 연동 시 이 처리를 대체한다.
+    // 같은 서비스가 여러 개 떠 있어도 한 곳에서만 돌린다.
     @Scheduled(fixedDelay = COMPLETE_INTERVAL_MILLIS, initialDelay = COMPLETE_INTERVAL_MILLIS)
+    @SchedulerLock(name = COMPLETE_LOCK_NAME, lockAtMostFor = "PT5M", lockAtLeastFor = "PT5S")
     public void completeShipped() {
         List<Long> ids = deliveryRepository.findIdsByStatusAndShippedAtBefore(
                 DeliveryStatus.SHIPPING, LocalDateTime.now().minusSeconds(completeDelaySeconds));
@@ -45,7 +50,9 @@ public class DeliveryScheduler {
     }
 
     // 배송완료 후 지정한 기간(기본 7일)이 지나도 구매자가 확정하지 않은 건을 구매확정으로 바꾼다.
+    // 같은 서비스가 여러 개 떠 있어도 한 곳에서만 돌린다. 배송별 분산락은 구매자의 직접 확정과 겹칠 때를 위해 그대로 둔다.
     @Scheduled(fixedDelay = CONFIRM_INTERVAL_MILLIS, initialDelay = CONFIRM_INTERVAL_MILLIS)
+    @SchedulerLock(name = CONFIRM_LOCK_NAME, lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     public void confirmDelivered() {
         List<Long> ids = deliveryRepository.findIdsByStatusAndDeliveredAtBefore(
                 DeliveryStatus.DELIVERED, LocalDateTime.now().minusDays(confirmDelayDays));
