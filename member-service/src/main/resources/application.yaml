@@ -10,6 +10,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
+    # 요청이 끝날 때까지 DB 연결을 잡지 않는다 (인증 메일 SMTP 동안 연결을 놓아 둠). 지연 로딩은 트랜잭션 안에서만
+    open-in-view: false
   batch:
     job:
       enabled: false # Job은 스케줄러가 실행하므로 애플리케이션 시작 시 자동 실행하지 않는다
@@ -66,6 +68,12 @@ custom:
       send-window: 30m # 첫 발송부터 이 시간 동안 보낸 횟수·틀린 횟수를 센다
       max-sends: 5
       max-attempts: 5
+    mfa:
+      required: ${MFA_REQUIRED:true} # 일반 회원 로그인 2차 인증. 로컬 개발에서만 MFA_REQUIRED=false로 끌 수 있다 (관리자는 항상)
+      challenge-ttl: 10m # 비밀번호를 맞힌 뒤 인증번호를 넣을 수 있는 시간
+      trusted-device-ttl: 30d # "이 기기 30일 기억"
+      account-fail-limit: 10 # 계정 하나에 아래 시간 동안 틀릴 수 있는 횟수
+      account-fail-window: 1h
     phone:
       codeTtlSeconds: 180
       verifiedTtlSeconds: 600
