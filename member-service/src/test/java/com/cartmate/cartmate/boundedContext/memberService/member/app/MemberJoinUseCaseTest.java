@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,9 +30,10 @@ class MemberJoinUseCaseTest {
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
     private final PhoneVerificationStore phoneVerificationStore = mock(PhoneVerificationStore.class);
+    private final MemberEmailVerificationUseCase emailVerification = mock(MemberEmailVerificationUseCase.class);
 
     private final MemberJoinUseCase useCase = new MemberJoinUseCase(
-            memberSupport, memberRepository, passwordEncoder, eventPublisher, phoneVerificationStore);
+            memberSupport, memberRepository, passwordEncoder, eventPublisher, phoneVerificationStore, emailVerification);
 
     @Test
     void 가입하면_가입_이벤트를_Outbox_발행_포트로_보낸다() {
@@ -40,6 +42,7 @@ class MemberJoinUseCaseTest {
         PhoneVerificationStore.Entry verified = mock(PhoneVerificationStore.Entry.class);
         when(verified.isVerified(any())).thenReturn(true);
         when(phoneVerificationStore.find(request.phone())).thenReturn(Optional.of(verified));
+        when(emailVerification.isVerified(eq(request.email()), any())).thenReturn(true);
         when(passwordEncoder.encode(any())).thenReturn("encoded");
         when(memberRepository.saveAndFlush(any(Member.class))).thenAnswer(invocation -> {
             Member member = invocation.getArgument(0);
