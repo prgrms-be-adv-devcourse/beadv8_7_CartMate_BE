@@ -12,6 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 
@@ -61,7 +62,7 @@ public class MemberEmailVerificationUseCase {
 
         try {
             mailSender.send(email, "[CartMate] 이메일 인증번호",
-                    "인증번호는 " + code + " 입니다.\n" + properties.codeTtl().toMinutes() + "분 안에 입력해주세요.\n"
+                    "인증번호는 " + code + " 입니다.\n" + readable(properties.codeTtl()) + " 안에 입력해주세요.\n"
                             + "본인이 요청하지 않았다면 이 메일을 무시해주세요.");
         } catch (MailException e) {
             store.releaseCooldown(key);
@@ -114,5 +115,11 @@ public class MemberEmailVerificationUseCase {
             return "***";
         }
         return email.substring(0, Math.min(2, at)) + "***" + email.substring(at);
+    }
+
+    // 메일에 보일 유효 시간: 분으로 딱 떨어지면 "5분", 아니면 "90초"
+    private static String readable(Duration duration) {
+        long seconds = duration.toSeconds();
+        return seconds % 60 == 0 ? (seconds / 60) + "분" : seconds + "초";
     }
 }
