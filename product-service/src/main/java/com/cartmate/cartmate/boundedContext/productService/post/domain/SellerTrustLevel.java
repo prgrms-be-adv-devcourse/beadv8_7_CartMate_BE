@@ -2,13 +2,19 @@ package com.cartmate.cartmate.boundedContext.productService.post.domain;
 
 import com.cartmate.cartmate.boundedContext.productService.code.SalesPostErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 // 판매글에 보여줄 판매자 신뢰도 등급. trust의 등급과 같은 이름을 쓰지만 post가 자체로 정의해, trust 도메인 코드에 의존하지 않는다.
+@Getter
+@RequiredArgsConstructor
 public enum SellerTrustLevel {
-    NEW,     //거래 표본 부족
-    LOW,     //낮음
-    NORMAL,  //보통
-    HIGH;    //높음
+    NEW("신규"),  // 거래 표본 부족
+    LOW("낮음"),
+    NORMAL("보통"),
+    HIGH("높음");
+
+    private final String label;
 
     // 신뢰도 변경 이벤트의 등급 문자열을 등급으로 바꾼다.
     // 모르는 값이거나 null이면 SELLER_TRUST_INVALID 예외가 발생한다. 등급은 임의로 추측해 보여주지 않는다.

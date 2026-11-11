@@ -94,7 +94,7 @@ public class Member extends BaseIdAndTime {
             throw new ServiceException("409-MEMBER_WITHDRAWAL_ALREADY_REQUESTED", "이미 탈퇴를 신청했습니다.");
         }
         if (status != MemberStatus.ACTIVE) {
-            throw new ServiceException("409-MEMBER_CANNOT_WITHDRAW", "%s 상태에서는 탈퇴를 신청할 수 없습니다.".formatted(status.getDescription()));
+            throw new ServiceException("409-MEMBER_CANNOT_WITHDRAW", "%s 상태에서는 탈퇴를 신청할 수 없습니다.".formatted(status.getLabel()));
         }
         this.status = MemberStatus.WITHDRAWAL_PENDING;
         this.withdrawalRequestedAt = requestedAt;

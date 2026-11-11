@@ -9,10 +9,16 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum SalesPostHideType {
-    SELLER_PAUSED("판매자가 판매 중지"),
+    SELLER_PAUSED("판매자 판매 중지", "판매자가 판매 중지"),
     ADMIN_SUSPENDED("관리자 숨김"),
-    SELLER_DELETED("판매자가 판매글 삭제");
+    SELLER_DELETED("판매자 삭제", "판매자가 판매글 삭제");
 
+    private final String label;
     // 화면·로그에 쓰는 설명. 새 값을 추가할 때 설명이 없으면 컴파일되지 않는다.
     private final String description;
+
+    // 라벨만으로 충분하면 라벨을 설명으로도 쓴다.
+    SalesPostHideType(String label) {
+        this(label, label);
+    }
 }

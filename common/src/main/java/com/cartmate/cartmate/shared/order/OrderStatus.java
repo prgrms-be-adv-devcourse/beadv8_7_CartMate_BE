@@ -11,5 +11,5 @@ public enum OrderStatus {
     CANCELED("취소"),
     CANCEL_REQUESTED("취소 처리 중");
 
-    private final String description;
+    private final String label;
 }

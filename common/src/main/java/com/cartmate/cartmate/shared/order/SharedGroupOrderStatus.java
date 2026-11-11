@@ -6,9 +6,9 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum SharedGroupOrderStatus {
-    PAYING("참여자 결제 중"),
-    CONFIRMED("전원 결제 확정"),
+    PAYING("결제 진행 중"),  // 참여자 결제 중
+    CONFIRMED("결제 확정"),  // 전원 결제 확정
     CANCELED("취소");
 
-    private final String description;
+    private final String label;
 }

@@ -10,5 +10,5 @@ public enum CouponStatus {
     ACTIVE("발급 중"),
     STOPPED("발급 중지");
 
-    private final String description;
+    private final String label;
 }
