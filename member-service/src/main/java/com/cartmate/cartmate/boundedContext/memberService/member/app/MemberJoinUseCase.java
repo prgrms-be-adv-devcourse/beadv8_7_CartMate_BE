@@ -13,6 +13,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Service
@@ -24,13 +25,18 @@ public class MemberJoinUseCase {
     // 가입과 같은 트랜잭션에 Outbox 행을 남기고, 같은 앱 안의 기존 리스너용 Spring 이벤트도 함께 발행한다
     private final DomainEventPublisher eventPublisher;
     private final PhoneVerificationStore phoneVerificationStore;
+    private final MemberEmailVerificationUseCase emailVerification;
 
     public MemberDto join(SignupRequest request) {
+        LocalDateTime now = LocalDateTime.now();
         boolean phoneVerified = phoneVerificationStore.find(request.phone())
-                .map(entry -> entry.isVerified(LocalDateTime.now()))
+                .map(entry -> entry.isVerified(now))
                 .orElse(false);
         if (!phoneVerified) {
             throw new ServiceException("400-MEMBER_PHONE_NOT_VERIFIED", "휴대폰 인증을 완료해주세요.");
+        }
+        if (!emailVerification.isVerified(request.email(), Instant.now())) {
+            throw new ServiceException("400-MEMBER_EMAIL_NOT_VERIFIED", "이메일 인증을 완료해주세요.");
         }
         if (memberSupport.existsByEmail(request.email())) {
             throw new ServiceException("409-MEMBER_DUPLICATE_EMAIL", "이미 사용 중인 이메일입니다.");
@@ -46,6 +52,7 @@ public class MemberJoinUseCase {
                 request.phone(),
                 request.birthDate()
         );
+        member.markEmailVerified(now);
 
         try {
             memberRepository.saveAndFlush(member);
@@ -54,6 +61,7 @@ public class MemberJoinUseCase {
         }
 
         phoneVerificationStore.remove(request.phone());
+        emailVerification.consume(request.email());
         MemberDto memberDto = member.toDto();
         eventPublisher.publish(new MemberSignedUpEvent(memberDto));
         return memberDto;

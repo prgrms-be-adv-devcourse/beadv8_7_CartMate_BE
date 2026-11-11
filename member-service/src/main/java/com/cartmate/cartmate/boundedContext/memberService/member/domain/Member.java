@@ -47,6 +47,10 @@ public class Member extends BaseIdAndTime {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    // 이메일 주인임을 처음 확인한 시각. 가입 때 확인, 기존 회원(비어 있음)은 로그인 2차 인증에서 채운다
+    @Column(name = "email_verified_at")
+    private LocalDateTime emailVerifiedAt;
+
     // 탈퇴 신청 시각. 이 시각부터 유예 기간이 지나면 탈퇴가 확정된다.
     @Column(name = "withdrawal_requested_at")
     private LocalDateTime withdrawalRequestedAt;
@@ -63,6 +67,12 @@ public class Member extends BaseIdAndTime {
         member.role = MemberRole.BUYER;
         member.status = MemberStatus.ACTIVE;
         return member;
+    }
+
+    public void markEmailVerified(LocalDateTime now) {
+        if (emailVerifiedAt == null) {
+            emailVerifiedAt = now;
+        }
     }
 
     public MemberDto toDto() {

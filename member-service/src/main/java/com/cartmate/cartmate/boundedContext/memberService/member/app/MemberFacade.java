@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +21,7 @@ public class MemberFacade {
     private final MemberJoinUseCase memberJoinUseCase;
     private final MemberSendPhoneCodeUseCase memberSendPhoneCodeUseCase;
     private final MemberVerifyPhoneCodeUseCase memberVerifyPhoneCodeUseCase;
+    private final MemberEmailVerificationUseCase memberEmailVerificationUseCase;
     private final MemberProfileUseCase memberProfileUseCase;
     private final MemberChangePasswordUseCase memberChangePasswordUseCase;
     private final AdminMemberSearchUseCase adminMemberSearchUseCase;
@@ -57,6 +59,15 @@ public class MemberFacade {
     @Transactional(readOnly = true)
     public boolean isNicknameAvailable(String nickname) {
         return !memberSupport.existsByNickname(nickname);
+    }
+
+    // 트랜잭션 없음: 메일 발송(SMTP) 동안 DB 연결을 잡지 않는다
+    public int sendEmailCode(String email) {
+        return memberEmailVerificationUseCase.send(email, Instant.now());
+    }
+
+    public void verifyEmailCode(String email, String code) {
+        memberEmailVerificationUseCase.verify(email, code, Instant.now());
     }
 
     public int sendPhoneCode(String phone) {

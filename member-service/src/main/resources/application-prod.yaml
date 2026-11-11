@@ -26,5 +26,10 @@ storage:
     public-url: https://team07-cartmate-s3-storage.s3.ap-northeast-2.amazonaws.com
 
 cartmate:
+  mail:
+    enabled: true
+    from: ${MAIL_FROM}
+  mfa:
+    code-secret: ${MFA_CODE_SECRET} # 기본값 없음: 빠뜨리면 앱이 시작되지 않는다
   internal:
     api-key: ${INTERNAL_API_KEY}   # 기본값 없음 → 빠뜨리면 앱이 뜨지 않음

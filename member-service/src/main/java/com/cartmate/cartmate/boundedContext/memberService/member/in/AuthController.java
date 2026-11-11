@@ -30,6 +30,19 @@ public class AuthController {
     public record AvailabilityResponse(boolean available) {
     }
 
+    // 가입 이메일 확인: 코드 발송 (60초 뒤부터 재발송, 최대 5번). 응답 모양은 휴대폰 발송과 같다
+    @PostMapping("/email/send")
+    public RsData<PhoneSendResponse> sendEmailCode(@Valid @RequestBody EmailSendRequest request) {
+        int ttl = memberFacade.sendEmailCode(request.email());
+        return new RsData<>("200-1", "인증 메일이 발송되었습니다.", new PhoneSendResponse(ttl));
+    }
+
+    @PostMapping("/email/verify")
+    public RsData<Void> verifyEmailCode(@Valid @RequestBody EmailVerifyRequest request) {
+        memberFacade.verifyEmailCode(request.email(), request.code());
+        return new RsData<>("200-1", "이메일 인증이 완료되었습니다.");
+    }
+
     @PostMapping("/phone/send")
     public RsData<PhoneSendResponse> sendPhoneCode(@Valid @RequestBody PhoneSendRequest request) {
         int ttl = memberFacade.sendPhoneCode(request.phone());
