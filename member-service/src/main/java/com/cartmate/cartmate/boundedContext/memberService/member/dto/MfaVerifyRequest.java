@@ -1,0 +1,17 @@
+package com.cartmate.cartmate.boundedContext.memberService.member.dto;
+
+import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberPolicy;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
+public record MfaVerifyRequest(
+        @NotBlank(message = "인증 정보가 없습니다. 다시 로그인해주세요.")
+        String challengeId,
+
+        @NotBlank(message = "인증번호는 필수입니다.")
+        @Pattern(regexp = MemberPolicy.PHONE_CODE_REGEX, message = "인증번호는 숫자 6자리입니다.")
+        String code,
+
+        boolean trustDevice      // "이 기기 30일 기억"
+) {
+}

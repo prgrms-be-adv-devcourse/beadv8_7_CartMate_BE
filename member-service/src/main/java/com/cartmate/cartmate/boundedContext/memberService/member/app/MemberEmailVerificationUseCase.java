@@ -118,7 +118,7 @@ public class MemberEmailVerificationUseCase {
     }
 
     // 메일에 보일 유효 시간: 분으로 딱 떨어지면 "5분", 아니면 "90초"
-    private static String readable(Duration duration) {
+    static String readable(Duration duration) {
         long seconds = duration.toSeconds();
         return seconds % 60 == 0 ? (seconds / 60) + "분" : seconds + "초";
     }
