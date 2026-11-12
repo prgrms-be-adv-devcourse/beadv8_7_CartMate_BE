@@ -224,7 +224,7 @@ public class Delivery {
             return new ServiceException(code);
         }
         return new ServiceException(code.resultCode(),
-                code.getMsg() + " (사유: " + this.cancelReason.getDescription() + ")");
+                code.getMsg() + " (사유: " + this.cancelReason.getLabel() + ")");
     }
 
     // 택배사와 송장번호를 등록하고 배송요청을 배송준비로 바꾼다.
