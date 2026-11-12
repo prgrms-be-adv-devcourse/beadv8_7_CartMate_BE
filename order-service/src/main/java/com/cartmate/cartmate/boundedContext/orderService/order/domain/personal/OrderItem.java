@@ -4,6 +4,7 @@ import com.cartmate.cartmate.shared.order.OrderType;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order.OrderLine;
 import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -87,13 +88,19 @@ public class OrderItem {
 
     private LocalDateTime canceledAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancel_reason", columnDefinition = "varchar(30)")
+    private DeliveryCancelReason cancelReason;
+
     public boolean isCanceled() {
         return canceledAt != null;
     }
 
-    void cancel(LocalDateTime now) {
+    // 이미 취소된 항목은 처음 취소된 사유와 시각을 그대로 둔다
+    void cancel(DeliveryCancelReason reason, LocalDateTime now) {
         if (canceledAt == null) {
             canceledAt = now;
+            cancelReason = reason;
         }
     }
 }

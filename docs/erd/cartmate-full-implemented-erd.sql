@@ -384,7 +384,8 @@ CREATE TABLE `shared_group_order_item` (
 	`product_name`	VARCHAR(100)	NOT NULL,
 	`option_name`	VARCHAR(100)	NULL,
 	`quantity`	INT	NOT NULL,
-	`unit_price`	BIGINT	NOT NULL
+	`unit_price`	BIGINT	NOT NULL,
+	`cancel_reason`	VARCHAR(30)	NULL
 );
 
 CREATE TABLE `orders` (
@@ -430,7 +431,8 @@ CREATE TABLE `order_item` (
 	`product_name`	VARCHAR(100)	NOT NULL,
 	`option_name`	VARCHAR(100)	NULL,
 	`unit_price`	BIGINT	NOT NULL,
-	`quantity`	INT	NOT NULL
+	`quantity`	INT	NOT NULL,
+	`cancel_reason`	VARCHAR(30)	NULL
 );
 
 ALTER TABLE `member` ADD CONSTRAINT `PK_MEMBER` PRIMARY KEY (
