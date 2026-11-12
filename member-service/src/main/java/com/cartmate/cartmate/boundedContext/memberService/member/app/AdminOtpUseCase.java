@@ -102,7 +102,8 @@ class AdminOtpUseCase {
         }
         otp.enable(step.getAsLong(), LocalDateTime.ofInstant(now, ZONE)); // 등록에 쓴 코드는 로그인에 다시 못 쓴다
         List<String> codes = issueBackupCodes(memberId);
-        log.info("[보안] 관리자 OTP 등록 완료: 회원 #{}", memberId);
+        log.atInfo().addKeyValue("event", "auth.otp.enrolled").addKeyValue("memberId", memberId)
+                .log("[보안] 관리자 OTP 등록 완료: 회원 #{}", memberId);
         alertMailer.sendAfterCommit(memberId, member.getEmail(), "[CartMate] 관리자 OTP가 등록되었습니다",
                 "관리자 계정에 OTP가 등록되었습니다. 본인이 등록하지 않았다면 즉시 운영 책임자에게 알려 주세요.");
         return codes;
@@ -122,7 +123,9 @@ class AdminOtpUseCase {
             return LoginCheck.failed();
         }
         int remaining = (int) backupCodeRepository.countByMemberId(memberId);
-        log.warn("[보안] 관리자 백업 코드 사용: 회원 #{} (남은 {}개)", memberId, remaining);
+        log.atWarn().addKeyValue("event", "auth.otp.backup_used").addKeyValue("memberId", memberId)
+                .addKeyValue("remaining", remaining)
+                .log("[보안] 관리자 백업 코드 사용: 회원 #{} (남은 {}개)", memberId, remaining);
         alertMailer.sendAfterCommit(memberId, admin(memberId).getEmail(), "[CartMate] 관리자 백업 코드가 사용되었습니다",
                 "백업 코드로 로그인했습니다 (남은 " + remaining + "개). 본인이 아니라면 즉시 운영 책임자에게 알려 주세요.\n"
                         + "휴대폰을 잃어버렸다면 운영 책임자에게 OTP 재등록(Break-glass)을 요청해 주세요.");

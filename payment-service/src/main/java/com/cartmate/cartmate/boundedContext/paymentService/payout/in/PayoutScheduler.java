@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.paymentService.payout.in;
 
 import com.cartmate.cartmate.boundedContext.paymentService.payout.in.batch.PayoutJobConfig;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -34,6 +35,7 @@ public class PayoutScheduler {
     // 다른 서버가 곧바로 다시 시작하지 않게 최소 1분은 잡아 둔다.
     @Scheduled(cron = "${custom.payout.cron:0 10 0 * * *}", zone = ZONE)
     @SchedulerLock(name = LOCK_NAME, lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
+    @Observed(name = "batch.payout") // 실행 1회 = span 하나 (스케줄 실행 관찰은 꺼 둠)
     public void payDue() {
         JobParameters parameters = new JobParametersBuilder()
                 .addLocalDate("runDate", LocalDate.now(ZoneId.of(ZONE)))
@@ -42,7 +44,10 @@ public class PayoutScheduler {
         try {
             jobOperator.start(payoutJob, parameters);
         } catch (Exception e) {
-            log.error("정산 지급 배치 실행 실패: job={}", PayoutJobConfig.JOB_NAME, e);
+            // 배치를 시작조차 못한 경우 (시작한 배치의 요약은 PayoutBatchSummaryListener가 남긴다)
+            log.atError().addKeyValue("event", "payout.batch").addKeyValue("result", "FAILED")
+                    .addKeyValue("error", String.valueOf(e.getMessage())).setCause(e)
+                    .log("정산 지급 배치 실행 실패: job={}", PayoutJobConfig.JOB_NAME);
         }
     }
 }

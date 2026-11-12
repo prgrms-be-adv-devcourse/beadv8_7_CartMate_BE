@@ -34,4 +34,20 @@ dependencies {
     // Kafka: 공용 전송 싱크 · 수신 다리(global/kafka). 쓰는 서비스만 spring-boot-starter-kafka를 직접 넣는다.
     // 여기서는 컴파일만 하고 넘기지 않아 Kafka를 안 쓰는 서비스에는 들어가지 않는다
     compileOnly 'org.springframework.kafka:spring-kafka'
+
+    // 관측 가능성: 분산 추적(traceId) · health · 예외 수집. traceparent 도우미(global/observability)가 Tracer를 쓰므로 api
+    api 'org.springframework.boot:spring-boot-starter-actuator'
+    api 'org.springframework.boot:spring-boot-starter-opentelemetry'   // Micrometer Tracing + OTel 브리지 + OTLP 내보내기
+    api 'org.springframework.boot:spring-boot-starter-restclient'       // RestClient.Builder 빈 (관찰 붙음 → 내부 API 호출에 traceparent 헤더)
+    api 'io.sentry:sentry-spring-boot-4-starter:8.62.0'                  // 2026-10-27 배포. SENTRY_DSN이 없으면 꺼짐
+    api 'io.sentry:sentry-logback:8.62.0'                                // ERROR 로그 → Sentry
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.micrometer:micrometer-tracing-bridge-otel'   // traceparent 왕복 테스트용 실제 추적기 (버전은 BOM)
+    testImplementation 'io.opentelemetry:opentelemetry-sdk'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }

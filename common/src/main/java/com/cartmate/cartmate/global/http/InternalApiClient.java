@@ -34,7 +34,12 @@ public class InternalApiClient {
     private final String serverCode;   // 오류 코드용 (예: PAYMENT → 503-PAYMENT_UNAVAILABLE)
     private final String serverName;   // 안내 문구용 (예: 결제)
 
-    public InternalApiClient(String serverCode, String serverName, String baseUrl, String apiKey, Environment environment) {
+    /**
+     * @param restClientBuilder 스프링 빈 {@code RestClient.Builder} (관찰이 붙어 있어 traceparent 헤더가 자동으로 실린다).
+     *                          다른 클라이언트와 설정이 섞이지 않게 복제해서 쓴다
+     */
+    public InternalApiClient(String serverCode, String serverName, String baseUrl, String apiKey, Environment environment,
+                             RestClient.Builder restClientBuilder) {
         this.serverCode = serverCode;
         this.serverName = serverName;
         this.baseUrl = baseUrl;
@@ -42,7 +47,7 @@ public class InternalApiClient {
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
         factory.setReadTimeout(Duration.ofSeconds(5));
-        this.restClient = RestClient.builder()
+        this.restClient = restClientBuilder.clone()
                 .requestFactory(factory)
                 .defaultHeader(InternalApiKeyFilter.HEADER, apiKey)
                 .build();

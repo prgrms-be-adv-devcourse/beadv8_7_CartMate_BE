@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.global.outbox;
 
 import com.cartmate.cartmate.global.event.DomainEvent;
+import com.cartmate.cartmate.global.observability.TraceparentSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
@@ -14,15 +15,17 @@ public class OutboxEventFactory {
 
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final TraceparentSupport traceparentSupport;
 
     @Autowired
-    public OutboxEventFactory(ObjectMapper objectMapper) {
-        this(objectMapper, Clock.systemDefaultZone());
+    public OutboxEventFactory(ObjectMapper objectMapper, TraceparentSupport traceparentSupport) {
+        this(objectMapper, Clock.systemDefaultZone(), traceparentSupport);
     }
 
-    OutboxEventFactory(ObjectMapper objectMapper, Clock clock) {
+    OutboxEventFactory(ObjectMapper objectMapper, Clock clock, TraceparentSupport traceparentSupport) {
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.traceparentSupport = traceparentSupport;
     }
 
     public OutboxEvent create(DomainEvent event) {
@@ -43,7 +46,8 @@ public class OutboxEventFactory {
                 aggregateId,
                 LocalDateTime.now(clock),
                 OutboxEvent.SCHEMA_VERSION,
-                objectMapper.writeValueAsString(event)
+                objectMapper.writeValueAsString(event),
+                traceparentSupport.current()
         );
     }
 }

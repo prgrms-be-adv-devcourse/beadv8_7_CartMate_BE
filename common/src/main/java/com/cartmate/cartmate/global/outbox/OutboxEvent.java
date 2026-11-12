@@ -72,8 +72,13 @@ public class OutboxEvent {
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
+    // 저장 시점의 W3C traceparent. 릴레이가 이 값을 부모로 보내 traceId가 이어진다. 없으면 NULL (예전 행 · 추적 꺼짐)
+    @Column(name = "traceparent", length = 55)
+    private String traceparent;
+
     private OutboxEvent(String eventId, String eventType, String topic, String aggregateType, String aggregateId,
-                        LocalDateTime occurredAt, int version, String payload, LocalDateTime createdAt) {
+                        LocalDateTime occurredAt, int version, String payload, LocalDateTime createdAt,
+                        String traceparent) {
         this.eventId = eventId;
         this.eventType = eventType;
         this.topic = topic;
@@ -86,12 +91,13 @@ public class OutboxEvent {
         this.attempts = 0;
         this.nextAttemptAt = createdAt;
         this.createdAt = createdAt;
+        this.traceparent = traceparent;
     }
 
     static OutboxEvent create(String eventId, String eventType, String topic, String aggregateType, String aggregateId,
-                              LocalDateTime occurredAt, int version, String payload) {
+                              LocalDateTime occurredAt, int version, String payload, String traceparent) {
         return new OutboxEvent(eventId, eventType, topic, aggregateType, aggregateId, occurredAt, version, payload,
-                occurredAt);
+                occurredAt, traceparent);
     }
 
     EventEnvelope toEnvelope() {

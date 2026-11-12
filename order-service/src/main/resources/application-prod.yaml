@@ -14,6 +14,12 @@ spring:
 logging:
   level:
     com.cartmate: INFO
+  structured:
+    format:
+      console: logstash   # 운영 로그는 JSON 한 줄 (traceId · event 등이 필드로 → Alloy가 Loki로)
+
+sentry:
+  environment: ${SENTRY_ENVIRONMENT:prod}
 
 custom:
   jwt:

@@ -61,6 +61,10 @@ public class InboxEvent {
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
+    // 수신 시점(리스너 관찰이 메시지 헤더로 이어 준 span)의 W3C traceparent. 처리할 때 이 값을 부모로 한다. 없으면 NULL
+    @Column(name = "traceparent", length = 55)
+    private String traceparent;
+
     void markProcessed(LocalDateTime processedAt) {
         if (this.status != InboxEventStatus.NEW) {
             return;

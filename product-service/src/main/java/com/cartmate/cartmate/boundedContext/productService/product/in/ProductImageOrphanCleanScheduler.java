@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.product.in;
 
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,6 +42,7 @@ public class ProductImageOrphanCleanScheduler {
     // 파일이 많으면 저장소 목록 조회가 오래 걸릴 수 있어 잠금을 넉넉하게 잡는다
     @Scheduled(cron = "0 0 5 * * *", zone = "Asia/Seoul")
     @SchedulerLock(name = LOCK_NAME, lockAtMostFor = "PT1H", lockAtLeastFor = "PT1M")
+    @Observed(name = "batch.product.image-cleanup") // 실행 1회 = span 하나 (스케줄 실행 관찰은 꺼 둠)
     public void cleanUp() {
         int orphanCount = productFacade.cleanUpOrphanImages(Instant.now().minus(gracePeriod), dryRun);
         if (orphanCount > 0) {
