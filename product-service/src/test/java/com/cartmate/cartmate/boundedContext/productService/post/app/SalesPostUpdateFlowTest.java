@@ -46,12 +46,13 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 
 /**
- * 판매글 수정: 스냅샷용 상품 조회(GET) → 상품 수정(PATCH) → ProductUpdatedEvent로 post 복제본 동기화 → 수정 완료.
+ * 판매글 수정: 스냅샷용 상품 조회(GET) → 상품 수정(PATCH, 수정한 상품을 응답으로 받음) → 복제본 갱신 · 수정 완료(한 트랜잭션).
  * product가 요청을 거절(4xx)하면 상태만 되돌리고, 상품이 바뀐 뒤 실패하면 스냅샷으로 복구(PUT restore)한다.
  *
  * <p>등록 E2E와 같은 이유로 실제 웹 서버를 빈 포트로 띄우고, 판매글 · 상품 · 복제본은 실제 등록 흐름으로 만들어 둔다.
@@ -76,6 +77,8 @@ class SalesPostUpdateFlowTest {
     SalesPostFacade salesPostFacade;
     @MockitoSpyBean
     SalesPostUpdateUseCase salesPostUpdateUseCase;
+    @MockitoSpyBean
+    SalesPostSyncProductUseCase salesPostSyncProductUseCase;
     @Autowired
     TransactionTemplate transactionTemplate;
 
@@ -114,7 +117,7 @@ class SalesPostUpdateFlowTest {
         productOptionRepository.deleteAll();
         productRepository.deleteAll();
         storage.reset();
-        reset(salesPostUpdateUseCase);
+        reset(salesPostUpdateUseCase, salesPostSyncProductUseCase);
 
         CreateSalesPostProduct product = new CreateSalesPostProduct(null, null, 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateSalesPostProductImage(null, null, null, 0, null),
@@ -170,6 +173,33 @@ class SalesPostUpdateFlowTest {
         assertThat(product.getName()).isEqualTo("아이폰");
         assertThat(product.getBasePrice()).isEqualTo(10000L);
 
+        assertThat(salesPostRecoveryRepository.findBySalesPostId(postId)).isEmpty();
+    }
+
+    // 상품은 수정됐는데 post가 응답으로 복제본을 맞추지 못한 경우. 복제본 갱신 실패도 수정 실패로 보고 상품을 복구한다
+    // (복구할 때 복제본도 다시 맞추므로, 실패는 수정 때 한 번만 일으킨다)
+    @Test
+    @DisplayName("복구: 복제본 갱신이 실패하면 상품과 복제본을 수정 전으로 되돌린다")
+    void recoverWhenReplicaSyncFails() {
+        doThrow(new RuntimeException("테스트용 복제본 갱신 실패"))
+                .doCallRealMethod()
+                .when(salesPostSyncProductUseCase).syncProduct(anyList());
+
+        assertThatThrownBy(() -> salesPostFacade.updateSalesPostByUser(
+                updateRequest(SELLER_ID, "새 제목", "새이름", 30000L), List.of()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("테스트용 복제본 갱신 실패");
+
+        Product product = productRepository.findById(productId).orElseThrow();
+        assertThat(product.getName()).isEqualTo("아이폰");
+        assertThat(product.getBasePrice()).isEqualTo(10000L);
+
+        SalesPostProduct copy = salesPostProductRepository.findById(productId).orElseThrow();
+        assertThat(copy.getName()).isEqualTo("아이폰");
+
+        SalesPost post = salesPostRepository.findById(postId).orElseThrow();
+        assertThat(post.getTitle()).isEqualTo("아이폰 팝니다");
+        assertThat(post.getUpdateStatus()).isEqualTo(SalesPostUpdateStatus.RECOVERED);
         assertThat(salesPostRecoveryRepository.findBySalesPostId(postId)).isEmpty();
     }
 

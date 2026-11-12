@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum PaymentOrderType {
-    INDIVIDUAL_GROUP("개인 주문 결제"),
-    SHARED_GROUP("공동 주문 분담금 결제");
+    INDIVIDUAL_GROUP("개인 주문"),
+    SHARED_GROUP("공동 주문");  // 공동 주문 분담금 결제
 
-    private final String description;
+    private final String label;
 }

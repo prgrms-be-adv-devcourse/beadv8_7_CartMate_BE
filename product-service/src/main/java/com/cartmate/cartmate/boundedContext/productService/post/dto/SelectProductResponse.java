@@ -1,6 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.dto;
 
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +17,7 @@ public class SelectProductResponse {
     private String name;
     private String description;
     private Long basePrice;
-    private ProductStatus status;
+    private SalesPostProductStatus status;
     private List<SelectProductImage> productImageList;
     private List<SelectProductOption> productOptionList;
 }

@@ -5,13 +5,11 @@ import com.cartmate.cartmate.boundedContext.productService.post.domain.*;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.*;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
-import com.cartmate.cartmate.global.global.GlobalConfig;
 import com.cartmate.cartmate.global.page.PageResponse;
 import com.cartmate.cartmate.global.rsData.RsData;
 import com.cartmate.cartmate.shared.member.event.SellerRegisteredEvent;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.RollbackProductRequest;
-import com.cartmate.cartmate.boundedContext.productService.event.PostApiCallFailedEvent;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductRequest;
+import com.cartmate.cartmate.global.event.DomainEventPublisher;
+import com.cartmate.cartmate.shared.post.event.SalesPostRegisterFailedEvent;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
@@ -44,6 +42,7 @@ public class SalesPostFacade {
     private final SalesPostRecoverUseCase salesPostRecoverUseCase;
     private final SalesPostDeleteUseCase salesPostDeleteUseCase;
     private final TransactionTemplate transactionTemplate;
+    private final DomainEventPublisher domainEventPublisher;
     private final SalesPostApiClient salesPostApiClient;
     private final SalesPostSupport salesPostSupport;
     private final AdminSalesPostUseCase adminSalesPostUseCase;
@@ -68,18 +67,19 @@ public class SalesPostFacade {
 
         try{
             CreateProductRequest productRequest = new CreateProductRequest(post.getId(), request.toCreateProductList());
-            salesPostApiClient.registerProducts(productRequest, images);
+            List<SyncProduct> savedProducts = salesPostApiClient.registerProducts(productRequest, images);
 
-            transactionTemplate.executeWithoutResult(status ->
-                    salesPostCreateUseCase.completeSave(post.getId())
-            );
+            // 복제본 생성과 판매 시작을 한 트랜잭션으로. 복제본을 못 만들면 등록 실패로 보고 아래에서 보상한다
+            transactionTemplate.executeWithoutResult(status -> {
+                salesPostSyncProductUseCase.syncProduct(savedProducts);
+                salesPostCreateUseCase.completeSave(post.getId());
+            });
         } catch(Exception e) {
-            salesPostDeleteUseCase.deleteSalesPostByEvent(post.getId());
-            GlobalConfig.getEventPublisher().publish(
-                    new PostApiCallFailedEvent(
-                            new RollbackProductRequest(post.getId())
-                    )
-            );
+            // 판매글 삭제와 상품 정리 이벤트(outbox)를 한 트랜잭션으로. 커밋되면 outbox가 product까지 전달을 책임진다
+            transactionTemplate.executeWithoutResult(status -> {
+                salesPostDeleteUseCase.deleteSalesPostByEvent(post.getId());
+                domainEventPublisher.publish(new SalesPostRegisterFailedEvent(post.getId()));
+            });
             throw e;
         }
     }
@@ -99,11 +99,6 @@ public class SalesPostFacade {
     // 삭제 대사: 삭제 이벤트 재발행. 그 사이 삭제가 끝났으면 false
     public boolean republishStuckDelete(Long postId) {
         return salesPostDeleteUseCase.republishDelete(postId);
-    }
-
-    @Transactional
-    public void syncProduct(SyncProductRequest request) {
-        salesPostSyncProductUseCase.syncProduct(request.getProductList());
     }
 
     @Transactional(readOnly = true)
@@ -172,8 +167,9 @@ public class SalesPostFacade {
             throw e;
         }
 
+        List<SyncProduct> updatedProducts;
         try {
-            salesPostApiClient.updateProducts(request, images);
+            updatedProducts = salesPostApiClient.updateProducts(request, images);
         } catch (ServiceException e) {
             if (e.getResultCode().equals(ProductErrorCode.PRODUCT_UPDATE_INVALID.resultCode())) {
                 // 명확한 실패(상품 쪽 rollback 완료)
@@ -190,8 +186,10 @@ public class SalesPostFacade {
             throw e;
         }
 
+        // 복제본 갱신과 판매글 수정 · 완료를 한 트랜잭션으로. 복제본을 못 맞추면 수정 실패로 보고 상품을 복구한다
         try {
             transactionTemplate.executeWithoutResult(s -> {
+                salesPostSyncProductUseCase.syncProduct(updatedProducts);
                 salesPostUpdateUseCase.markCompleted(postId);
                 salesPostUpdateUseCase.updateSalesPostByUser(request);
                 salesPostRecoveryUseCase.delete(postId);
@@ -200,6 +198,34 @@ public class SalesPostFacade {
             salesPostRecoverUseCase.recover(postId);
             throw e;
         }
+    }
+
+    // ===== 수정 복구 대사 =====
+    public List<Long> findStaleRecoveringPostIds(Long afterId, int limit) {
+        return salesPostRecoverUseCase.findStaleRecoveringIds(afterId, limit);
+    }
+
+    public List<Long> findStalePendingUpdatePostIds(Long afterId, int limit) {
+        return salesPostRecoverUseCase.findStalePendingIds(afterId, limit);
+    }
+
+    public void retryRecovering(Long postId) {
+        salesPostRecoverUseCase.retryRecovering(postId);
+    }
+
+    public void recoverStalePendingUpdate(Long postId) {
+        salesPostRecoverUseCase.recoverStalePending(postId);
+    }
+
+    // ===== 등록 대사 =====
+    // 트랜잭션을 걸지 않는다: 상품 정리(PostApiCallFailedEvent → ProductFacade.rollbackByApiFail)가 사진 파일까지 지우므로,
+    // 상품 정리와 판매글 삭제가 각자 커밋돼야 DB 롤백과 파일 삭제가 어긋나지 않는다
+    public List<Long> findStaleRegisteringPostIds(int limit) {
+        return salesPostCreateUseCase.findStalePendingIds(limit);
+    }
+
+    public void cleanUpStaleRegistering(Long postId) {
+        salesPostCreateUseCase.cleanUpStalePending(postId);
     }
 
     // ===== 관리자 =====

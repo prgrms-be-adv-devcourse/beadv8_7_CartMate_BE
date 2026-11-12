@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderDetailResponse;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared.SharedGroupOrderSummaryResponse;
@@ -77,19 +78,26 @@ public class SharedGroupOrderFacade {
         return sharedGroupOrderCancelUseCase.findIdsToCancelByDeadline(now);
     }
 
-    @Transactional(readOnly = true)
-    public List<Long> findActiveIdsByProductIds(List<Long> productIds) {
-        return sharedGroupOrderCancelUseCase.findActiveIdsByProductIds(productIds);
-    }
-
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancelBySalesStopped(Long sharedGroupOrderId) {
         sharedGroupOrderCancelUseCase.cancelBySalesStopped(sharedGroupOrderId);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void cancelSellerItemsBySalesStopped(Long sharedGroupOrderId, Long sellerId) {
-            sharedGroupOrderCancelUseCase.cancelSellerItemsBySalesStopped(sharedGroupOrderId, sellerId);
+    @Transactional(readOnly = true)
+    public List<Long> findIdsByStatusAndProductIds(SharedGroupOrderStatus status, List<Long> productIds) {
+        return sharedGroupOrderCancelUseCase.findIdsByStatusAndProductIds(status, productIds);
+    }
+
+    // 배송 서버의 판매글 내림 취소 결과를 반영하는 트랜잭션에 참여한다 (요청 장부와 함께 커밋).
+    @Transactional
+    public void cancelWholeBySalesStopResult(Long sharedGroupOrderId) {
+        sharedGroupOrderCancelUseCase.cancelBySalesStopped(sharedGroupOrderId);
+    }
+
+    // 판매글 내림 취소 결과나 판매자 사유 취소를 반영하는 트랜잭션에 참여한다 (Inbox·요청 장부와 함께 커밋).
+    @Transactional
+    public void cancelSellerItems(Long sharedGroupOrderId, Long sellerId, DeliveryCancelReason reason) {
+        sharedGroupOrderCancelUseCase.cancelSellerItems(sharedGroupOrderId, sellerId, reason);
     }
 
     @Transactional(readOnly = true)

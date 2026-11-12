@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberRole;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.RefreshToken;
@@ -12,19 +13,12 @@ import com.cartmate.cartmate.global.security.JwtProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.HexFormat;
 
 // 액세스·리프레시 토큰 발급, 재발급(회전), 폐기
 @Service
 public class MemberTokenUseCase {
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final MemberSupport memberSupport;
@@ -55,7 +49,7 @@ public class MemberTokenUseCase {
         String accessToken = jwtProvider.createAccessToken(member.getId(), member.getEmail(), member.getRole().name(), sellerId);
 
         Duration ttl = remember ? rememberTtl : sessionTtl;
-        String rawRefresh = newRandomToken();
+        String rawRefresh = SecureTokens.newToken();
         refreshTokenRepository.save(RefreshToken.issue(
                 member.getId(), hash(rawRefresh), LocalDateTime.now().plus(ttl), remember));
 
@@ -100,22 +94,11 @@ public class MemberTokenUseCase {
         return refreshTokenRepository.deleteExpired(LocalDateTime.now());
     }
 
-    private String newRandomToken() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private String hash(String raw) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(raw.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
+    private static String hash(String raw) {
+        return SecureTokens.sha256(raw);
     }
 
     private ServiceException invalid() {
-        return new ServiceException("401-AUTH_REFRESH_INVALID", "로그인이 만료되었습니다. 다시 로그인해주세요.");
+        return new ServiceException(MemberErrorCode.AUTH_REFRESH_INVALID);
     }
 }

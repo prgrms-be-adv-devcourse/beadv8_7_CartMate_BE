@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberAddress;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberPolicy;
@@ -27,12 +28,12 @@ public class MemberAddressUseCase {
     public MemberAddressResponse create(Long memberId, MemberAddressRequest req) {
         long count = memberAddressRepository.countByMemberId(memberId);
         if (count >= MemberPolicy.MAX_ADDRESS_COUNT) {
-            throw new ServiceException("409-MEMBER_ADDRESS_LIMIT",
+            throw new ServiceException(MemberErrorCode.MEMBER_ADDRESS_LIMIT.resultCode(),
                     "배송지는 최대 %d개까지 등록할 수 있습니다.".formatted(MemberPolicy.MAX_ADDRESS_COUNT));
         }
 
         Member member = memberSupport.findById(memberId)
-                .orElseThrow(() -> new ServiceException("404-MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         MemberAddress address = memberAddressRepository.save(MemberAddress.create(member,
                 trimToNull(req.addressName()), req.receiverName().trim(), req.receiverPhone(),
@@ -88,10 +89,10 @@ public class MemberAddressUseCase {
 
     private MemberAddress getOwned(Long memberId, Long addressId) {
         MemberAddress address = memberAddressRepository.findById(addressId)
-                .orElseThrow(() -> new ServiceException("404-MEMBER_ADDRESS_NOT_FOUND", "배송지를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_ADDRESS_NOT_FOUND));
         if (!address.isOwnedBy(memberId)) {
             // 남의 배송지가 있다는 사실도 숨기려고 404로 응답
-            throw new ServiceException("404-MEMBER_ADDRESS_NOT_FOUND", "배송지를 찾을 수 없습니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_ADDRESS_NOT_FOUND);
         }
         return address;
     }

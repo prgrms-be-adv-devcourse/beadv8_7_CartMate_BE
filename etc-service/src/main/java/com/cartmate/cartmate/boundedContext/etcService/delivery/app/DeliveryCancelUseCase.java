@@ -3,8 +3,11 @@ package com.cartmate.cartmate.boundedContext.etcService.delivery.app;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.BuyerCancelVerdict;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryOrderState;
+import com.cartmate.cartmate.boundedContext.etcService.delivery.exception.DeliveryErrorCode;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
+import com.cartmate.cartmate.shared.delivery.SalesStopCancelResult;
+import com.cartmate.cartmate.shared.delivery.event.DeliverySalesStopCancelResultEvent;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryRepository;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryOrderCancelRejectedEvent;
 import com.cartmate.cartmate.shared.delivery.event.DeliveryOrderCanceledEvent;
@@ -61,22 +64,53 @@ public class DeliveryCancelUseCase {
         return Optional.empty();
     }
 
-    // 판매글 판매 중지: 한 주문에서 한 판매자 배송만 취소 (발송됐으면 예외).
-    // 변경 감지에 기대지 않고 저장을 명시해, 어떤 배송이 바뀌는지 코드에서 드러나게 한다.
-    public void cancelSellerBySalesStop(Long orderId, PurchaseType purchaseType, Long sellerId, LocalDateTime canceledAt) {
-        List<Delivery> deliveries = deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(orderId, purchaseType).stream()
+    // 판매글 내림으로 인한 취소 요청을 판정하고 결과를 회신한다.
+    // 공동구매는 모든 배송이 취소 가능하면 전부 취소하고, 아니면 그 판매자 몫만 취소한다. 그 판매자 배송이 발송됐으면 거절한다.
+    // 배송이 아직 없는 판매자 몫은 메모를 남겨 나중에 온 배송 생성이 만들지 않게 한다.
+    // 같은 요청을 다시 받아도 같은 결과를 돌려준다.
+    public void cancelBySalesStop(PurchaseType purchaseType, Long orderId, Long sellerId) {
+        DeliveryOrderState state = deliveryOrderStates.lockForSellerCancel(orderId, purchaseType).state();
+        if (state.isCanceled()) {
+            publishResult(purchaseType, orderId, sellerId, canceledResultOf(purchaseType), null);
+            return;
+        }
+
+        List<Delivery> deliveries = deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(orderId, purchaseType);
+        LocalDateTime canceledAt = LocalDateTime.now();
+        if (purchaseType == PurchaseType.SHARED_GROUP
+                && deliveries.stream().allMatch(Delivery::isCancelableByPostHidden)) {
+            cancelAll(deliveries, canceledAt);
+            state.markCanceled();
+            publishResult(purchaseType, orderId, sellerId, SalesStopCancelResult.WHOLE_CANCELED, null);
+            return;
+        }
+
+        List<Delivery> sellerDeliveries = deliveries.stream()
                 .filter(delivery -> delivery.getSellerId().equals(sellerId))
                 .toList();
-                deliveries.forEach(delivery -> delivery.cancelByPostHidden(canceledAt));
-                deliveryRepository.saveAll(deliveries);
+        if (!sellerDeliveries.stream().allMatch(Delivery::isCancelableByPostHidden)) {
+            publishResult(purchaseType, orderId, sellerId, SalesStopCancelResult.REJECTED,
+                    DeliveryErrorCode.DELIVERY_NOT_CANCELABLE.resultCode());
+            return;
+        }
+        cancelAll(sellerDeliveries, canceledAt);
+        deliveryOrderStates.markSellerCanceled(orderId, purchaseType, sellerId);
+        publishResult(purchaseType, orderId, sellerId, SalesStopCancelResult.SELLER_CANCELED, null);
     }
 
-    // 판매글 판매 중지: 공동 주문 배송 전부 취소. 하나라도 발송됐으면 예외 → 공동 주문 취소까지 롤백.
-    // 결제 중이던 공동 주문은 아직 배송이 없어 아무 일도 없다.
-    public void cancelAllSharedBySalesStop(Long sharedGroupOrderId, LocalDateTime canceledAt) {
-        List<Delivery> deliveries = deliveryRepository.findAllByOrderIdAndPurchaseTypeForUpdate(
-                sharedGroupOrderId, PurchaseType.SHARED_GROUP);
+    private SalesStopCancelResult canceledResultOf(PurchaseType purchaseType) {
+        return purchaseType == PurchaseType.SHARED_GROUP
+                ? SalesStopCancelResult.WHOLE_CANCELED
+                : SalesStopCancelResult.SELLER_CANCELED;
+    }
+
+    private void cancelAll(List<Delivery> deliveries, LocalDateTime canceledAt) {
         deliveries.forEach(delivery -> delivery.cancelByPostHidden(canceledAt));
         deliveryRepository.saveAll(deliveries);
+    }
+
+    private void publishResult(PurchaseType purchaseType, Long orderId, Long sellerId,
+                               SalesStopCancelResult result, String failureCode) {
+        eventPublisher.publish(new DeliverySalesStopCancelResultEvent(purchaseType, orderId, sellerId, result, failureCode));
     }
 }

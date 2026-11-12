@@ -17,10 +17,14 @@ import java.util.Optional;
 
 public interface DeliveryClaimRepository extends JpaRepository<DeliveryClaim, Long> {
 
-    // 클레임 행을 잠그고 조회한다. 승인·거절·완료가 동시에 들어와도 한 건만 처리되도록 트랜잭션 안에서 호출한다.
+    // 클레임 행을 잠그고 조회한다. 환불 결과 반영(이벤트 경로, Inbox 트랜잭션 안)이 쓴다. 승인·거절·완료는 배송 키 분산락을 쓴다.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from DeliveryClaim c where c.id = :id")
     Optional<DeliveryClaim> findByIdForUpdate(@Param("id") Long id);
+
+    // 클레임의 배송 ID. 클레임 처리 전에 배송 키 분산락을 만들 때 쓴다.
+    @Query("select c.delivery.id from DeliveryClaim c where c.id = :id")
+    Optional<Long> findDeliveryIdById(@Param("id") Long id);
 
     Page<DeliveryClaim> findByMemberIdOrderByCreatedAtDescIdDesc(Long memberId, Pageable pageable);
 

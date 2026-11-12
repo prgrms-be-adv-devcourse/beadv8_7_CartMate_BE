@@ -60,7 +60,7 @@ class IndividualGroupPurchaseOrderReplicaIntegrationTest {
                         IndividualGroupPurchaseOrderLine::quantity, IndividualGroupPurchaseOrderLine::orderedAt)
                 .containsExactly(tuple(orderId, 7L, 2, CREATED_AT), tuple(orderId, 8L, 1, CREATED_AT));
 
-        relay(new OrderCanceledEvent(orderId, 1L, OrderType.INDIVIDUAL_GROUP, OrderCancelReason.BUYER_CANCELED, true, CREATED_AT.plusHours(1)));
+        relay(new OrderCanceledEvent(orderId, 1L, OrderType.INDIVIDUAL_GROUP, OrderCancelReason.BUYER_CANCELED, true, CREATED_AT.plusHours(1), null));
         assertThat(replicaRepository.findPaidLines(purchaseId)).isEmpty();
     }
 
@@ -75,7 +75,7 @@ class IndividualGroupPurchaseOrderReplicaIntegrationTest {
         relay(paid(duplicated, purchaseId, OrderType.INDIVIDUAL_GROUP));
         relay(created(duplicated, purchaseId, OrderType.INDIVIDUAL_GROUP));
 
-        relay(new OrderCanceledEvent(canceledFirst, 1L, OrderType.INDIVIDUAL_GROUP, OrderCancelReason.BUYER_CANCELED, true, CREATED_AT));
+        relay(new OrderCanceledEvent(canceledFirst, 1L, OrderType.INDIVIDUAL_GROUP, OrderCancelReason.BUYER_CANCELED, true, CREATED_AT, null));
         relay(paid(canceledFirst, purchaseId, OrderType.INDIVIDUAL_GROUP));
 
         assertThat(replicaRepository.findPaidLines(purchaseId))

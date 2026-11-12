@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum MemberCouponStatus {
     AVAILABLE("보유"),
-    RESERVED("사용 예정 (결제 전 주문에 선택)"),
+    RESERVED("사용 예정"),  // 결제 전 주문에 선택
     USED("사용 완료");
 
-    private final String description;
+    private final String label;
 }

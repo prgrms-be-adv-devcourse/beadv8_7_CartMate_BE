@@ -20,6 +20,7 @@ import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
 import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
 import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -118,13 +119,13 @@ class OrderCancelUseCase {
                 OrderStatus.PAYMENT_PENDING);
     }
 
-    void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
+    void cancelSellerItems(Long orderId, Long sellerId, DeliveryCancelReason reason) {
         Order order = orderSupport.getOrderForUpdate(orderId);
         LocalDateTime now = LocalDateTime.now(clock);
-        long amount = order.cancelSellerItemsBySalesStopped(sellerId, now);
+        long amount = order.cancelSellerItems(sellerId, reason, now);
         if (amount > 0) {
             eventPublisher.publish(new OrderSellerItemsCanceledEvent(
-                    orderId, order.getBuyerMemberId(), sellerId, amount, now));
+                    orderId, order.getBuyerMemberId(), sellerId, amount, now, reason));
         }
         restoreCouponIf(amount > 0, order);
     }
@@ -184,7 +185,8 @@ class OrderCancelUseCase {
                 order.getOrderType(),
                 order.getCancelReason(),
                 paid,
-                order.getCanceledAt()
+                order.getCanceledAt(),
+                paid ? order.remainingRefundAmount() : null
         );
     }
 }

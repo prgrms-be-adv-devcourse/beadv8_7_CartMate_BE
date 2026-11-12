@@ -1,18 +1,12 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.in;
 
-import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
-
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.DeliveryFacade;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryCreateCommand;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.shared.order.event.OrderCancelRequestedEvent;
-import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent;
-import com.cartmate.cartmate.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSalesStopCancelRequestedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -55,29 +49,9 @@ public class DeliveryOrderEventListener {
         deliveryFacade.cancelByBuyerRequest(event.orderId(), event.requestSeq(), event.requestedAt());
     }
 
-    // 판매글 판매 중지: 결제 완료 주문의 한 판매자 항목 취소 → 그 판매자 배송 취소 (주문 취소와 같은 시각).
-    // 발송됐으면 예외로 주문 처리까지 롤백된다 (클레임으로). 환불보다 먼저 실행되어야 한다.
-    @Order(Ordered.HIGHEST_PRECEDENCE)
     @EventListener
-    public void handle(OrderSellerItemsCanceledEvent event) {
-        deliveryFacade.cancelSellerBySalesStop(event.orderId(), PurchaseType.INDIVIDUAL_GROUP, event.sellerId(), event.canceledAt());
-    }
-
-    // 판매글 판매 중지: 확정 공동 주문의 한 판매자 항목 취소 → 그 판매자 배송 취소
-    @Order(Ordered.HIGHEST_PRECEDENCE)
-    @EventListener
-    public void handle(SharedGroupOrderSellerItemsCanceledEvent event) {
-        deliveryFacade.cancelSellerBySalesStop(event.sharedGroupOrderId(), PurchaseType.SHARED_GROUP, event.sellerId(), event.canceledAt());
-    }
-
-    // 판매글 판매 중지로 공동 주문 전체 취소 → 배송 전부 취소. 하나라도 발송됐으면 예외로 공동 주문 취소까지 롤백된다.
-    // 다른 사유(기한 만료·만든 사람 취소)는 결제 중이라 배송이 없으므로 건드리지 않는다.
-    @Order(Ordered.HIGHEST_PRECEDENCE)
-    @EventListener
-    public void handle(SharedGroupOrderCanceledEvent event) {
-        if (event.cancelReason() == SharedGroupOrderCancelReason.SALES_STOPPED) {
-            deliveryFacade.cancelAllSharedBySalesStop(event.sharedGroupOrderId(), event.canceledAt());
-        }
+    public void handle(OrderSalesStopCancelRequestedEvent event) {
+        deliveryFacade.cancelBySalesStop(event.purchaseType(), event.orderId(), event.sellerId());
     }
 
     // 공동물품 확정 이벤트를 받아 판매자별 배송을 생성한다. 생성 실패 시 마지막 결제도 함께 롤백된다.

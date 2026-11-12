@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.dto.personal;
 
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
@@ -56,7 +57,11 @@ public record OrderDetailResponse(
             String optionName,
             long unitPrice,
             int quantity,
-            long amount
+            long amount,
+            @Schema(description = "취소된 항목이면 취소 시각 (판매글 내림 또는 판매자 사유 취소). 주문 전체 취소는 주문의 canceledAt을 본다")
+            LocalDateTime canceledAt,
+            @Schema(description = "취소된 항목이면 취소 사유 (판매 중지, 품절·재고 부족 같은 판매자 사유). 이 칸이 생기기 전에 취소된 항목은 null")
+            DeliveryCancelReason cancelReason
     ) {
 
         static ItemResponse from(OrderItem item) {
@@ -68,7 +73,9 @@ public record OrderDetailResponse(
                     item.getOptionName(),
                     item.getUnitPrice(),
                     item.getQuantity(),
-                    item.amount()
+                    item.amount(),
+                    item.getCanceledAt(),
+                    item.getCancelReason()
             );
         }
     }

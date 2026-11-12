@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import com.cartmate.cartmate.shared.coupon.dto.CouponOrderTarget;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.shared.order.OrderType;
@@ -296,6 +297,10 @@ public class Order {
         return totalAmount - discountAmount;
     }
 
+    public long remainingRefundAmount() {
+        return payAmount() - itemRefundedAmount;
+    }
+
     public boolean hasCoupon() {
         return memberCouponId != null;
     }
@@ -330,14 +335,15 @@ public class Order {
         return discountAmount * itemsAmount / totalAmount;
     }
 
-    public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
+    // 판매 중지(판매글 내림)나 판매자 사유 취소로 한 판매자의 남은 항목을 모두 취소하고, 그 몫의 환불 금액을 돌려준다
+    public long cancelSellerItems(Long sellerId, DeliveryCancelReason reason, LocalDateTime now) {
         if (!isPaid()) {
             return 0;
         }
         long itemsAmount = 0;
         for (OrderItem item : items) {
             if (sellerId.equals(item.getSellerId()) && !item.isCanceled()) {
-                item.cancel(now);
+                item.cancel(reason, now);
                 itemsAmount += item.amount();
             }
         }
@@ -347,7 +353,8 @@ public class Order {
         long refund = itemsAmount - discountShareOf(sellerId, itemsAmount);
         if (items.stream().allMatch(OrderItem::isCanceled)) {
             refund = payAmount() - itemRefundedAmount;
-            cancel(OrderCancelReason.SALES_STOPPED, now);
+            cancel(reason == DeliveryCancelReason.SALES_STOPPED
+                    ? OrderCancelReason.SALES_STOPPED : OrderCancelReason.SELLER_CANCELED, now);
         } else {
             partiallyCanceled = true;
         }

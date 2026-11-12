@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.global.http.InternalApiClient.InternalServerUnavailableException;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,6 +43,7 @@ import java.util.Optional;
 
 import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.ballLine;
 import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.productBLine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -270,11 +273,59 @@ class OrderCancelUseCaseTest {
                 .isInstanceOf(InternalServerUnavailableException.class);
     }
 
+    @Test
+    @DisplayName("판매글 내림으로 한 판매자 몫이 먼저 환불된 주문을 취소 확정하면 남은 금액만 환불 금액으로 싣는다")
+    void confirmCancelCarriesRemainingRefundAmount() {
+        Order order = personalOrder("20261019-TWOSELLR", BUYER,
+                java.util.List.of(ballLine(10L, 1), productBLine(3L, 1)), LocalDateTime.now(CLOCK));
+        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.markPaid(1L, LocalDateTime.now(CLOCK));
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, LocalDateTime.now(CLOCK));
+        cancelUseCase.cancelByBuyer(BUYER, ORDER_ID);
+
+        cancelUseCase.confirmCancelByDelivery(ORDER_ID, 1);
+
+        ArgumentCaptor<OrderCanceledEvent> captor = ArgumentCaptor.forClass(OrderCanceledEvent.class);
+        then(eventPublisher).should().publish(captor.capture());
+        assertThat(captor.getValue().refundAmount()).isEqualTo(25_000L);
+    }
+
+    @Test
+    @DisplayName("결제 전 주문의 취소 이벤트에는 환불 금액이 없다")
+    void unpaidCancelHasNoRefundAmount() {
+        Order order = order();
+        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+        given(paymentClient.findPayment(PaymentOrderType.INDIVIDUAL_GROUP, ORDER_ID, BUYER)).willReturn(Optional.empty());
+
+        cancelUseCase.cancelByBuyer(BUYER, ORDER_ID);
+
+        ArgumentCaptor<OrderCanceledEvent> captor = ArgumentCaptor.forClass(OrderCanceledEvent.class);
+        then(eventPublisher).should().publish(captor.capture());
+        assertThat(captor.getValue().refundAmount()).isNull();
+    }
+
     private Order couponPaidOrder() {
         Order order = personalOrder(BUYER, ballLine(null, 1), LocalDateTime.now(CLOCK));
         org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);
         order.applyCoupon(5L, 1_000L, true, null);
         order.markPaid(1L, LocalDateTime.now(CLOCK));
         return order;
+    }
+
+    @Test
+    @DisplayName("판매자 사유로 한 판매자 몫을 취소하면 환불 금액과 사유를 실은 판매자 몫 취소 이벤트를 발행한다")
+    void cancelSellerItemsPublishesReason() {
+        Order order = personalOrder("20261019-TWOSELLR", BUYER,
+                java.util.List.of(ballLine(10L, 1), productBLine(3L, 1)), LocalDateTime.now(CLOCK));
+        org.springframework.test.util.ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.markPaid(1L, LocalDateTime.now(CLOCK));
+        given(orderRepository.findByIdForUpdate(ORDER_ID)).willReturn(Optional.of(order));
+
+        cancelUseCase.cancelSellerItems(ORDER_ID, 7L, DeliveryCancelReason.SELLER_OUT_OF_STOCK);
+
+        then(eventPublisher).should().publish(new OrderSellerItemsCanceledEvent(
+                ORDER_ID, BUYER, 7L, 15_000L, LocalDateTime.now(CLOCK), DeliveryCancelReason.SELLER_OUT_OF_STOCK));
     }
 }

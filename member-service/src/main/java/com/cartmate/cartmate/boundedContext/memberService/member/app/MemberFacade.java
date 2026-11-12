@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +22,7 @@ public class MemberFacade {
     private final MemberJoinUseCase memberJoinUseCase;
     private final MemberSendPhoneCodeUseCase memberSendPhoneCodeUseCase;
     private final MemberVerifyPhoneCodeUseCase memberVerifyPhoneCodeUseCase;
+    private final MemberEmailVerificationUseCase memberEmailVerificationUseCase;
     private final MemberProfileUseCase memberProfileUseCase;
     private final MemberChangePasswordUseCase memberChangePasswordUseCase;
     private final AdminMemberSearchUseCase adminMemberSearchUseCase;
@@ -59,6 +62,15 @@ public class MemberFacade {
         return !memberSupport.existsByNickname(nickname);
     }
 
+    // 트랜잭션 없음: 메일 발송(SMTP) 동안 DB 연결을 잡지 않는다
+    public int sendEmailCode(String email) {
+        return memberEmailVerificationUseCase.send(email, Instant.now());
+    }
+
+    public void verifyEmailCode(String email, String code) {
+        memberEmailVerificationUseCase.verify(email, code, Instant.now());
+    }
+
     public int sendPhoneCode(String phone) {
         return memberSendPhoneCodeUseCase.send(phone);
     }
@@ -68,10 +80,42 @@ public class MemberFacade {
     }
 
     private final MemberLoginUseCase memberLoginUseCase;
+    private final MemberLoginMfaUseCase memberLoginMfaUseCase;
+    private final TrustedDeviceUseCase trustedDeviceUseCase;
+
+    // 트랜잭션 없음: 2차 인증 메일(SMTP)을 보내는 동안 DB 연결을 잡지 않는다 (토큰·기기 저장은 저장소가 각자 연다)
+    // trustedDeviceToken: 쿠키의 신뢰 기기 토큰 (없으면 null)
+    public LoginOutcome login(String email, String password, boolean remember, String trustedDeviceToken) {
+        return memberLoginUseCase.login(email, password, remember, trustedDeviceToken, Instant.now());
+    }
 
     @Transactional
-    public LoginResult login(String email, String password, boolean remember) {
-        return memberLoginUseCase.login(email, password, remember);
+    public LoginOutcome verifyLoginMfa(String challengeId, String code, boolean trustDevice, String deviceName) {
+        return memberLoginMfaUseCase.verify(challengeId, code, trustDevice, deviceName, Instant.now());
+    }
+
+    public int resendLoginMfa(String challengeId) {
+        return memberLoginMfaUseCase.resend(challengeId, Instant.now());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrustedDeviceResponse> getTrustedDevices(Long memberId) {
+        return trustedDeviceUseCase.list(memberId, LocalDateTime.now()).stream().map(TrustedDeviceResponse::from).toList();
+    }
+
+    @Transactional
+    public void revokeTrustedDevice(Long memberId, Long deviceId) {
+        trustedDeviceUseCase.revoke(memberId, deviceId);
+    }
+
+    @Transactional
+    public void revokeAllTrustedDevices(Long memberId) {
+        trustedDeviceUseCase.revokeAll(memberId);
+    }
+
+    @Transactional
+    public int deleteExpiredTrustedDevices() {
+        return trustedDeviceUseCase.deleteExpired(LocalDateTime.now());
     }
 
     @Transactional

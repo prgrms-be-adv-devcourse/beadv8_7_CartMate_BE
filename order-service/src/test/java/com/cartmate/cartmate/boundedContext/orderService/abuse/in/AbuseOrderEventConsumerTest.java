@@ -172,7 +172,7 @@ class AbuseOrderEventConsumerTest {
     }
 
     private OrderCanceledEvent orderCanceled(OrderType orderType, OrderCancelReason reason) {
-        return new OrderCanceledEvent(500L, 7L, orderType, reason, false, CANCELED_AT);
+        return new OrderCanceledEvent(500L, 7L, orderType, reason, false, CANCELED_AT, null);
     }
 
     private SharedGroupOrderCanceledEvent canceled(SharedGroupOrderCancelReason reason, List<Long> unpaidMemberIds) {

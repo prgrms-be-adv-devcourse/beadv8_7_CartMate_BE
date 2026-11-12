@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.domain.personal;
 
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.order.OrderCancelReason;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.shared.order.OrderType;
@@ -36,7 +37,7 @@ class OrderTest {
         ), addressWithoutDetail(), NOW);
         order.markPaid(99L, NOW.plusMinutes(1));
 
-        long refund = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));
+        long refund = order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2));
 
         assertThat(refund).isEqualTo(30_000L + 2_500L * 2);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
@@ -52,21 +53,21 @@ class OrderTest {
         ), addressWithoutDetail(), NOW);
         order.markPaid(99L, NOW.plusMinutes(1));
 
-        assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2))).isEqualTo(35_000L);
+        assertThat(order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2))).isEqualTo(35_000L);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
         assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.SALES_STOPPED);
-        assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3))).isZero();
+        assertThat(order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(3))).isZero();
     }
 
     @Test
     @DisplayName("판매 중지: 결제 전 주문이나 판매자 상품이 없으면 0원 (판매자 없는 상품이 섞여 있어도 오류 없이)")
     void cancelSellerItemsReturnsZero() {
         Order pending = personalOrder();
-        assertThat(pending.cancelSellerItemsBySalesStopped(12L, NOW)).isZero();
+        assertThat(pending.cancelSellerItems(12L, DeliveryCancelReason.SALES_STOPPED, NOW)).isZero();
 
         Order paid = personalOrder();
         paid.markPaid(99L, NOW.plusMinutes(1));
-        assertThat(paid.cancelSellerItemsBySalesStopped(999L, NOW.plusMinutes(2))).isZero();
+        assertThat(paid.cancelSellerItems(999L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2))).isZero();
         assertThat(paid.getStatus()).isEqualTo(OrderStatus.PAID);
     }
 
@@ -288,7 +289,7 @@ class OrderTest {
         order.markPaid(1L, NOW);
         order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
 
-        order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));
+        order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2));
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
         assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isFalse();
@@ -305,7 +306,7 @@ class OrderTest {
         order.markPaid(1L, NOW);
         order.cancelByBuyer(BUYER, NOW.plusMinutes(1));
 
-        assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2))).isEqualTo(30_000L);
+        assertThat(order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2))).isEqualTo(30_000L);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCEL_REQUESTED);
 
         assertThat(order.rejectCancel(1, "409-DELIVERY_NOT_CANCELABLE")).isTrue();
@@ -435,8 +436,8 @@ class OrderTest {
         order.applyCoupon(5L, 10_000L, true, null);
         order.markPaid(99L, NOW.plusMinutes(1));
 
-        long first = order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2));
-        long second = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3));
+        long first = order.cancelSellerItems(8L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2));
+        long second = order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(3));
 
         assertThat(first).isEqualTo(16_000L);
         assertThat(second).isEqualTo(24_000L);
@@ -452,8 +453,8 @@ class OrderTest {
         order.applyCoupon(5L, 3_000L, false, 7L);
         order.markPaid(99L, NOW.plusMinutes(1));
 
-        assertThat(order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(2))).isEqualTo(20_000L);
-        assertThat(order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(3))).isEqualTo(27_000L);
+        assertThat(order.cancelSellerItems(8L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2))).isEqualTo(20_000L);
+        assertThat(order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(3))).isEqualTo(27_000L);
     }
 
     @Test
@@ -467,9 +468,9 @@ class OrderTest {
         order.applyCoupon(5L, 1_000L, true, null);
         order.markPaid(99L, NOW.plusMinutes(1));
 
-        long a = order.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2));
-        long b = order.cancelSellerItemsBySalesStopped(8L, NOW.plusMinutes(3));
-        long c = order.cancelSellerItemsBySalesStopped(9L, NOW.plusMinutes(4));
+        long a = order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2));
+        long b = order.cancelSellerItems(8L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(3));
+        long c = order.cancelSellerItems(9L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(4));
 
         assertThat(a).isEqualTo(9_667L);
         assertThat(b).isEqualTo(9_667L);
@@ -491,7 +492,7 @@ class OrderTest {
                 new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1)), addressWithoutDetail(), NOW);
         oneSeller.applyCoupon(5L, 3_000L, true, null);
         oneSeller.markPaid(99L, NOW.plusMinutes(1));
-        assertThat(oneSeller.cancelSellerItemsBySalesStopped(7L, NOW.plusMinutes(2))).isEqualTo(27_000L);
+        assertThat(oneSeller.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2))).isEqualTo(27_000L);
         assertThat(oneSeller.couponRestorable()).isTrue();
     }
 
@@ -504,11 +505,11 @@ class OrderTest {
                 new OrderLine(20L, 21L, 99L, "상품B", null, 5_000L, 1)), addressWithoutDetail(), NOW);
         order.markPaid(1L, NOW);
 
-        long amount = order.cancelSellerItemsBySalesStopped(12L, NOW);
+        long amount = order.cancelSellerItems(12L, DeliveryCancelReason.SALES_STOPPED, NOW);
 
         assertThat(amount).isEqualTo(23_000L);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
-        assertThat(order.cancelSellerItemsBySalesStopped(12L, NOW)).isZero();
+        assertThat(order.cancelSellerItems(12L, DeliveryCancelReason.SALES_STOPPED, NOW)).isZero();
     }
 
     private Order personalOrder() {
@@ -529,5 +530,39 @@ class OrderTest {
 
     private OrderLine line(long unitPrice, int quantity) {
         return new OrderLine(10L, 11L, 12L, "상품A", null, unitPrice, quantity);
+    }
+
+    @Test
+    @DisplayName("판매자 사유 취소: 모든 상품이 취소되면 주문은 판매자 사유 취소로 취소되고, 항목에는 판매자가 고른 사유가 남는다")
+    void cancelSellerItemsBySellerReasonCancelsOrderWithSellerCanceled() {
+        Order order = Order.createPersonal("ORD-5", BUYER, List.of(
+                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1)
+        ), addressWithoutDetail(), NOW);
+        order.markPaid(99L, NOW.plusMinutes(1));
+
+        assertThat(order.cancelSellerItems(7L, DeliveryCancelReason.SELLER_OUT_OF_STOCK, NOW.plusMinutes(2)))
+                .isEqualTo(30_000L);
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.SELLER_CANCELED);
+        assertThat(order.getItems()).extracting(OrderItem::getCancelReason)
+                .containsExactly(DeliveryCancelReason.SELLER_OUT_OF_STOCK);
+    }
+
+    @Test
+    @DisplayName("판매 중지로 먼저 취소된 판매자 몫에 판매자 사유 취소가 와도 0원이고, 항목 사유는 판매 중지로 남는다")
+    void sellerReasonAfterSalesStopDoesNothing() {
+        Order order = Order.createPersonal("ORD-6", BUYER, List.of(
+                new OrderLine(10L, 11L, 7L, "유니폼", null, 30_000L, 1),
+                new OrderLine(30L, 31L, 8L, "축구공", null, 20_000L, 1)
+        ), addressWithoutDetail(), NOW);
+        order.markPaid(99L, NOW.plusMinutes(1));
+        order.cancelSellerItems(7L, DeliveryCancelReason.SALES_STOPPED, NOW.plusMinutes(2));
+
+        assertThat(order.cancelSellerItems(7L, DeliveryCancelReason.SELLER_OTHER, NOW.plusMinutes(3))).isZero();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.getItems()).extracting(OrderItem::getCancelReason)
+                .containsExactly(DeliveryCancelReason.SALES_STOPPED, null);
     }
 }

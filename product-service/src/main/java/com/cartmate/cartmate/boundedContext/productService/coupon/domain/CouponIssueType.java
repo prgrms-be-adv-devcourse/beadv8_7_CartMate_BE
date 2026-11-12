@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum CouponIssueType {
-    AUTO("조건을 채우면 자동 발급"),
-    DOWNLOAD("회원이 직접 다운로드");
+    AUTO("자동 발급"),          // 조건을 채우면 자동 발급
+    DOWNLOAD("직접 다운로드");  // 회원이 직접 다운로드
 
-    private final String description;
+    private final String label;
 }

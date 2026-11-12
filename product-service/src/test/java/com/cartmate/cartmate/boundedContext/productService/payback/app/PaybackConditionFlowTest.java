@@ -16,7 +16,7 @@ import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEven
 import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseUpdatedEvent;
 import com.cartmate.cartmate.shared.product.PaybackFunder;
 import com.cartmate.cartmate.shared.product.PaybackOverlapPolicy;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.support.ProductServiceJpaTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -156,7 +156,7 @@ class PaybackConditionFlowTest {
     }
 
     private static Product product(Long sellerId) {
-        return new Product(sellerId, 1L, 1L, "상품", "설명", 10_000L, ProductStatus.ON_SALE, true);
+        return new Product(sellerId, 1L, 1L, "상품", "설명", 10_000L, ProductStatus.ON_SALE);
     }
 
     private static IndividualGroupPurchaseOpenedEvent opened(Long purchaseId, List<Long> productIds, long revision) {

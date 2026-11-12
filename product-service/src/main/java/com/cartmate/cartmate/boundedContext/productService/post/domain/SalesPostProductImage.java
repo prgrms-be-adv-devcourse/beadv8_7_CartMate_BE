@@ -1,7 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.domain;
 
 
-import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProductImage;
 import com.cartmate.cartmate.global.jpa.entity.BaseManualIdAndTime;
 import jakarta.persistence.*;
@@ -34,11 +33,11 @@ public class SalesPostProductImage extends BaseManualIdAndTime {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private ProductStatus status;
+    private SalesPostProductStatus status;
 
 
     public SalesPostProductImage(Long id, Long sellerId, SalesPostProduct salesPostProduct, String s3Key,
-                                 int imageSeq, ProductStatus status, LocalDateTime createDate, LocalDateTime modifyDate) {
+                                 int imageSeq, SalesPostProductStatus status, LocalDateTime createDate, LocalDateTime modifyDate) {
         super(id, createDate, modifyDate);
         this.sellerId = sellerId;
         this.salesPostProduct = salesPostProduct;
@@ -61,7 +60,7 @@ public class SalesPostProductImage extends BaseManualIdAndTime {
     }
 
     public SalesPostProductImage delete() {
-        this.status = ProductStatus.DELETED;
+        this.status = SalesPostProductStatus.DELETED;
         return this;
     }
 }

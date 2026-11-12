@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.productService.product.app;
 
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.*;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
@@ -39,8 +39,7 @@ public class ProductCreateUseCase {
                     createProduct.getName(),
                     createProduct.getDescription(),
                     createProduct.getBasePrice(),
-                    ProductStatus.ON_SALE,
-                    false
+                    ProductStatus.ON_SALE
                 )
             );
             product.addProductImage(imagesByProduct.getOrDefault(i, List.of()));

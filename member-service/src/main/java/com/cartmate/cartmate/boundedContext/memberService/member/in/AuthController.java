@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final MemberFacade memberFacade;
     private final AuthCookieManager authCookieManager;
+    private final TrustedDeviceCookie trustedDeviceCookie;
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
@@ -28,6 +29,19 @@ public class AuthController {
     }
 
     public record AvailabilityResponse(boolean available) {
+    }
+
+    // 가입 이메일 확인: 코드 발송 (60초 뒤부터 재발송, 최대 5번). 응답 모양은 휴대폰 발송과 같다
+    @PostMapping("/email/send")
+    public RsData<PhoneSendResponse> sendEmailCode(@Valid @RequestBody EmailSendRequest request) {
+        int ttl = memberFacade.sendEmailCode(request.email());
+        return new RsData<>("200-1", "인증 메일이 발송되었습니다.", new PhoneSendResponse(ttl));
+    }
+
+    @PostMapping("/email/verify")
+    public RsData<Void> verifyEmailCode(@Valid @RequestBody EmailVerifyRequest request) {
+        memberFacade.verifyEmailCode(request.email(), request.code());
+        return new RsData<>("200-1", "이메일 인증이 완료되었습니다.");
     }
 
     @PostMapping("/phone/send")
@@ -58,11 +72,39 @@ public class AuthController {
                 new AvailabilityResponse(available));
     }
 
+    // 비밀번호가 맞으면: 2차 인증이 필요 없을 때(신뢰 기기 등)만 토큰, 아니면 mfaRequired=true + challengeId (토큰 없음)
     @PostMapping("/login")
-    public RsData<MemberDto> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-        LoginResult result = memberFacade.login(request.email(), request.password(), request.remember());
-        addTokenCookies(response, result.tokens());
-        return new RsData<>("200-1", "로그인되었습니다.", result.member());
+    public RsData<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+                                       @CookieValue(name = TrustedDeviceCookie.NAME, required = false) String trustedDevice,
+                                       HttpServletResponse response) {
+        LoginOutcome outcome = memberFacade.login(request.email(), request.password(), request.remember(), trustedDevice);
+        if (outcome.mfaRequired()) {
+            return new RsData<>("200-2", "이메일로 보낸 인증번호를 입력해주세요.", LoginResponse.of(outcome));
+        }
+        completeLogin(response, outcome);
+        return new RsData<>("200-1", "로그인되었습니다.", LoginResponse.of(outcome));
+    }
+
+    @PostMapping("/mfa/verify")
+    public RsData<LoginResponse> verifyLoginMfa(@Valid @RequestBody MfaVerifyRequest request,
+                                                @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent,
+                                                HttpServletResponse response) {
+        LoginOutcome outcome = memberFacade.verifyLoginMfa(request.challengeId(), request.code(), request.trustDevice(), userAgent);
+        completeLogin(response, outcome);
+        return new RsData<>("200-1", "로그인되었습니다.", LoginResponse.of(outcome));
+    }
+
+    @PostMapping("/mfa/resend")
+    public RsData<PhoneSendResponse> resendLoginMfa(@Valid @RequestBody MfaResendRequest request) {
+        int ttl = memberFacade.resendLoginMfa(request.challengeId());
+        return new RsData<>("200-1", "인증 메일을 다시 보냈습니다.", new PhoneSendResponse(ttl));
+    }
+
+    private void completeLogin(HttpServletResponse response, LoginOutcome outcome) {
+        addTokenCookies(response, outcome.result().tokens());
+        if (outcome.trustedDeviceToken() != null) {
+            response.addHeader(HttpHeaders.SET_COOKIE, trustedDeviceCookie.of(outcome.trustedDeviceToken()).toString());
+        }
     }
 
     // 액세스 토큰이 만료되면 프론트가 자동으로 호출

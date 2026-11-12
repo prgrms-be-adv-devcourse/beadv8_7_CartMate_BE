@@ -1,7 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.domain;
 
 import com.cartmate.cartmate.boundedContext.productService.product.dto.*;
-import com.cartmate.cartmate.shared.product.ProductStatus;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
@@ -42,9 +41,6 @@ public class Product extends BaseIdAndTime {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     private ProductStatus status;
 
-    @Column(nullable = false)
-    private boolean syncStatus;
-
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<ProductImage> productImageList = new ArrayList<>();
 
@@ -52,7 +48,7 @@ public class Product extends BaseIdAndTime {
     private List<ProductOption> productOptionList = new ArrayList<>();
 
     public Product(Long sellerId, Long salesPostId, Long categoryId, String name, String description, Long basePrice,
-                   ProductStatus status, boolean syncStatus) {
+                   ProductStatus status) {
         this.sellerId = sellerId;
         this.salesPostId = salesPostId;
         this.categoryId = categoryId;
@@ -60,7 +56,6 @@ public class Product extends BaseIdAndTime {
         this.description = description;
         this.basePrice = basePrice;
         this.status = status;
-        this.syncStatus = syncStatus;
     }
 
     public SyncProduct toSyncProduct() {
@@ -94,7 +89,8 @@ public class Product extends BaseIdAndTime {
             productOptionList.add(new ProductOption(
                     this,
                     option.getProductTypeId(),
-                    option.getProductOptionId()
+                    option.getProductOptionId(),
+                    ProductStatus.ACTIVE
             ));
         }
     }
@@ -107,8 +103,7 @@ public class Product extends BaseIdAndTime {
                             this,
                             image.getS3Key(),
                             image.getImageSeq(),
-                            ProductStatus.ACTIVE,
-                            false
+                            ProductStatus.ACTIVE
                     )
             );
         }
@@ -117,13 +112,7 @@ public class Product extends BaseIdAndTime {
     public Product delete() {
         this.status = ProductStatus.DELETED;
         this.productImageList.forEach(ProductImage::delete);
-        productOptionList.clear();
-        return this;
-    }
-
-    public Product updateSyncStatus() {
-        this.syncStatus = true;
-        productImageList.forEach(ProductImage::updateSyncStatus);
+        this.productOptionList.forEach(ProductOption::delete);
         return this;
     }
 

@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum CouponScope {
     ALL("전체 상품"),
-    SELLER("특정 판매자 상품");
+    SELLER("판매자 상품");  // 특정 판매자 상품
 
-    private final String description;
+    private final String label;
 }

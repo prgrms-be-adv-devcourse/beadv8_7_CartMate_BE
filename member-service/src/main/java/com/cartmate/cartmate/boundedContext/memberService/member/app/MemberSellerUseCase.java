@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Seller;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.SellerAccountFingerprint;
@@ -45,10 +46,10 @@ public class MemberSellerUseCase {
 
     public RegisterResult register(Long memberId, SellerRegisterRequest req) {
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ServiceException("404-MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         if (sellerRepository.existsByMemberId(memberId)) {
-            throw new ServiceException("409-SELLER_ALREADY_REGISTERED", "이미 판매자로 등록된 회원입니다.");
+            throw new ServiceException(MemberErrorCode.SELLER_ALREADY_REGISTERED);
         }
 
         boolean business = req.sellerType() == SellerType.BUSINESS;
@@ -58,10 +59,10 @@ public class MemberSellerUseCase {
 
         if (business) {
             if (businessName == null || representativeName == null || businessNumber == null) {
-                throw new ServiceException("400-SELLER_BUSINESS_INFO_REQUIRED", "사업자는 상호명, 대표자명, 사업자등록번호를 모두 입력해야 합니다.");
+                throw new ServiceException(MemberErrorCode.SELLER_BUSINESS_INFO_REQUIRED);
             }
             if (sellerRepository.existsByBusinessNumber(businessNumber)) {
-                throw new ServiceException("409-SELLER_DUPLICATE_BUSINESS_NUMBER", "이미 등록된 사업자등록번호입니다.");
+                throw new ServiceException(MemberErrorCode.SELLER_DUPLICATE_BUSINESS_NUMBER);
             }
         } else {
             // 개인 판매자는 사업자 정보를 저장하지 않음
@@ -78,10 +79,10 @@ public class MemberSellerUseCase {
         String fingerprint = SellerAccountFingerprint.of(req.sellerType(), bankName, accountNumber,
                 accountHolder, businessName, representativeName, businessNumber);
         if (!accountVerificationStore.isVerified(memberId, fingerprint)) {
-            throw new ServiceException("400-SELLER_ACCOUNT_NOT_VERIFIED", "계좌 확인이 필요합니다. 정산 계좌를 먼저 확인해주세요.");
+            throw new ServiceException(MemberErrorCode.SELLER_ACCOUNT_NOT_VERIFIED);
         }
         if (sellerRepository.existsByBankNameAndAccountNumber(bankName, accountNumber)) {
-            throw new ServiceException("409-SELLER_ACCOUNT_DUPLICATE", "이미 등록된 정산 계좌입니다.");
+            throw new ServiceException(MemberErrorCode.SELLER_ACCOUNT_DUPLICATE);
         }
 
         member.becomeSeller(); // 나이, 상태, 역할 검사
@@ -92,7 +93,7 @@ public class MemberSellerUseCase {
                     representativeName, businessNumber, req.phoneNumber().trim(), bankName,
                     accountHolder, accountNumber));
         } catch (DataIntegrityViolationException e) {
-            throw new ServiceException("409-SELLER_ALREADY_REGISTERED", "이미 등록된 판매자 정보입니다.");
+            throw new ServiceException(MemberErrorCode.SELLER_ALREADY_REGISTERED.resultCode(), "이미 등록된 판매자 정보입니다.");
         }
 
         // 등록이 성공했을 때만 통과 표시를 지운다. 실패하면 남겨 두어 입력을 고쳐 다시 제출할 수 있다.

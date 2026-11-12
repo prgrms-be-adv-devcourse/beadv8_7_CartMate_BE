@@ -137,6 +137,8 @@ CREATE TABLE `delivery` (
 	`delivered_at`	DATETIME	NULL,
 	`confirmed_at`	DATETIME	NULL,
 	`canceled_at`	DATETIME	NULL,
+	`cancel_reason`	VARCHAR(30)	NULL,
+	`version`	BIGINT	NOT NULL	DEFAULT 0,
 	`created_at`	DATETIME	NOT NULL,
 	`updated_at`	DATETIME	NOT NULL
 );
@@ -169,6 +171,7 @@ CREATE TABLE `delivery_claim` (
 	`refund_status`	VARCHAR(20)	NOT NULL	DEFAULT 'NONE',
 	`processed_at`	DATETIME	NULL,
 	`completed_at`	DATETIME	NULL,
+	`version`	BIGINT	NOT NULL	DEFAULT 0,
 	`created_at`	DATETIME	NOT NULL,
 	`updated_at`	DATETIME	NOT NULL
 );
@@ -188,6 +191,15 @@ CREATE TABLE `delivery_order_state` (
 	`created_at`	DATETIME	NOT NULL,
 	`updated_at`	DATETIME	NOT NULL,
 	UNIQUE KEY `uk_delivery_order_state_order` (`order_id`, `purchase_type`)
+);
+
+CREATE TABLE `delivery_seller_cancel` (
+	`id`	BIGINT	NOT NULL,
+	`order_id`	BIGINT	NOT NULL,
+	`purchase_type`	VARCHAR(20)	NOT NULL,
+	`seller_id`	BIGINT	NOT NULL,
+	`created_at`	DATETIME	NOT NULL,
+	UNIQUE KEY `uk_delivery_seller_cancel` (`order_id`, `purchase_type`, `seller_id`)
 );
 
 CREATE TABLE `PRODUCT_PRODUCT` (
@@ -372,7 +384,8 @@ CREATE TABLE `shared_group_order_item` (
 	`product_name`	VARCHAR(100)	NOT NULL,
 	`option_name`	VARCHAR(100)	NULL,
 	`quantity`	INT	NOT NULL,
-	`unit_price`	BIGINT	NOT NULL
+	`unit_price`	BIGINT	NOT NULL,
+	`cancel_reason`	VARCHAR(30)	NULL
 );
 
 CREATE TABLE `orders` (
@@ -397,6 +410,18 @@ CREATE TABLE `orders` (
 	`updated_at`	DATETIME	NOT NULL
 );
 
+CREATE TABLE `sales_stop_cancel_request` (
+	`id`	BIGINT	NOT NULL,
+	`purchase_type`	VARCHAR(20)	NOT NULL,
+	`order_id`	BIGINT	NOT NULL,
+	`seller_id`	BIGINT	NOT NULL,
+	`status`	VARCHAR(20)	NOT NULL,
+	`requested_at`	DATETIME	NOT NULL,
+	`last_sent_at`	DATETIME	NOT NULL,
+	`reject_code`	VARCHAR(100)	NULL,
+	UNIQUE KEY `uk_sales_stop_cancel_request` (`purchase_type`, `order_id`, `seller_id`)
+);
+
 CREATE TABLE `order_item` (
 	`id`	BIGINT	NOT NULL,
 	`order_id`	BIGINT	NOT NULL,
@@ -406,7 +431,8 @@ CREATE TABLE `order_item` (
 	`product_name`	VARCHAR(100)	NOT NULL,
 	`option_name`	VARCHAR(100)	NULL,
 	`unit_price`	BIGINT	NOT NULL,
-	`quantity`	INT	NOT NULL
+	`quantity`	INT	NOT NULL,
+	`cancel_reason`	VARCHAR(30)	NULL
 );
 
 ALTER TABLE `member` ADD CONSTRAINT `PK_MEMBER` PRIMARY KEY (

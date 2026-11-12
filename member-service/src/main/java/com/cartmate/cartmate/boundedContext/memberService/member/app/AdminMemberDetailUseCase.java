@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberSuspension;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.AdminMemberDetailResponse;
@@ -24,7 +25,7 @@ public class AdminMemberDetailUseCase {
 
     public AdminMemberDetailResponse get(Long memberId) {
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ServiceException("404-MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         List<MemberSuspension> history = memberSuspensionRepository.findByMemberIdOrderBySuspendedAtDesc(memberId);
 

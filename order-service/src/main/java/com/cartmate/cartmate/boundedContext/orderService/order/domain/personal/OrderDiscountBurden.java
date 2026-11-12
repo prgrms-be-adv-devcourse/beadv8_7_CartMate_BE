@@ -9,5 +9,5 @@ public enum OrderDiscountBurden {
     PLATFORM("플랫폼 부담"),
     SELLER("판매자 부담");
 
-    private final String description;
+    private final String label;
 }

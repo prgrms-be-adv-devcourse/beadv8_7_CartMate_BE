@@ -19,7 +19,7 @@ import com.cartmate.cartmate.shared.cart.event.IndividualGroupPurchaseOpenedEven
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.shared.product.PaybackFunder;
 import com.cartmate.cartmate.shared.product.PaybackOverlapPolicy;
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.shared.product.event.PaybackRequestedEvent;
 import com.cartmate.cartmate.shared.wallet.event.PaybackDepositFailedEvent;
 import com.cartmate.cartmate.shared.wallet.event.PaybackDepositedEvent;
@@ -73,7 +73,7 @@ class PaybackJudgeFlowTest {
     void setUp() {
         eventPublisher.clear();
         productId = productRepository.save(new Product(SELLER_ID, 1L, 1L, "상품", "설명", 10_000L,
-                ProductStatus.ON_SALE, true)).getId();
+                ProductStatus.ON_SALE)).getId();
     }
 
     @Test

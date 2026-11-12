@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.product.dto;
 
-import com.cartmate.cartmate.shared.product.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.DeserializationFeature;
@@ -129,12 +130,12 @@ class ProductUpdateContractTest {
         assertThat(received.getName()).isEqualTo("아이폰");
         assertThat(received.getDescription()).isEqualTo("부사 5kg");
         assertThat(received.getBasePrice()).isEqualTo(25000L);
-        assertThat(received.getStatus()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(received.getStatus()).isEqualTo(SalesPostProductStatus.ON_SALE); // 서로 다른 enum이지만 값 이름이 같아 JSON으로 그대로 읽힌다
         var image = received.getProductImageList().getFirst();
         assertThat(image.getId()).isEqualTo(100L);
         assertThat(image.getS3key()).isEqualTo("products/a.jpg");
         assertThat(image.getImageSeq()).isZero();
-        assertThat(image.getStatus()).isEqualTo(ProductStatus.ACTIVE);
+        assertThat(image.getStatus()).isEqualTo(SalesPostProductStatus.ACTIVE);
         assertThat(image.getCreatedAt()).isEqualTo(AT);
         var option = received.getProductOptionList().getFirst();
         assertThat(option.getId()).isEqualTo(200L);
