@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.EmailVerificationProperties;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberRole;
@@ -95,15 +96,14 @@ class MemberLoginMfaUseCase {
             case VERIFIED -> {
             }
             case NOT_SENT, EXPIRED -> throw expired();
-            case TOO_MANY_ATTEMPTS -> throw new ServiceException("429-MEMBER_MFA_TOO_MANY_ATTEMPTS",
-                    "인증 시도 횟수를 초과했습니다. 다시 로그인해주세요.");
+            case TOO_MANY_ATTEMPTS -> throw new ServiceException(MemberErrorCode.MEMBER_MFA_TOO_MANY_ATTEMPTS);
             case MISMATCH -> {
                 long fails = codeStore.increaseCount(FAILS + memberId, properties.accountFailWindow());
                 log.info("[로그인 2차 인증] 불일치: 회원 #{} (계정 {}/{})", memberId, fails, properties.accountFailLimit());
                 if (fails >= properties.accountFailLimit()) {
                     throw locked();
                 }
-                throw new ServiceException("400-MEMBER_MFA_CODE_MISMATCH", "인증번호가 일치하지 않습니다. ("
+                throw new ServiceException(MemberErrorCode.MEMBER_MFA_CODE_MISMATCH.resultCode(), "인증번호가 일치하지 않습니다. ("
                         + Math.max(0, codeRules.maxAttempts() - result.attempts()) + "번 남음)");
             }
         }
@@ -137,12 +137,10 @@ class MemberLoginMfaUseCase {
                 codeRules.resendCooldown(), codeRules.maxSends(), codeRules.maxAttempts(), properties.challengeTtl(),
                 challengeFields);
         switch (issued.status()) {
-            case TOO_SOON -> throw new ServiceException("429-MEMBER_MFA_RESEND_TOO_SOON",
+            case TOO_SOON -> throw new ServiceException(MemberErrorCode.MEMBER_MFA_RESEND_TOO_SOON.resultCode(),
                     (issued.retryAfter().toSeconds() + 1) + "초 후에 다시 요청해주세요.");
-            case TOO_MANY_SENDS -> throw new ServiceException("429-MEMBER_MFA_TOO_MANY_SENDS",
-                    "인증 메일을 너무 많이 요청했습니다. 다시 로그인해주세요.");
-            case TOO_MANY_ATTEMPTS -> throw new ServiceException("429-MEMBER_MFA_TOO_MANY_ATTEMPTS",
-                    "인증 시도 횟수를 초과했습니다. 다시 로그인해주세요.");
+            case TOO_MANY_SENDS -> throw new ServiceException(MemberErrorCode.MEMBER_MFA_TOO_MANY_SENDS);
+            case TOO_MANY_ATTEMPTS -> throw new ServiceException(MemberErrorCode.MEMBER_MFA_TOO_MANY_ATTEMPTS);
             case ISSUED -> {
             }
         }
@@ -153,7 +151,7 @@ class MemberLoginMfaUseCase {
         } catch (MailException e) {
             codeStore.releaseCooldown(key);
             log.warn("[로그인 2차 인증] 메일 발송 실패: {}", MemberEmailVerificationUseCase.mask(email), e);
-            throw new ServiceException("503-MEMBER_MFA_SEND_FAILED", "인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해주세요.");
+            throw new ServiceException(MemberErrorCode.MEMBER_MFA_SEND_FAILED);
         }
     }
 
@@ -172,10 +170,10 @@ class MemberLoginMfaUseCase {
     }
 
     private static ServiceException locked() {
-        return new ServiceException("429-MEMBER_MFA_LOCKED", "인증 실패가 많아 잠시 로그인할 수 없습니다. 잠시 후 다시 시도해주세요.");
+        return new ServiceException(MemberErrorCode.MEMBER_MFA_LOCKED);
     }
 
     private static ServiceException expired() {
-        return new ServiceException("400-MEMBER_MFA_EXPIRED", "인증 시간이 지났습니다. 다시 로그인해주세요.");
+        return new ServiceException(MemberErrorCode.MEMBER_MFA_EXPIRED);
     }
 }

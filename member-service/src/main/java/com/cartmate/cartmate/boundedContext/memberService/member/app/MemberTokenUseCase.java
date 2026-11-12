@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberRole;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.RefreshToken;
@@ -98,6 +99,6 @@ public class MemberTokenUseCase {
     }
 
     private ServiceException invalid() {
-        return new ServiceException("401-AUTH_REFRESH_INVALID", "로그인이 만료되었습니다. 다시 로그인해주세요.");
+        return new ServiceException(MemberErrorCode.AUTH_REFRESH_INVALID);
     }
 }

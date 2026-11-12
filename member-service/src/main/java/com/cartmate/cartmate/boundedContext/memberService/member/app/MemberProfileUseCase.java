@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.MemberProfileResponse;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.UpdateProfileRequest;
@@ -49,13 +50,13 @@ public class MemberProfileUseCase {
 
         if (!nickname.equals(member.getNickname())
                 && memberRepository.existsByNicknameAndIdNot(nickname, memberId)) {
-            throw new ServiceException("409-MEMBER_DUPLICATE_NICKNAME", "이미 사용 중인 닉네임입니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_DUPLICATE_NICKNAME);
         }
 
         boolean phoneChanged = !phone.equals(member.getPhone());
         if (phoneChanged) {
             if (!phoneVerificationStore.isVerified(phone, Instant.now())) {
-                throw new ServiceException("400-MEMBER_PHONE_NOT_VERIFIED", "변경할 휴대폰 번호의 인증을 완료해주세요.");
+                throw new ServiceException(MemberErrorCode.MEMBER_PHONE_NOT_VERIFIED.resultCode(), "변경할 휴대폰 번호의 인증을 완료해주세요.");
             }
         }
 
@@ -64,7 +65,7 @@ public class MemberProfileUseCase {
         try {
             memberRepository.flush(); // 변경 감지된 UPDATE를 바로 보내서 UNIQUE 위반을 여기서 잡음
         } catch (DataIntegrityViolationException e) {
-            throw new ServiceException("409-MEMBER_DUPLICATE_NICKNAME", "이미 사용 중인 닉네임입니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_DUPLICATE_NICKNAME);
         }
 
         if (phoneChanged) {
@@ -76,6 +77,6 @@ public class MemberProfileUseCase {
 
     private Member getMember(Long memberId) {
         return memberSupport.findById(memberId)
-                .orElseThrow(() -> new ServiceException("404-MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
 }

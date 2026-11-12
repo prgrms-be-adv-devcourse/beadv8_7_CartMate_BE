@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberRole;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberStatus;
@@ -32,10 +33,10 @@ public class AdminMemberStatusUseCase {
         Member member = getMember(memberId);
 
         if (member.getId().equals(adminId)) {
-            throw new ServiceException("400-ADMIN_CANNOT_SUSPEND_SELF", "자기 자신은 정지할 수 없습니다.");
+            throw new ServiceException(MemberErrorCode.ADMIN_CANNOT_SUSPEND_SELF);
         }
         if (member.getRole() == MemberRole.ADMIN) {
-            throw new ServiceException("400-ADMIN_CANNOT_SUSPEND_ADMIN", "관리자 계정은 정지할 수 없습니다.");
+            throw new ServiceException(MemberErrorCode.ADMIN_CANNOT_SUSPEND_ADMIN);
         }
 
         member.suspend(); // 이미 정지·탈퇴면 여기서 예외
@@ -64,7 +65,7 @@ public class AdminMemberStatusUseCase {
     public AdminBulkStatusResponse bulk(Long adminId, AdminBulkStatusRequest request) {
         boolean suspend = "SUSPEND".equals(request.action());
         if (suspend && request.suspend() == null) {
-            throw new ServiceException("400-COMMON_INVALID_INPUT", "정지 사유와 기간을 입력해주세요.");
+            throw new ServiceException(MemberErrorCode.COMMON_INVALID_INPUT);
         }
 
         int success = 0;
@@ -104,6 +105,6 @@ public class AdminMemberStatusUseCase {
 
     private Member getMember(Long memberId) {
         return memberRepository.findById(memberId)
-                .orElseThrow(() -> new ServiceException("404-MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
 }

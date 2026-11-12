@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.SignupRequest;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.MemberRepository;
@@ -31,16 +32,16 @@ public class MemberJoinUseCase {
         LocalDateTime now = LocalDateTime.now();
 
         if (!phoneVerificationStore.isVerified(request.phone(), Instant.now())) {
-            throw new ServiceException("400-MEMBER_PHONE_NOT_VERIFIED", "휴대폰 인증을 완료해주세요.");
+            throw new ServiceException(MemberErrorCode.MEMBER_PHONE_NOT_VERIFIED);
         }
         if (!emailVerification.isVerified(request.email(), Instant.now())) {
-            throw new ServiceException("400-MEMBER_EMAIL_NOT_VERIFIED", "이메일 인증을 완료해주세요.");
+            throw new ServiceException(MemberErrorCode.MEMBER_EMAIL_NOT_VERIFIED);
         }
         if (memberSupport.existsByEmail(request.email())) {
-            throw new ServiceException("409-MEMBER_DUPLICATE_EMAIL", "이미 사용 중인 이메일입니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_DUPLICATE_EMAIL);
         }
         if (memberSupport.existsByNickname(request.nickname())) {
-            throw new ServiceException("409-MEMBER_DUPLICATE_NICKNAME", "이미 사용 중인 닉네임입니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_DUPLICATE_NICKNAME);
         }
 
         Member member = Member.create(
@@ -55,7 +56,7 @@ public class MemberJoinUseCase {
         try {
             memberRepository.saveAndFlush(member);
         } catch (DataIntegrityViolationException e) {
-            throw new ServiceException("409-MEMBER_DUPLICATE", "이미 사용 중인 이메일 또는 닉네임입니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_DUPLICATE);
         }
 
         phoneVerificationStore.remove(request.phone());

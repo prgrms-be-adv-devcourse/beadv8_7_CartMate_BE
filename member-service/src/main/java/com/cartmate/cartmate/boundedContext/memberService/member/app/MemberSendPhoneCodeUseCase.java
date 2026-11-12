@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberPolicy;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.PhoneVerificationStore;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.VerificationCodeStore.IssueResult;
@@ -25,12 +26,10 @@ public class MemberSendPhoneCodeUseCase {
 
         IssueResult issued = phoneVerificationStore.issue(phone, code, Instant.now());
         switch (issued.status()) {
-            case TOO_SOON -> throw new ServiceException("429-MEMBER_PHONE_RESEND_TOO_SOON",
+            case TOO_SOON -> throw new ServiceException(MemberErrorCode.MEMBER_PHONE_RESEND_TOO_SOON.resultCode(),
                     (issued.retryAfter().toSeconds() + 1) + "초 후에 다시 요청해주세요.");
-            case TOO_MANY_SENDS -> throw new ServiceException("429-MEMBER_PHONE_TOO_MANY_SENDS",
-                    "인증번호를 너무 많이 요청했습니다. 잠시 후 다시 시도해주세요.");
-            case TOO_MANY_ATTEMPTS -> throw new ServiceException("429-MEMBER_PHONE_TOO_MANY_ATTEMPTS",
-                    "인증 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.");
+            case TOO_MANY_SENDS -> throw new ServiceException(MemberErrorCode.MEMBER_PHONE_TOO_MANY_SENDS);
+            case TOO_MANY_ATTEMPTS -> throw new ServiceException(MemberErrorCode.MEMBER_PHONE_TOO_MANY_ATTEMPTS);
             case ISSUED -> {
             }
         }

@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberPolicy;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.PhoneVerificationStore;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.VerificationCodeStore.VerifyResult;
@@ -21,11 +22,10 @@ public class MemberVerifyPhoneCodeUseCase {
         switch (result.status()) {
             case VERIFIED -> {
             }
-            case NOT_SENT -> throw new ServiceException("400-MEMBER_PHONE_CODE_NOT_SENT", "인증번호를 먼저 요청해주세요.");
-            case EXPIRED -> throw new ServiceException("400-MEMBER_PHONE_CODE_EXPIRED", "인증번호가 만료되었습니다. 다시 요청해주세요.");
-            case TOO_MANY_ATTEMPTS -> throw new ServiceException("429-MEMBER_PHONE_TOO_MANY_ATTEMPTS",
-                    "인증 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.");
-            case MISMATCH -> throw new ServiceException("400-MEMBER_PHONE_CODE_MISMATCH", "인증번호가 일치하지 않습니다. ("
+            case NOT_SENT -> throw new ServiceException(MemberErrorCode.MEMBER_PHONE_CODE_NOT_SENT);
+            case EXPIRED -> throw new ServiceException(MemberErrorCode.MEMBER_PHONE_CODE_EXPIRED);
+            case TOO_MANY_ATTEMPTS -> throw new ServiceException(MemberErrorCode.MEMBER_PHONE_TOO_MANY_ATTEMPTS);
+            case MISMATCH -> throw new ServiceException(MemberErrorCode.MEMBER_PHONE_CODE_MISMATCH.resultCode(), "인증번호가 일치하지 않습니다. ("
                     + Math.max(0, memberPolicy.getPhoneMaxAttempts() - result.attempts()) + "번 남음)");
         }
     }
