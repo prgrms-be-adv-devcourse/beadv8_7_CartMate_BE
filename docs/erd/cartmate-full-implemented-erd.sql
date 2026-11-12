@@ -137,6 +137,7 @@ CREATE TABLE `delivery` (
 	`delivered_at`	DATETIME	NULL,
 	`confirmed_at`	DATETIME	NULL,
 	`canceled_at`	DATETIME	NULL,
+	`cancel_reason`	VARCHAR(30)	NULL,
 	`version`	BIGINT	NOT NULL	DEFAULT 0,
 	`created_at`	DATETIME	NOT NULL,
 	`updated_at`	DATETIME	NOT NULL
