@@ -1,0 +1,10 @@
+**/build/
+*/bin/
+.gradle/
+.idea/
+.vscode/
+.git
+.env
+uploads/
+*.log
+**/src/test/

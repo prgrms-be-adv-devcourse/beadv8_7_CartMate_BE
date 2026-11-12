@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.global.outbox;
 
+import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberStateFaults;
 import com.cartmate.cartmate.support.TestEventRecorder;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
@@ -7,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @TestConfiguration
-@Import(TestEventRecorder.class)
+@Import({TestEventRecorder.class, AbuseMemberStateFaults.class})
 public class ManualOutboxRelayConfig {
 
     public static void releaseRelayLock(JdbcTemplate jdbcTemplate) {

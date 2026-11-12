@@ -5,38 +5,28 @@ import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSigna
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalCommand;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalStatus;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.domain.AbuseSignalType;
-import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberStateRepository;
+import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberStateFaults;
+import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseMemberStateFaults.Scope;
 import com.cartmate.cartmate.boundedContext.orderService.abuse.out.AbuseSignalRepository;
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import com.cartmate.cartmate.support.CartMateTestContainers;
-import com.cartmate.cartmate.support.DatabaseCleaner;
-import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.BDDMockito.willThrow;
 
-@SpringBootTest(properties = "cartmate.scheduling.enabled=false")
-@ActiveProfiles("test")
-@ImportTestcontainers(CartMateTestContainers.class)
-@ExtendWith(DatabaseCleaner.class)
+@CartMateIntegrationTest
 class AbuseJudgeFailureIntegrationTest {
 
-    @MockitoBean
-    private AbuseMemberStateRepository abuseMemberStateRepository;
+    @Autowired
+    private AbuseMemberStateFaults abuseMemberStateFaults;
 
     @Autowired
     private AbuseFacade abuseFacade;
@@ -54,6 +44,11 @@ class AbuseJudgeFailureIntegrationTest {
 
     private long sequence;
 
+    @AfterEach
+    void tearDown() {
+        abuseMemberStateFaults.reset();
+    }
+
     @Test
     @DisplayName("판정이 실패하면 판정은 롤백돼도 실패 기록은 남고, 최대 시도 횟수째 실패에서 FAILED가 되어 재판정 대상에서 빠진다")
     void recordsFailureUntilFailed() {
@@ -61,16 +56,18 @@ class AbuseJudgeFailureIntegrationTest {
         abuseFacade.receive(new AbuseSignalCommand(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
                 "fail-" + member, LocalDateTime.now()));
 
-        assertThat(abuseJudgeRunner.judge(member)).isEqualTo(AbuseJudgeOutcome.FAILURE);
+        try (Scope ignored = abuseMemberStateFaults.hideStateOnLock()) {
+            assertThat(abuseJudgeRunner.judge(member)).isEqualTo(AbuseJudgeOutcome.FAILURE);
 
-        AbuseSignal afterFirst = onlySignal(member);
-        assertThat(afterFirst.getStatus()).isEqualTo(AbuseSignalStatus.RECEIVED);
-        assertThat(afterFirst.getAttemptCount()).isEqualTo(1);
-        assertThat(afterFirst.getLastError()).isEqualTo("ServiceException 500-ABUSE_MEMBER_STATE_NOT_FOUND");
-        assertThat(afterFirst.getJudgedAt()).isNull();
+            AbuseSignal afterFirst = onlySignal(member);
+            assertThat(afterFirst.getStatus()).isEqualTo(AbuseSignalStatus.RECEIVED);
+            assertThat(afterFirst.getAttemptCount()).isEqualTo(1);
+            assertThat(afterFirst.getLastError()).isEqualTo("ServiceException 500-ABUSE_MEMBER_STATE_NOT_FOUND");
+            assertThat(afterFirst.getJudgedAt()).isNull();
 
-        for (int i = 1; i < AbuseSignal.MAX_JUDGE_ATTEMPTS; i++) {
-            abuseJudgeRunner.judge(member);
+            for (int i = 1; i < AbuseSignal.MAX_JUDGE_ATTEMPTS; i++) {
+                abuseJudgeRunner.judge(member);
+            }
         }
 
         AbuseSignal failed = onlySignal(member);
@@ -92,7 +89,9 @@ class AbuseJudgeFailureIntegrationTest {
         abuseFacade.receive(new AbuseSignalCommand(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
                 "pending-" + member, LocalDateTime.now()));
 
-        abuseJudgeRunner.judge(member);
+        try (Scope ignored = abuseMemberStateFaults.hideStateOnLock()) {
+            assertThat(abuseJudgeRunner.judge(member)).isEqualTo(AbuseJudgeOutcome.FAILURE);
+        }
 
         List<AbuseSignal> signals = abuseSignalRepository.findByMemberIdOrderByOccurredAtAsc(member);
         assertThat(signals.getFirst().getStatus()).isEqualTo(AbuseSignalStatus.JUDGED);
@@ -108,10 +107,9 @@ class AbuseJudgeFailureIntegrationTest {
         long member = nextMemberId();
         abuseFacade.receive(new AbuseSignalCommand(member, AbuseSignalType.SHARED_ORDER_PAYMENT_EXPIRED,
                 "transient-" + member, LocalDateTime.now().minusMinutes(1)));
-        willThrow(new CannotAcquireLockException("lock wait timeout"))
-                .given(abuseMemberStateRepository).insertIfAbsent(anyLong(), any());
-
-        assertThat(abuseJudgeRunner.judge(member)).isEqualTo(AbuseJudgeOutcome.TRANSIENT_FAILURE);
+        try (Scope ignored = abuseMemberStateFaults.failInsertIfAbsent(new CannotAcquireLockException("lock wait timeout"))) {
+            assertThat(abuseJudgeRunner.judge(member)).isEqualTo(AbuseJudgeOutcome.TRANSIENT_FAILURE);
+        }
 
         AbuseSignal signal = onlySignal(member);
         assertThat(signal.getStatus()).isEqualTo(AbuseSignalStatus.RECEIVED);

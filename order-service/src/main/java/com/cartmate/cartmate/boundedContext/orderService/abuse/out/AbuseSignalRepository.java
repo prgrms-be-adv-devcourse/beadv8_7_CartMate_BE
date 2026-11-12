@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> {
 
@@ -36,6 +37,14 @@ public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> 
     @Modifying
     @Query(value = """
             UPDATE abuse_signal
+            SET status = 'RECEIVED', attempt_count = 0, last_error = NULL, updated_at = :now
+            WHERE member_id = :memberId AND status = 'FAILED'
+            """, nativeQuery = true)
+    int resetFailedToReceived(@Param("memberId") Long memberId, @Param("now") LocalDateTime now);
+
+    @Modifying
+    @Query(value = """
+            UPDATE abuse_signal
             SET status = CASE WHEN attempt_count + 1 >= :maxAttempts THEN 'FAILED' ELSE status END,
                 attempt_count = attempt_count + 1,
                 last_error = :error,
@@ -50,6 +59,10 @@ public interface AbuseSignalRepository extends JpaRepository<AbuseSignal, Long> 
     long countByMemberIdAndStatusAndUpdatedAt(Long memberId, AbuseSignalStatus status, LocalDateTime updatedAt);
 
     List<AbuseSignal> findByMemberIdOrderByOccurredAtAsc(Long memberId);
+
+    List<AbuseSignal> findByMemberIdOrderByOccurredAtDescIdDesc(Long memberId, Limit limit);
+
+    Optional<AbuseSignal> findFirstByMemberIdAndStatusOrderByJudgedAtDescIdDesc(Long memberId, AbuseSignalStatus status);
 
     List<AbuseSignal> findByMemberIdAndStatusOrderByOccurredAtAscIdAsc(Long memberId, AbuseSignalStatus status);
 

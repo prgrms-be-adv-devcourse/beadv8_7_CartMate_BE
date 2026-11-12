@@ -6,9 +6,12 @@ import org.testcontainers.utility.DockerImageName;
 
 public final class CartMateTestContainers {
 
+    static final int MAX_CONNECTIONS = 100;
+
     @ServiceConnection
     static final MySQLContainer MYSQL = new SingletonMySQLContainer(DockerImageName.parse("mysql:8.4"))
-            .withDatabaseName("cartmatedb");
+            .withDatabaseName("cartmatedb")
+            .withCommand("--max_connections=" + MAX_CONNECTIONS);
 
     static {
         MYSQL.start();

@@ -268,6 +268,28 @@ class SharedGroupOrderPayUseCaseTest {
         assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.PAYING);
     }
 
+    @Test
+    @DisplayName("이미 차감된 생성자가 팀 배송지 없이 다시 결제하면 차감을 되돌리지 않고 배송지를 요구한다 — 배송지를 넣어 다시 하면 그 결제를 반영만 한다 (ISS-30)")
+    void creatorRetryWithoutAddressKeepsCharge() {
+        SharedGroupOrder order = order(NOW);
+        order.markStockReserved();
+        givenOrderForUpdate(order);
+        given(paymentClient.findPayment(PaymentOrderType.SHARED_GROUP, ORDER_ID, CREATOR))
+                .willReturn(Optional.of(paid(501L, 15001L, NOW.plusMinutes(1))));
+
+        assertThatThrownBy(() -> useCase.pay(ORDER_ID, CREATOR, null, NOW.plusMinutes(2)))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining(OrderErrorCode.ORDER_TEAM_ADDRESS_REQUIRED.getMsg());
+        then(paymentClient).should(never()).compensateCharge(any(), any(), any());
+        assertThat(order.getParticipant(CREATOR).isPaid()).isFalse();
+
+        useCase.pay(ORDER_ID, CREATOR, ADDRESS, NOW.plusMinutes(3));
+
+        then(paymentClient).should(never()).charge(any(), any(), any(), anyLong());
+        then(paymentClient).should(never()).compensateCharge(any(), any(), any());
+        assertThat(order.getParticipant(CREATOR).getPaymentId()).isEqualTo(501L);
+    }
+
     private SharedGroupOrderPaymentUseCase useCase(OrderProductClient productClient) {
         return new SharedGroupOrderPaymentUseCase(sharedGroupOrderRepository,
                 new SharedGroupOrderSupport(sharedGroupOrderRepository), eventPublisher, productClient, paymentClient);

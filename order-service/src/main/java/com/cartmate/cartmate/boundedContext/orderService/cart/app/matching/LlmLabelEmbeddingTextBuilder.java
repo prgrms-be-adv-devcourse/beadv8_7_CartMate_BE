@@ -11,10 +11,10 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "custom.matching.embedding-text", havingValue = "llm")
+@ConditionalOnProperty(name = "custom.matching.embedding-text", havingValue = "llm", matchIfMissing = true)
 class LlmLabelEmbeddingTextBuilder implements EmbeddingTextBuilder {
 
-    static final String VERSION = "llm-v1";
+    static final String VERSION = "llm-v2";
 
     private final ProductLabelClient productLabelClient;
 

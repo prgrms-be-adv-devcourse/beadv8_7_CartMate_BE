@@ -2,6 +2,10 @@ spring:
   # DB 주소 · 계정은 support/CartMateTestContainers의 @ServiceConnection이 넣는다(싱글턴 MySQL 컨테이너)
   datasource:
     hikari:
+      # 연결 예산: 컨텍스트 캐시 상한(spring.properties의 spring.test.context.cache.maxSize=8) × 풀 10 = 80
+      #   ≤ MySQL max_connections 100(CartMateTestContainers) - 여유 10. support/TestConnectionBudgetTest가 이 식을 검사한다.
+      # 풀이나 캐시 상한을 올리면 max_connections도 같이 올린다(PR #82 "Too many connections" 재발 방지)
+      maximum-pool-size: 10
       minimum-idle: 1
       idle-timeout: 10000
 

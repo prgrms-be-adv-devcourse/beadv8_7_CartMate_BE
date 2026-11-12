@@ -10,10 +10,10 @@ import com.cartmate.cartmate.shared.order.dto.DeliveryAddressInfo;
 import com.cartmate.cartmate.shared.order.dto.TeamDeliveryAddress;
 import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
 import com.cartmate.cartmate.shared.order.event.SharedGroupOrderConfirmedEvent;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -31,8 +31,12 @@ class AbuseIdentityEventConsumerTest {
     @Mock
     private AbuseFacade abuseFacade;
 
-    @InjectMocks
     private AbuseIdentityEventConsumer consumer;
+
+    @BeforeEach
+    void setUp() {
+        consumer = new AbuseIdentityEventConsumer(abuseFacade);
+    }
 
     @Test
     @DisplayName("주문이 결제되면 주문자의 수령인 전화 · 배송지를 식별 정보로 넘긴다")

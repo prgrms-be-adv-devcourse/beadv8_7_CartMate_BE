@@ -28,8 +28,13 @@ public class AbuseRestriction {
     @Column(nullable = false)
     private Long memberId;
 
-    @Column(nullable = false)
     private Long lastSignalId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20) default 'AUTO'")
+    private AbuseRestrictionSource source;
+
+    private LocalDateTime releasedAt;
 
     @Column(nullable = false)
     private LocalDateTime startedAt;
@@ -48,15 +53,38 @@ public class AbuseRestriction {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    private AbuseRestriction(Long memberId, Long signalId, LocalDateTime startedAt) {
+    private AbuseRestriction(Long memberId, Long signalId, AbuseRestrictionSource source, LocalDateTime startedAt,
+                             LocalDateTime endsAt) {
         this.memberId = memberId;
         this.lastSignalId = signalId;
+        this.source = source;
         this.startedAt = startedAt;
-        this.endsAt = startedAt.plus(RESTRICTION_PERIOD);
+        this.endsAt = endsAt;
     }
 
     public static AbuseRestriction start(Long memberId, Long signalId, LocalDateTime startedAt) {
-        return new AbuseRestriction(memberId, signalId, startedAt);
+        return new AbuseRestriction(memberId, signalId, AbuseRestrictionSource.AUTO, startedAt,
+                startedAt.plus(RESTRICTION_PERIOD));
+    }
+
+    public static AbuseRestriction startManual(Long memberId, LocalDateTime startedAt, LocalDateTime endsAt) {
+        return new AbuseRestriction(memberId, null, AbuseRestrictionSource.MANUAL, startedAt, endsAt);
+    }
+
+    public boolean extendTo(LocalDateTime newEndsAt) {
+        if (!newEndsAt.isAfter(endsAt)) {
+            return false;
+        }
+        this.endsAt = newEndsAt;
+        this.extendedCount++;
+        return true;
+    }
+
+    public void release(LocalDateTime now) {
+        if (endsAt.isAfter(now)) {
+            this.endsAt = now;
+        }
+        this.releasedAt = now;
     }
 
     public boolean extend(Long signalId, LocalDateTime judgedAt) {
