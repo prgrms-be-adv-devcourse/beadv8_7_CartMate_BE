@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Service
@@ -53,10 +54,7 @@ public class MemberProfileUseCase {
 
         boolean phoneChanged = !phone.equals(member.getPhone());
         if (phoneChanged) {
-            boolean verified = phoneVerificationStore.find(phone)
-                    .map(entry -> entry.isVerified(LocalDateTime.now()))
-                    .orElse(false);
-            if (!verified) {
+            if (!phoneVerificationStore.isVerified(phone, Instant.now())) {
                 throw new ServiceException("400-MEMBER_PHONE_NOT_VERIFIED", "변경할 휴대폰 번호의 인증을 완료해주세요.");
             }
         }

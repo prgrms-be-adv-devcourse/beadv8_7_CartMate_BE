@@ -29,10 +29,8 @@ public class MemberJoinUseCase {
 
     public MemberDto join(SignupRequest request) {
         LocalDateTime now = LocalDateTime.now();
-        boolean phoneVerified = phoneVerificationStore.find(request.phone())
-                .map(entry -> entry.isVerified(now))
-                .orElse(false);
-        if (!phoneVerified) {
+
+        if (!phoneVerificationStore.isVerified(request.phone(), Instant.now())) {
             throw new ServiceException("400-MEMBER_PHONE_NOT_VERIFIED", "휴대폰 인증을 완료해주세요.");
         }
         if (!emailVerification.isVerified(request.email(), Instant.now())) {
