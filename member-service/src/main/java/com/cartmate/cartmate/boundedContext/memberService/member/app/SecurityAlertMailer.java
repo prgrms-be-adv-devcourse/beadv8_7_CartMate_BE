@@ -1,6 +1,8 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
 import com.cartmate.cartmate.boundedContext.memberService.member.out.VerificationMailSender;
+import io.micrometer.context.ContextExecutorService;
+import io.micrometer.context.ContextSnapshotFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
@@ -27,9 +29,11 @@ class SecurityAlertMailer {
     private final VerificationMailSender mailSender;
     private final Executor executor;
 
+    // 맥락 전파 래퍼: 메일 스레드에서도 요청의 traceId가 로그에 이어진다
     @Autowired
     SecurityAlertMailer(VerificationMailSender mailSender) {
-        this(mailSender, Executors.newVirtualThreadPerTaskExecutor());
+        this(mailSender, ContextExecutorService.wrap(Executors.newVirtualThreadPerTaskExecutor(),
+                ContextSnapshotFactory.builder().build()));
     }
 
     // 테스트에서 바로 실행하는 executor를 넣기 위한 생성자

@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.post.in;
 
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostFacade;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -34,6 +35,7 @@ public class SalesPostDeleteReconcileScheduler {
 
     @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
     @SchedulerLock(name = LOCK_NAME, lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
+    @Observed(name = "batch.post.delete-reconcile") // 실행 1회 = span 하나 (스케줄 실행 관찰은 꺼 둠)
     public void reconcile() {
         for (Long postId : salesPostFacade.findStuckDeletingPostIds(BATCH_SIZE)) {
             try {

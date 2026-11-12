@@ -19,6 +19,12 @@ public interface PayoutRepository extends JpaRepository<Payout, Long> {
     // 개인 주문과 공동물품 주문은 주문상품 ID가 겹칠 수 있어 구매 유형까지 같이 조회한다.
     List<Payout> findAllByPurchaseTypeAndOrderItemIdIn(PayoutPurchaseType purchaseType, Collection<Long> orderItemIds);
 
+    // 지급 배치 요약 로그용: 이 시각 사이에 지급 완료된 정산금 합계 (배치 실행 시간 안에 다른 경로로 지급된 건이 있으면 같이 들어간다)
+    @Query("select coalesce(sum(p.payoutAmount), 0) from Payout p "
+            + "where p.status = :status and p.paidAt >= :fromAt and p.paidAt <= :toAt")
+    long sumPayoutAmountPaidBetween(@Param("status") PayoutStatus status,
+                                    @Param("fromAt") LocalDateTime fromAt, @Param("toAt") LocalDateTime toAt);
+
     // 판매자의 정산을 지급 예정 시각과 상태별로 묶어 건수와 금액 합계를 구한다. 지급 예정 시각이 fromAt 이상 toAt 미만인 정산만 대상이며 최신 지급일부터 정렬한다.
     @Query("select p.scheduledAt as scheduledAt, p.status as status, count(p) as payoutCount, "
             + "sum(p.salesAmount) as salesAmount, sum(p.feeAmount) as feeAmount, sum(p.payoutAmount) as payoutAmount "

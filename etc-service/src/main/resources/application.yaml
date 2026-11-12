@@ -23,6 +23,11 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    # 관측: 보낼 때 traceparent 헤더를 싣고, 받을 때 이어 붙인다 (기본 꺼짐)
+    template:
+      observation-enabled: true
+    listener:
+      observation-enabled: true
 custom:
   wallet:
     platform-member-id: ${PLATFORM_MEMBER_ID:1} # 판매 수수료를 받는 관리자 회원 ID. 환경마다 PLATFORM_MEMBER_ID로 바꾼다
@@ -80,3 +85,31 @@ cartmate:
     base-url: ${ORDER_SERVICE_BASE_URL:http://localhost:8986}   # 주문 서버(장바구니·공동구매·주문, order-service 모듈) 내부 API
   internal:
     api-key: ${INTERNAL_API_KEY:local-internal-key}   # /internal/** 서버 간 호출 키. 운영은 반드시 환경 변수로
+
+# 관측 가능성 (서비스 공통 — 바꾸면 다른 서비스 application.yaml도 같이)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health   # actuator는 health만. SecurityConfig가 permitAll이라 노출 범위를 좁게 고정
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING:1.0}   # 트래픽이 적어 100%
+  # OTLP 트레이스 주소는 환경 변수 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT. 없으면 내보내지 않음 (traceId는 로그에만)
+  # 빈 값으로 적으면 앱이 안 뜨므로 여기 적지 않는다 → common OtlpEndpointEnvironmentPostProcessor가 값이 있을 때만 넘김
+  otlp:
+    metrics:
+      export:
+        enabled: false   # 메트릭은 이번 범위 밖 (기본 켜짐이라 localhost:4318로 계속 보내려 함)
+  observations:
+    annotations:
+      enabled: true   # cron 배치의 @Observed (실행 1회 = span 하나)
+
+sentry:
+  dsn: ${SENTRY_DSN:}   # 비어 있으면 꺼짐
+  environment: ${SENTRY_ENVIRONMENT:local}
+  send-default-pii: false
+  exception-resolver-order: -2147483647   # @RestControllerAdvice가 처리한 예외도 보게 (4xx는 SentryEventFilter가 거름)
+  logging:
+    minimum-event-level: error
+    minimum-breadcrumb-level: info

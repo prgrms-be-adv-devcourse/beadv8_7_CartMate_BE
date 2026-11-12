@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.paymentService.payment.out.PaymentRe
 import com.cartmate.cartmate.boundedContext.paymentService.payment.out.PaymentWalletClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
  * <p>같은 키로 다시 요청하면 이미 한 결제를 그대로 돌려준다. 그래서 주문이 응답을 못 받아
  * 같은 요청을 다시 보내도 두 번 빠지지 않는다 (DB 유니크 제약이 최종 방어선).
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 class PaymentChargeUseCase {
@@ -30,6 +32,7 @@ class PaymentChargeUseCase {
         if (existing.isPresent()) {
             Payment payment = existing.get();
             if (payment.getStatus() == PaymentStatus.PAID) {
+                logCharge(payment, "DUPLICATE"); // 같은 키로 다시 옴 (재시도 · 응답 유실)
                 return payment;
             }
             throw new ServiceException(PaymentErrorCode.PAYMENT_ALREADY_CANCELED);
@@ -45,6 +48,18 @@ class PaymentChargeUseCase {
         }
 
         paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), orderId, type);
+        logCharge(payment, "SUCCESS");
         return payment;
+    }
+
+    private static void logCharge(Payment payment, String result) {
+        log.atInfo().addKeyValue("event", "payment.charge")
+                .addKeyValue("orderId", payment.getOrderId())
+                .addKeyValue("memberId", payment.getMemberId())
+                .addKeyValue("paymentId", payment.getId())
+                .addKeyValue("amount", payment.getAmount())
+                .addKeyValue("result", result)
+                .log("결제 차감 {}: 주문 #{} 결제 #{} {}원", result, payment.getOrderId(), payment.getId(),
+                        payment.getAmount());
     }
 }

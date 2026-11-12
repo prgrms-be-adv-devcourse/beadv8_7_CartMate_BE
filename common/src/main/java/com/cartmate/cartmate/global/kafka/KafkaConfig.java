@@ -5,6 +5,7 @@ import com.cartmate.cartmate.global.inbox.InboxProcessor;
 import com.cartmate.cartmate.global.inbox.InboxProcessorProperties;
 import com.cartmate.cartmate.global.inbox.InboxWorker;
 import com.cartmate.cartmate.global.inbox.InboxWriter;
+import com.cartmate.cartmate.global.observability.TraceparentSupport;
 import com.cartmate.cartmate.global.outbox.DomainEventTypeRegistry;
 import com.cartmate.cartmate.global.outbox.InProcessOutboxRelaySink;
 import com.cartmate.cartmate.global.outbox.OutboxRelaySink;
@@ -61,8 +62,13 @@ public class KafkaConfig {
         backOff.setMaxInterval(30_000L);
         backOff.setMaxElapsedTime(retryTimeout.toMillis());
         DefaultErrorHandler handler = new DefaultErrorHandler((record, exception) -> {
-            log.error("Kafka 메시지 처리 실패 → DLT: topic={}, partition={}, offset={}, key={}",
-                    record.topic(), record.partition(), record.offset(), record.key(), exception);
+            // DLT 전송도 같은 KafkaTemplate(관찰 켜짐)이라 traceparent 헤더가 실린다
+            log.atError().addKeyValue("event", "kafka.dlt")
+                    .addKeyValue("topic", record.topic()).addKeyValue("key", record.key())
+                    .addKeyValue("offset", record.offset()).addKeyValue("error", String.valueOf(exception.getMessage()))
+                    .setCause(exception)
+                    .log("Kafka 메시지 처리 실패 → DLT: topic={}, partition={}, offset={}, key={}",
+                            record.topic(), record.partition(), record.offset(), record.key());
             toDeadLetter.accept(record, exception);
         }, backOff);
         handler.addNotRetryableExceptions(JacksonException.class);
@@ -105,8 +111,9 @@ public class KafkaConfig {
     @Bean
     @ConditionalOnProperty(name = "cartmate.scheduling.enabled", havingValue = "true", matchIfMissing = true)
     public InboxProcessor inboxProcessor(InboxEventRepository inboxEventRepository, InboxWorker inboxWorker,
-                                         InboxProcessorProperties inboxProcessorProperties) {
-        return new InboxProcessor(inboxEventRepository, inboxWorker, inboxProcessorProperties);
+                                         InboxProcessorProperties inboxProcessorProperties,
+                                         TraceparentSupport traceparentSupport) {
+        return new InboxProcessor(inboxEventRepository, inboxWorker, inboxProcessorProperties, traceparentSupport);
     }
 
     @Bean

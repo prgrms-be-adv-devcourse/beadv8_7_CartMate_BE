@@ -1,6 +1,7 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.in;
 
 import com.cartmate.cartmate.boundedContext.memberService.member.app.MemberFacade;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -20,6 +21,7 @@ public class MemberSuspensionScheduler {
     // 시계가 조금 어긋난 다른 서버가 곧바로 다시 돌지 않게 최소 30초는 잡아 둔다
     @Scheduled(cron = "0 */10 * * * *", zone = "Asia/Seoul")
     @SchedulerLock(name = LOCK_NAME, lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
+    @Observed(name = "batch.member.suspension-release") // 실행 1회 = span 하나 (스케줄 실행 관찰은 꺼 둠)
     public void releaseExpiredSuspensions() {
         int released = memberFacade.releaseExpiredSuspensions();
         if (released > 0) {

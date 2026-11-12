@@ -121,6 +121,7 @@ class MemberLoginMfaUseCase {
                 long fails = codeStore.increaseCount(FAILS + memberId, properties.accountFailWindow());
                 log.info("[로그인 2차 인증] 불일치: 회원 #{} (계정 {}/{})", memberId, fails, properties.accountFailLimit());
                 if (fails >= properties.accountFailLimit()) {
+                    logLocked(memberId, fails);
                     throw locked();
                 }
                 throw new ServiceException(MemberErrorCode.MEMBER_MFA_CODE_MISMATCH.resultCode(), "인증번호가 일치하지 않습니다. ("
@@ -162,6 +163,7 @@ class MemberLoginMfaUseCase {
                     challengeFails, codeRules.maxAttempts(), accountFails, properties.accountFailLimit());
             if (accountFails >= properties.accountFailLimit()) {
                 codeStore.delete(key);
+                logLocked(memberId, accountFails);
                 throw locked();
             }
             if (challengeFails >= codeRules.maxAttempts()) {
@@ -181,6 +183,13 @@ class MemberLoginMfaUseCase {
         LoginResult login = new LoginResult(member.toDto(),
                 memberTokenUseCase.issue(member, false, List.of(MemberTokenUseCase.AMR_PWD, SecurityUser.AMR_OTP)));
         return LoginOutcome.loggedIn(login, null).withRemainingBackupCodes(check.remainingBackupCodes());
+    }
+
+    // 계정 2차 인증 잠금 (업무 이벤트 auth.mfa.locked)
+    private void logLocked(Long memberId, long fails) {
+        log.atWarn().addKeyValue("event", "auth.mfa.locked").addKeyValue("memberId", memberId)
+                .addKeyValue("fails", fails)
+                .log("[로그인 2차 인증] 계정 잠금: 회원 #{} (계정 {}/{})", memberId, fails, properties.accountFailLimit());
     }
 
     // 트랜잭션 밖 (메일 발송)

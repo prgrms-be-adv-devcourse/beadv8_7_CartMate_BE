@@ -65,8 +65,16 @@ public class HttpOrderPaymentClient implements OrderPaymentClient {
         try {
             paymentServerApiClient.post(PATH + "/compensate?orderType={t}&orderId={o}&memberId={m}", null,
                     new ParameterizedTypeReference<InternalResponse<Void>>() {}, orderType, orderId, memberId);
+            log.atWarn().addKeyValue("event", "payment.compensate.request")
+                    .addKeyValue("orderType", orderType).addKeyValue("orderId", orderId)
+                    .addKeyValue("memberId", memberId).addKeyValue("result", "SUCCESS")
+                    .log("결제 되돌리기 요청: {} #{} 회원 #{}", orderType, orderId, memberId);
         } catch (RuntimeException e) {
-            log.error("결제 되돌리기 실패 — 수동 확인 필요: {} #{} 회원 #{}", orderType, orderId, memberId, e);
+            log.atError().addKeyValue("event", "payment.compensate.request")
+                    .addKeyValue("orderType", orderType).addKeyValue("orderId", orderId)
+                    .addKeyValue("memberId", memberId).addKeyValue("result", "FAILED")
+                    .addKeyValue("error", String.valueOf(e.getMessage())).setCause(e)
+                    .log("결제 되돌리기 실패 — 수동 확인 필요: {} #{} 회원 #{}", orderType, orderId, memberId);
         }
     }
 }

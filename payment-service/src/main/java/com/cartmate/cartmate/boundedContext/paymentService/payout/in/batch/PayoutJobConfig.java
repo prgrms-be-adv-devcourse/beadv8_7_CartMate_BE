@@ -25,8 +25,9 @@ public class PayoutJobConfig {
     private static final int READ_PAGE_SIZE = 100;
 
     @Bean
-    public Job payoutJob(JobRepository jobRepository, Step payoutStep) {
+    public Job payoutJob(JobRepository jobRepository, Step payoutStep, PayoutBatchSummaryListener summaryListener) {
         return new JobBuilder(JOB_NAME, jobRepository)
+                .listener(summaryListener)   // 1회 요약 로그 (event=payout.batch)
                 .start(payoutStep)
                 .build();
     }
