@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.in;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.app.MemberFacade;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.ChangePasswordRequest;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.MemberProfileResponse;
@@ -26,7 +27,7 @@ public class MemberController {
     @GetMapping("/me")
     public RsData<MemberDto> me(@AuthenticationPrincipal SecurityUser user) {
         MemberDto member = memberFacade.findById(user.memberId())
-                .orElseThrow(() -> new ServiceException("404-MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
         return new RsData<>("200-1", "내 정보 조회 성공", member);
     }
 

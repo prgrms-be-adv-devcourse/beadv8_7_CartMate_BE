@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberRole;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MemberStatus;
@@ -55,12 +56,12 @@ class MemberWithdrawalUseCase {
     WithdrawalCheckResponse request(Long memberId, String password) {
         Member member = findMember(memberId);
         if (!passwordEncoder.matches(password, member.getPassword())) {
-            throw new ServiceException("400-PASSWORD_MISMATCH", "비밀번호가 일치하지 않습니다.");
+            throw new ServiceException(MemberErrorCode.PASSWORD_MISMATCH);
         }
 
         List<WithdrawalBlocker> blockers = findBlockers(member);
         if (!blockers.isEmpty()) {
-            throw new ServiceException("409-MEMBER_WITHDRAWAL_BLOCKED", blockers.get(0).message());
+            throw new ServiceException(MemberErrorCode.MEMBER_WITHDRAWAL_BLOCKED.resultCode(), blockers.get(0).message());
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -120,6 +121,6 @@ class MemberWithdrawalUseCase {
 
     private Member findMember(Long memberId) {
         return memberRepository.findById(memberId)
-                .orElseThrow(() -> new ServiceException("404-MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
 }

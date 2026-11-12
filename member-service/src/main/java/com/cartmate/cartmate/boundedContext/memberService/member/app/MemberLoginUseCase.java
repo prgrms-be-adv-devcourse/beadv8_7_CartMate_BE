@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.LoginOutcome;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -31,6 +32,6 @@ public class MemberLoginUseCase {
     }
 
     private ServiceException loginFailed() {
-        return new ServiceException("401-MEMBER_LOGIN_FAILED", "이메일 또는 비밀번호가 올바르지 않습니다.");
+        return new ServiceException(MemberErrorCode.MEMBER_LOGIN_FAILED);
     }
 }

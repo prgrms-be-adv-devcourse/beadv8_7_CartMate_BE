@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.domain;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,6 @@ public enum BankCode {
         return Arrays.stream(values())
                 .filter(bank -> bank.displayName.equals(name))
                 .findFirst()
-                .orElseThrow(() -> new ServiceException("400-SELLER_BANK_NOT_SUPPORTED", "지원하지 않는 은행입니다."));
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.SELLER_BANK_NOT_SUPPORTED));
     }
 }

@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.domain;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.jpa.entity.BaseIdAndTime;
 import com.cartmate.cartmate.shared.member.dto.MemberDto;
@@ -81,20 +82,20 @@ public class Member extends BaseIdAndTime {
 
     public void validateCanLogin() {
         if (status == MemberStatus.SUSPENDED) {
-            throw new ServiceException("403-MEMBER_SUSPENDED", "이용이 정지된 계정입니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_SUSPENDED);
         }
         if (status == MemberStatus.WITHDRAWN) {
-            throw new ServiceException("401-MEMBER_LOGIN_FAILED", "이메일 또는 비밀번호가 올바르지 않습니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_LOGIN_FAILED);
         }
     }
 
     // 탈퇴 신청: 정상 회원만. 유예 기간 동안 로그인·조회는 되고, 변경 요청은 필터에서 막는다.
     public void requestWithdrawal(LocalDateTime requestedAt) {
         if (status == MemberStatus.WITHDRAWAL_PENDING) {
-            throw new ServiceException("409-MEMBER_WITHDRAWAL_ALREADY_REQUESTED", "이미 탈퇴를 신청했습니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_WITHDRAWAL_ALREADY_REQUESTED);
         }
         if (status != MemberStatus.ACTIVE) {
-            throw new ServiceException("409-MEMBER_CANNOT_WITHDRAW", "%s 상태에서는 탈퇴를 신청할 수 없습니다.".formatted(status.getLabel()));
+            throw new ServiceException(MemberErrorCode.MEMBER_CANNOT_WITHDRAW.resultCode(), "%s 상태에서는 탈퇴를 신청할 수 없습니다.".formatted(status.getLabel()));
         }
         this.status = MemberStatus.WITHDRAWAL_PENDING;
         this.withdrawalRequestedAt = requestedAt;
@@ -102,7 +103,7 @@ public class Member extends BaseIdAndTime {
     // 탈퇴 취소: 탈퇴 대기 중일 때만
     public void cancelWithdrawal() {
         if (status != MemberStatus.WITHDRAWAL_PENDING) {
-            throw new ServiceException("409-MEMBER_WITHDRAWAL_NOT_REQUESTED", "탈퇴를 신청한 상태가 아닙니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_WITHDRAWAL_NOT_REQUESTED);
         }
         this.status = MemberStatus.ACTIVE;
         this.withdrawalRequestedAt = null;
@@ -119,33 +120,33 @@ public class Member extends BaseIdAndTime {
 
     public void suspend() {
         if (status == MemberStatus.WITHDRAWN) {
-            throw new ServiceException("409-MEMBER_WITHDRAWN", "탈퇴한 회원은 정지할 수 없습니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_WITHDRAWN);
         }
         if (status == MemberStatus.SUSPENDED) {
-            throw new ServiceException("409-MEMBER_ALREADY_SUSPENDED", "이미 정지된 회원입니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_ALREADY_SUSPENDED);
         }
         this.status = MemberStatus.SUSPENDED;
     }
 
     public void activate() {
         if (status != MemberStatus.SUSPENDED) {
-            throw new ServiceException("409-MEMBER_NOT_SUSPENDED", "정지 상태가 아닌 회원입니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_NOT_SUSPENDED);
         }
         this.status = MemberStatus.ACTIVE;
     }
 
     public void becomeSeller() {
         if (role == MemberRole.SELLER) {
-            throw new ServiceException("409-SELLER_ALREADY_REGISTERED", "이미 판매자로 등록된 회원입니다.");
+            throw new ServiceException(MemberErrorCode.SELLER_ALREADY_REGISTERED);
         }
         if (role == MemberRole.ADMIN) {
-            throw new ServiceException("400-SELLER_ADMIN_NOT_ALLOWED", "관리자 계정은 판매자로 등록할 수 없습니다.");
+            throw new ServiceException(MemberErrorCode.SELLER_ADMIN_NOT_ALLOWED);
         }
         if (status != MemberStatus.ACTIVE) {
-            throw new ServiceException("403-MEMBER_NOT_ACTIVE", "정상 상태인 회원만 판매자로 등록할 수 있습니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_NOT_ACTIVE);
         }
         if (!MemberPolicy.canRegisterAsSellerStatic(birthDate)) {
-            throw new ServiceException("403-SELLER_UNDERAGE", "만 %d세 이상만 판매자로 등록할 수 있습니다.".formatted(MemberPolicy.sellerMinAge()));
+            throw new ServiceException(MemberErrorCode.SELLER_UNDERAGE.resultCode(), "만 %d세 이상만 판매자로 등록할 수 있습니다.".formatted(MemberPolicy.sellerMinAge()));
         }
         this.role = MemberRole.SELLER;
     }

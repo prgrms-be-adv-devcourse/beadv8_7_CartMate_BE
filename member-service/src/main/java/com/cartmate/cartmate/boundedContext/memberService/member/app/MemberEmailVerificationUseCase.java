@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.EmailVerificationProperties;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.VerificationCodeStore;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.VerificationCodeStore.IssueResult;
@@ -44,17 +45,16 @@ public class MemberEmailVerificationUseCase {
     public int send(String rawEmail, Instant now) {
         String email = normalize(rawEmail);
         if (memberSupport.existsByEmail(email)) {
-            throw new ServiceException("409-MEMBER_DUPLICATE_EMAIL", "이미 사용 중인 이메일입니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_DUPLICATE_EMAIL);
         }
         String key = PURPOSE + email;
         String code = hasher.newCode();
         IssueResult issued = store.issue(key, hasher.hash(key, code), now, properties.codeTtl(),
                 properties.resendCooldown(), properties.maxSends(), properties.maxAttempts(), properties.sendWindow());
         switch (issued.status()) {
-            case TOO_SOON -> throw new ServiceException("429-MEMBER_EMAIL_RESEND_TOO_SOON",
+            case TOO_SOON -> throw new ServiceException(MemberErrorCode.MEMBER_EMAIL_RESEND_TOO_SOON.resultCode(),
                     (issued.retryAfter().toSeconds() + 1) + "초 후에 다시 요청해주세요.");
-            case TOO_MANY_SENDS -> throw new ServiceException("429-MEMBER_EMAIL_TOO_MANY_SENDS",
-                    "인증 메일을 너무 많이 요청했습니다. 잠시 후 다시 시도해주세요.");
+            case TOO_MANY_SENDS -> throw new ServiceException(MemberErrorCode.MEMBER_EMAIL_TOO_MANY_SENDS);
             case TOO_MANY_ATTEMPTS -> throw tooManyAttempts();
             case ISSUED -> {
             }
@@ -67,7 +67,7 @@ public class MemberEmailVerificationUseCase {
         } catch (MailException e) {
             store.releaseCooldown(key);
             log.warn("[이메일 인증] 메일 발송 실패: {}", mask(email), e);
-            throw new ServiceException("503-MEMBER_EMAIL_SEND_FAILED", "인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해주세요.");
+            throw new ServiceException(MemberErrorCode.MEMBER_EMAIL_SEND_FAILED);
         }
         log.info("[이메일 인증] 발송: {}", mask(email));
         return (int) properties.codeTtl().toSeconds();
@@ -80,12 +80,12 @@ public class MemberEmailVerificationUseCase {
                 properties.maxAttempts(), properties.verifiedTtl());
         switch (result.status()) {
             case VERIFIED -> log.info("[이메일 인증] 확인: {}", mask(email));
-            case NOT_SENT -> throw new ServiceException("400-MEMBER_EMAIL_CODE_NOT_SENT", "인증번호를 먼저 요청해주세요.");
+            case NOT_SENT -> throw new ServiceException(MemberErrorCode.MEMBER_EMAIL_CODE_NOT_SENT);
             case TOO_MANY_ATTEMPTS -> throw tooManyAttempts();
-            case EXPIRED -> throw new ServiceException("400-MEMBER_EMAIL_CODE_EXPIRED", "인증번호가 만료되었습니다. 다시 요청해주세요.");
+            case EXPIRED -> throw new ServiceException(MemberErrorCode.MEMBER_EMAIL_CODE_EXPIRED);
             case MISMATCH -> {
                 log.info("[이메일 인증] 불일치: {} ({}/{})", mask(email), result.attempts(), properties.maxAttempts());
-                throw new ServiceException("400-MEMBER_EMAIL_CODE_MISMATCH", "인증번호가 일치하지 않습니다. ("
+                throw new ServiceException(MemberErrorCode.MEMBER_EMAIL_CODE_MISMATCH.resultCode(), "인증번호가 일치하지 않습니다. ("
                         + Math.max(0, properties.maxAttempts() - result.attempts()) + "번 남음)");
             }
         }
@@ -101,7 +101,7 @@ public class MemberEmailVerificationUseCase {
     }
 
     private static ServiceException tooManyAttempts() {
-        return new ServiceException("429-MEMBER_EMAIL_TOO_MANY_ATTEMPTS", "인증 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.");
+        return new ServiceException(MemberErrorCode.MEMBER_EMAIL_TOO_MANY_ATTEMPTS);
     }
 
     private static String normalize(String email) {

@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.memberService.member.app;
 
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.MfaProperties;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.TrustedDevice;
 import com.cartmate.cartmate.boundedContext.memberService.member.out.TrustedDeviceRepository;
@@ -46,7 +47,7 @@ class TrustedDeviceUseCase {
 
     void revoke(Long memberId, Long deviceId) {
         if (repository.deleteByIdAndMemberId(deviceId, memberId) == 0) {
-            throw new ServiceException("404-MEMBER_TRUSTED_DEVICE_NOT_FOUND", "기기를 찾을 수 없습니다.");
+            throw new ServiceException(MemberErrorCode.MEMBER_TRUSTED_DEVICE_NOT_FOUND);
         }
     }
 
