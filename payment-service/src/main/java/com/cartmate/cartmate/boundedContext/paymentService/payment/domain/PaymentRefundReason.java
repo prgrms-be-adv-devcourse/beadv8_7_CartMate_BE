@@ -12,6 +12,7 @@ public enum PaymentRefundReason {
     SHARED_GROUP_CANCEL("공동 주문 취소", "공동 주문 무산·취소"),
     ADMIN("관리자 환불", "관리자 수동 환불"),
     PRODUCT_HIDDEN("판매 중지", "판매글 판매 중지로 발송 전 주문 자동 환불"),
+    SELLER_CANCEL("판매자 사유 취소", "판매자 사유 취소로 발송 전 주문 자동 환불"),
     CHARGE_COMPENSATION("결제 반영 실패", "차감 후 주문 반영 실패로 자동 취소");
 
     private final String label;

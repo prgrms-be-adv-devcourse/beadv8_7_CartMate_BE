@@ -16,4 +16,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, Payment
     // 공동 주문 취소 시 환불 대상 (결제 완료·일부 환불 상태)
     List<Payment> findAllByTypeAndOrderIdAndStatusIn(PaymentType type, Long orderId, Collection<PaymentStatus> statuses);
 
+    // 공동 주문 환불을 참여자 몫으로 나눌 대상 (환불 상태와 상관없이 전부)
+    List<Payment> findAllByTypeAndOrderId(PaymentType type, Long orderId);
+
 }
