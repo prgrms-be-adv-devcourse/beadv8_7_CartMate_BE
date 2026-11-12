@@ -14,6 +14,9 @@ logging:
 custom:
   jwt:
     secret: ${JWT_SECRET}
+  member:
+    mfa:
+      otp-encryption-key: ${MFA_OTP_ENCRYPTION_KEY} # 관리자 OTP 비밀키 암호화 (Base64 32바이트). 기본값 없음: 빠뜨리면 앱이 시작되지 않는다
 
 product:
   global:

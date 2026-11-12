@@ -5,14 +5,21 @@ import com.cartmate.cartmate.boundedContext.memberService.member.app.MemberFacad
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.ChangePasswordRequest;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.MemberProfileResponse;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.MyPageDashboardResponse;
+import com.cartmate.cartmate.boundedContext.memberService.member.dto.OtpConfirmRequest;
+import com.cartmate.cartmate.boundedContext.memberService.member.dto.OtpConfirmResponse;
+import com.cartmate.cartmate.boundedContext.memberService.member.dto.OtpEnrollmentResponse;
+import com.cartmate.cartmate.boundedContext.memberService.member.dto.TokenPair;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.TrustedDeviceResponse;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.UpdateProfileRequest;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.rsData.RsData;
+import com.cartmate.cartmate.global.security.AuthCookieManager;
 import com.cartmate.cartmate.global.security.SecurityUser;
 import com.cartmate.cartmate.shared.member.dto.MemberDto;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +30,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MemberController {
     private final MemberFacade memberFacade;
+    private final AuthCookieManager authCookieManager;
 
     @GetMapping("/me")
     public RsData<MemberDto> me(@AuthenticationPrincipal SecurityUser user) {
@@ -71,5 +79,33 @@ public class MemberController {
     public RsData<Void> revokeAllTrustedDevices(@AuthenticationPrincipal SecurityUser user) {
         memberFacade.revokeAllTrustedDevices(user.memberId());
         return new RsData<>("200-1", "모든 기기에서 다음 로그인부터 인증번호를 다시 받습니다.");
+    }
+
+    // ===== 관리자 OTP 등록 =====
+    // 이메일 인증까지 거친 세션에서만 (2차 인증 도입 전 세션은 비밀번호만 거쳤으므로 거절). 이미 등록됐으면 409 — 바꾸거나 지우는 건 Break-glass뿐
+    @PostMapping("/me/otp/enrollment")
+    public RsData<OtpEnrollmentResponse> startOtpEnrollment(@AuthenticationPrincipal SecurityUser user) {
+        requireEmailVerifiedSession(user);
+        return new RsData<>("200-1", "OTP 앱으로 QR 코드를 스캔해주세요.", memberFacade.startOtpEnrollment(user.memberId()));
+    }
+
+    @PostMapping("/me/otp/enrollment/confirm")
+    public RsData<OtpConfirmResponse> confirmOtpEnrollment(@AuthenticationPrincipal SecurityUser user,
+                                                           @Valid @RequestBody OtpConfirmRequest request,
+                                                           HttpServletResponse response) {
+        requireEmailVerifiedSession(user);
+        MemberFacade.OtpEnrollmentResult result = memberFacade.confirmOtpEnrollment(user.memberId(), request.code());
+        TokenPair tokens = result.tokens();
+        response.addHeader(HttpHeaders.SET_COOKIE, authCookieManager.accessTokenCookie(tokens.accessToken()).toString());
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                authCookieManager.refreshTokenCookie(tokens.refreshToken(), tokens.remember(), tokens.refreshTokenMaxAge()).toString());
+        return new RsData<>("200-1", "OTP가 등록되었습니다. 백업 코드를 안전한 곳에 보관해주세요.",
+                new OtpConfirmResponse(result.member(), result.backupCodes()));
+    }
+
+    private static void requireEmailVerifiedSession(SecurityUser user) {
+        if (!user.amr().contains("email")) {
+            throw new ServiceException(MemberErrorCode.MEMBER_OTP_EMAIL_REQUIRED);
+        }
     }
 }

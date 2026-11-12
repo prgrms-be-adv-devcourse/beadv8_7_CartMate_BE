@@ -62,6 +62,14 @@ public enum MemberErrorCode implements ErrorCode {
     MEMBER_NOT_SUSPENDED("MEMBER_NOT_SUSPENDED", "정지 상태가 아닌 회원입니다.", HttpStatus.CONFLICT),
     MEMBER_NOT_ACTIVE("MEMBER_NOT_ACTIVE", "정상 상태인 회원만 판매자로 등록할 수 있습니다.", HttpStatus.FORBIDDEN),
 
+    // ===== 관리자 OTP =====
+    MEMBER_OTP_ADMIN_ONLY("MEMBER_OTP_ADMIN_ONLY", "OTP는 관리자 계정만 등록할 수 있습니다.", HttpStatus.FORBIDDEN),
+    MEMBER_OTP_EMAIL_REQUIRED("MEMBER_OTP_EMAIL_REQUIRED", "다시 로그인해 이메일 인증을 거친 뒤 OTP를 등록해주세요.", HttpStatus.FORBIDDEN),
+    MEMBER_OTP_ALREADY_ENABLED("MEMBER_OTP_ALREADY_ENABLED", "이미 OTP가 등록되어 있습니다.", HttpStatus.CONFLICT),
+    MEMBER_OTP_NOT_STARTED("MEMBER_OTP_NOT_STARTED", "OTP 등록을 먼저 시작해주세요.", HttpStatus.BAD_REQUEST),
+    MEMBER_OTP_CODE_MISMATCH("MEMBER_OTP_CODE_MISMATCH", "OTP 코드가 일치하지 않습니다.", HttpStatus.BAD_REQUEST),
+    MEMBER_OTP_RESEND_NOT_SUPPORTED("MEMBER_OTP_RESEND_NOT_SUPPORTED", "OTP 앱에 표시된 코드를 입력해주세요.", HttpStatus.BAD_REQUEST),
+
     // ===== 관리자 =====
     ADMIN_CANNOT_SUSPEND_SELF("ADMIN_CANNOT_SUSPEND_SELF", "자기 자신은 정지할 수 없습니다.", HttpStatus.BAD_REQUEST),
     ADMIN_CANNOT_SUSPEND_ADMIN("ADMIN_CANNOT_SUSPEND_ADMIN", "관리자 계정은 정지할 수 없습니다.", HttpStatus.BAD_REQUEST),
