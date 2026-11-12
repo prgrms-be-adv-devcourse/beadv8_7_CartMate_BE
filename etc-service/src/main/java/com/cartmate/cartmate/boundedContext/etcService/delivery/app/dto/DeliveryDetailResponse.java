@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryItem;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryItemOption;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryStatus;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,6 +32,7 @@ public record DeliveryDetailResponse(
         LocalDateTime shippedAt,
         LocalDateTime deliveredAt,
         LocalDateTime canceledAt,
+        DeliveryCancelReason cancelReason,
         LocalDateTime confirmedAt,
         List<Item> items
 ) {
@@ -58,6 +60,7 @@ public record DeliveryDetailResponse(
                 delivery.getShippedAt(),
                 delivery.getDeliveredAt(),
                 delivery.getCanceledAt(),
+                delivery.getCancelReason(),
                 delivery.getConfirmedAt(),
                 deliveryItems.stream()
                         .map(item -> Item.from(item, optionsByItemId.getOrDefault(item.getId(), List.of())))
