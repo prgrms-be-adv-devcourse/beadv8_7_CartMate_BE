@@ -43,7 +43,10 @@ public abstract class ExternalApiTestSupport {
     }
 
     protected RequestPostProcessor loggedIn(long memberId, String role) {
-        String token = jwtProvider.createAccessToken(memberId, "member" + memberId + "@cartmate.test", role, null);
+        // 관리자 API는 OTP를 거친 토큰(amr에 otp)이어야 통과한다 (JwtAuthenticationFilter)
+        java.util.List<String> amr = "ADMIN".equals(role) ? java.util.List.of("pwd", "otp") : java.util.List.of("pwd");
+        String token = jwtProvider.createAccessToken(memberId, "member" + memberId + "@cartmate.test", role, null,
+                amr, jwtProvider.getAccessTokenExpireSeconds());
         return bearer(token);
     }
 

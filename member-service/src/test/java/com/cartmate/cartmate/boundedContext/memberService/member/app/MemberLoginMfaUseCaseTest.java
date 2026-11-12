@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -54,6 +55,7 @@ class MemberLoginMfaUseCaseTest {
     private final MemberSupport memberSupport = mock(MemberSupport.class);
     private final MemberTokenUseCase tokenUseCase = mock(MemberTokenUseCase.class);
     private final TrustedDeviceUseCase trustedDevices = mock(TrustedDeviceUseCase.class);
+    private final AdminOtpUseCase adminOtp = mock(AdminOtpUseCase.class); // 기본: OTP 미등록 → 이메일 경로
     private final CapturingMailSender mail = new CapturingMailSender();
     private MemberLoginMfaUseCase useCase;
 
@@ -79,8 +81,10 @@ class MemberLoginMfaUseCaseTest {
                 new VerificationCodeStore(connectionFactory),
                 new VerificationCodeHasher("test-secret-test-secret-test-secret-32"), mail,
                 new EmailVerificationProperties(null, null, null, null, 0, 0),
-                new MfaProperties(true, null, null, 0, null));
+                new MfaProperties(true, null, null, 0, null),
+                adminOtp);
         when(tokenUseCase.issue(any(), anyBoolean())).thenReturn(TOKENS);
+        when(tokenUseCase.issue(any(), anyBoolean(), anyList())).thenReturn(TOKENS);
     }
 
     private Member member(long id, MemberRole role) {
@@ -106,6 +110,7 @@ class MemberLoginMfaUseCaseTest {
         assertThat(outcome.challenge().maskedEmail()).isEqualTo("bu***@cartmate.com");
         assertThat(mail.to).isEqualTo("buyer@cartmate.com");
         verify(tokenUseCase, never()).issue(any(), anyBoolean());
+        verify(tokenUseCase, never()).issue(any(), anyBoolean(), anyList());
     }
 
     @Test
@@ -141,7 +146,7 @@ class MemberLoginMfaUseCaseTest {
         assertThat(outcome.result().tokens()).isEqualTo(TOKENS);
         assertThat(outcome.trustedDeviceToken()).isEqualTo("device-token");
         assertThat(member.getEmailVerifiedAt()).isNotNull();
-        verify(tokenUseCase).issue(member, true); // 로그인 유지 여부가 challenge에 저장돼 넘어온다
+        verify(tokenUseCase).issue(member, true, List.of("pwd", "email")); // 로그인 유지 여부가 challenge에 저장돼 넘어온다
         assertThatThrownBy(() -> useCase.verify(challengeId, mail.lastCode(), false, "Chrome", NOW.plusSeconds(11)))
                 .hasMessageContaining("다시 로그인");
     }
@@ -167,7 +172,7 @@ class MemberLoginMfaUseCaseTest {
         }
 
         assertThat(results).containsOnlyOnce(true);
-        verify(tokenUseCase, times(1)).issue(any(), anyBoolean());
+        verify(tokenUseCase, times(1)).issue(any(), anyBoolean(), anyList());
     }
 
     @Test
@@ -213,6 +218,69 @@ class MemberLoginMfaUseCaseTest {
         useCase.verify(challengeId, mail.lastCode(), false, null, NOW.plusSeconds(62));
 
         assertThatThrownBy(() -> useCase.resend("unknown", NOW)).hasMessageContaining("다시 로그인");
+    }
+
+    // ===== 관리자 OTP =====
+
+    @Test
+    void OTP를_등록한_관리자는_메일_없이_OTP를_요구하고_재발송은_없다() {
+        Member admin = member(9L, MemberRole.ADMIN);
+        when(adminOtp.isEnabled(9L)).thenReturn(true);
+
+        LoginOutcome outcome = useCase.afterPassword(admin, false, null, NOW);
+
+        assertThat(outcome.challenge().method()).isEqualTo("OTP");
+        assertThat(outcome.challenge().maskedEmail()).isNull();
+        assertThat(mail.to).isNull();
+        assertThatThrownBy(() -> useCase.resend(outcome.challenge().challengeId(), NOW.plusSeconds(61)))
+                .hasMessageContaining("OTP 앱에 표시된 코드");
+    }
+
+    @Test
+    void OTP가_맞으면_otp를_거친_토큰이고_같은_challenge는_다시_못_쓴다() {
+        Member admin = member(9L, MemberRole.ADMIN);
+        when(adminOtp.isEnabled(9L)).thenReturn(true);
+        when(adminOtp.verifyForLogin(eq(9L), eq("123456"), any())).thenReturn(AdminOtpUseCase.LoginCheck.passedByOtp());
+        String challengeId = useCase.afterPassword(admin, false, null, NOW).challenge().challengeId();
+
+        LoginOutcome outcome = useCase.verify(challengeId, "123456", true, "Chrome", NOW.plusSeconds(5));
+
+        assertThat(outcome.result().tokens()).isEqualTo(TOKENS);
+        assertThat(outcome.trustedDeviceToken()).isNull(); // 관리자는 기기 기억 없음
+        verify(tokenUseCase).issue(admin, false, List.of("pwd", "otp"));
+        assertThatThrownBy(() -> useCase.verify(challengeId, "123456", false, null, NOW.plusSeconds(6)))
+                .hasMessageContaining("다시 로그인");
+    }
+
+    @Test
+    void OTP를_다섯_번_틀리면_challenge가_끝난다() {
+        Member admin = member(9L, MemberRole.ADMIN);
+        when(adminOtp.isEnabled(9L)).thenReturn(true);
+        when(adminOtp.verifyForLogin(eq(9L), any(), any())).thenReturn(AdminOtpUseCase.LoginCheck.failed());
+        String challengeId = useCase.afterPassword(admin, false, null, NOW).challenge().challengeId();
+
+        for (int i = 1; i <= 4; i++) {
+            assertThatThrownBy(() -> useCase.verify(challengeId, "000000", false, null, NOW.plusSeconds(5)))
+                    .hasMessageContaining("OTP 코드가 일치하지 않습니다");
+        }
+        assertThatThrownBy(() -> useCase.verify(challengeId, "000000", false, null, NOW.plusSeconds(5)))
+                .hasMessageContaining("시도 횟수를 초과");
+        assertThatThrownBy(() -> useCase.verify(challengeId, "000000", false, null, NOW.plusSeconds(6)))
+                .hasMessageContaining("다시 로그인");
+        verify(tokenUseCase, never()).issue(any(), anyBoolean(), anyList());
+    }
+
+    @Test
+    void OTP를_등록하지_않은_관리자는_메일_코드_뒤_OTP_등록_전용_세션() {
+        Member admin = member(9L, MemberRole.ADMIN);
+        String challengeId = login(admin, true);
+
+        LoginOutcome outcome = useCase.verify(challengeId, mail.lastCode(), true, "Chrome", NOW.plusSeconds(10));
+
+        assertThat(outcome.otpEnrollmentRequired()).isTrue();
+        assertThat(outcome.trustedDeviceToken()).isNull();
+        verify(tokenUseCase).issue(admin, true, List.of("pwd", "email")); // otp 없음 → 관리자 API 403
+        verify(trustedDevices, never()).register(any(), any(), any());
     }
 
     private String wrongCode() {

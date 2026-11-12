@@ -31,12 +31,18 @@ public class RefreshToken extends BaseIdAndTime {
     @Column(nullable = false)
     private boolean remember;
 
-    public static RefreshToken issue(Long memberId, String tokenHash, LocalDateTime expiresAt, boolean remember) {
+    // 이 세션이 로그인 때 거친 인증 수단 (예: "pwd,otp"). 재발급은 이 값을 그대로 이어 받는다
+    // → OTP 없이 시작한 세션이 재발급으로 OTP 세션이 될 수 없다
+    @Column(name = "amr", length = 50)
+    private String amr;
+
+    public static RefreshToken issue(Long memberId, String tokenHash, LocalDateTime expiresAt, boolean remember, String amr) {
         RefreshToken t = new RefreshToken();
         t.memberId = memberId;
         t.tokenHash = tokenHash;
         t.expiresAt = expiresAt;
         t.remember = remember;
+        t.amr = amr;
         return t;
     }
 

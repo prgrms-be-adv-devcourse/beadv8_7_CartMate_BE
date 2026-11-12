@@ -74,6 +74,8 @@ custom:
       trusted-device-ttl: 30d # "이 기기 30일 기억"
       account-fail-limit: 10 # 계정 하나에 아래 시간 동안 틀릴 수 있는 횟수
       account-fail-window: 1h
+      # 관리자 OTP 비밀키 암호화 키 (Base64 32바이트). 운영은 환경 변수 MFA_OTP_ENCRYPTION_KEY 필수
+      otp-encryption-key: ${MFA_OTP_ENCRYPTION_KEY:Y2FydG1hdGUtbG9jYWwtb3RwLWtleS0zMmJ5dGVzISE=}
     phone:
       codeTtlSeconds: 180
       verifiedTtlSeconds: 600
@@ -81,8 +83,10 @@ custom:
   jwt:
     secret: ${JWT_SECRET:cartmate-local-dev-secret-key-must-be-at-least-32-bytes}
     accessTokenExpireSeconds: 1800
+    adminAccessTokenExpireSeconds: 900 # 관리자는 15분 (탈취 시 피해 시간 줄이기)
     refreshTokenRememberDays: 30
     refreshTokenSessionHours: 24
+    adminSessionHours: 8 # 관리자 세션: OTP 확인 시각부터 이 시간이 지나면 재발급 불가 → 다시 OTP (로그인 유지 없음, 재발급해도 연장 안 됨)
   cookie:
     secure: false
   redis:

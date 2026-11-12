@@ -3,7 +3,10 @@ package com.cartmate.cartmate.boundedContext.memberService.member.app;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.Member;
 import com.cartmate.cartmate.boundedContext.memberService.member.domain.SuspensionReleaseType;
 import com.cartmate.cartmate.boundedContext.memberService.member.dto.*;
+import com.cartmate.cartmate.boundedContext.memberService.member.exception.MemberErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.page.PageResponse;
+import com.cartmate.cartmate.global.security.SecurityUser;
 import com.cartmate.cartmate.shared.member.dto.MemberDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -82,6 +85,7 @@ public class MemberFacade {
     private final MemberLoginUseCase memberLoginUseCase;
     private final MemberLoginMfaUseCase memberLoginMfaUseCase;
     private final TrustedDeviceUseCase trustedDeviceUseCase;
+    private final AdminOtpUseCase adminOtpUseCase;
 
     // 트랜잭션 없음: 2차 인증 메일(SMTP)을 보내는 동안 DB 연결을 잡지 않는다 (토큰·기기 저장은 저장소가 각자 연다)
     // trustedDeviceToken: 쿠키의 신뢰 기기 토큰 (없으면 null)
@@ -96,6 +100,27 @@ public class MemberFacade {
 
     public int resendLoginMfa(String challengeId) {
         return memberLoginMfaUseCase.resend(challengeId, Instant.now());
+    }
+
+    // ===== 관리자 OTP 등록 (이메일까지 확인한 관리자 세션에서) =====
+    // 트랜잭션 없음: 동시에 와도 같은 비밀키를 주려고 저장·재조회를 각각 짧은 트랜잭션으로 (AdminOtpUseCase.startEnrollment)
+    public OtpEnrollmentResponse startOtpEnrollment(Long memberId) {
+        return adminOtpUseCase.startEnrollment(memberId);
+    }
+
+    // 등록 완료: 백업 코드를 만들고, 다른 기기의 세션은 모두 끊고, OTP를 거친 새 토큰을 준다 (알림 메일은 커밋 뒤)
+    @Transactional
+    public OtpEnrollmentResult confirmOtpEnrollment(Long memberId, String code) {
+        List<String> backupCodes = adminOtpUseCase.confirmEnrollment(memberId, code, Instant.now());
+        memberTokenUseCase.revokeAll(memberId);
+        Member member = memberSupport.findById(memberId)
+                .orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
+        TokenPair tokens = memberTokenUseCase.issue(member, false,
+                List.of(MemberTokenUseCase.AMR_PWD, SecurityUser.AMR_OTP));
+        return new OtpEnrollmentResult(member.toDto(), tokens, backupCodes);
+    }
+
+    public record OtpEnrollmentResult(MemberDto member, TokenPair tokens, List<String> backupCodes) {
     }
 
     @Transactional(readOnly = true)

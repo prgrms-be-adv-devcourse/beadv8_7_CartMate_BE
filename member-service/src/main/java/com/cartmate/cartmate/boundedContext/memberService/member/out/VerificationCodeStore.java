@@ -79,6 +79,14 @@ public class VerificationCodeStore {
             return reply(0)
             """, List.class);
 
+    // 코드 없는 상태 저장 (관리자 OTP 로그인 challenge). 값과 만료를 한 번에: 따로 보내다 끊기면 만료 없는 키가 남는다
+    // ARGV: ttlMs, [필드, 값]...
+    private static final DefaultRedisScript<Long> CREATE = new DefaultRedisScript<>("""
+            for i = 2, #ARGV, 2 do redis.call('HSET', KEYS[1], ARGV[i], ARGV[i + 1]) end
+            redis.call('PEXPIRE', KEYS[1], ARGV[1])
+            return 1
+            """, Long.class);
+
     // 시간 창 안의 횟수 세기. 증가와 만료를 한 스크립트로: 따로 보내다 끊기면 만료 없는 카운터가 남아 계속 막힌다
     private static final DefaultRedisScript<Long> COUNT = new DefaultRedisScript<>("""
             local count = redis.call('INCR', KEYS[1])
@@ -185,6 +193,32 @@ public class VerificationCodeStore {
         return result > 0
                 ? new ConsumeResult(VerifyStatus.MISMATCH, (int) result, fields)
                 : new ConsumeResult(statusOf(result), 0, fields);
+    }
+
+    public void create(String key, Map<String, String> fields, Duration ttl) {
+        List<Object> args = new ArrayList<>(List.of(ttl.toMillis()));
+        fields.forEach((name, value) -> {
+            args.add(name);
+            args.add(value);
+        });
+        run(CREATE, key, args.toArray());
+    }
+
+    // 여러 필드를 한 번에 (없는 키·필드는 빠진다)
+    public Map<String, String> fields(String key, String... names) {
+        List<Object> values = redis.opsForHash().multiGet(PREFIX + key, List.of((Object[]) names));
+        Map<String, String> found = new HashMap<>();
+        for (int i = 0; i < names.length; i++) {
+            if (values.get(i) != null) {
+                found.put(names[i], values.get(i).toString());
+            }
+        }
+        return found;
+    }
+
+    // 지운 요청만 true → 같은 키로 동시에 와도 하나만 다음 단계로 간다
+    public boolean delete(String key) {
+        return Boolean.TRUE.equals(redis.delete(PREFIX + key));
     }
 
     public Optional<String> field(String key, String name) {

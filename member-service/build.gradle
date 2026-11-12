@@ -11,6 +11,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
     // 인증 메일 (가입 이메일 확인, 로그인 2차 인증)
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+    // 관리자 OTP: TOTP 코드 계산은 표준 구현 라이브러리에 맡기고(RFC 6238), 등록·검증 흐름은 직접 만든다
+    implementation 'com.eatthepath:java-otp:0.4.0'
+    implementation 'commons-codec:commons-codec' // OTP 비밀키 Base32 (앱 입력용)
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
