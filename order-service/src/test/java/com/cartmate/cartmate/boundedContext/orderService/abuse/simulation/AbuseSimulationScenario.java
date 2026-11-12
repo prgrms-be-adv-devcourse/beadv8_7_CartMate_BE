@@ -170,7 +170,7 @@ final class AbuseSimulationScenario {
 
     private SimulatedAction individualExpired(SimulatedMember member) {
         return action(new OrderCanceledEvent(nextOrderId++, member.id(), OrderType.INDIVIDUAL_GROUP,
-                OrderCancelReason.PAYMENT_EXPIRED, false, at()), List.of(member.id()));
+                OrderCancelReason.PAYMENT_EXPIRED, false, at(), null), List.of(member.id()));
     }
 
     private SimulatedAction concurrentJoin(SimulatedMember member) {
