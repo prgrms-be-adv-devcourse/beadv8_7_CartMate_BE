@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.etcService.delivery.domain;
 
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.exception.DeliveryErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -87,6 +88,12 @@ public class Delivery {
     @Column(name = "canceled_at")
     private LocalDateTime canceledAt;
 
+    // 왜 취소됐는지. 이 칸이 생기기 전에 취소된 배송은 null이다.
+    // 칸 종류를 문자열로 정해 둔다. 정하지 않으면 MySQL enum 칸이 만들어져 사유를 추가할 때마다 칸을 바꿔야 한다.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancel_reason", columnDefinition = "varchar(30)")
+    private DeliveryCancelReason cancelReason;
+
     // 분산락이 뚫리거나 행 락을 쓰는 이벤트 경로(취소 판정)와 겹칠 때 늦게 커밋한 쪽을 실패시킨다.
     // 이미 있는 행은 컬럼이 추가될 때 0으로 채워진다(기본값). null이면 버전 비교가 맞지 않아 수정이 모두 실패한다.
     @Version
@@ -158,6 +165,7 @@ public class Delivery {
 
         this.status = DeliveryStatus.CANCELED;
         this.canceledAt = canceledAt;
+        this.cancelReason = DeliveryCancelReason.BUYER_CANCELED;
     }
 
     // 판매글 내림으로 인한 취소: 판매자가 판매를 멈춘 것이라 요청 시각과 상관없이 배송준비중(판매자 확인 후)까지 취소한다.
@@ -179,11 +187,52 @@ public class Delivery {
 
         this.status = DeliveryStatus.CANCELED;
         this.canceledAt = canceledAt;
+        this.cancelReason = DeliveryCancelReason.SALES_STOPPED;
+    }
+
+    // 판매자가 품절 같은 사정으로 자기 배송을 취소한다. 물건이 나가기 전(배송요청·배송준비중)까지만 된다.
+    // 송장 정보는 지우지 않는다. 송장을 발급한 뒤 취소된 배송인지 나중에 확인할 수 있게 남긴다.
+    // 같은 사유로 다시 누르면(더블클릭 등) 아무것도 바꾸지 않는다. 실제로 취소했으면 true를 돌려준다.
+    // 사유는 한 번 정하면 바꾸지 않는다. 이미 주문 서버와 구매자 화면에 퍼졌기 때문이다.
+    public boolean cancelBySeller(DeliveryCancelReason reason, LocalDateTime canceledAt) {
+        if (reason == null) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CANCEL_REASON_REQUIRED);
+        }
+        if (!reason.isSellerReason()) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CANCEL_REASON_NOT_ALLOWED);
+        }
+        if (this.status == DeliveryStatus.CANCELED) {
+            if (reason == this.cancelReason) {
+                return false;
+            }
+            throw alreadyCanceled();
+        }
+        if (this.status != DeliveryStatus.REQUESTED && this.status != DeliveryStatus.PREPARING) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_NOT_CANCELABLE_BY_SELLER);
+        }
+
+        this.status = DeliveryStatus.CANCELED;
+        this.canceledAt = canceledAt;
+        this.cancelReason = reason;
+        return true;
+    }
+
+    // 판매자가 이미 취소된 배송을 누르면 왜 취소됐는지 알려 준다. 사유가 없는 예전 취소는 문구만 보낸다.
+    private ServiceException alreadyCanceled() {
+        DeliveryErrorCode code = DeliveryErrorCode.DELIVERY_ALREADY_CANCELED;
+        if (this.cancelReason == null) {
+            return new ServiceException(code);
+        }
+        return new ServiceException(code.resultCode(),
+                code.getMsg() + " (사유: " + this.cancelReason.getDescription() + ")");
     }
 
     // 택배사와 송장번호를 등록하고 배송요청을 배송준비로 바꾼다.
     // 이미 같은 송장 정보로 준비 처리된 경우에는 아무것도 하지 않아 재요청해도 안전하다.
     public void prepare(String carrier, String trackingNumber) {
+        if (this.status == DeliveryStatus.CANCELED) {
+            throw alreadyCanceled();
+        }
         if (carrier == null || carrier.isBlank()) {
             throw new ServiceException(DeliveryErrorCode.DELIVERY_CARRIER_REQUIRED);
         }
@@ -211,6 +260,9 @@ public class Delivery {
 
     // 배송준비를 배송중으로 바꾸고 출발 시각을 기록한다. 이미 배송중이면 아무것도 하지 않아 재요청해도 안전하다.
     public void ship() {
+        if (this.status == DeliveryStatus.CANCELED) {
+            throw alreadyCanceled();
+        }
         if (this.status == DeliveryStatus.SHIPPING) {
             return;
         }

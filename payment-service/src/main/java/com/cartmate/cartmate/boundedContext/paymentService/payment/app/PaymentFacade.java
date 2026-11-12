@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.paymentService.payment.exception.Pay
 import com.cartmate.cartmate.boundedContext.paymentService.payment.out.PaymentRepository;
 import com.cartmate.cartmate.boundedContext.paymentService.payment.out.PaymentWalletClient;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.payment.dto.PaymentOrderType;
 import com.cartmate.cartmate.shared.payment.dto.PaymentResult;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 // payment 모듈의 정문
@@ -93,8 +95,8 @@ public class PaymentFacade {
     }
 
     @Transactional
-    public int refundCanceledSharedGroupOrder(Long sharedGroupOrderId, String cancelReason) {
-        return paymentRefundUseCase.refundCanceledSharedGroupOrder(sharedGroupOrderId, cancelReason);
+    public int refundCanceledSharedGroupOrder(Long sharedGroupOrderId, String cancelReason, List<Long> canceledSellerAmounts) {
+        return paymentRefundUseCase.refundCanceledSharedGroupOrder(sharedGroupOrderId, cancelReason, canceledSellerAmounts);
     }
 
     @Transactional
@@ -109,15 +111,17 @@ public class PaymentFacade {
         return paymentRepository.summarize(from, to);
     }
 
-    // 판매글 판매 중지: 개인 주문 판매자 항목 취소 금액만 환불
+    // 판매 중지·판매자 사유 취소: 개인 주문 판매자 항목 취소 금액만 환불
     @Transactional
-    public void refundOrderSellerItems(Long orderId, Long memberId, Long sellerId, long amount) {
-        paymentRefundUseCase.refundOrderSellerItems(orderId, memberId, sellerId, amount);
+    public void refundOrderSellerItems(Long orderId, Long memberId, Long sellerId, long amount,
+                                       DeliveryCancelReason cancelReason) {
+        paymentRefundUseCase.refundOrderSellerItems(orderId, memberId, sellerId, amount, cancelReason);
     }
 
-    // 판매글 판매 중지: 공동 주문 판매자 항목 취소 금액을 결제한 사람들에게 나눠 환불
+    // 판매 중지·판매자 사유 취소: 공동 주문 판매자 항목 취소 금액을 결제한 사람들에게 참여자 몫으로 나눠 환불
     @Transactional
-    public void refundSharedSellerItems(Long sharedGroupOrderId, Long sellerId, long amount) {
-        paymentRefundUseCase.refundSharedSellerItems(sharedGroupOrderId, sellerId, amount);
+    public void refundSharedSellerItems(Long sharedGroupOrderId, Long sellerId, long amount,
+                                        DeliveryCancelReason cancelReason) {
+        paymentRefundUseCase.refundSharedSellerItems(sharedGroupOrderId, sellerId, amount, cancelReason);
     }
 }

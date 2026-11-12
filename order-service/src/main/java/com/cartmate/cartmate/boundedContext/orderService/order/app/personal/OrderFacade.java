@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.coupon.dto.CouponOption;
 import com.cartmate.cartmate.shared.order.OrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
@@ -149,10 +150,10 @@ public class OrderFacade {
         orderCancelUseCase.cancelBySalesStopped(orderId);
     }
 
-    // 배송 서버의 판매글 내림 취소 결과를 반영하는 트랜잭션에 참여한다 (요청 장부와 함께 커밋).
+    // 판매글 내림 취소 결과나 판매자 사유 취소를 반영하는 트랜잭션에 참여한다 (Inbox·요청 장부와 함께 커밋).
     @Transactional
-    public void cancelSellerItemsBySalesStopped(Long orderId, Long sellerId) {
-        orderCancelUseCase.cancelSellerItemsBySalesStopped(orderId, sellerId);
+    public void cancelSellerItems(Long orderId, Long sellerId, DeliveryCancelReason reason) {
+        orderCancelUseCase.cancelSellerItems(orderId, sellerId, reason);
     }
 
     @Transactional

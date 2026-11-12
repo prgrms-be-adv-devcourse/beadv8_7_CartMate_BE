@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared;
 
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
@@ -95,8 +96,10 @@ public record SharedGroupOrderDetailResponse(
             int quantity,
             long unitPrice,
             long amount,
-            @Schema(description = "취소된 항목이면 취소 시각 (판매글 내림으로 인한 취소). 공동구매 전체 취소는 주문의 canceledAt을 본다")
-            LocalDateTime canceledAt
+            @Schema(description = "취소된 항목이면 취소 시각 (판매글 내림 또는 판매자 사유 취소). 공동구매 전체 취소는 주문의 canceledAt을 본다")
+            LocalDateTime canceledAt,
+            @Schema(description = "취소된 항목이면 취소 사유 (판매 중지, 품절·재고 부족 같은 판매자 사유). 이 칸이 생기기 전에 취소된 항목은 null")
+            DeliveryCancelReason cancelReason
     ) {
 
         static ItemResponse of(SharedGroupOrderItem item, OrderProductInfo product) {
@@ -110,7 +113,8 @@ public record SharedGroupOrderDetailResponse(
                     item.getQuantity(),
                     item.getUnitPrice(),
                     item.amount(),
-                    item.getCanceledAt()
+                    item.getCanceledAt(),
+                    item.getCancelReason()
             );
         }
     }

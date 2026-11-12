@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared;
 
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderCanceledEvent.SellerAmount;
+import com.cartmate.cartmate.shared.order.event.SharedGroupOrderSellerItemsCanceledEvent;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
@@ -172,5 +175,74 @@ class SharedGroupOrderCancelUseCaseTest {
 
     private static SharedGroupOrder order(LocalDateTime closedAt) {
         return sharedOrder(PURCHASE_ID, CREATOR, MEMBER, closedAt, sharedLine(2L, 4L, null, 1, 10000L));
+    }
+
+    @Test
+    @DisplayName("판매자 몫을 취소하면 그 금액과 판매자가 고른 사유를 실은 판매자 몫 취소 이벤트를 발행한다")
+    void cancelSellerItemsPublishesReason() {
+        SharedGroupOrder order = confirmedTwoSellers();
+        given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
+
+        cancelUseCase.cancelSellerItems(ORDER_ID, 7L, DeliveryCancelReason.SELLER_OUT_OF_STOCK);
+
+        then(eventPublisher).should().publish(new SharedGroupOrderSellerItemsCanceledEvent(
+                ORDER_ID, 7L, 10_000L, LocalDateTime.now(CLOCK), DeliveryCancelReason.SELLER_OUT_OF_STOCK));
+    }
+
+    @Test
+    @DisplayName("판매자 몫이 먼저 취소된 뒤 전체 취소되면, 전체 취소 이벤트에 먼저 취소된 판매자 몫(단가 x 수량 합)을 싣는다")
+    void wholeCancelCarriesCanceledSellerAmounts() {
+        SharedGroupOrder order = confirmedTwoSellers();
+        given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
+        cancelUseCase.cancelSellerItems(ORDER_ID, 8L, DeliveryCancelReason.SELLER_OTHER);
+
+        cancelUseCase.cancelBySalesStopped(ORDER_ID);
+
+        ArgumentCaptor<DomainEvent> captor = ArgumentCaptor.forClass(DomainEvent.class);
+        then(eventPublisher).should(org.mockito.Mockito.times(2)).publish(captor.capture());
+        SharedGroupOrderCanceledEvent event = (SharedGroupOrderCanceledEvent) captor.getAllValues().get(1);
+        assertThat(event.cancelReason()).isEqualTo(SharedGroupOrderCancelReason.SALES_STOPPED);
+        assertThat(event.canceledSellerAmounts()).containsExactly(new SellerAmount(8L, 10_000L));
+    }
+
+    @Test
+    @DisplayName("먼저 취소된 판매자 몫이 없으면 전체 취소 이벤트의 판매자 몫 목록은 빈 목록이다")
+    void wholeCancelWithoutCanceledItemsCarriesEmptyList() {
+        SharedGroupOrder order = order(LocalDateTime.now(CLOCK));
+        given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
+
+        cancelUseCase.cancelByOutOfStock(ORDER_ID);
+
+        ArgumentCaptor<SharedGroupOrderCanceledEvent> captor = ArgumentCaptor.forClass(SharedGroupOrderCanceledEvent.class);
+        then(eventPublisher).should().publish(captor.capture());
+        assertThat(captor.getValue().canceledSellerAmounts()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("마지막 판매자 몫까지 취소되면 판매자 몫 이벤트 대신 전체 취소 이벤트를 내고, 목록에는 앞서 취소된 판매자 몫만 싣는다")
+    void lastSellerCancelPublishesWholeCancel() {
+        SharedGroupOrder order = confirmedTwoSellers();
+        given(sharedGroupOrderSupport.getOrderForUpdate(ORDER_ID)).willReturn(order);
+        cancelUseCase.cancelSellerItems(ORDER_ID, 7L, DeliveryCancelReason.SALES_STOPPED);
+
+        cancelUseCase.cancelSellerItems(ORDER_ID, 8L, DeliveryCancelReason.SELLER_OUT_OF_STOCK);
+
+        ArgumentCaptor<DomainEvent> captor = ArgumentCaptor.forClass(DomainEvent.class);
+        then(eventPublisher).should(org.mockito.Mockito.times(2)).publish(captor.capture());
+        assertThat(captor.getAllValues().get(0)).isInstanceOf(SharedGroupOrderSellerItemsCanceledEvent.class);
+        SharedGroupOrderCanceledEvent event = (SharedGroupOrderCanceledEvent) captor.getAllValues().get(1);
+        assertThat(event.cancelReason()).isEqualTo(SharedGroupOrderCancelReason.SELLER_CANCELED);
+        assertThat(event.canceledSellerAmounts()).containsExactly(new SellerAmount(7L, 10_000L));
+        assertThat(order.getStatus()).isEqualTo(SharedGroupOrderStatus.CANCELED);
+    }
+
+    private static SharedGroupOrder confirmedTwoSellers() {
+        LocalDateTime now = LocalDateTime.now(CLOCK);
+        SharedGroupOrder order = sharedOrder(PURCHASE_ID, CREATOR, MEMBER, now,
+                sharedLine(2L, 4L, 7L, 1, 10_000L), sharedLine(3L, 5L, 8L, 2, 5_000L));
+        order.markStockReserved();
+        order.pay(CREATOR, 1L, now, address());
+        order.pay(MEMBER, 2L, now, null);
+        return order;
     }
 }

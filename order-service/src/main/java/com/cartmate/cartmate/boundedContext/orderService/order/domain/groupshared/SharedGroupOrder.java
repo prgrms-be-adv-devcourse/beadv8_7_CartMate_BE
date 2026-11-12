@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared;
 
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
 import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
@@ -15,7 +16,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Entity
@@ -179,18 +182,33 @@ public class SharedGroupOrder {
         return true;
     }
 
-    public long cancelSellerItemsBySalesStopped(Long sellerId, LocalDateTime now) {
+    // 확정된 공동 주문에서 한 판매자의 남은 항목을 모두 취소하고 그 금액을 돌려준다.
+    // 항목이 모두 취소되면 주문도 취소로 바꾼다. 이때 환불은 전체 취소 환불로 한다(마지막 판매자 몫을 따로 나누지 않음).
+    public long cancelSellerItems(Long sellerId, DeliveryCancelReason reason, LocalDateTime now) {
         if (status != SharedGroupOrderStatus.CONFIRMED) {
             return 0;
         }
         long amount = 0;
         for (SharedGroupOrderItem item : items) {
-            if (item.getSellerId().equals(sellerId) && !item.isCanceled()) {
-                item.cancel(now);
+            if (sellerId.equals(item.getSellerId()) && !item.isCanceled()) {
+                item.cancel(reason, now);
                 amount += item.amount();
             }
         }
+        if (amount > 0 && items.stream().allMatch(SharedGroupOrderItem::isCanceled)) {
+            cancel(reason == DeliveryCancelReason.SALES_STOPPED
+                    ? SharedGroupOrderCancelReason.SALES_STOPPED : SharedGroupOrderCancelReason.SELLER_CANCELED, now);
+        }
         return amount;
+    }
+
+    // 전체 취소보다 먼저 판매자 몫으로 따로 취소된 항목을 판매자별 금액으로 묶는다
+    public Map<Long, Long> canceledAmountsBySeller() {
+        Map<Long, Long> bySeller = new LinkedHashMap<>();
+        items.stream()
+                .filter(SharedGroupOrderItem::isCanceled)
+                .forEach(item -> bySeller.merge(item.getSellerId(), item.amount(), Long::sum));
+        return bySeller;
     }
 
     public boolean isCreator(Long memberId) {

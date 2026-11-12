@@ -11,6 +11,7 @@ import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimStat
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.ClaimType;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryStatus;
 import com.cartmate.cartmate.global.lock.DistributedLock;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -35,6 +36,7 @@ public class DeliveryFacade {
     private final DeliveryReadyUseCase deliveryReadyUseCase;
     private final DeliveryCancelUseCase deliveryCancelUseCase;
     private final DeliveryShipUseCase deliveryShipUseCase;
+    private final DeliverySellerReasonCancelUseCase deliverySellerReasonCancelUseCase;
     private final DeliveryDeliverUseCase deliveryDeliverUseCase;
     private final DeliveryConfirmUseCase deliveryConfirmUseCase;
     private final DeliveryAutoConfirmUseCase deliveryAutoConfirmUseCase;
@@ -71,6 +73,12 @@ public class DeliveryFacade {
     @Transactional
     public DeliveryResponse shipDelivery(Long deliveryId, Long memberId) {
         return deliveryShipUseCase.ship(deliveryId, memberId);
+    }
+
+    @DistributedLock(key = "'delivery:' + #deliveryId")
+    @Transactional
+    public DeliveryResponse cancelDeliveryBySeller(Long deliveryId, Long memberId, DeliveryCancelReason reason) {
+        return deliverySellerReasonCancelUseCase.cancel(deliveryId, memberId, reason);
     }
 
     @DistributedLock(key = "'delivery:' + #deliveryId")

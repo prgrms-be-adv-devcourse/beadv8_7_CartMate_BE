@@ -42,6 +42,8 @@ public enum DeliveryErrorCode implements ErrorCode {
     DELIVERY_OPTION_CONTAIN_NULL("DELIVERY_OPTION_CONTAIN_NULL", "배송 상품 옵션 목록에 null을 포함할 수 없습니다.", HttpStatus.BAD_REQUEST),
     DELIVERY_OPTION_NAME_REQUIRED("DELIVERY_OPTION_NAME_REQUIRED", "옵션명이 필요합니다.", HttpStatus.BAD_REQUEST),
     DELIVERY_OPTION_VALUE_REQUIRED("DELIVERY_OPTION_VALUE_REQUIRED", "옵션값이 필요합니다.", HttpStatus.BAD_REQUEST),
+    DELIVERY_CANCEL_REASON_REQUIRED("DELIVERY_CANCEL_REASON_REQUIRED", "취소 사유가 필요합니다.", HttpStatus.BAD_REQUEST),
+    DELIVERY_CANCEL_REASON_NOT_ALLOWED("DELIVERY_CANCEL_REASON_NOT_ALLOWED", "판매자가 고를 수 없는 취소 사유입니다.", HttpStatus.BAD_REQUEST),
 
     // 조회·접근
     DELIVERY_NOT_FOUND("DELIVERY_NOT_FOUND", "배송을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
@@ -56,6 +58,8 @@ public enum DeliveryErrorCode implements ErrorCode {
     DELIVERY_ALREADY_PREPARED("DELIVERY_ALREADY_PREPARED", "이미 다른 송장 정보로 배송 준비 처리되었습니다.", HttpStatus.CONFLICT),
     DELIVERY_NOT_CANCELABLE("DELIVERY_NOT_CANCELABLE", "판매자가 이미 배송을 확인해 취소할 수 없습니다. 환불은 교환·환불 요청으로 진행해주세요.", HttpStatus.CONFLICT),
     DELIVERY_CANCEL_DELAYED("DELIVERY_CANCEL_DELAYED", "취소 요청이 처리되기 전에 발송되어 취소하지 못했습니다. 불편을 드려 죄송합니다. 환불은 교환·환불 요청으로 진행해주세요.", HttpStatus.CONFLICT),
+    DELIVERY_ALREADY_CANCELED("DELIVERY_ALREADY_CANCELED", "이미 취소된 배송입니다.", HttpStatus.CONFLICT),
+    DELIVERY_NOT_CANCELABLE_BY_SELLER("DELIVERY_NOT_CANCELABLE_BY_SELLER", "이미 발송한 배송은 취소할 수 없습니다. 구매자의 교환·환불 요청으로 처리됩니다.", HttpStatus.CONFLICT),
 
     // 클레임 접수
     DELIVERY_CLAIM_ALREADY_EXISTS("DELIVERY_CLAIM_ALREADY_EXISTS", "이미 처리 중인 교환·환불 요청이 있습니다.", HttpStatus.CONFLICT),

@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.app.salesstop;
 
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.groupshared.SharedGroupOrderFacade;
 import com.cartmate.cartmate.boundedContext.orderService.order.app.personal.OrderFacade;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.salesstop.SalesStopCancelRequest;
@@ -95,7 +96,7 @@ class SalesStopCancelFacadeTest {
 
         facade.applyResult(result(PurchaseType.INDIVIDUAL_GROUP, SalesStopCancelResult.SELLER_CANCELED, null));
 
-        verify(orderFacade).cancelSellerItemsBySalesStopped(ORDER_ID, SELLER_ID);
+        verify(orderFacade).cancelSellerItems(ORDER_ID, SELLER_ID, DeliveryCancelReason.SALES_STOPPED);
         assertThat(request.getStatus()).isEqualTo(SalesStopCancelRequestStatus.CANCELED);
     }
 
@@ -107,7 +108,7 @@ class SalesStopCancelFacadeTest {
         facade.applyResult(result(PurchaseType.SHARED_GROUP, SalesStopCancelResult.WHOLE_CANCELED, null));
 
         verify(sharedGroupOrderFacade).cancelWholeBySalesStopResult(ORDER_ID);
-        verify(sharedGroupOrderFacade, never()).cancelSellerItemsBySalesStopped(anyLong(), anyLong());
+        verify(sharedGroupOrderFacade, never()).cancelSellerItems(anyLong(), anyLong(), any());
         assertThat(request.getStatus()).isEqualTo(SalesStopCancelRequestStatus.CANCELED);
     }
 
@@ -118,7 +119,7 @@ class SalesStopCancelFacadeTest {
 
         facade.applyResult(result(PurchaseType.SHARED_GROUP, SalesStopCancelResult.SELLER_CANCELED, null));
 
-        verify(sharedGroupOrderFacade).cancelSellerItemsBySalesStopped(ORDER_ID, SELLER_ID);
+        verify(sharedGroupOrderFacade).cancelSellerItems(ORDER_ID, SELLER_ID, DeliveryCancelReason.SALES_STOPPED);
     }
 
     @Test

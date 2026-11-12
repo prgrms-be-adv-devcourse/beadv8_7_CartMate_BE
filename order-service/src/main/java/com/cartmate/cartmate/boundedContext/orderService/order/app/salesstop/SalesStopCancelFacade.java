@@ -6,6 +6,7 @@ import com.cartmate.cartmate.boundedContext.orderService.order.domain.salesstop.
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.salesstop.SalesStopCancelRequestStatus;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.salesstop.SalesStopCancelRequestRepository;
 import com.cartmate.cartmate.global.event.DomainEventPublisher;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import com.cartmate.cartmate.shared.delivery.PurchaseType;
 import com.cartmate.cartmate.shared.delivery.event.DeliverySalesStopCancelResultEvent;
 import com.cartmate.cartmate.shared.order.event.OrderSalesStopCancelRequestedEvent;
@@ -99,9 +100,9 @@ public class SalesStopCancelFacade {
 
     private void cancelSeller(DeliverySalesStopCancelResultEvent event) {
         if (event.purchaseType() == PurchaseType.SHARED_GROUP) {
-            sharedGroupOrderFacade.cancelSellerItemsBySalesStopped(event.orderId(), event.sellerId());
+            sharedGroupOrderFacade.cancelSellerItems(event.orderId(), event.sellerId(), DeliveryCancelReason.SALES_STOPPED);
             return;
         }
-        orderFacade.cancelSellerItemsBySalesStopped(event.orderId(), event.sellerId());
+        orderFacade.cancelSellerItems(event.orderId(), event.sellerId(), DeliveryCancelReason.SALES_STOPPED);
     }
 }
