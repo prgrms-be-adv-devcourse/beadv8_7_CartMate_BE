@@ -39,9 +39,7 @@ class MemberJoinUseCaseTest {
     void 가입하면_가입_이벤트를_Outbox_발행_포트로_보낸다() {
         SignupRequest request = new SignupRequest("new@cartmate.com", "Test1234!", "새회원", "010-1234-5678",
                 LocalDate.of(1995, 1, 1));
-        PhoneVerificationStore.Entry verified = mock(PhoneVerificationStore.Entry.class);
-        when(verified.isVerified(any())).thenReturn(true);
-        when(phoneVerificationStore.find(request.phone())).thenReturn(Optional.of(verified));
+        when(phoneVerificationStore.isVerified(eq(request.phone()), any())).thenReturn(true);
         when(emailVerification.isVerified(eq(request.email()), any())).thenReturn(true);
         when(passwordEncoder.encode(any())).thenReturn("encoded");
         when(memberRepository.saveAndFlush(any(Member.class))).thenAnswer(invocation -> {
