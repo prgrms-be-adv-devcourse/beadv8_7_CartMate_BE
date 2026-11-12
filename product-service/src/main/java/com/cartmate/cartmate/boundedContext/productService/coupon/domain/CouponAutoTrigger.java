@@ -9,5 +9,5 @@ import lombok.RequiredArgsConstructor;
 public enum CouponAutoTrigger {
     SIGNUP("회원 가입");
 
-    private final String description;
+    private final String label;
 }

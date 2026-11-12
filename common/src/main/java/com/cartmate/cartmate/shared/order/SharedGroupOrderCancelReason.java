@@ -6,10 +6,10 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum SharedGroupOrderCancelReason {
-    DEADLINE_EXPIRED("결제 기한까지 전원 결제 못 함"),
+    DEADLINE_EXPIRED("결제 기한 만료"),  // 결제 기한까지 전원 결제 못 함
     OUT_OF_STOCK("재고 부족"),
     CREATOR_CANCELED("개설자 취소"),
-    SALES_STOPPED("판매글 판매 중지 · 숨김 · 삭제");
+    SALES_STOPPED("판매 중지");          // 판매글 판매 중지 · 숨김 · 삭제
 
-    private final String description;
+    private final String label;
 }

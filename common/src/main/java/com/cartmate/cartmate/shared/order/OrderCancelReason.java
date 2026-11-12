@@ -9,8 +9,8 @@ public enum OrderCancelReason {
     BUYER_CANCELED("구매자 취소"),
     PAYMENT_EXPIRED("결제 기한 만료"),
     OUT_OF_STOCK("재고 부족"),
-    SALES_STOPPED("판매글 판매 중지 · 숨김 · 삭제"),
-    GROUP_PURCHASE_CLOSED("개인물품 공동구매가 닫힘(결제 마감 = 판매 마감)");
+    SALES_STOPPED("판매 중지"),              // 판매글 판매 중지 · 숨김 · 삭제
+    GROUP_PURCHASE_CLOSED("공동구매 마감");  // 개인물품 공동구매가 닫힘(결제 마감 = 판매 마감)
 
-    private final String description;
+    private final String label;
 }

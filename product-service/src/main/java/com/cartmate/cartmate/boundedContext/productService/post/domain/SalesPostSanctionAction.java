@@ -10,6 +10,6 @@ public enum SalesPostSanctionAction {
     SUSPEND("숨김"),
     RESUME("숨김 해제");
 
-    // 화면·로그에 쓰는 설명. 새 값을 추가할 때 설명이 없으면 컴파일되지 않는다.
-    private final String description;
+    // 화면·로그에 쓰는 라벨. 새 값을 추가할 때 라벨이 없으면 컴파일되지 않는다.
+    private final String label;
 }

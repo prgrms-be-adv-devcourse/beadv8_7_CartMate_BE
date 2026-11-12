@@ -6,10 +6,11 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum ImageType {
-    JPEG("jpg", "image/jpeg"),
-    PNG("png", "image/png"),
-    WEBP("webp", "image/webp");
+    JPEG("JPEG", "jpg", "image/jpeg"),
+    PNG("PNG", "png", "image/png"),
+    WEBP("WebP", "webp", "image/webp");
 
+    private final String label;
     private final String extension;
     private final String mimeType;
 }

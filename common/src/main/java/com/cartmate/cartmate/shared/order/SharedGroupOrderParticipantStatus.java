@@ -9,5 +9,5 @@ public enum SharedGroupOrderParticipantStatus {
     UNPAID("미결제"),
     PAID("결제 완료");
 
-    private final String description;
+    private final String label;
 }

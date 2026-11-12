@@ -7,9 +7,10 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum BuyerCancelVerdict {
-    ALLOWED(null),
-    NOT_CANCELABLE(DeliveryErrorCode.DELIVERY_NOT_CANCELABLE),
-    SHIPPED_AFTER_REQUEST(DeliveryErrorCode.DELIVERY_CANCEL_DELAYED);
+    ALLOWED("취소 가능", null),
+    NOT_CANCELABLE("취소 불가", DeliveryErrorCode.DELIVERY_NOT_CANCELABLE),
+    SHIPPED_AFTER_REQUEST("요청 후 발송됨", DeliveryErrorCode.DELIVERY_CANCEL_DELAYED);
 
+    private final String label;
     private final DeliveryErrorCode rejectCode;
 }

@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum GroupPurchaseType {
-    INDIVIDUAL("공동구매-개인물품"),
-    SHARED("공동구매-공동물품");
+    INDIVIDUAL("개인물품 공동구매"),
+    SHARED("공동물품 공동구매");
 
-    private final String description;
+    private final String label;
 }
