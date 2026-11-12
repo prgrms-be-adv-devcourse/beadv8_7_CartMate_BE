@@ -128,7 +128,7 @@ public class PaymentRefundUseCase {
 
     private String sellerItemsMemo(DeliveryCancelReason cancelReason, String share) {
         return isSellerReason(cancelReason)
-                ? "판매자 사유 취소 %s자동 환불(%s)".formatted(share, cancelReason.getDescription())
+                ? "판매자 사유 취소 %s자동 환불(%s)".formatted(share, cancelReason.getLabel())
                 : "판매 중지 상품 %s자동 환불".formatted(share);
     }
 

@@ -16,6 +16,6 @@ public enum DeliveryCancelReason {
     SELLER_PRODUCT_ISSUE("상품 문제 발견", true),
     SELLER_OTHER("기타 판매자 사정", true);
 
-    private final String description;
+    private final String label;
     private final boolean sellerReason;
 }
