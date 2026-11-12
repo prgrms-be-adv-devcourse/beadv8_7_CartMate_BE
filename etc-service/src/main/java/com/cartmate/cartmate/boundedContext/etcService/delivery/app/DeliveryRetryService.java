@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.etcService.delivery.app;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryCreateCommand;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.app.dto.DeliveryResponse;
 import com.cartmate.cartmate.boundedContext.etcService.delivery.out.DeliveryRepository;
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -70,5 +71,22 @@ public class DeliveryRetryService {
     )
     public DeliveryResponse shipDelivery(Long deliveryId, Long memberId) {
         return deliveryFacade.shipDelivery(deliveryId, memberId);
+    }
+
+    // 판매자 사유 취소도 이벤트 경로의 취소 판정과 같은 배송을 다툴 수 있어 같은 방식으로 다시 시도한다.
+    // 다시 시도할 때 이미 취소돼 있으면 "이미 취소된 배송(사유)"을 받는다.
+    @Retryable(
+            value = {
+                    OptimisticLockingFailureException.class,
+                    CannotAcquireLockException.class
+            },
+            maxRetries = 3,
+            delay = 100,
+            multiplier = 2,
+            jitter = 50,
+            maxDelay = 1000
+    )
+    public DeliveryResponse cancelDeliveryBySeller(Long deliveryId, Long memberId, DeliveryCancelReason reason) {
+        return deliveryFacade.cancelDeliveryBySeller(deliveryId, memberId, reason);
     }
 }
