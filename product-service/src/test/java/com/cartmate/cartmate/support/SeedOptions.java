@@ -17,6 +17,8 @@ public final class SeedOptions {
     public static final long BLACK = 8L;        // 색상 블랙
     public static final long WHITE = 9L;        // 색상 화이트
     public static final long SHOE_220 = 18L;    // 신발 사이즈 220
+    public static final long SHOE_255 = 25L;    // 신발 사이즈 255
+    public static final long SHOE_265 = 27L;    // 신발 사이즈 265
 
     private SeedOptions() {
     }

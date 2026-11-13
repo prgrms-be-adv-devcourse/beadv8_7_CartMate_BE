@@ -129,13 +129,16 @@ public class ProductQueryUseCase {
         );
     }
 
+    // 옵션 종류 · 상품옵션 이름은 상세 화면 선택 목록에 쓴다(마스터를 읽는다. 같은 조회 안에서는 한 번씩만 읽힌다)
     private SelectProductOption toSelectProductOption(ProductOption option) {
         return new SelectProductOption(
                 option.getId(),
                 option.getProductTypeId(),
                 option.getProductOptionId(),
                 option.getCreateDate(),
-                option.getModifyDate()
+                option.getModifyDate(),
+                option.getOptionType().getName(),
+                option.getOptionValue().getName()
         );
     }
 

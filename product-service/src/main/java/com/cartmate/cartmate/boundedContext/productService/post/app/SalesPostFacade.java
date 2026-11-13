@@ -29,6 +29,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminS
 import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminSalesPostSummaryResponse;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +50,7 @@ public class SalesPostFacade {
     private final AdminSalesPostUseCase adminSalesPostUseCase;
     private final SalesPostHideUseCase salesPostHideUseCase;
     private final SalesPostSyncSellerTrustUseCase salesPostSyncSellerTrustUseCase;
+    private final SalesPostDetailInventoryLoader salesPostDetailInventoryLoader;
 
     @Transactional
     public SalesPostSeller syncSeller(SellerRegisteredEvent seller) {
@@ -111,13 +113,21 @@ public class SalesPostFacade {
         );
     }
 
-    @Transactional(readOnly = true)
+    // 판매글 · 복제본은 DB(읽기 트랜잭션)에서, 상품별 선택 목록 · 재고는 상품 서버(2초 캐시)에서 가져와 붙인다.
+    // 상품 서버 호출 동안 DB 연결을 잡고 있지 않도록 이 메서드에는 트랜잭션을 걸지 않는다
     public RsData<SelectSalesPostResponse> selectSalesPostDetail(Long postId) {
-        return new RsData<>(
-                "200-2",
-                "판매글 상세조회에 성공했습니다.",
-                salesPostSelectUseCase.selectSalesPostDetail(postId)
-        );
+        SelectSalesPostResponse detail = salesPostSelectUseCase.selectSalesPostDetail(postId);
+
+        Map<Long, SalesPostDetailInventories.ProductInventories> inventoriesByProduct =
+                salesPostDetailInventoryLoader.load(postId).byProductId();
+        detail.getProductList().forEach(product -> {
+            SalesPostDetailInventories.ProductInventories found = inventoriesByProduct.get(product.getId());
+            if (found != null) {
+                product.attachInventories(found.optionGroups(), found.inventories());
+            }
+        });
+
+        return new RsData<>("200-2", "판매글 상세조회에 성공했습니다.", detail);
     }
 
     // product가 상품 삭제를 마치면(ProductsDeletedByPostEvent) 복제본을 지우고 판매글 삭제를 완료한다.

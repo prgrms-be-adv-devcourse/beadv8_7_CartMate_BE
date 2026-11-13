@@ -123,9 +123,9 @@ class ProductUpdateContractTest {
     void selectResponseIsReadByPost() {
         var sent = new SelectProductResponse(1L, 10L, 30L, "아이폰", "부사 5kg", 25000L, ProductStatus.ON_SALE,
                 List.of(new SelectProductImage(100L, "products/a.jpg", 0, ProductStatus.ACTIVE, AT, AT)),
-                List.of(new SelectProductOption(200L, 1L, 11L, AT, AT)),
+                List.of(new SelectProductOption(200L, 1L, 11L, AT, AT, "의류 사이즈", "L")),
                 List.of(new SelectInventory(300L, "L / 블랙", 25500L, 500L, 3, 0,
-                        List.of(new SelectProductOption(200L, 1L, 11L, AT, AT)))));
+                        List.of(new SelectProductOption(200L, 1L, 11L, AT, AT, "의류 사이즈", "L")))));
 
         String json = strict.writeValueAsString(sent);
         var received = strict.readValue(json,
@@ -148,6 +148,8 @@ class ProductUpdateContractTest {
         assertThat(option.getId()).isEqualTo(200L);
         assertThat(option.getProductTypeId()).isEqualTo(1L);
         assertThat(option.getProductOptionId()).isEqualTo(11L);
+        assertThat(option.getProductTypeName()).isEqualTo("의류 사이즈");   // 상세 화면 선택 목록에 쓰는 이름
+        assertThat(option.getProductOptionName()).isEqualTo("L");
         var inventory = received.getInventoryList().getFirst();
         assertThat(inventory.getId()).isEqualTo(300L);
         assertThat(inventory.getSkuName()).isEqualTo("L / 블랙");
