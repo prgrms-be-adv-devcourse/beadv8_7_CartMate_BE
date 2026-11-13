@@ -22,6 +22,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.Produc
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -108,6 +109,8 @@ class SalesPostRegisterFlowTest {
     ProductImageRepository productImageRepository;
     @Autowired
     ProductOptionRepository productOptionRepository;
+    @Autowired
+    InventoryRepository inventoryRepository;
     @Autowired
     FakeImageStorage storage;
 
@@ -235,6 +238,8 @@ class SalesPostRegisterFlowTest {
         assertThat(salesPostRepository.count()).isZero();
         assertThat(productRepository.count()).isZero();
         assertThat(productImageRepository.count()).isZero();
+        // 등록 보상만 행을 실제로 지운다: 선택된 옵션 → 재고 → 상품 순으로 지워져 FK가 깨지지 않는다
+        assertThat(inventoryRepository.count()).isZero();
         assertThat(productOptionRepository.count()).isZero();
         assertThat(salesPostProductRepository.count()).isZero();
         assertThat(salesPostProductImageRepository.count()).isZero();

@@ -19,9 +19,11 @@ import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRep
 import com.cartmate.cartmate.boundedContext.productService.product.app.TestImageFiles;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Inventory;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -125,6 +127,8 @@ class SalesPostDeleteFlowTest {
     @Autowired
     ProductOptionRepository productOptionRepository;
     @Autowired
+    InventoryRepository inventoryRepository;
+    @Autowired
     FakeImageStorage storage;
 
     Long postId;
@@ -178,7 +182,11 @@ class SalesPostDeleteFlowTest {
         assertThat(productImageRepository.findAll())
                 .extracting(ProductImage::getStatus)
                 .containsOnly(ProductStatus.DELETED);
-        // 옵션은 논리 삭제라 행이 남고 상태만 DELETED
+        // 재고 · 선택된 옵션은 논리 삭제라 행이 남고 상태만 DELETED (상품 2개 × 재고 1개, 재고마다 선택된 옵션 1개)
+        assertThat(inventoryRepository.findAll())
+                .hasSize(2)
+                .extracting(Inventory::getStatus)
+                .containsOnly(ProductStatus.DELETED);
         assertThat(productOptionRepository.findAll())
                 .hasSize(2)
                 .extracting(ProductOption::getStatus)

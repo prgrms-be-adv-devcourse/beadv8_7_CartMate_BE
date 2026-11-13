@@ -14,6 +14,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostPro
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Inventory;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductImage;
@@ -22,6 +23,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.CreatePro
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -48,6 +50,7 @@ import java.util.List;
 import static com.cartmate.cartmate.global.inbox.QProcessedEvent.processedEvent;
 import static com.cartmate.cartmate.global.outbox.QOutboxEvent.outboxEvent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -77,6 +80,8 @@ class ProductDeleteTest {
     ProductImageRepository productImageRepository;
     @Autowired
     ProductOptionRepository productOptionRepository;
+    @Autowired
+    InventoryRepository inventoryRepository;
     @Autowired
     FakeImageStorage storage;
 
@@ -151,12 +156,18 @@ class ProductDeleteTest {
     void deleteProductAlsoDeletesCopy() {
         productFacade.deleteProductByUser(productId, SELLER_ID);
 
-        // 상품만 지워지고(사진 2장 · 옵션 2개 삭제 상태), 복제본 삭제는 이벤트로 남아 있다. 충전기는 그대로
+        // 상품만 지워지고(사진 2장 · 재고 1개 · 선택된 옵션 2개 삭제 상태), 복제본 삭제는 이벤트로 남아 있다. 충전기는 그대로
         assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
         assertThat(productRepository.findById(otherProductId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
         assertThat(productImageRepository.findAll())
                 .extracting(ProductImage::getStatus)
                 .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
+        // 재고는 행이 남고 상태만 DELETED. 삭제하지 않은 상품(충전기)의 재고는 ACTIVE 그대로
+        assertThat(inventoryRepository.findAll())
+                .extracting(inventory -> inventory.getProduct().getId(), Inventory::getStatus)
+                .containsExactlyInAnyOrder(
+                        tuple(productId, ProductStatus.DELETED),
+                        tuple(otherProductId, ProductStatus.ACTIVE));
         assertThat(productOptionRepository.findAll())
                 .extracting(ProductOption::getStatus)
                 .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
