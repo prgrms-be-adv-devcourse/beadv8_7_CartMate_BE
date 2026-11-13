@@ -13,6 +13,7 @@ import com.cartmate.cartmate.shared.post.event.SalesPostRegisterFailedEvent;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
+import com.cartmate.cartmate.shared.product.event.InventoryRemovedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductsDeletedByPostEvent;
 import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
@@ -187,17 +188,28 @@ public class SalesPostFacade {
         }
 
         // 복제본 갱신과 판매글 수정 · 완료를 한 트랜잭션으로. 복제본을 못 맞추면 수정 실패로 보고 상품을 복구한다
+        // 빠진 재고 알림도 같은 트랜잭션(outbox)에 둔다: 수정이 끝까지 성공했을 때만 나가고, 실패해 복구되면 나가지 않는다
         try {
             transactionTemplate.executeWithoutResult(s -> {
                 salesPostSyncProductUseCase.syncProduct(updatedProducts);
                 salesPostUpdateUseCase.markCompleted(postId);
                 salesPostUpdateUseCase.updateSalesPostByUser(request);
                 salesPostRecoveryUseCase.delete(postId);
+                publishRemovedInventories(updatedProducts);
             });
         } catch (RuntimeException e) {
             salesPostRecoverUseCase.recover(postId);
             throw e;
         }
+    }
+
+    // 수정에서 재고가 빠진 상품마다 InventoryRemovedEvent를 낸다
+    private void publishRemovedInventories(List<SyncProduct> updatedProducts) {
+        updatedProducts.stream()
+                .filter(product -> product.getRemovedInventoryIds() != null && !product.getRemovedInventoryIds().isEmpty())
+                .forEach(product -> domainEventPublisher.publish(new InventoryRemovedEvent(
+                        product.getSalesPostId(), product.getSellerId(), product.getId(),
+                        List.copyOf(product.getRemovedInventoryIds()))));
     }
 
     // ===== 수정 복구 대사 =====

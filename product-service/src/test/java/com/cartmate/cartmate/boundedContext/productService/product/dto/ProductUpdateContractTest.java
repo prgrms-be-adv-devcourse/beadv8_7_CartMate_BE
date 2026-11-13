@@ -160,6 +160,24 @@ class ProductUpdateContractTest {
                 .containsExactlyInAnyOrderElementsOf(fieldPaths(strict.readTree(json), ""));
     }
 
+    @Test
+    @DisplayName("수정 응답: product가 돌려준 상품의 빠진 재고 ID를 post가 같은 값 · 같은 필드 구성으로 읽는다")
+    void syncProductRemovedInventoryIdsAreReadByPost() {
+        var sent = new SyncProduct(1L, 7L, 10L, 30L, "아이폰", "부사 5kg", 25000L, AT, AT,
+                List.of(), List.of(), List.of(301L, 302L));
+
+        String json = strict.writeValueAsString(sent);
+        var received = strict.readValue(json,
+                com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct.class);
+
+        assertThat(received.getId()).isEqualTo(1L);
+        assertThat(received.getSellerId()).isEqualTo(7L);
+        assertThat(received.getSalesPostId()).isEqualTo(10L);
+        assertThat(received.getRemovedInventoryIds()).containsExactly(301L, 302L);
+        assertThat(fieldPaths(strict.valueToTree(received), ""))
+                .containsExactlyInAnyOrderElementsOf(fieldPaths(strict.readTree(json), ""));
+    }
+
     // 배열은 첫 원소 기준으로 펼쳐서 "productList[].productImageList[].imageSeq" 같은 경로 목록을 만든다
     private List<String> fieldPaths(JsonNode node, String prefix) {
         List<String> paths = new ArrayList<>();

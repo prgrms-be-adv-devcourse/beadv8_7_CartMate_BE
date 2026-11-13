@@ -30,6 +30,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.out.ProductIm
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import static com.cartmate.cartmate.global.outbox.QOutboxEvent.outboxEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -85,6 +87,8 @@ class SalesPostUpdateFlowTest {
     SalesPostSyncProductUseCase salesPostSyncProductUseCase;
     @Autowired
     TransactionTemplate transactionTemplate;
+    @Autowired
+    JPAQueryFactory queryFactory;
 
     @Autowired
     SalesPostRepository salesPostRepository;
@@ -266,20 +270,92 @@ class SalesPostUpdateFlowTest {
         assertThat(productRepository.findById(productId).orElseThrow().getName()).isEqualTo("아이폰");
     }
 
+    // ===== 수정에서 빠진 재고 알림 (InventoryRemovedEvent) =====
+
+    @Test
+    @DisplayName("재고 빼기: 수정에서 빠진 재고가 있으면 수정 완료 때 InventoryRemovedEvent가 1건 나간다")
+    void removedInventoryPublishesEvent() {
+        Long removedId = activeInventoryId();
+
+        salesPostFacade.updateSalesPostByUser(updateRequestReplacingInventory(), List.of());
+
+        assertThat(inventoryRepository.findById(removedId).orElseThrow().isActive()).isFalse();
+        List<String> payloads = inventoryRemovedPayloads();
+        assertThat(payloads).hasSize(1);
+        assertThat(payloads.getFirst())
+                .contains("\"postId\":" + postId)
+                .contains("\"sellerId\":" + SELLER_ID)
+                .contains("\"productId\":" + productId)
+                .contains("\"inventoryIds\":[" + removedId + "]");
+    }
+
+    @Test
+    @DisplayName("재고 빼기: 빠진 재고가 없으면 이벤트가 나가지 않는다")
+    void noRemovedInventoryNoEvent() {
+        salesPostFacade.updateSalesPostByUser(updateRequest(SELLER_ID, "새 제목", "새이름", 30000L), List.of());
+
+        assertThat(inventoryRemovedPayloads()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("재고 빼기: 수정 마무리가 실패해 복구되면 재고가 되살아나고 이벤트도 나가지 않는다")
+    void noEventWhenUpdateIsRecovered() {
+        Long removedId = activeInventoryId();
+        doThrow(new RuntimeException("테스트용 완료 실패"))
+                .when(salesPostUpdateUseCase).markCompleted(anyLong());
+
+        assertThatThrownBy(() -> salesPostFacade.updateSalesPostByUser(updateRequestReplacingInventory(), List.of()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("테스트용 완료 실패");
+
+        assertThat(inventoryRepository.findById(removedId).orElseThrow().isActive()).isTrue();
+        assertThat(inventoryRemovedPayloads()).isEmpty();
+    }
+
+    // 기존 재고(L)를 빼고 새 재고(M)를 넣는 요청. 사진 · 상품 정보는 그대로
+    private UpdateSalesPostRequest updateRequestReplacingInventory() {
+        List<UpdateSalesPostInventory> inventories = List.of(new UpdateSalesPostInventory(
+                null, List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_M)), 0L, 5));
+        UpdateSalesPostProduct product = new UpdateSalesPostProduct(productId, 1L, "아이폰", "설명", 10000L,
+                currentImages(), inventories);
+        return new UpdateSalesPostRequest(postId, SELLER_ID, "아이폰 팝니다", "상태 좋아요", List.of(product));
+    }
+
+    private Long activeInventoryId() {
+        return inventoryRepository.findAll().stream()
+                .filter(Inventory::isActive)
+                .findFirst()
+                .orElseThrow()
+                .getId();
+    }
+
+    // 이 판매글의 InventoryRemovedEvent 내용(JSON). 판매글 ID가 테스트마다 달라 앞 테스트의 이벤트는 섞이지 않는다
+    private List<String> inventoryRemovedPayloads() {
+        return queryFactory.select(outboxEvent.payload)
+                .from(outboxEvent)
+                .where(outboxEvent.eventType.eq("InventoryRemovedEvent"),
+                        outboxEvent.aggregateId.eq(String.valueOf(postId)))
+                .fetch();
+    }
+
     // 기존 사진 2장(id · s3Key · 순서 유지)과 기존 옵션(id 유지)은 그대로 두고 이름 · 가격만 바꾼 요청
     private UpdateSalesPostRequest updateRequest(Long sellerId, String title, String name, Long basePrice) {
-        List<UpdateSalesPostProductImage> images = new ArrayList<>(productImageRepository.findAll().stream()
-                .sorted(Comparator.comparingInt(ProductImage::getImageSeq))
-                .map(i -> new UpdateSalesPostProductImage(i.getId(), productId, i.getS3Key(), i.getImageSeq()))
-                .toList());
         // 기존 재고(id 유지)는 그대로 둔다. 조합은 바뀌지 않으므로 옵션 목록은 보내지 않는다
         List<UpdateSalesPostInventory> options = inventoryRepository.findAll().stream()
                 .filter(Inventory::isActive)
                 .map(i -> new UpdateSalesPostInventory(i.getId(), null, i.getAdditionalPrice(), i.getStockQuantity()))
                 .toList();
-        UpdateSalesPostProduct product = new UpdateSalesPostProduct(productId, 1L, name, "설명", basePrice, images, options);
+        UpdateSalesPostProduct product = new UpdateSalesPostProduct(productId, 1L, name, "설명", basePrice,
+                currentImages(), options);
 
         return new UpdateSalesPostRequest(postId, sellerId, title, "새 내용", List.of(product));
+    }
+
+    private List<UpdateSalesPostProductImage> currentImages() {
+        return new ArrayList<>(productImageRepository.findAll().stream()
+                .sorted(Comparator.comparingInt(ProductImage::getImageSeq))
+                .map(i -> new UpdateSalesPostProductImage(i.getId(), productId, i.getS3Key(), i.getImageSeq()))
+                .toList());
     }
 
     private static int freePort() {

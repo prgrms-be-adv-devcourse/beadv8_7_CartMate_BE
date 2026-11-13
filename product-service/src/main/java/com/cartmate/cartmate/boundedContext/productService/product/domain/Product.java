@@ -64,6 +64,11 @@ public class Product extends BaseIdAndTime {
     }
 
     public SyncProduct toSyncProduct() {
+        return toSyncProduct(List.of());
+    }
+
+    // 수정 응답: 이번 수정에서 빠진 재고 ID를 함께 돌려준다(post가 수정 완료 때 InventoryRemovedEvent로 알린다)
+    public SyncProduct toSyncProduct(List<Long> removedInventoryIds) {
         List<SyncProductImage> imageList = this.getProductImageList()
                 .stream()
                 .map(ProductImage::toSyncProductImage)
@@ -84,7 +89,8 @@ public class Product extends BaseIdAndTime {
                 this.getCreateDate(),
                 this.getModifyDate(),
                 imageList,
-                optionList
+                optionList,
+                new ArrayList<>(removedInventoryIds)
         );
     }
 

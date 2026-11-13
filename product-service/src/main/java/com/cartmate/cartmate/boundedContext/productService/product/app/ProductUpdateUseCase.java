@@ -40,6 +40,7 @@ public class ProductUpdateUseCase {
 
         List<Product> updatedProducts = new ArrayList<>();
         List<String> deletedKeys = new ArrayList<>();
+        Map<Long, List<Long>> removedInventoryIdsByProduct = new HashMap<>();
 
         List<UpdateProduct> productList = request.getProductList();
         for (int i = 0; i < productList.size(); i++) {
@@ -64,14 +65,17 @@ public class ProductUpdateUseCase {
 
             // 재고(와 재고에서 분리된 선택된 옵션) 변경이 있을 때만
             if (productReq.getInventoryList() != null) {
-                updateInventories(product, productReq.getInventoryList());
+                removedInventoryIdsByProduct.put(product.getId(),
+                        updateInventories(product, productReq.getInventoryList()));
             }
         }
 
         productRepository.flush();
 
+        // 응답에 빠진 재고 ID를 싣는다. 이벤트는 수정이 끝까지 성공했을 때 post가 낸다(실패해 복구되면 재고가 되살아나므로)
         List<SyncProduct> syncProductList = updatedProducts.stream()
-                .map(Product::toSyncProduct)
+                .map(product -> product.toSyncProduct(
+                        removedInventoryIdsByProduct.getOrDefault(product.getId(), List.of())))
                 .toList();
 
         return new ProductUpdateResult(syncProductList, deletedKeys);
@@ -119,7 +123,8 @@ public class ProductUpdateUseCase {
     // - id 있음: 기존 재고의 추가금액 · 재고 수량만 바꾼다 (이미 삭제된 재고면 PRODUCT_INVENTORY_NOT_FOUND)
     // - id 없음: 새 재고 + 그 재고에서 분리된 선택된 옵션을 추가한다 (살아 있는 재고와 조합이 같으면 거부)
     // - 요청에 없는 기존 재고: 선택된 옵션과 함께 삭제 상태로 (행과 재고 ID는 남는다)
-    private void updateInventories(Product product, List<UpdateInventory> reqInventoryList) {
+    // 빠진(삭제 상태로 바꾼) 재고 ID를 돌려준다
+    private List<Long> updateInventories(Product product, List<UpdateInventory> reqInventoryList) {
         Map<Long, Inventory> activeById = product.activeInventories().stream()
                 .collect(Collectors.toMap(Inventory::getId, Function.identity()));
 
@@ -129,9 +134,12 @@ public class ProductUpdateUseCase {
                 .collect(Collectors.toSet());
 
         // 먼저 지워야 같은 조합을 새로 추가하는 요청(지우고 다시 만들기)이 중복으로 걸리지 않는다
-        activeById.values().stream()
+        List<Long> removedIds = activeById.values().stream()
                 .filter(inventory -> !keepIds.contains(inventory.getId()))
-                .forEach(Inventory::delete);
+                .map(Inventory::delete)
+                .map(Inventory::getId)
+                .sorted()
+                .toList();
 
         for (UpdateInventory req : reqInventoryList) {
             if (req.getId() == null) {
@@ -151,5 +159,6 @@ public class ProductUpdateUseCase {
         if (product.activeInventories().isEmpty()) {
             throw new ServiceException(ProductErrorCode.PRODUCT_INVENTORY_REQUIRED);
         }
+        return removedIds;
     }
 }
