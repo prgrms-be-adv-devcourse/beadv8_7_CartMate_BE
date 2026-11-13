@@ -166,9 +166,10 @@ public class SalesPostFacade {
             return beforeUpdateStatus;
         });
 
+        SalesPostSnapshot snapshot;
         try {
             List<SelectProductResponse> products = salesPostApiClient.getProduct(postId);
-            SalesPostSnapshot snapshot = SalesPostSnapshot.from(products);
+            snapshot = SalesPostSnapshot.from(products);
             transactionTemplate.executeWithoutResult(s ->
                     salesPostRecoveryUseCase.saveSnapshot(postId, snapshot) // 스냅샷 저장
             );
@@ -200,9 +201,12 @@ public class SalesPostFacade {
             throw e;
         }
 
+        // 상품 "수정 끝"(UPDATING → 수정 전 상태)을 먼저 부른 뒤 판매글을 완료한다. 순서가 중요하다:
+        // 수정 끝이 실패해도 판매글은 아직 완료 전이라 아래 복구가 상품을 되돌리고(상태 포함) 정리한다
         // 복제본 갱신과 판매글 수정 · 완료를 한 트랜잭션으로. 복제본을 못 맞추면 수정 실패로 보고 상품을 복구한다
         // 빠진 재고 알림도 같은 트랜잭션(outbox)에 둔다: 수정이 끝까지 성공했을 때만 나가고, 실패해 복구되면 나가지 않는다
         try {
+            salesPostApiClient.completeProductUpdate(postId, snapshot);
             transactionTemplate.executeWithoutResult(s -> {
                 salesPostSyncProductUseCase.syncProduct(updatedProducts);
                 salesPostUpdateUseCase.markCompleted(postId);

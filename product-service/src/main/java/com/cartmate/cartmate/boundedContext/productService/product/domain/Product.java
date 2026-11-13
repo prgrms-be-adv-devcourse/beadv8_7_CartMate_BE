@@ -166,4 +166,22 @@ public class Product extends BaseIdAndTime {
         }
     }
 
+    // 판매글 수정 시작: 수정이 끝날 때까지 구매(장바구니 · 주문)를 막는다(구매는 ON_SALE만 된다).
+    // 수정 전 상태는 판매글 쪽 스냅샷이 기억한다. 삭제된 상품은 건드리지 않는다
+    public void startUpdating() {
+        if (status != ProductStatus.DELETED) {
+            this.status = ProductStatus.UPDATING;
+        }
+    }
+
+    // 판매글 수정 끝(완료 · 복구): 수정 중이면 수정 전 상태로 되돌린다. 수정 중이 아니면(이미 끝남 · 삭제 등) 그대로(멱등).
+    // 수정 전 상태가 없으면(상태를 담기 전 스냅샷) 판매 중으로 돌린다
+    public void finishUpdating(ProductStatus statusBeforeUpdate) {
+        if (status != ProductStatus.UPDATING) {
+            return;
+        }
+        this.status = statusBeforeUpdate == null || statusBeforeUpdate == ProductStatus.UPDATING
+                ? ProductStatus.ON_SALE
+                : statusBeforeUpdate;
+    }
 }

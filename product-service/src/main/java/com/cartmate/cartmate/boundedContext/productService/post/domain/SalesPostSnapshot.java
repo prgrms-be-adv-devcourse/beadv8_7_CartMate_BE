@@ -22,7 +22,8 @@ public record SalesPostSnapshot(List<ProductSnapshot> products) {
             String description,
             Long basePrice,
             List<ImageSnapshot> images,
-            List<InventorySnapshot> inventories
+            List<InventorySnapshot> inventories,
+            SalesPostProductStatus status   // 수정 전 판매 상태. 수정 끝 · 복구 때 이 상태로 되돌린다(상태를 담기 전 스냅샷은 null)
     ) {
         static ProductSnapshot from(SelectProductResponse r) {
             return new ProductSnapshot(
@@ -33,7 +34,8 @@ public record SalesPostSnapshot(List<ProductSnapshot> products) {
                     r.getBasePrice(),
                     r.getProductImageList().stream().map(ImageSnapshot::from).toList(),
                     r.getInventoryList() == null ? List.of()
-                            : r.getInventoryList().stream().map(InventorySnapshot::from).toList()
+                            : r.getInventoryList().stream().map(InventorySnapshot::from).toList(),
+                    r.getStatus()
             );
         }
     }

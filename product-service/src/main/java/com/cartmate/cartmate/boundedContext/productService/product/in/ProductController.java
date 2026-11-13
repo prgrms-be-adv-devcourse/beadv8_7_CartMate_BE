@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.in;
 
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CompleteProductUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductOptionTypeResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
@@ -61,6 +62,17 @@ public class ProductController {
     ) {
         List<SyncProduct> restored = productFacade.restoreProducts(postId, request);
         return ResponseEntity.ok(new RsData<>("200-1", "상품 복구에 성공했습니다.", restored));
+    }
+
+    // 판매글 수정 끝: 수정 중(UPDATING)인 상품을 수정 전 상태로 되돌린다. post가 수정 완료 처리 직전에 부른다
+    @PutMapping("/{postId}/update-complete")
+    @Operation(operationId = "completeProductUpdate", summary = "판매글 수정 끝 - 상품을 수정 전 판매 상태로 (내부 호출)")
+    public ResponseEntity<Void> completeProductUpdate(
+            @PathVariable Long postId,
+            @RequestBody CompleteProductUpdateRequest request
+    ) {
+        productFacade.completeProductUpdate(postId, request);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{postId}")

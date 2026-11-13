@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CompleteProductUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductOptionTypeResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductRequest;
@@ -82,6 +83,11 @@ public class ProductFacade {
             return;
         }
         productDeleteUseCase.deleteProductByPost(postId);
+    }
+
+    // 판매글 수정 끝: 수정 중(UPDATING)인 상품을 수정 전 상태로 되돌려 다시 구매할 수 있게 한다
+    public void completeProductUpdate(Long postId, CompleteProductUpdateRequest request) {
+        productUpdateUseCase.completeUpdate(postId, request);
     }
 
     // 수정한 상품(사진 · 옵션 포함)을 돌려준다. post가 이 응답으로 수정 마무리 트랜잭션에서 복제본을 갱신한다

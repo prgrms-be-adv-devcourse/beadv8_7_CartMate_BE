@@ -6,6 +6,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesP
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.global.http.InternalApiClient.InternalResponse;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.CompleteProductUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductImage;
@@ -146,6 +147,27 @@ public class SalesPostApiClient {
         }
     }
 
+    // 판매글 수정 끝: 수정 중(UPDATING)인 상품을 스냅샷의 수정 전 상태로 되돌리게 한다.
+    // 실패하면(어떤 이유든) 수정 실패로 보고 post가 스냅샷 복구를 한다 → 복구도 상태를 되돌린다
+    public void completeProductUpdate(Long postId, SalesPostSnapshot snapshot) {
+        CompleteProductUpdateRequest request = new CompleteProductUpdateRequest(snapshot.products().stream()
+                .map(p -> new CompleteProductUpdateRequest.Item(p.id(), p.status()))
+                .toList());
+        try {
+            restClient.put()
+                    .uri("/{postId}/update-complete", postId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (req, res) -> {
+                        throw new ServiceException(ProductErrorCode.PRODUCT_UPDATE_FAILED);
+                    })
+                    .toBodilessEntity();
+        } catch (ResourceAccessException e) {   // 타임아웃, 연결 실패
+            throw new ServiceException(ProductErrorCode.PRODUCT_CONNECT_FAILED);
+        }
+    }
+
     // product가 되돌린 상품을 돌려받는다. post는 이걸로 복구 성공 트랜잭션에서 복제본도 되돌린다
     public List<SyncProduct> restoreProducts(Long postId, SalesPostSnapshot snapshot) {
         if (snapshot == null) {
@@ -182,7 +204,8 @@ public class SalesPostApiClient {
                         p.images().stream()
                                 .map(i -> new RestoreProductImage(i.imageId(), i.sortOrder()))
                                 .toList(),
-                        toRestoreInventories(p.inventories())
+                        toRestoreInventories(p.inventories()),
+                        p.status()   // 수정 전 판매 상태로 되돌린다(수정 중 UPDATING 해제)
                 ))
                 .toList();
         return new RestoreProductsRequest(productList);

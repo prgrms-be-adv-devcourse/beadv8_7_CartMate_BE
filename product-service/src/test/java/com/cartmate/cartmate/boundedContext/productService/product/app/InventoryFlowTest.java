@@ -219,7 +219,10 @@ class InventoryFlowTest {
         productRestoreUseCase.restoreProduct(postId, new RestoreProductsRequest(List.of(
                 new RestoreProduct(productId, 1L, "유니폼", "설명", BASE_PRICE, null, List.of(
                         new RestoreInventory(blackId, 0L, 10),
-                        new RestoreInventory(whiteId, 1000L, 5))))));
+                        new RestoreInventory(whiteId, 1000L, 5)), ProductStatus.ON_SALE))));
+
+        // 수정 중(UPDATING)이던 상품이 수정 전 상태로 돌아온다
+        assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
 
         assertThat(inventoryRepository.findAll())
                 .extracting(Inventory::getId, Inventory::getAppliedPrice, Inventory::getStockQuantity, Inventory::getStatus)

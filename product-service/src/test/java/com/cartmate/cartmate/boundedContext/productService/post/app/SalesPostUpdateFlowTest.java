@@ -2,6 +2,10 @@ package com.cartmate.cartmate.boundedContext.productService.post.app;
 
 import static com.cartmate.cartmate.support.TestInventories.inventory;
 import static com.cartmate.cartmate.support.SeedOptions.*;
+import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
+import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostApiClient;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostRecoveryRepository;
@@ -54,6 +58,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 
@@ -85,6 +91,10 @@ class SalesPostUpdateFlowTest {
     SalesPostUpdateUseCase salesPostUpdateUseCase;
     @MockitoSpyBean
     SalesPostSyncProductUseCase salesPostSyncProductUseCase;
+    @MockitoSpyBean
+    SalesPostApiClient salesPostApiClient;
+    @Autowired
+    ProductFacade productFacade;
     @Autowired
     TransactionTemplate transactionTemplate;
     @Autowired
@@ -127,7 +137,7 @@ class SalesPostUpdateFlowTest {
         productOptionRepository.deleteAll();
         productRepository.deleteAll();
         storage.reset();
-        reset(salesPostUpdateUseCase, salesPostSyncProductUseCase);
+        reset(salesPostUpdateUseCase, salesPostSyncProductUseCase, salesPostApiClient);
 
         CreateSalesPostProduct product = new CreateSalesPostProduct(null, null, 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateSalesPostProductImage(null, null, null, 0, null),
@@ -228,6 +238,7 @@ class SalesPostUpdateFlowTest {
         Product product = productRepository.findById(productId).orElseThrow();
         assertThat(product.getName()).isEqualTo("아이폰");
         assertThat(product.getBasePrice()).isEqualTo(10000L);
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.ON_SALE);   // 복구가 수정 중(UPDATING)도 되돌린다
 
         SalesPostProduct copy = salesPostProductRepository.findById(productId).orElseThrow();
         assertThat(copy.getName()).isEqualTo("아이폰");
@@ -238,6 +249,71 @@ class SalesPostUpdateFlowTest {
         assertThat(post.getUpdateStatus()).isEqualTo(SalesPostUpdateStatus.RECOVERED);
 
         assertThat(salesPostRecoveryRepository.findBySalesPostId(postId)).isEmpty();
+    }
+
+    // ===== 수정 중 구매 막기 (상품 UPDATING) =====
+
+    @Test
+    @DisplayName("수정 중 구매 막기: 상품 수정부터 수정 끝까지는 UPDATING이라 구매 불가, 수정이 끝나면 판매 중으로 돌아온다")
+    void purchaseIsBlockedWhileUpdating() {
+        List<ProductStatus> statusDuringUpdate = new ArrayList<>();
+        List<Boolean> purchasableDuringUpdate = new ArrayList<>();
+        // "수정 끝" API를 부르기 직전(상품은 이미 수정됨)의 상태를 기록한다
+        doAnswer(invocation -> {
+            statusDuringUpdate.add(productRepository.findById(productId).orElseThrow().getStatus());
+            purchasableDuringUpdate.add(productFacade.findProductsForPurchase(List.of(productId)).getFirst().purchasable());
+            return invocation.callRealMethod();
+        }).when(salesPostApiClient).completeProductUpdate(anyLong(), any());
+
+        salesPostFacade.updateSalesPostByUser(updateRequest(SELLER_ID, "새 제목", "새이름", 30000L), List.of());
+
+        assertThat(statusDuringUpdate).containsExactly(ProductStatus.UPDATING);
+        assertThat(purchasableDuringUpdate).containsExactly(false);   // 장바구니 · 주문이 보는 구매 가능 여부
+        assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(productFacade.findProductsForPurchase(List.of(productId)).getFirst().purchasable()).isTrue();
+    }
+
+    @Test
+    @DisplayName("수정 중 구매 막기: 판매자가 내린(PAUSED) 상품은 수정이 끝나면 다시 PAUSED로 돌아온다")
+    void pausedProductStaysPausedAfterUpdate() {
+        transactionTemplate.executeWithoutResult(status ->
+                productRepository.findById(productId).orElseThrow().changeSaleStatusByPost(ProductStatus.PAUSED));
+
+        salesPostFacade.updateSalesPostByUser(updateRequest(SELLER_ID, "새 제목", "새이름", 30000L), List.of());
+
+        assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.PAUSED);
+    }
+
+    @Test
+    @DisplayName("수정 중 구매 막기: 수정 끝 API가 실패하면 복구가 상품을 수정 전 상태(판매 중)로 되돌린다")
+    void completeFailureIsRecoveredToPreviousStatus() {
+        doThrow(new ServiceException(ProductErrorCode.PRODUCT_UPDATE_FAILED))
+                .when(salesPostApiClient).completeProductUpdate(anyLong(), any());
+
+        assertThatThrownBy(() -> salesPostFacade.updateSalesPostByUser(
+                updateRequest(SELLER_ID, "새 제목", "새이름", 30000L), List.of()))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("PRODUCT_UPDATE_FAILED");
+
+        Product product = productRepository.findById(productId).orElseThrow();
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(product.getName()).isEqualTo("아이폰");
+        assertThat(salesPostRepository.findById(postId).orElseThrow().getUpdateStatus())
+                .isEqualTo(SalesPostUpdateStatus.RECOVERED);
+    }
+
+    @Test
+    @DisplayName("수정 중 구매 막기: 판매자가 수정 중이면 관리자 정지를 거절한다")
+    void adminSuspendIsRejectedWhileUpdating() {
+        transactionTemplate.executeWithoutResult(status ->
+                salesPostUpdateUseCase.markPending(salesPostRepository.findById(postId).orElseThrow()));
+
+        assertThatThrownBy(() -> salesPostFacade.suspendSalesPostByAdmin(postId, 99L, "부적절한 판매글"))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("POST_UPDATE_IN_PROGRESS");
+
+        assertThat(salesPostRepository.findById(postId).orElseThrow().getStatus()).isEqualTo(SalesPostSaleStatus.ON_SALE);
+        assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
     }
 
     @Test

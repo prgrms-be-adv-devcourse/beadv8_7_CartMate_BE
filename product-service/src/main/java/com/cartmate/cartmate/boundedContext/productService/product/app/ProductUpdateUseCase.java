@@ -4,6 +4,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.Invent
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CompleteProductUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
@@ -29,6 +30,19 @@ import java.util.stream.Collectors;
 public class ProductUpdateUseCase {
     private final ProductRepository productRepository;
     private final ProductOptionValueRepository productOptionValueRepository;
+
+    // 판매글 수정 끝: 수정 중(UPDATING)인 상품을 post가 보낸 수정 전 상태로 되돌린다. 다시 불러도 결과가 같다(멱등)
+    @Transactional
+    public void completeUpdate(Long postId, CompleteProductUpdateRequest request) {
+        for (CompleteProductUpdateRequest.Item item : request.getProductList()) {
+            Product product = productRepository.findById(item.getId())
+                    .orElseThrow(() -> new ServiceException(ProductErrorCode.PRODUCT_NOT_FOUND));
+            if (!product.getSalesPostId().equals(postId)) {
+                throw new ServiceException(ProductErrorCode.PRODUCT_ACCESS_DENIED);
+            }
+            product.finishUpdating(item.getStatus());
+        }
+    }
 
     @Transactional
     public ProductUpdateResult updateProduct(UpdateProductsRequest request, List<UploadedImage> uploadedImageList) {
@@ -56,6 +70,8 @@ public class ProductUpdateUseCase {
 
             product.update(productReq.getCategoryId(), productReq.getName(), productReq.getDescription(),
                     productReq.getBasePrice());
+            // 판매글 수정이 끝날 때까지(post가 "수정 끝" API를 부르거나 복구할 때까지) 구매를 막는다
+            product.startUpdating();
             updatedProducts.add(product);
 
             // 이미지 변경이 있을 때만

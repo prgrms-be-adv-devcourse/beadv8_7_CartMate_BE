@@ -96,10 +96,12 @@ class ProductUpdateContractTest {
                         1L, 30L, "아이폰", "부사 5kg", 25000L,
                         List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductImage(100L, 0),
                                 new com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductImage(101L, 1)),
-                        List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreInventory(200L, 500L, 3)))));
+                        List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreInventory(200L, 500L, 3)),
+                        SalesPostProductStatus.PAUSED)));
 
         String json = strict.writeValueAsString(sent);
         RestoreProductsRequest received = strict.readValue(json, RestoreProductsRequest.class);
+        assertThat(received.getProductList().getFirst().getStatus()).isEqualTo(ProductStatus.PAUSED);   // 수정 전 판매 상태
 
         RestoreProduct product = received.getProductList().getFirst();
         assertThat(product.getId()).isEqualTo(1L);
@@ -176,6 +178,23 @@ class ProductUpdateContractTest {
         assertThat(received.getSellerId()).isEqualTo(7L);
         assertThat(received.getSalesPostId()).isEqualTo(10L);
         assertThat(received.getRemovedInventoryIds()).containsExactly(301L, 302L);
+        assertThat(fieldPaths(strict.valueToTree(received), ""))
+                .containsExactlyInAnyOrderElementsOf(fieldPaths(strict.readTree(json), ""));
+    }
+
+    @Test
+    @DisplayName("수정 끝 요청: post가 보낸 상품 ID · 수정 전 상태를 product가 같은 값 · 같은 필드 구성으로 읽는다")
+    void completeUpdateRequestIsReadByProduct() {
+        var sent = new com.cartmate.cartmate.boundedContext.productService.post.dto.CompleteProductUpdateRequest(List.of(
+                new com.cartmate.cartmate.boundedContext.productService.post.dto.CompleteProductUpdateRequest.Item(
+                        1L, SalesPostProductStatus.ON_SALE)));
+
+        String json = strict.writeValueAsString(sent);
+        CompleteProductUpdateRequest received = strict.readValue(json, CompleteProductUpdateRequest.class);
+
+        assertThat(received.getProductList())
+                .extracting(CompleteProductUpdateRequest.Item::getId, CompleteProductUpdateRequest.Item::getStatus)
+                .containsExactly(tuple(1L, ProductStatus.ON_SALE));
         assertThat(fieldPaths(strict.valueToTree(received), ""))
                 .containsExactlyInAnyOrderElementsOf(fieldPaths(strict.readTree(json), ""));
     }

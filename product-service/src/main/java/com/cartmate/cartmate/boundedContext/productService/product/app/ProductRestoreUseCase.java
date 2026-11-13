@@ -55,6 +55,9 @@ public class ProductRestoreUseCase {
                 restoreInventories(product, productReq.getInventoryList());
             }
 
+            // 수정 중(UPDATING)이면 스냅샷의 수정 전 상태로 되돌려 다시 구매할 수 있게 한다
+            product.finishUpdating(productReq.getStatus());
+
             restoredProducts.add(product);
         }
 
