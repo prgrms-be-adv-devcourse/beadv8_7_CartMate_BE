@@ -6,6 +6,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.Produc
 import com.cartmate.cartmate.boundedContext.productService.product.dto.RestoreProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionValueRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductRestoreUseCase {
     private final ProductRepository productRepository;
+    private final ProductOptionValueRepository productOptionValueRepository;
 
     // 스냅샷 상태로 되돌린다. 같은 요청을 여러 번 보내도 결과가 같다.
     @Transactional
@@ -98,8 +100,8 @@ public class ProductRestoreUseCase {
                 .forEach(ProductOption::restore);
 
         for (RestoreProductOption option : remaining) {
-            product.addOption(new ProductOption(product, option.getProductTypeId(), option.getProductOptionId(),
-                    ProductStatus.ACTIVE));
+            product.addOption(new ProductOption(product,
+                    productOptionValueRepository.getOptionValue(option.getProductOptionId()), ProductStatus.ACTIVE));
         }
     }
 

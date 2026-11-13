@@ -84,16 +84,6 @@ public class Product extends BaseIdAndTime {
     }
 
 
-    public void addProductOption(List<CreateProductOption> optionList) {
-        for (CreateProductOption option : optionList) {
-            productOptionList.add(new ProductOption(
-                    this,
-                    option.getProductTypeId(),
-                    option.getProductOptionId(),
-                    ProductStatus.ACTIVE
-            ));
-        }
-    }
 
     public void addProductImage(List<UploadedImage> uploadedImageList) {
         for (UploadedImage image : uploadedImageList) {

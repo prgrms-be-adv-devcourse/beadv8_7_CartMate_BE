@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption;
@@ -228,10 +229,10 @@ class SalesPostDeleteKafkaFlowTest {
     private CreateSalesPostRequest request() {
         CreateSalesPostProduct iphone = new CreateSalesPostProduct(null, null, 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateSalesPostProductImage(null, null, null, 0, null)),
-                List.of(new CreateProductOption(1L, 100L)));
+                List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_L)));
         CreateSalesPostProduct charger = new CreateSalesPostProduct(null, null, 1L, "충전기", "설명", 3000L,
                 List.of(new CreateSalesPostProductImage(null, null, null, 0, null)),
-                List.of(new CreateProductOption(2L, 200L)));
+                List.of(new CreateProductOption(COLOR, BLACK)));
 
         return new CreateSalesPostRequest(null, SELLER_ID, "아이폰 팝니다", "상태 좋아요", List.of(iphone, charger));
     }

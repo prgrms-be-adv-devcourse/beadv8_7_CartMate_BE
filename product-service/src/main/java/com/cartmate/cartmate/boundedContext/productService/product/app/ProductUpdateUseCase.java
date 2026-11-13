@@ -3,6 +3,7 @@ package com.cartmate.cartmate.boundedContext.productService.product.app;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOptionValue;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
@@ -11,6 +12,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdatePro
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
+import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionValueRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductUpdateUseCase {
     private final ProductRepository productRepository;
+    private final ProductOptionValueRepository productOptionValueRepository;
 
     @Transactional
     public ProductUpdateResult updateProduct(UpdateProductsRequest request, List<UploadedImage> uploadedImageList) {
@@ -129,16 +132,16 @@ public class ProductUpdateUseCase {
                 .forEach(ProductOption::delete);
 
         for (UpdateProductOption option : reqOptionList) {
+            // 옵션 ID로 옵션 값을 조회한다. 옵션 종류는 옵션 값이 가진 종류를 따른다
+            ProductOptionValue optionValue = productOptionValueRepository.getOptionValue(option.getProductOptionId());
             if (option.getId() == null) {
-                ProductOption newOption = new ProductOption(product, option.getProductTypeId(), option.getProductOptionId(),
-                        ProductStatus.ACTIVE);
-                product.addOption(newOption);
+                product.addOption(new ProductOption(product, optionValue, ProductStatus.ACTIVE));
             } else {
                 ProductOption existing = storedIdMap.get(option.getId());
                 if (existing == null) {
                     throw new ServiceException(ProductErrorCode.PRODUCT_OPTION_NOT_FOUND);
                 }
-                existing.update(option.getProductTypeId(), option.getProductOptionId());
+                existing.update(optionValue);
             }
         }
     }

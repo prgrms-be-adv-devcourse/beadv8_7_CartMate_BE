@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductImage;
@@ -162,7 +163,7 @@ class SalesPostRegisterFlowTest {
         assertThat(productImages).hasSize(2);
         assertThat(productOptionRepository.findAll())
                 .extracting(ProductOption::getProductTypeId, ProductOption::getProductOptionId)
-                .containsExactlyInAnyOrder(tuple(1L, 100L), tuple(2L, 200L));
+                .containsExactlyInAnyOrder(tuple(CLOTHING_SIZE, SIZE_L), tuple(COLOR, BLACK));
 
         List<SalesPostProduct> copies = salesPostProductRepository.findAll();
         assertThat(copies).hasSize(1);
@@ -184,7 +185,7 @@ class SalesPostRegisterFlowTest {
                         .toList());
         assertThat(salesPostProductOptionRepository.findAll())
                 .extracting(SalesPostProductOption::getProductTypeId, SalesPostProductOption::getProductOptionId)
-                .containsExactlyInAnyOrder(tuple(1L, 100L), tuple(2L, 200L));
+                .containsExactlyInAnyOrder(tuple(CLOTHING_SIZE, SIZE_L), tuple(COLOR, BLACK));
     }
 
     // 상품과 복제본, 사진 파일이 이미 만들어진 뒤에 실패하는 경우. 보상이 실제로 되돌려야 할 데이터가 있다
@@ -249,7 +250,7 @@ class SalesPostRegisterFlowTest {
                 new CreateSalesPostProductImage(null, null, null, 0, null),
                 new CreateSalesPostProductImage(null, null, null, 1, null)
         );
-        List<CreateProductOption> options = List.of(new CreateProductOption(1L, 100L), new CreateProductOption(2L, 200L));
+        List<CreateProductOption> options = List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_L), new CreateProductOption(COLOR, BLACK));
         CreateSalesPostProduct product = new CreateSalesPostProduct(
                 null, null, 1L, "아이폰", "설명", 10000L, productImages, options);
 

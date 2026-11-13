@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
@@ -98,18 +99,18 @@ class ProductOptionSoftDeleteTest {
         postId = post.getId();
         CreateProduct product = new CreateProduct(null, SELLER_ID, postId, 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null)),
-                List.of(new CreateProductOption(1L, 100L), new CreateProductOption(2L, 200L)));
+                List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_L), new CreateProductOption(COLOR, BLACK)));
         productFacade.registerProduct(new CreateProductRequest(postId, List.of(product)), List.of(TestImageFiles.jpeg()));
 
         productId = productRepository.findAll().getFirst().getId();
-        keptOptionId = optionIdOf(100L);
-        removedOptionId = optionIdOf(200L);
+        keptOptionId = optionIdOf(SIZE_L);
+        removedOptionId = optionIdOf(BLACK);
     }
 
     @Test
     @DisplayName("수정에서 빠진 옵션은 행이 남고 DELETED가 되며, 남긴 옵션은 같은 ID로 ACTIVE다")
     void removedOptionIsSoftDeleted() {
-        updateOptions(List.of(new UpdateProductOption(keptOptionId, 1L, 100L)));
+        updateOptions(List.of(new UpdateProductOption(keptOptionId, CLOTHING_SIZE, SIZE_L)));
 
         assertThat(productOptionRepository.findAll())
                 .extracting(ProductOption::getId, ProductOption::getStatus)
@@ -121,7 +122,7 @@ class ProductOptionSoftDeleteTest {
     @Test
     @DisplayName("상품 조회에는 삭제된 옵션이 나오지 않는다")
     void deletedOptionIsHiddenFromQuery() {
-        updateOptions(List.of(new UpdateProductOption(keptOptionId, 1L, 100L)));
+        updateOptions(List.of(new UpdateProductOption(keptOptionId, CLOTHING_SIZE, SIZE_L)));
 
         assertThat(productQueryUseCase.selectProductsByPost(postId).getFirst().getProductOptionList())
                 .extracting(SelectProductOption::getId)
@@ -131,11 +132,11 @@ class ProductOptionSoftDeleteTest {
     @Test
     @DisplayName("삭제된 옵션의 ID로는 수정할 수 없다")
     void cannotUpdateDeletedOption() {
-        updateOptions(List.of(new UpdateProductOption(keptOptionId, 1L, 100L)));
+        updateOptions(List.of(new UpdateProductOption(keptOptionId, CLOTHING_SIZE, SIZE_L)));
 
         assertThatThrownBy(() -> updateOptions(List.of(
-                new UpdateProductOption(keptOptionId, 1L, 100L),
-                new UpdateProductOption(removedOptionId, 2L, 201L))))
+                new UpdateProductOption(keptOptionId, CLOTHING_SIZE, SIZE_L),
+                new UpdateProductOption(removedOptionId, COLOR, WHITE))))
                 .isInstanceOf(ServiceException.class)
                 .hasMessageContaining("PRODUCT_OPTION_NOT_FOUND");
     }
@@ -144,11 +145,11 @@ class ProductOptionSoftDeleteTest {
     @Test
     @DisplayName("복구하면 수정 때 삭제된 옵션이 같은 ID로 되살아나고 새 행은 생기지 않는다")
     void restoreRevivesSameOption() {
-        updateOptions(List.of(new UpdateProductOption(keptOptionId, 1L, 100L)));
+        updateOptions(List.of(new UpdateProductOption(keptOptionId, CLOTHING_SIZE, SIZE_L)));
 
         productRestoreUseCase.restoreProduct(postId, new RestoreProductsRequest(List.of(
                 new RestoreProduct(productId, 1L, "아이폰", "설명", 10000L, null,
-                        List.of(new RestoreProductOption(1L, 100L), new RestoreProductOption(2L, 200L))))));
+                        List.of(new RestoreProductOption(CLOTHING_SIZE, SIZE_L), new RestoreProductOption(COLOR, BLACK))))));
 
         assertThat(productOptionRepository.findAll())
                 .extracting(ProductOption::getId, ProductOption::getStatus)

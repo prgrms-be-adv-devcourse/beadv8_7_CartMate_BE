@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostSyncProductUseCase;
@@ -126,10 +127,10 @@ class ProductDeleteTest {
         CreateProduct iphone = new CreateProduct(null, SELLER_ID, post.getId(), 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null),
                         new CreateProductImage(null, SELLER_ID, null, null, 1, null)),
-                List.of(new CreateProductOption(1L, 100L), new CreateProductOption(2L, 200L)));
+                List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_L), new CreateProductOption(COLOR, BLACK)));
         CreateProduct charger = new CreateProduct(null, SELLER_ID, post.getId(), 1L, "충전기", "설명", 3000L,
                 List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null)),
-                List.of(new CreateProductOption(3L, 300L)));
+                List.of(new CreateProductOption(SHOE_SIZE, SHOE_220)));
         List<SyncProduct> saved = productFacade.registerProduct(new CreateProductRequest(post.getId(), List.of(iphone, charger)),
                 List.of(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.jpeg()));
         createReplicas(saved);

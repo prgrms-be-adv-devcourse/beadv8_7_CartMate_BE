@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostRecovery;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostRecoveryRepository;
@@ -258,7 +259,7 @@ class SalesPostRecoverSchedulerTest {
         CreateSalesPostProduct product = new CreateSalesPostProduct(null, null, 1L, productName, "설명", 10000L,
                 List.of(new CreateSalesPostProductImage(null, null, null, 0, null),
                         new CreateSalesPostProductImage(null, null, null, 1, null)),
-                List.of(new CreateProductOption(1L, 100L)));
+                List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_L)));
         salesPostFacade.registerSalesPost(
                 new CreateSalesPostRequest(null, SELLER_ID, productName + " 팝니다", "상태 좋아요", List.of(product)),
                 List.of(TestImageFiles.jpeg(), TestImageFiles.png()));

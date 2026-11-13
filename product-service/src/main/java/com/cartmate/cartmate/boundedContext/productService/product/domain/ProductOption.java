@@ -18,11 +18,14 @@ public class ProductOption extends BaseIdAndTime {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(nullable = false)
-    private Long productTypeId;
+    // 컬럼명은 그대로(product_type_id · product_option_id) 두고 마스터 테이블을 FK로 참조한다
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_type_id", nullable = false)
+    private ProductOptionType optionType;
 
-    @Column(nullable = false)
-    private Long productOptionId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_option_id", nullable = false)
+    private ProductOptionValue optionValue;
 
     // 옵션은 지우지 않고 상태로 남긴다(옵션 ID를 가리키는 SKU · 주문 이력이 끊기지 않게). 사진과 같은 ACTIVE / DELETED
     // 컬럼이 생기기 전에 있던 옵션은 ACTIVE로 채운다(ddl-auto: update)
@@ -31,27 +34,37 @@ public class ProductOption extends BaseIdAndTime {
     @ColumnDefault("'ACTIVE'")
     private ProductStatus status;
 
-    public ProductOption(Product product, Long productTypeId, Long productOptionId, ProductStatus status) {
+    // 옵션 종류는 옵션 값이 가진 종류를 그대로 따른다
+    public ProductOption(Product product, ProductOptionValue optionValue, ProductStatus status) {
         this.product = product;
-        this.productTypeId = productTypeId;
-        this.productOptionId = productOptionId;
+        this.optionType = optionValue.getType();
+        this.optionValue = optionValue;
         this.status = status;
+    }
+
+    // 참조 ID. 프록시에서 ID만 꺼내므로 마스터 테이블을 조회하지 않는다
+    public Long getProductTypeId() {
+        return optionType.getId();
+    }
+
+    public Long getProductOptionId() {
+        return optionValue.getId();
     }
 
     public SyncProductOption toSyncProductOption() {
         return new SyncProductOption(
                 getId(),
-                productTypeId,
-                productOptionId,
+                getProductTypeId(),
+                getProductOptionId(),
                 getCreateDate(),
                 getModifyDate(),
                 status
         );
     }
 
-    public void update(Long productTypeId, Long productOptionId) {
-        this.productTypeId = productTypeId;
-        this.productOptionId = productOptionId;
+    public void update(ProductOptionValue optionValue) {
+        this.optionType = optionValue.getType();
+        this.optionValue = optionValue;
     }
 
     public boolean isActive() {

@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
@@ -186,7 +187,7 @@ class ProductImageOrphanCleanTest {
         CreateProduct product = new CreateProduct(null, SELLER_ID, post.getId(), 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null),
                         new CreateProductImage(null, SELLER_ID, null, null, 1, null)),
-                List.of(new CreateProductOption(1L, 100L)));
+                List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_L)));
         productFacade.registerProduct(new CreateProductRequest(post.getId(), List.of(product)),
                 List.of(TestImageFiles.jpeg(), TestImageFiles.png()));
 

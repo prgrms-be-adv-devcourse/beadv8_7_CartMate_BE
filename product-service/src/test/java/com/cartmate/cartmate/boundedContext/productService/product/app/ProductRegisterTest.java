@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
@@ -186,7 +187,7 @@ class ProductRegisterTest {
     void returnSavedProducts() {
         SalesPost post = salesPostCreateUseCase.saveSalesPost(
                 new CreateSalesPostRequest(null, SELLER_ID, "아이폰 팝니다", "상태 좋아요", List.of()));
-        List<CreateProductOption> options = List.of(new CreateProductOption(1L, 100L), new CreateProductOption(2L, 200L));
+        List<CreateProductOption> options = List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_L), new CreateProductOption(COLOR, BLACK));
         CreateProductRequest request = request(post.getId(),
                 getDummyProduct(post.getId(), "아이폰", 2, options)
         );
@@ -218,7 +219,7 @@ class ProductRegisterTest {
                         .toList());
         assertThat(returned.getProductOptionList())
                 .extracting(SyncProductOption::getProductTypeId, SyncProductOption::getProductOptionId)
-                .containsExactlyInAnyOrder(tuple(1L, 100L), tuple(2L, 200L));
+                .containsExactlyInAnyOrder(tuple(CLOTHING_SIZE, SIZE_L), tuple(COLOR, BLACK));
 
         assertThat(salesPostProductRepository.count()).isZero();
     }
