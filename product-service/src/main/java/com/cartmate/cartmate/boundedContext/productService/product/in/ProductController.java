@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.in;
 
+import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductOptionTypeResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
 import com.cartmate.cartmate.global.rsData.RsData;
@@ -65,6 +66,22 @@ public class ProductController {
     @GetMapping("/{postId}")
     public ResponseEntity<RsData<List<SelectProductResponse>>> selectProductsByPost(@PathVariable Long postId) {
         return ResponseEntity.ok(productFacade.selectProductsByPost(postId));
+    }
+
+    // 옵션 종류 전체와 종류별 상품옵션 (상품 등록 화면의 옵션 선택 목록). 고정 경로라 /{postId}보다 먼저 매칭된다
+    @GetMapping("/options")
+    @Operation(operationId = "getProductOptions", summary = "옵션 종류 전체와 종류별 상품옵션")
+    public ResponseEntity<RsData<List<ProductOptionTypeResponse>>> getProductOptions() {
+        return ResponseEntity.ok(new RsData<>("200-1", "옵션 목록 조회에 성공했습니다.",
+                productFacade.findProductOptions()));
+    }
+
+    // 옵션 종류 하나의 상품옵션 (옵션 종류를 고르면 옆 선택 목록을 채우는 용도)
+    @GetMapping("/options/{typeId}")
+    @Operation(operationId = "getProductOptionsByType", summary = "옵션 종류 하나의 상품옵션")
+    public ResponseEntity<RsData<ProductOptionTypeResponse>> getProductOptionsByType(@PathVariable Long typeId) {
+        return ResponseEntity.ok(new RsData<>("200-1", "옵션 목록 조회에 성공했습니다.",
+                productFacade.findProductOptions(typeId)));
     }
 
     @PatchMapping("/{postId}/status")
