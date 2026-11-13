@@ -52,9 +52,13 @@ class CreateProductRequestContractTest {
         assertThat(image.getS3Key()).isEqualTo("products/apple-2.jpg");
         assertThat(image.getImageSeq()).isEqualTo(2);
 
-        assertThat(product.getProductOptionList())
+        assertThat(product.getInventoryList()).hasSize(1);
+        CreateInventory inventory = product.getInventoryList().get(0);
+        assertThat(inventory.getAdditionalPrice()).isEqualTo(1000L);
+        assertThat(inventory.getStockQuantity()).isEqualTo(5);
+        assertThat(inventory.getOptionList())
                 .extracting(CreateProductOption::getProductTypeId, CreateProductOption::getProductOptionId)
-                .containsExactly(tuple(1L, 100L), tuple(2L, 200L));
+                .containsExactly(tuple(1L, 4L), tuple(2L, 8L));
     }
 
     @Test
@@ -87,12 +91,14 @@ class CreateProductRequestContractTest {
                 new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductImage(
                         null, 20L, null, "products/apple-2.jpg", 2, null)
         ));
-        var options = new ArrayList<>(List.of(
-                new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption(1L, 100L),
-                new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption(2L, 200L)
+        var inventories = new ArrayList<>(List.of(
+                new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateInventory(List.of(
+                        new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption(1L, 4L),
+                        new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption(2L, 8L)),
+                        1000L, 5)
         ));
         var product = new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProduct(
-                null, 20L, 10L, 30L, "사과", "부사 5kg", 25000L, images, options);
+                null, 20L, 10L, 30L, "사과", "부사 5kg", 25000L, images, inventories);
 
         return new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductRequest(
                 10L, new ArrayList<>(List.of(product)));

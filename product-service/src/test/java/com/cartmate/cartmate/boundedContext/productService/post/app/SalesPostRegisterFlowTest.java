@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
+import static com.cartmate.cartmate.support.TestInventories.inventory;
 import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
@@ -7,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductOption;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateInventory;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostProductImage;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
@@ -250,7 +252,7 @@ class SalesPostRegisterFlowTest {
                 new CreateSalesPostProductImage(null, null, null, 0, null),
                 new CreateSalesPostProductImage(null, null, null, 1, null)
         );
-        List<CreateProductOption> options = List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_L), new CreateProductOption(COLOR, BLACK));
+        List<CreateInventory> options = List.of(inventory(new CreateProductOption(CLOTHING_SIZE, SIZE_L), new CreateProductOption(COLOR, BLACK)));
         CreateSalesPostProduct product = new CreateSalesPostProduct(
                 null, null, 1L, "아이폰", "설명", 10000L, productImages, options);
 

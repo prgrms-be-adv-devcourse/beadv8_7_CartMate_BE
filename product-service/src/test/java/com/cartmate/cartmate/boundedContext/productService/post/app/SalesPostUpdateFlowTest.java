@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
+import static com.cartmate.cartmate.support.TestInventories.inventory;
 import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
@@ -12,7 +13,9 @@ import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesP
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostProductImage;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostProductOption;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostInventory;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Inventory;
+import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductOptionRepository;
@@ -101,6 +104,8 @@ class SalesPostUpdateFlowTest {
     @Autowired
     ProductOptionRepository productOptionRepository;
     @Autowired
+    InventoryRepository inventoryRepository;
+    @Autowired
     FakeImageStorage storage;
 
     Long postId;
@@ -123,7 +128,7 @@ class SalesPostUpdateFlowTest {
         CreateSalesPostProduct product = new CreateSalesPostProduct(null, null, 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateSalesPostProductImage(null, null, null, 0, null),
                         new CreateSalesPostProductImage(null, null, null, 1, null)),
-                List.of(new CreateProductOption(CLOTHING_SIZE, SIZE_L)));
+                List.of(inventory(new CreateProductOption(CLOTHING_SIZE, SIZE_L))));
         salesPostFacade.registerSalesPost(
                 new CreateSalesPostRequest(null, SELLER_ID, "아이폰 팝니다", "상태 좋아요", List.of(product)),
                 List.of(TestImageFiles.jpeg(), TestImageFiles.png()));
@@ -267,8 +272,10 @@ class SalesPostUpdateFlowTest {
                 .sorted(Comparator.comparingInt(ProductImage::getImageSeq))
                 .map(i -> new UpdateSalesPostProductImage(i.getId(), productId, i.getS3Key(), i.getImageSeq()))
                 .toList());
-        List<UpdateSalesPostProductOption> options = productOptionRepository.findAll().stream()
-                .map((ProductOption o) -> new UpdateSalesPostProductOption(o.getId(), o.getProductTypeId(), o.getProductOptionId()))
+        // 기존 재고(id 유지)는 그대로 둔다. 조합은 바뀌지 않으므로 옵션 목록은 보내지 않는다
+        List<UpdateSalesPostInventory> options = inventoryRepository.findAll().stream()
+                .filter(Inventory::isActive)
+                .map(i -> new UpdateSalesPostInventory(i.getId(), null, i.getAdditionalPrice(), i.getStockQuantity()))
                 .toList();
         UpdateSalesPostProduct product = new UpdateSalesPostProduct(productId, 1L, name, "설명", basePrice, images, options);
 

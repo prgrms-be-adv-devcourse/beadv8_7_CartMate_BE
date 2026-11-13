@@ -12,6 +12,7 @@ public final class SeedOptions {
     public static final long SHOE_SIZE = 3L;
 
     // 상품옵션
+    public static final long SIZE_M = 3L;       // 의류 사이즈 M
     public static final long SIZE_L = 4L;       // 의류 사이즈 L
     public static final long BLACK = 8L;        // 색상 블랙
     public static final long WHITE = 9L;        // 색상 화이트
