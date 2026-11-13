@@ -9,7 +9,7 @@ import com.cartmate.cartmate.global.http.InternalApiClient.InternalResponse;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductImage;
-import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductOption;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreInventory;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductsRequest;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct;
 import org.springframework.beans.factory.annotation.Value;
@@ -182,11 +182,19 @@ public class SalesPostApiClient {
                         p.images().stream()
                                 .map(i -> new RestoreProductImage(i.imageId(), i.sortOrder()))
                                 .toList(),
-                        p.options().stream()
-                                .map(o -> new RestoreProductOption(o.productTypeId(), o.productOptionId()))
-                                .toList()
+                        toRestoreInventories(p.inventories())
                 ))
                 .toList();
         return new RestoreProductsRequest(productList);
+    }
+
+    // 재고가 없는 스냅샷(재고 도입 전에 저장된 것)은 null로 보내 상품 쪽이 재고를 건드리지 않게 한다
+    private List<RestoreInventory> toRestoreInventories(List<SalesPostSnapshot.InventorySnapshot> inventories) {
+        if (inventories == null || inventories.isEmpty()) {
+            return null;
+        }
+        return inventories.stream()
+                .map(i -> new RestoreInventory(i.inventoryId(), i.additionalPrice(), i.stockQuantity()))
+                .toList();
     }
 }

@@ -20,4 +20,5 @@ public class SelectProductResponse {
     private ProductStatus status;
     private List<SelectProductImage> productImageList;
     private List<SelectProductOption> productOptionList;
+    private List<SelectInventory> inventoryList;
 }

@@ -1,8 +1,10 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectInventory;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Inventory;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
@@ -87,6 +89,9 @@ public class ProductQueryUseCase {
                 .filter(ProductOption::isActive)
                 .map(this::toSelectProductOption)
                 .toList();
+        List<SelectInventory> inventories = product.activeInventories().stream()
+                .map(this::toSelectInventory)
+                .toList();
         return new SelectProductResponse(
                 product.getId(),
                 product.getSalesPostId(),
@@ -96,7 +101,20 @@ public class ProductQueryUseCase {
                 product.getBasePrice(),
                 product.getStatus(),
                 images,
-                options
+                options,
+                inventories
+        );
+    }
+
+    private SelectInventory toSelectInventory(Inventory inventory) {
+        return new SelectInventory(
+                inventory.getId(),
+                inventory.getSkuName(),
+                inventory.getAppliedPrice(),
+                inventory.getAdditionalPrice(),
+                inventory.getStockQuantity(),
+                inventory.getReservedQuantity(),
+                inventory.getOptionList().stream().map(this::toSelectProductOption).toList()
         );
     }
 

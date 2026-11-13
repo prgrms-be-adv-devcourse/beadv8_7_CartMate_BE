@@ -17,7 +17,7 @@ public class CreateSalesPostProduct {
     private String description;
     private Long basePrice;
     private List<CreateSalesPostProductImage> productImageList;
-    private List<CreateProductOption> productOptionList;
+    private List<CreateInventory> inventoryList;
 
     public CreateProduct toCreateProduct(Long sellerId) {
         List<CreateProductImage> productImages = productImageList.stream()
@@ -33,7 +33,7 @@ public class CreateSalesPostProduct {
                 description,
                 basePrice,
                 productImages,
-                productOptionList
+                inventoryList
         );
     }
 }

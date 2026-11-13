@@ -16,5 +16,5 @@ public class RestoreProduct {
     private String description;
     private Long basePrice;
     private List<RestoreProductImage> productImageList;
-    private List<RestoreProductOption> productOptionList;
+    private List<RestoreInventory> inventoryList;
 }

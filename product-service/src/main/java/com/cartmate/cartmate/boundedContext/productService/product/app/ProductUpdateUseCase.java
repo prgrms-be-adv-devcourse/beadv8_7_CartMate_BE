@@ -1,15 +1,15 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Inventory;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOptionValue;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductImage;
-import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateInventory;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionValueRepository;
@@ -62,9 +62,9 @@ public class ProductUpdateUseCase {
                 updateImages(product, productReq.getProductImageList(), uploadedKeyMap, i, deletedKeys);
             }
 
-            // 옵션 변경이 있을 때만
-            if (productReq.getProductOptionList() != null) {
-                updateOptions(product, productReq.getProductOptionList());
+            // 재고(와 재고에서 분리된 선택된 옵션) 변경이 있을 때만
+            if (productReq.getInventoryList() != null) {
+                updateInventories(product, productReq.getInventoryList());
             }
         }
 
@@ -115,34 +115,41 @@ public class ProductUpdateUseCase {
         }
     }
 
-    private void updateOptions(Product product, List<UpdateProductOption> reqOptionList) {
-        // 이미 삭제된 옵션은 수정 대상이 아니다(요청에 그 ID가 오면 PRODUCT_OPTION_NOT_FOUND)
-        Map<Long, ProductOption> storedIdMap = product.getProductOptionList().stream()
-                .filter(ProductOption::isActive)
-                .collect(Collectors.toMap(ProductOption::getId, Function.identity()));
+    // 재고를 요청 기준으로 맞춘다. 재고의 조합(선택된 옵션)은 바꾸지 않는다
+    // - id 있음: 기존 재고의 추가금액 · 재고 수량만 바꾼다 (이미 삭제된 재고면 PRODUCT_INVENTORY_NOT_FOUND)
+    // - id 없음: 새 재고 + 그 재고에서 분리된 선택된 옵션을 추가한다 (살아 있는 재고와 조합이 같으면 거부)
+    // - 요청에 없는 기존 재고: 선택된 옵션과 함께 삭제 상태로 (행과 재고 ID는 남는다)
+    private void updateInventories(Product product, List<UpdateInventory> reqInventoryList) {
+        Map<Long, Inventory> activeById = product.activeInventories().stream()
+                .collect(Collectors.toMap(Inventory::getId, Function.identity()));
 
-        Set<Long> keepOptionIds = reqOptionList.stream()
-                .map(UpdateProductOption::getId)
+        Set<Long> keepIds = reqInventoryList.stream()
+                .map(UpdateInventory::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // 요청에 없는 기존 옵션은 삭제 상태로 바꾼다(행을 지우지 않아 옵션 ID가 남는다)
-        storedIdMap.values().stream()
-                .filter(o -> !keepOptionIds.contains(o.getId()))
-                .forEach(ProductOption::delete);
+        // 먼저 지워야 같은 조합을 새로 추가하는 요청(지우고 다시 만들기)이 중복으로 걸리지 않는다
+        activeById.values().stream()
+                .filter(inventory -> !keepIds.contains(inventory.getId()))
+                .forEach(Inventory::delete);
 
-        for (UpdateProductOption option : reqOptionList) {
-            // 옵션 ID로 옵션 값을 조회한다. 옵션 종류는 옵션 값이 가진 종류를 따른다
-            ProductOptionValue optionValue = productOptionValueRepository.getOptionValue(option.getProductOptionId());
-            if (option.getId() == null) {
-                product.addOption(new ProductOption(product, optionValue, ProductStatus.ACTIVE));
+        for (UpdateInventory req : reqInventoryList) {
+            if (req.getId() == null) {
+                product.addInventory(
+                        productOptionValueRepository.getOptionValues(CreateProductOption.optionIds(req.getOptionList())),
+                        req.getAdditionalPrice(),
+                        req.getStockQuantity());
             } else {
-                ProductOption existing = storedIdMap.get(option.getId());
+                Inventory existing = activeById.get(req.getId());
                 if (existing == null) {
-                    throw new ServiceException(ProductErrorCode.PRODUCT_OPTION_NOT_FOUND);
+                    throw new ServiceException(ProductErrorCode.PRODUCT_INVENTORY_NOT_FOUND);
                 }
-                existing.update(optionValue);
+                existing.change(req.getAdditionalPrice(), req.getStockQuantity());
             }
+        }
+
+        if (product.activeInventories().isEmpty()) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_INVENTORY_REQUIRED);
         }
     }
 }
