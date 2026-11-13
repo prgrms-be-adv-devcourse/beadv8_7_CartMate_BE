@@ -32,6 +32,9 @@ import com.cartmate.cartmate.global.outbox.OutboxEventStatus;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSaleStatus;
+import com.cartmate.cartmate.shared.post.event.SalesPostHiddenEvent;
+import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +44,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -65,6 +70,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 })
 @ActiveProfiles("test")
 @Import(ManualOutboxRelayConfig.class)
+@RecordApplicationEvents
 class ProductDeleteTest {
 
     private static final Long SELLER_ID = 7L;
@@ -76,6 +82,8 @@ class ProductDeleteTest {
     ProductFacade productFacade;
     @Autowired
     ProductRepository productRepository;
+    @Autowired
+    ApplicationEvents events;
     @Autowired
     ProductImageRepository productImageRepository;
     @Autowired
@@ -219,6 +227,27 @@ class ProductDeleteTest {
                 .where(processedEvent.consumer.eq(ProductServiceConsumers.PRODUCT_DELETED))
                 .fetchOne()).isEqualTo(1);
         assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(SalesPostProductStatus.DELETED);
+        assertThat(events.stream(SalesPostHiddenEvent.class)).hasSize(1); // 진행 중 거래 정리 알림도 한 번만
+    }
+
+    // 숨김 이벤트는 아직 앱 안 이벤트(EventPublisher)라 발행된 이벤트를 기록해서 확인한다 (outbox 전환은 다음 작업)
+    @Test
+    @DisplayName("상품 하나를 삭제하면 그 상품만 담은 판매글 숨김 이벤트(PRODUCT_DELETED)를 발행한다")
+    void deleteProductPublishesHiddenEventForThatProduct() {
+        SalesPostSaleStatus postStatusBefore = salesPostRepository.findAll().getFirst().getStatus();
+        productFacade.deleteProductByUser(productId, SELLER_ID);
+        assertThat(events.stream(SalesPostHiddenEvent.class)).isEmpty(); // 복제본을 지우는 처리에서 함께 나간다
+
+        relay();
+
+        List<SalesPostHiddenEvent> hidden = events.stream(SalesPostHiddenEvent.class).toList();
+        assertThat(hidden).hasSize(1);
+        SalesPostHiddenEvent event = hidden.getFirst();
+        assertThat(event.productIds()).containsExactly(productId);
+        assertThat(event.hideType()).isEqualTo(SalesPostHideType.PRODUCT_DELETED);
+        assertThat(event.sellerId()).isEqualTo(SELLER_ID);
+        // 판매글 상태는 바뀌지 않는다(상품 하나만 삭제)
+        assertThat(salesPostRepository.findAll().getFirst().getStatus()).isEqualTo(postStatusBefore);
     }
 
     @Test

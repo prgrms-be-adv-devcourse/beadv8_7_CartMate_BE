@@ -135,13 +135,16 @@ public class SalesPostFacade {
                         post, event.productIds(), SalesPostHideType.SELLER_DELETED, null, null));
     }
 
-    // 판매자가 상품 하나를 삭제하면(ProductDeletedEvent) 그 복제본을 지운다. 같은 이벤트는 한 번만 처리한다
+    // 판매자가 상품 하나를 삭제하면(ProductDeletedEvent) 그 복제본을 지우고, 같은 트랜잭션으로 진행 중 거래 정리를 알린다
+    // (SalesPostHiddenEvent, productIds = 그 상품). order는 판매글 숨김과 같은 처리로 공동구매 · 주문을 정리한다.
+    // 같은 이벤트는 한 번만 처리한다
     @Transactional
     public void deleteProductByEvent(String eventId, ProductDeletedEvent event) {
         if (!processedEvents.markFirst(ProductServiceConsumers.PRODUCT_DELETED, eventId)) {
             return;
         }
         salesPostSyncProductUseCase.deleteProductByUser(event.productId());
+        salesPostHideUseCase.publishProductDeleted(event.salesPostId(), event.productId());
     }
 
     public void updateSalesPostByUser(UpdateSalesPostRequest request, List<MultipartFile> images) {
