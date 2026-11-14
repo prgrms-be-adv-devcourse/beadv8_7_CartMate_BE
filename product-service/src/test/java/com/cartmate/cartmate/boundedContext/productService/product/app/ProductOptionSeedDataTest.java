@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CategoryResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,21 @@ class ProductOptionSeedDataTest {
     JdbcTemplate jdbcTemplate;
     @Autowired
     DataSource dataSource;
+
+    @Autowired
+    CategoryQueryUseCase categoryQueryUseCase;
+
+    @Test
+    @DisplayName("시작할 때 카테고리 4개가 고정 ID(프론트가 쓰던 1 ~ 4)와 한글 이름으로 들어가고, 조회하면 ID 순으로 나온다")
+    void seedsCategories() {
+        assertThat(categoryQueryUseCase.findAll().stream().filter(category -> category.categoryId() <= 4))
+                .extracting(CategoryResponse::categoryId, CategoryResponse::name)
+                .containsExactly(
+                        tuple(1L, "유니폼 / 의류"),
+                        tuple(2L, "운동 용품"),
+                        tuple(3L, "신발 / 보호구"),
+                        tuple(4L, "단체 액세서리"));
+    }
 
     @Test
     @DisplayName("시작할 때 옵션 종류 5개가 고정 ID와 한글 이름으로 들어간다")

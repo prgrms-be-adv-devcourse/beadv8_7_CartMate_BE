@@ -2,6 +2,7 @@ package com.cartmate.cartmate.boundedContext.productService.product.in;
 
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CategoryResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductOptionTypeResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductOptionValueResponse;
 import com.cartmate.cartmate.global.exception.GlobalExceptionHandler;
@@ -39,6 +40,20 @@ class ProductControllerOptionTest {
         mvc = MockMvcBuilders.standaloneSetup(new ProductController(productFacade))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
+    }
+
+    @Test
+    @DisplayName("GET /api/products/categories: 카테고리 목록(categoryId · name)을 돌려준다")
+    void getCategories() throws Exception {
+        given(productFacade.findCategories()).willReturn(List.of(
+                new CategoryResponse(1L, "유니폼 / 의류"), new CategoryResponse(3L, "신발 / 보호구")));
+
+        mvc.perform(get("/api/products/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.data[0].categoryId").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("유니폼 / 의류"))
+                .andExpect(jsonPath("$.data[1].categoryId").value(3));
     }
 
     @Test

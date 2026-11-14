@@ -10,6 +10,8 @@ import com.cartmate.cartmate.boundedContext.productService.payback.dto.SellerPay
 import com.cartmate.cartmate.boundedContext.productService.payback.out.IndividualGroupPurchasePaybackRepository;
 import com.cartmate.cartmate.boundedContext.productService.payback.out.PaybackPayoutRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Category;
+import com.cartmate.cartmate.boundedContext.productService.product.out.CategoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.shared.cart.GroupPurchaseType;
 import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
@@ -56,6 +58,9 @@ class PaybackJudgeFlowTest {
     private ProductRepository productRepository;
 
     @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
     private IndividualGroupPurchasePaybackRepository paybackRepository;
 
     @Autowired
@@ -72,7 +77,8 @@ class PaybackJudgeFlowTest {
     @BeforeEach
     void setUp() {
         eventPublisher.clear();
-        productId = productRepository.save(new Product(SELLER_ID, 1L, 1L, "상품", "설명", 10_000L,
+        Category category = categoryRepository.save(new Category("유니폼 / 의류"));   // JPA 슬라이스 테스트라 data.sql 초기 데이터가 없다
+        productId = productRepository.save(new Product(SELLER_ID, 1L, category, "상품", "설명", 10_000L,
                 ProductStatus.ON_SALE)).getId();
     }
 

@@ -142,6 +142,27 @@ class ProductRegisterTest {
     }
 
     @Test
+    @DisplayName("카테고리: 상품이 카테고리를 참조해 저장되고, 없는 카테고리면 PRODUCT_CATEGORY_NOT_FOUND이고 아무것도 저장되지 않는다")
+    void categoryIsLinked() {
+        productFacade.registerProduct(request(POST_ID, getDummyProduct(POST_ID, "아이폰", 1, null)),
+                getDummyImages(TestImageFiles.jpeg()));
+        assertThat(productRepository.findAll()).extracting(Product::getCategoryId).containsExactly(1L);
+
+        productRepository.deleteAll();
+        productImageRepository.deleteAll();
+        storage.reset();
+        CreateProduct unknownCategory = new CreateProduct(null, SELLER_ID, POST_ID, 999L, "충전기", "설명", 10000L,
+                List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null)),
+                List.of(new CreateInventory(List.of(), TestInventories.ADDITIONAL_PRICE, TestInventories.STOCK_QUANTITY)));
+
+        assertThatThrownBy(() -> productFacade.registerProduct(request(POST_ID, unknownCategory),
+                getDummyImages(TestImageFiles.jpeg())))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("PRODUCT_CATEGORY_NOT_FOUND");
+        assertThat(productRepository.count()).isZero();
+    }
+
+    @Test
     @DisplayName("검증 실패: 사진 항목보다 파일이 적거나 많으면 PRODUCT_CREATE_INVALID(400)이고 아무것도 저장되지 않는다")
     void imageCountMismatch() {
         CreateProductRequest request = request(POST_ID,

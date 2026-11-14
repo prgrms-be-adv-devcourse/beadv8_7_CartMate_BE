@@ -7,6 +7,8 @@ import com.cartmate.cartmate.boundedContext.productService.payback.dto.PaybackCo
 import com.cartmate.cartmate.boundedContext.productService.payback.dto.SellerPaybackConditionRequest;
 import com.cartmate.cartmate.boundedContext.productService.payback.out.IndividualGroupPurchasePaybackRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Category;
+import com.cartmate.cartmate.boundedContext.productService.product.out.CategoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import com.cartmate.cartmate.shared.cart.IndividualGroupPurchaseCloseReason;
@@ -46,6 +48,11 @@ class PaybackConditionFlowTest {
     private ProductRepository productRepository;
 
     @Autowired
+    private CategoryRepository categoryRepository;
+
+    private Category category;
+
+    @Autowired
     private IndividualGroupPurchasePaybackRepository paybackRepository;
 
     @Autowired
@@ -56,6 +63,7 @@ class PaybackConditionFlowTest {
 
     @BeforeEach
     void setUp() {
+        category = categoryRepository.save(new Category("유니폼 / 의류"));   // JPA 슬라이스 테스트라 data.sql 초기 데이터가 없다
         productId = productRepository.save(product(SELLER_ID)).getId();
         otherProductId = productRepository.save(product(SELLER_ID)).getId();
     }
@@ -155,8 +163,8 @@ class PaybackConditionFlowTest {
                 List.copyOf(paybackRepository.findById(purchaseId).orElseThrow().getConditionSnapshots()));
     }
 
-    private static Product product(Long sellerId) {
-        return new Product(sellerId, 1L, 1L, "상품", "설명", 10_000L, ProductStatus.ON_SALE);
+    private Product product(Long sellerId) {
+        return new Product(sellerId, 1L, category, "상품", "설명", 10_000L, ProductStatus.ON_SALE);
     }
 
     private static IndividualGroupPurchaseOpenedEvent opened(Long purchaseId, List<Long> productIds, long revision) {
