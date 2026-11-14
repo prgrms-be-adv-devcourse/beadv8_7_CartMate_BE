@@ -14,6 +14,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateInv
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionValueRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.CategoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductUpdateUseCase {
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
     private final ProductOptionValueRepository productOptionValueRepository;
 
     // 판매글 수정 끝: 수정 중(UPDATING)인 상품을 post가 보낸 수정 전 상태로 되돌린다. 다시 불러도 결과가 같다(멱등)
@@ -68,7 +70,8 @@ public class ProductUpdateUseCase {
                 throw new ServiceException(ProductErrorCode.PRODUCT_ACCESS_DENIED);
             }
 
-            product.update(productReq.getCategoryId(), productReq.getName(), productReq.getDescription(),
+            product.update(categoryRepository.getCategory(productReq.getCategoryId()),
+                    productReq.getName(), productReq.getDescription(),
                     productReq.getBasePrice());
             // 판매글 수정이 끝날 때까지(post가 "수정 끝" API를 부르거나 복구할 때까지) 구매를 막는다
             product.startUpdating();

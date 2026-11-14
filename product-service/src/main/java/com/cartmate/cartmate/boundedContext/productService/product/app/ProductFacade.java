@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CategoryResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CompleteProductUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductOptionTypeResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
@@ -46,6 +47,7 @@ public class ProductFacade {
     private final ProductStatusChangeUseCase productStatusChangeUseCase;
     private final ProductImageOrphanCleanUseCase productImageOrphanCleanUseCase;
     private final ProductOptionQueryUseCase productOptionQueryUseCase;
+    private final CategoryQueryUseCase categoryQueryUseCase;
     private final InventoryReservationUseCase inventoryReservationUseCase;
 
     // 옵션 종류 전체 + 종류별 상품옵션 (상품 등록 화면의 옵션 선택 목록)
@@ -56,6 +58,11 @@ public class ProductFacade {
     // 옵션 종류 하나의 상품옵션
     public ProductOptionTypeResponse findProductOptions(Long typeId) {
         return productOptionQueryUseCase.findByType(typeId);
+    }
+
+    // 카테고리 전체 (상품 등록 화면의 카테고리 선택 목록)
+    public List<CategoryResponse> findCategories() {
+        return categoryQueryUseCase.findAll();
     }
 
     // 저장한 상품(사진 · 옵션 포함)을 돌려준다. post가 이 응답으로 자기 마무리 트랜잭션에서 복제본을 만든다

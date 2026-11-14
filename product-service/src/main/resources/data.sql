@@ -1,7 +1,15 @@
--- 옵션 종류(product_product_option_type) · 상품옵션(product_product_option_value) 초기 데이터
+-- 카테고리(product_category) · 옵션 종류(product_product_option_type) · 상품옵션(product_product_option_value) 초기 데이터
 -- 서버가 시작될 때마다 실행된다(spring.sql.init.mode=always, Hibernate가 테이블을 만든 뒤).
 -- 이미 있는 ID는 그대로 두고(ON DUPLICATE KEY UPDATE id = id), 없는 ID만 들어간다. 중복이 아닌 오류는 그대로 실패한다.
 -- 규칙: 이미 쓰는 ID와 이름은 바꾸지 않는다. 새 데이터는 마지막 ID 다음 번호로 추가한다.
+
+-- ===== 카테고리 ===== (프론트 상품 등록 화면이 쓰던 ID 1 ~ 4와 같다)
+INSERT INTO product_category (id, name, created_at, updated_at) VALUES
+    (1, '유니폼 / 의류', NOW(6), NOW(6)),
+    (2, '운동 용품', NOW(6), NOW(6)),
+    (3, '신발 / 보호구', NOW(6), NOW(6)),
+    (4, '단체 액세서리', NOW(6), NOW(6))
+ON DUPLICATE KEY UPDATE id = id;
 
 -- ===== 옵션 종류 =====
 INSERT INTO product_product_option_type (id, name, created_at, updated_at) VALUES
