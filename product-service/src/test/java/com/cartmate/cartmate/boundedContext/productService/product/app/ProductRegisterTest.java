@@ -142,6 +142,26 @@ class ProductRegisterTest {
     }
 
     @Test
+    @DisplayName("검증 실패: 사진 항목보다 파일이 적거나 많으면 PRODUCT_CREATE_INVALID(400)이고 아무것도 저장되지 않는다")
+    void imageCountMismatch() {
+        CreateProductRequest request = request(POST_ID,
+                getDummyProduct(POST_ID, "아이폰", 2, null)
+        );
+
+        assertThatThrownBy(() -> productFacade.registerProduct(request, getDummyImages(TestImageFiles.jpeg())))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("PRODUCT_CREATE_INVALID");
+        assertThatThrownBy(() -> productFacade.registerProduct(request,
+                getDummyImages(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.png())))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("PRODUCT_CREATE_INVALID");
+
+        assertThat(productRepository.count()).isZero();
+        assertThat(productImageRepository.count()).isZero();
+        assertThat(storage.savedCount()).isZero();
+    }
+
+    @Test
     @DisplayName("업로드 실패: 중간에 저장이 실패하면 파일과 DB 모두 비어 있다")
     void uploadFailure() {
         storage.failOnNthSave(2);
