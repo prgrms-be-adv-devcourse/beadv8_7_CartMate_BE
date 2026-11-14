@@ -134,6 +134,14 @@ public class ProductFacade {
         return productQueryUseCase.findProductsForPurchase(productIds);
     }
 
+    public List<InventoryForPurchase> findInventoriesForPurchase(Collection<Long> inventoryIds) {
+        return productQueryUseCase.findInventoriesForPurchase(inventoryIds);
+    }
+
+    public List<InventoryForPurchase> findInventoriesForPurchaseByProducts(Collection<Long> productIds) {
+        return productQueryUseCase.findInventoriesForPurchaseByProducts(productIds);
+    }
+
     @Transactional(readOnly = true)
     public RsData<List<SelectProductResponse>> selectProductsByPost(Long postId) {
         return new RsData<>(

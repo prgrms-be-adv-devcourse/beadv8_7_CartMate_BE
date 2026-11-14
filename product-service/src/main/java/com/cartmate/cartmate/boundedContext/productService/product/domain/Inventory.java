@@ -123,6 +123,11 @@ public class Inventory extends BaseIdAndTime {
         return status == ProductStatus.ACTIVE;
     }
 
+    // 지금 살 수 있는 수량 = 재고 - 예약
+    public int availableQuantity() {
+        return stockQuantity - reservedQuantity;
+    }
+
     public Inventory delete() {
         this.status = ProductStatus.DELETED;
         optionList.forEach(ProductOption::delete);
