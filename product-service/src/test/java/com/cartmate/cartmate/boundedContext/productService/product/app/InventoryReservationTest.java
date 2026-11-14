@@ -17,6 +17,9 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.CreatePro
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductRequest;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateInventory;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProduct;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryReservationRepository;
@@ -63,6 +66,8 @@ class InventoryReservationTest {
     @Autowired
     ProductFacade productFacade;
     @Autowired
+    ProductUpdateUseCase productUpdateUseCase;
+    @Autowired
     ProductRepository productRepository;
     @Autowired
     ProductImageRepository productImageRepository;
@@ -88,6 +93,7 @@ class InventoryReservationTest {
     @Autowired
     SalesPostProductOptionRepository salesPostProductOptionRepository;
 
+    Long postId;
     Long productId;
     Long blackId;  // 재고 "L / 블랙" 10개
     Long whiteId;  // 재고 "L / 화이트" 5개
@@ -112,6 +118,7 @@ class InventoryReservationTest {
                 List.of(inventory(10, SIZE_L, BLACK), inventory(5, SIZE_L, WHITE)));
         productFacade.registerProduct(new CreateProductRequest(post.getId(), List.of(product)), List.of(TestImageFiles.jpeg()));
 
+        postId = post.getId();
         productId = productRepository.findAll().getFirst().getId();
         blackId = inventoryIdOf("L / 블랙");
         whiteId = inventoryIdOf("L / 화이트");
@@ -288,6 +295,38 @@ class InventoryReservationTest {
 
         assertThat(stockOf(blackId)).isEqualTo(20);
         assertThat(reservedOf(blackId)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("판매자 재고 수정: 선점된 수량보다 적게 바꾸면 PRODUCT_INVENTORY_BELOW_RESERVED이고 재고는 그대로다")
+    void sellerCannotSetStockBelowReserved() {
+        productFacade.reserveInventories(reserveRequest(15L, item(whiteId, 3)));
+
+        assertThatThrownBy(() -> updateStocks(10, 2))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("PRODUCT_INVENTORY_BELOW_RESERVED");
+
+        assertThat(stockOf(whiteId)).isEqualTo(5);
+        assertThat(reservedOf(whiteId)).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("판매자 재고 수정: 선점된 수량과 같거나 많게는 바꿀 수 있다(선점은 그대로)")
+    void sellerCanSetStockEqualToReserved() {
+        productFacade.reserveInventories(reserveRequest(15L, item(whiteId, 3)));
+
+        updateStocks(10, 3);
+
+        assertThat(stockOf(whiteId)).isEqualTo(3);
+        assertThat(reservedOf(whiteId)).isEqualTo(3);
+    }
+
+    // 판매글 수정의 상품 수정(재고 수량만 바꾼다. 사진은 그대로)
+    private void updateStocks(int blackStock, int whiteStock) {
+        productUpdateUseCase.updateProduct(new UpdateProductsRequest(postId, List.of(
+                new UpdateProduct(productId, 1L, "유니폼", "설명", 10000L, null, List.of(
+                        new UpdateInventory(blackId, null, 0L, blackStock),
+                        new UpdateInventory(whiteId, null, 0L, whiteStock))))), List.of());
     }
 
     private static void await(CountDownLatch latch) {
