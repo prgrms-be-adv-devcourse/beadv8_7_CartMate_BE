@@ -16,6 +16,8 @@ import com.cartmate.cartmate.boundedContext.productService.config.ProductService
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -144,8 +146,14 @@ public class ProductFacade {
         return productQueryUseCase.findInventoriesForPurchaseByProducts(productIds);
     }
 
+    // 트랜잭션 밖에서 잡는다: 같은 주문의 다른 요청이 먼저 선점해 이 요청이 유니크 키 · 버전 충돌로 롤백된 경우
+    // 결과는 "이미 선점됨"과 같으니 성공으로 끝낸다(순서대로 온 재시도와 같은 응답)
     public void reserveInventories(InventoryReserveRequest request) {
-        inventoryReservationUseCase.reserve(request);
+        try {
+            inventoryReservationUseCase.reserve(request);
+        } catch (DataIntegrityViolationException | OptimisticLockingFailureException e) {
+            log.info("같은 주문 동시 선점 — 먼저 온 요청이 선점함: order={} #{}", request.orderType(), request.orderId());
+        }
     }
 
     public void releaseInventories(InventoryReleaseRequest request) {

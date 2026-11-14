@@ -61,10 +61,22 @@ public class InventoryReservationUseCase {
             }
         });
 
-        inventoryReservationRepository.saveAll(quantityByInventoryId.entrySet().stream()
-                .map(entry -> new InventoryReservation(request.orderType(), request.orderId(), entry.getKey(),
-                        sellerIdByInventoryId.get(entry.getKey()), entry.getValue()))
-                .toList());
+        // 주문 · 재고마다 한 줄: 선점 해제된 옛 기록(결제 실패 후 다시 결제)이 있으면 다시 쓰고, 없으면 새로 만든다
+        Map<Long, InventoryReservation> existingByInventoryId = existing.stream()
+                .collect(Collectors.toMap(InventoryReservation::getInventoryId, Function.identity()));
+        List<InventoryReservation> reservations = quantityByInventoryId.entrySet().stream()
+                .map(entry -> {
+                    InventoryReservation old = existingByInventoryId.get(entry.getKey());
+                    if (old == null) {
+                        return new InventoryReservation(request.orderType(), request.orderId(), entry.getKey(),
+                                sellerIdByInventoryId.get(entry.getKey()), entry.getValue());
+                    }
+                    old.reserveAgain(entry.getValue());
+                    return old;
+                })
+                .toList();
+        // 바로 flush: 같은 주문이 동시에 선점되면 여기서 유니크 키 · 버전 충돌이 나서 이 트랜잭션 전체(재고 선점 포함)가 롤백된다
+        inventoryReservationRepository.saveAllAndFlush(reservations);
     }
 
     // 그 주문의 살아 있는 선점을 푼다. 없으면(이미 풀림 · 확정 · 선점 안 함) 아무것도 하지 않는다
