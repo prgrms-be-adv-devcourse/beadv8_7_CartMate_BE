@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.out.Inventory
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionValueRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.CategoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductCreateUseCase {
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductOptionRepository productOptionRepository;
     private final ProductOptionValueRepository productOptionValueRepository;
@@ -41,7 +43,7 @@ public class ProductCreateUseCase {
                 new Product(
                     createProduct.getSellerId(),
                     request.getPostId(),
-                    createProduct.getCategoryId(),
+                    categoryRepository.getCategory(createProduct.getCategoryId()),
                     createProduct.getName(),
                     createProduct.getDescription(),
                     createProduct.getBasePrice(),

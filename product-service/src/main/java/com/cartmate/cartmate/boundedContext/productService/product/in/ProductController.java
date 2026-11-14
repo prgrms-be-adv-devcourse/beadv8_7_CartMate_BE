@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.product.in;
 
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CategoryResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CompleteProductUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductOptionTypeResponse;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
@@ -78,6 +79,14 @@ public class ProductController {
     @GetMapping("/{postId}")
     public ResponseEntity<RsData<List<SelectProductResponse>>> selectProductsByPost(@PathVariable Long postId) {
         return ResponseEntity.ok(productFacade.selectProductsByPost(postId));
+    }
+
+    // 카테고리 전체 (상품 등록 화면의 카테고리 선택 목록). 고정 경로라 /{postId}보다 먼저 매칭된다
+    @GetMapping("/categories")
+    @Operation(operationId = "getProductCategories", summary = "카테고리 전체")
+    public ResponseEntity<RsData<List<CategoryResponse>>> getProductCategories() {
+        return ResponseEntity.ok(new RsData<>("200-1", "카테고리 목록 조회에 성공했습니다.",
+                productFacade.findCategories()));
     }
 
     // 옵션 종류 전체와 종류별 상품옵션 (상품 등록 화면의 옵션 선택 목록). 고정 경로라 /{postId}보다 먼저 매칭된다

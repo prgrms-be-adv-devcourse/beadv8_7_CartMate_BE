@@ -26,8 +26,10 @@ public class Product extends BaseIdAndTime {
     @Column(nullable = false, columnDefinition = "BIGINT")
     private Long salesPostId;
 
-    @Column(nullable = false, columnDefinition = "BIGINT")
-    private Long categoryId;
+    // 카테고리 마스터 참조(칼럼 category_id). 응답 · 이벤트에는 getCategoryId()로 ID만 싣는다
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
     @Column(nullable = false)
     private String name;
@@ -52,15 +54,20 @@ public class Product extends BaseIdAndTime {
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<Inventory> inventoryList = new ArrayList<>();
 
-    public Product(Long sellerId, Long salesPostId, Long categoryId, String name, String description, Long basePrice,
+    public Product(Long sellerId, Long salesPostId, Category category, String name, String description, Long basePrice,
                    ProductStatus status) {
         this.sellerId = sellerId;
         this.salesPostId = salesPostId;
-        this.categoryId = categoryId;
+        this.category = category;
         this.name = name;
         this.description = description;
         this.basePrice = basePrice;
         this.status = status;
+    }
+
+    // 프록시에서 ID만 꺼내므로 카테고리를 추가로 조회하지 않는다
+    public Long getCategoryId() {
+        return category == null ? null : category.getId();
     }
 
     public SyncProduct toSyncProduct() {
@@ -119,8 +126,8 @@ public class Product extends BaseIdAndTime {
     }
 
     // 기본가가 바뀌면 재고의 최종 가격(기본가 + 추가금액)도 다시 계산한다
-    public void update(Long categoryId, String name, String description, Long basePrice) {
-        this.categoryId = categoryId;
+    public void update(Category category, String name, String description, Long basePrice) {
+        this.category = category;
         this.name = name;
         this.description = description;
         this.basePrice = basePrice;

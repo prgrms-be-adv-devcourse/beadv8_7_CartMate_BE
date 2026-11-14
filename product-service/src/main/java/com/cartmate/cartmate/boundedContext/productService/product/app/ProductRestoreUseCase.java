@@ -7,6 +7,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.RestoreIn
 import com.cartmate.cartmate.boundedContext.productService.product.dto.RestoreProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.out.CategoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductRestoreUseCase {
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
 
     // 스냅샷 상태로 되돌린다. 같은 요청을 여러 번 보내도 결과가 같다.
     @Transactional
@@ -43,7 +45,8 @@ public class ProductRestoreUseCase {
                 throw new ServiceException(ProductErrorCode.PRODUCT_ACCESS_DENIED);
             }
 
-            product.update(productReq.getCategoryId(), productReq.getName(), productReq.getDescription(),
+            product.update(categoryRepository.getCategory(productReq.getCategoryId()),
+                    productReq.getName(), productReq.getDescription(),
                     productReq.getBasePrice());
 
             if (productReq.getProductImageList() != null) {
