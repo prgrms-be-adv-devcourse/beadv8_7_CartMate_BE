@@ -1,7 +1,7 @@
 package com.cartmate.cartmate.boundedContext.orderService.order.out;
 
 import com.cartmate.cartmate.global.http.InternalApiClient;
-import com.cartmate.cartmate.shared.product.dto.ProductForPurchase;
+import com.cartmate.cartmate.shared.product.dto.InventoryForPurchase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,12 +29,19 @@ class HttpOrderProductClientTest {
     }
 
     @Test
-    @DisplayName("상품 정보를 재고 ID가 상품 ID와 같은 주문 상품으로 변환하고 없는 상품은 제외한다")
-    void mapsProductsAndExcludesMissing() {
-        given(productServerApiClient.get(eq(HttpOrderProductClient.PATH), eq(HttpOrderProductClient.PRODUCTS), eq("10,99")))
-                .willReturn(List.of(new ProductForPurchase(10L, 7L, "축구공", 25000L, true, "https://example.com/ball.png", 3L)));
+    @DisplayName("재고 정보를 주문 상품으로 변환하고(옵션명 = 재고 이름, 가격 = 적용가) 없는 재고는 제외한다")
+    void mapsInventoriesAndExcludesMissing() {
+        given(productServerApiClient.get(eq(HttpOrderProductClient.PATH), eq(HttpOrderProductClient.INVENTORIES), eq("101,999")))
+                .willReturn(List.of(new InventoryForPurchase(101L, 10L, 7L, "축구공", "5호", 25000L,
+                        "https://example.com/ball.png", 3L, true)));
 
-        assertThat(productClient.findAllByInventoryIds(List.of(10L, 99L))).containsExactly(
-                new OrderProductInfo(10L, 10L, 7L, "축구공", null, 25000L, "https://example.com/ball.png", true));
+        assertThat(productClient.findAllByInventoryIds(List.of(101L, 999L))).containsExactly(
+                new OrderProductInfo(101L, 10L, 7L, "축구공", "5호", 25000L, "https://example.com/ball.png", true));
+    }
+
+    @Test
+    @DisplayName("빈 요청이면 상품 서버를 부르지 않는다")
+    void emptyRequest() {
+        assertThat(productClient.findAllByInventoryIds(List.of())).isEmpty();
     }
 }
