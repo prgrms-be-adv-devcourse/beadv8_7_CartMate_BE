@@ -112,6 +112,14 @@ public class Inventory extends BaseIdAndTime {
         recalculateAppliedPrice();
     }
 
+    // 판매자 재고 수정: 결제 진행 중인 수량(선점)보다 적게는 못 바꾼다(남은 수량이 음수가 되어 판매 확정을 못 하게 됨)
+    public void changeBySeller(Long additionalPrice, Integer stockQuantity) {
+        if (stockQuantity != null && stockQuantity < reservedQuantity) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_INVENTORY_BELOW_RESERVED);
+        }
+        change(additionalPrice, stockQuantity);
+    }
+
     // 상품 기본가가 바뀌면 최종 가격을 다시 계산한다
     public void recalculateAppliedPrice() {
         this.appliedPrice = product.getBasePrice() + additionalPrice;
