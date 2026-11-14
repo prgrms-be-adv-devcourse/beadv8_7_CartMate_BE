@@ -43,6 +43,7 @@ public class ProductFacade {
     private final ProductStatusChangeUseCase productStatusChangeUseCase;
     private final ProductImageOrphanCleanUseCase productImageOrphanCleanUseCase;
     private final ProductOptionQueryUseCase productOptionQueryUseCase;
+    private final InventoryReservationUseCase inventoryReservationUseCase;
 
     // 옵션 종류 전체 + 종류별 상품옵션 (상품 등록 화면의 옵션 선택 목록)
     public List<ProductOptionTypeResponse> findProductOptions() {
@@ -140,6 +141,14 @@ public class ProductFacade {
 
     public List<InventoryForPurchase> findInventoriesForPurchaseByProducts(Collection<Long> productIds) {
         return productQueryUseCase.findInventoriesForPurchaseByProducts(productIds);
+    }
+
+    public void reserveInventories(InventoryReserveRequest request) {
+        inventoryReservationUseCase.reserve(request);
+    }
+
+    public void releaseInventories(InventoryReleaseRequest request) {
+        inventoryReservationUseCase.release(request.orderType(), request.orderId());
     }
 
     @Transactional(readOnly = true)

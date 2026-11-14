@@ -37,6 +37,9 @@ public enum ProductErrorCode implements ErrorCode {
     PRODUCT_INVENTORY_DUPLICATE_OPTION_TYPE(HttpStatus.BAD_REQUEST, "PRODUCT_INVENTORY_DUPLICATE_OPTION_TYPE", "한 재고에 같은 옵션 종류를 두 번 넣을 수 없습니다."),
     PRODUCT_INVENTORY_DUPLICATE_COMBINATION(HttpStatus.BAD_REQUEST, "PRODUCT_INVENTORY_DUPLICATE_COMBINATION", "같은 옵션 조합의 재고가 이미 있습니다."),
     PRODUCT_INVENTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_INVENTORY_NOT_FOUND", "해당 상품의 재고가 아닙니다."),
+    PRODUCT_INVENTORY_RESERVE_INVALID(HttpStatus.BAD_REQUEST, "PRODUCT_INVENTORY_RESERVE_INVALID", "잘못된 재고 선점 요청입니다."),
+    PRODUCT_INVENTORY_NOT_PURCHASABLE(HttpStatus.CONFLICT, "PRODUCT_INVENTORY_NOT_PURCHASABLE", "지금 구매할 수 없는 상품이 있습니다."),
+    PRODUCT_INVENTORY_OUT_OF_STOCK(HttpStatus.CONFLICT, "PRODUCT_INVENTORY_OUT_OF_STOCK", "재고가 부족한 상품이 있습니다."),
     PRODUCT_SYNC_DATA_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_SYNC_DATA_NOT_FOUND", "동기화할 데이터가 없습니다.");
     private final HttpStatus status;
     private final String code;

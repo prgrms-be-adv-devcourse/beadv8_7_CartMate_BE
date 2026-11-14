@@ -17,6 +17,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,8 +29,11 @@ import java.util.stream.Collectors;
  * 재고: 상품의 판매 단위(SKU) 하나 = 상품옵션 조합 하나 (예: 축구화 A의 "265 / 블랙").
  * 이 재고를 이루는 상품옵션은 선택된 옵션(ProductOption)이 재고를 참조해 저장한다.
  * 조합(어떤 상품옵션으로 이뤄졌는지)은 만든 뒤 바꾸지 않는다. 조합을 바꾸려면 재고를 지우고 새로 추가한다.
+ * 선점 수량은 조건부 UPDATE로만 바꾼다. @DynamicUpdate: 엔티티 수정(판매자 재고 수정 등)은 바뀐 칼럼만 저장해서
+ * 그 사이에 늘어난 선점 수량을 읽었던 옛 값으로 덮어쓰지 않는다.
  */
 @Entity
+@DynamicUpdate
 @Table(name = "PRODUCT_INVENTORY")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -58,7 +62,7 @@ public class Inventory extends BaseIdAndTime {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity;
 
-    // 예약 재고 수량. 주문 연동(재고 예약 · 차감)에서 쓴다
+    // 선점 수량: 결제 직전에 잡아둔 수량(결제 성공 시 판매 확정으로 재고와 함께 줄어든다). 남은 수량 = 재고 - 선점
     @Column(name = "reserved_quantity", nullable = false)
     @ColumnDefault("0")
     private Integer reservedQuantity;
