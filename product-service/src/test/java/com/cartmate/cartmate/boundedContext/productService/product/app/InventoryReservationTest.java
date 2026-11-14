@@ -298,6 +298,63 @@ class InventoryReservationTest {
     }
 
     @Test
+    @DisplayName("다시 결제: 선점 해제된 기록을 새로 만들지 않고 그 줄을 다시 선점으로 쓰며, 수량은 새 요청 값이다")
+    void reserveAgainReusesReleasedRow() {
+        productFacade.reserveInventories(reserveRequest(15L, item(blackId, 2)));
+        productFacade.releaseInventories(new InventoryReleaseRequest(ORDER, 15L));
+
+        productFacade.reserveInventories(reserveRequest(15L, item(blackId, 4)));
+
+        assertThat(inventoryReservationRepository.findByOrderTypeAndOrderIdOrderByInventoryIdAsc(ORDER, 15L))
+                .extracting(InventoryReservation::getInventoryId, InventoryReservation::getQuantity,
+                        InventoryReservation::getStatus)
+                .containsExactly(tuple(blackId, 4, InventoryReservationStatus.RESERVED));
+        assertThat(reservedOf(blackId)).isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("같은 주문 동시 선점: 같은 주문이 동시에 여러 번 선점돼도 한 번만 잡히고, 나머지 요청도 오류 없이 끝난다")
+    void concurrentSameOrderReservesOnce() throws Exception {
+        runConcurrently(10, () -> productFacade.reserveInventories(reserveRequest(15L, item(blackId, 2))));
+
+        assertThat(reservedOf(blackId)).isEqualTo(2);
+        assertThat(inventoryReservationRepository.findByOrderTypeAndOrderIdOrderByInventoryIdAsc(ORDER, 15L)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("같은 주문 동시 다시 선점: 결제 실패 후 다시 결제가 동시에 여러 번 와도 한 번만 잡힌다")
+    void concurrentReserveAgainReservesOnce() throws Exception {
+        productFacade.reserveInventories(reserveRequest(15L, item(blackId, 2)));
+        productFacade.releaseInventories(new InventoryReleaseRequest(ORDER, 15L));
+
+        runConcurrently(10, () -> productFacade.reserveInventories(reserveRequest(15L, item(blackId, 2))));
+
+        assertThat(reservedOf(blackId)).isEqualTo(2);
+        assertThat(inventoryReservationRepository.findByOrderTypeAndOrderIdOrderByInventoryIdAsc(ORDER, 15L))
+                .extracting(InventoryReservation::getStatus)
+                .containsExactly(InventoryReservationStatus.RESERVED);
+    }
+
+    // 여러 스레드에서 동시에 실행한다. 하나라도 예외가 나면 테스트 실패
+    private static void runConcurrently(int threads, Runnable task) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<?>> futures = new ArrayList<>();
+        for (int i = 0; i < threads; i++) {
+            futures.add(executor.submit(() -> {
+                start.await();
+                task.run();
+                return null;
+            }));
+        }
+        start.countDown();
+        for (Future<?> future : futures) {
+            future.get(30, TimeUnit.SECONDS);
+        }
+        executor.shutdown();
+    }
+
+    @Test
     @DisplayName("판매자 재고 수정: 선점된 수량보다 적게 바꾸면 PRODUCT_INVENTORY_BELOW_RESERVED이고 재고는 그대로다")
     void sellerCannotSetStockBelowReserved() {
         productFacade.reserveInventories(reserveRequest(15L, item(whiteId, 3)));
