@@ -1,0 +1,214 @@
+package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
+
+import com.cartmate.cartmate.boundedContext.orderService.cart.app.groupindividual.IndividualGroupPurchaseFacade;
+import com.cartmate.cartmate.boundedContext.orderService.cart.app.personal.CartFacade;
+import com.cartmate.cartmate.boundedContext.orderService.cart.dto.groupindividual.IndividualGroupPurchaseCreateRequest;
+import com.cartmate.cartmate.boundedContext.orderService.cart.out.groupindividual.IndividualGroupPurchaseRepository;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
+import com.cartmate.cartmate.shared.order.OrderCancelReason;
+import com.cartmate.cartmate.shared.order.OrderStatus;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.DeliveryAddressRequest;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.IndividualGroupOrderCreateRequest;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateRequest;
+import com.cartmate.cartmate.boundedContext.orderService.order.dto.personal.OrderCreateResponse;
+import com.cartmate.cartmate.boundedContext.orderService.order.exception.OrderErrorCode;
+import com.cartmate.cartmate.boundedContext.orderService.order.out.personal.OrderRepository;
+import com.cartmate.cartmate.support.ConcurrentRunner;
+import com.cartmate.cartmate.support.ConcurrentRunner.Results;
+import com.cartmate.cartmate.support.TestEventRecorder;
+import com.cartmate.cartmate.support.CartMateIntegrationTest;
+import com.cartmate.cartmate.global.exception.ServiceException;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.ballLine;
+import static com.cartmate.cartmate.boundedContext.orderService.order.support.OrderFixtures.personalOrder;
+import static org.assertj.core.api.Assertions.assertThat;
+
+@CartMateIntegrationTest
+class OrderConcurrencyTest {
+
+    private static final int ROUNDS = 20;
+
+    @Autowired
+    private OrderFacade facade;
+
+    @Autowired
+    private OrderRepository repository;
+
+    @Autowired
+    private TestEventRecorder eventRecorder;
+
+    @Autowired
+    private IndividualGroupPurchaseFacade individualGroupPurchaseFacade;
+
+    @Autowired
+    private CartFacade cartFacade;
+
+    @Autowired
+    private IndividualGroupPurchaseRepository individualGroupPurchaseRepository;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    private final long base = 9_500_000_000L + ThreadLocalRandom.current().nextLong(1_000_000_000L) * 100;
+
+    private long sequence;
+
+    @BeforeEach
+    void setUp() {
+        eventRecorder.clear();
+    }
+
+    @Test
+    @DisplayName("기한 안에 한 결제와 기한 만료 취소가 동시에 와도 결제 완료 또는 취소 중 하나로만 끝난다")
+    void paymentVersusDeadlineCancel() throws InterruptedException {
+        LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).minus(Order.PAYMENT_PERIOD).minusMinutes(5);
+        LocalDateTime paidAt = createdAt.plus(Order.PAYMENT_PERIOD).minusMinutes(1);
+        int paidRounds = 0;
+        int canceledRounds = 0;
+        for (int round = 0; round < ROUNDS; round++) {
+            long buyer = nextId();
+            Long orderId = saveOrder(buyer, createdAt);
+
+            Results results = ConcurrentRunner.run(
+                    () -> facade.applyPayment(orderId, buyer, orderId, paidAt),
+                    () -> facade.cancelByDeadline(orderId));
+            results.assertNoUnexpected(ServiceException.class);
+            String paymentResult = results.succeeded(0) ? "PAID" : ((ServiceException) results.error(0)).getResultCode();
+
+            Order order = repository.findById(orderId).orElseThrow();
+            long paidEvents = eventRecorder.count(OrderPaidEvent.class, e -> e.orderId().equals(orderId));
+            long canceledEvents = eventRecorder.count(OrderCanceledEvent.class, e -> e.orderId().equals(orderId));
+            assertThat(results.error(1)).as("기한 만료 취소는 예외 없이 끝난다").isNull();
+            if (order.getStatus() == OrderStatus.PAID) {
+                paidRounds++;
+                assertThat(paymentResult).isEqualTo("PAID");
+                assertThat(order.getPaidAt()).isEqualTo(paidAt);
+                assertThat(paidEvents).isEqualTo(1);
+                assertThat(canceledEvents).isZero();
+            } else {
+                canceledRounds++;
+                assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+                assertThat(order.getCancelReason()).isEqualTo(OrderCancelReason.PAYMENT_EXPIRED);
+                assertThat(order.getPaidAt()).isNull();
+                assertThat(paymentResult).isEqualTo(OrderErrorCode.ORDER_NOT_PAYMENT_PENDING.resultCode());
+                assertThat(canceledEvents).isEqualTo(1);
+                assertThat(paidEvents).isZero();
+            }
+        }
+        assertThat(paidRounds + canceledRounds).isEqualTo(ROUNDS);
+    }
+
+    @Test
+    @DisplayName("같은 회원이 같은 공동구매에 동시에 두 번 주문해도 결제 대기 주문은 하나만 생기고, 취소하면 다시 주문할 수 있다")
+    void duplicateIndividualGroupOrder() throws InterruptedException {
+        for (int round = 0; round < 5; round++) {
+            long creator = nextId();
+            long buyer = nextId();
+            Long purchaseId = individualGroupPurchaseFacade.create(creator,
+                    new IndividualGroupPurchaseCreateRequest("중복 주문 동시성", List.of(1L, 2L))).id();
+            IndividualGroupOrderCreateRequest request = new IndividualGroupOrderCreateRequest(purchaseId,
+                    List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)),
+                    new DeliveryAddressRequest(
+                            "홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+
+            Queue<Long> created = new ConcurrentLinkedQueue<>();
+            Results results = ConcurrentRunner.run(2, i -> created.add(facade.createIndividualGroup(buyer, request).orderId()));
+
+            results.assertNoUnexpected(ServiceException.class);
+            assertThat(created).hasSize(1);
+            assertThat(results.errorsOf(ServiceException.class)).extracting(ServiceException::getResultCode)
+                    .containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
+            assertThat(repository.findPendingIndividualGroupOrderId(buyer, purchaseId)).contains(created.peek());
+
+            facade.cancelByBuyer(buyer, created.peek());
+            OrderCreateResponse again = facade.createIndividualGroup(buyer, request);
+            assertThat(again.orderId()).isNotEqualTo(created.peek());
+        }
+    }
+
+    @Test
+    @DisplayName("장바구니 행 락 없이도, 같은 장바구니 상품으로 동시에 두 번 주문하면 결제 대기 개인 주문은 하나만 생긴다")
+    void duplicatePersonalOrderWithoutCartLock() throws InterruptedException {
+        for (int round = 0; round < 5; round++) {
+            long buyer = nextId();
+            cartFacade.addItem(buyer, 4L, 1);
+            Long cartItemId = cartFacade.getCart(buyer).items().getFirst().cartItemId();
+            OrderCreateRequest request = new OrderCreateRequest(List.of(cartItemId),
+                    new DeliveryAddressRequest("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+
+            Queue<Long> created = new ConcurrentLinkedQueue<>();
+            Results results = ConcurrentRunner.run(2, i -> created.add(facade.createPersonal(buyer, request).orderId()));
+
+            results.assertNoUnexpected(ServiceException.class);
+            assertThat(created).hasSize(1);
+            assertThat(results.errorsOf(ServiceException.class)).extracting(ServiceException::getResultCode)
+                    .containsExactly(OrderErrorCode.ORDER_ALREADY_PENDING.resultCode());
+        }
+    }
+
+    @Test
+    @DisplayName("개설자가 공동구매 행을 잠그고 있어도(상품 제거 중) 개인물품 주문 생성은 기다리지 않는다 (cart 행 락 없음)")
+    void individualGroupOrderDoesNotWaitForCartRowLock() throws Exception {
+        long creator = nextId();
+        long buyer = nextId();
+        Long purchaseId = individualGroupPurchaseFacade.create(creator,
+                new IndividualGroupPurchaseCreateRequest("행 락 없음", List.of(1L, 2L))).id();
+        IndividualGroupOrderCreateRequest request = new IndividualGroupOrderCreateRequest(purchaseId,
+                List.of(new IndividualGroupOrderCreateRequest.Item(4L, 1)),
+                new DeliveryAddressRequest("홍길동", "010-1234-5678", "12345", "서울시 강남구", "101호"));
+
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicBoolean lockReleased = new AtomicBoolean();
+        ExecutorService holder = Executors.newSingleThreadExecutor();
+        holder.submit(() -> transactionTemplate.executeWithoutResult(status -> {
+            individualGroupPurchaseRepository.findByIdForUpdate(purchaseId).orElseThrow();
+            locked.countDown();
+            try {
+                release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            lockReleased.set(true);
+        }));
+        try {
+            assertThat(locked.await(5, TimeUnit.SECONDS)).isTrue();
+
+            facade.createIndividualGroup(buyer, request);
+
+            assertThat(lockReleased.get()).as("주문 생성이 공동구매 행 락이 풀리기를 기다렸다").isFalse();
+        } finally {
+            release.countDown();
+            holder.shutdown();
+            assertThat(holder.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    private long nextId() {
+        return base + sequence++;
+    }
+
+    private Long saveOrder(Long buyer, LocalDateTime createdAt) {
+        Order order = personalOrder("IT-" + nextId(), buyer, List.of(ballLine(1L, 1)), createdAt);
+        return repository.save(order).getId();
+    }
+}

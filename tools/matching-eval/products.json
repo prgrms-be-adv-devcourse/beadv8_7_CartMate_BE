@@ -1,0 +1,458 @@
+[
+ {
+  "id": 1,
+  "categoryId": 1,
+  "group": "soccer_ball",
+  "name": "나이키 플라이트 축구공 5호 FIFA 공인"
+ },
+ {
+  "id": 2,
+  "categoryId": 1,
+  "group": "soccer_ball",
+  "name": "아디다스 알 릴라 프로 매치볼 5호"
+ },
+ {
+  "id": 3,
+  "categoryId": 1,
+  "group": "soccer_ball",
+  "name": "푸마 오비트 축구공 5호 하이브리드"
+ },
+ {
+  "id": 4,
+  "categoryId": 1,
+  "group": "soccer_ball",
+  "name": "스타 폴라리스 3000 축구공 5호"
+ },
+ {
+  "id": 5,
+  "categoryId": 1,
+  "group": "soccer_ball",
+  "name": "몰텐 F5A3400 축구공 5호 실외용"
+ },
+ {
+  "id": 6,
+  "categoryId": 1,
+  "group": "soccer_ball",
+  "name": "셀렉트 브릴란트 슈퍼 축구공"
+ },
+ {
+  "id": 7,
+  "categoryId": 1,
+  "group": "soccer_ball",
+  "name": "아동 축구공 4호 연습용 (초등학생)"
+ },
+ {
+  "id": 8,
+  "categoryId": 1,
+  "group": "soccer_ball",
+  "name": "나이키 키즈 축구공 4호 피치 트레이닝"
+ },
+ {
+  "id": 9,
+  "categoryId": 1,
+  "group": "futsal_ball",
+  "name": "스타 풋살공 4호 저반발 실내용"
+ },
+ {
+  "id": 10,
+  "categoryId": 1,
+  "group": "futsal_ball",
+  "name": "몰텐 풋살볼 F9A4800 4호"
+ },
+ {
+  "id": 11,
+  "categoryId": 1,
+  "group": "futsal_ball",
+  "name": "셀렉트 풋살 마스터 공 저반발"
+ },
+ {
+  "id": 12,
+  "categoryId": 1,
+  "group": "futsal_ball",
+  "name": "아디다스 풋살 프로 공식 볼 4호"
+ },
+ {
+  "id": 13,
+  "categoryId": 1,
+  "group": "futsal_ball",
+  "name": "나이키 풋살 메나 공 (실내 코트용)"
+ },
+ {
+  "id": 14,
+  "categoryId": 2,
+  "group": "boots",
+  "name": "나이키 머큐리얼 베이퍼 15 아카데미 FG 축구화"
+ },
+ {
+  "id": 15,
+  "categoryId": 2,
+  "group": "boots",
+  "name": "아디다스 프레데터 엘리트 FG 천연잔디용"
+ },
+ {
+  "id": 16,
+  "categoryId": 2,
+  "group": "boots",
+  "name": "푸마 퓨처 7 플레이 TF 인조잔디 터프화"
+ },
+ {
+  "id": 17,
+  "categoryId": 2,
+  "group": "boots",
+  "name": "미즈노 모렐리아 네오 4 AG 축구화"
+ },
+ {
+  "id": 18,
+  "categoryId": 2,
+  "group": "boots",
+  "name": "아식스 DS 라이트 X-FLY 5 HG 하드그라운드"
+ },
+ {
+  "id": 19,
+  "categoryId": 2,
+  "group": "boots",
+  "name": "나이키 팬텀 GX 아카데미 TF 풋살화"
+ },
+ {
+  "id": 20,
+  "categoryId": 2,
+  "group": "boots",
+  "name": "아디다스 코파 퓨어 IC 실내용 풋살화"
+ },
+ {
+  "id": 21,
+  "categoryId": 2,
+  "group": "boots",
+  "name": "키즈 축구화 찍찍이 벨크로 TF 200mm"
+ },
+ {
+  "id": 22,
+  "categoryId": 2,
+  "group": "running_shoes",
+  "name": "나이키 페가수스 41 러닝화"
+ },
+ {
+  "id": 23,
+  "categoryId": 2,
+  "group": "running_shoes",
+  "name": "아식스 젤 카야노 31 러닝화 남성용"
+ },
+ {
+  "id": 24,
+  "categoryId": 3,
+  "group": "jersey_real",
+  "name": "레알 마드리드 24/25 홈 레플리카 유니폼"
+ },
+ {
+  "id": 25,
+  "categoryId": 3,
+  "group": "jersey_real",
+  "name": "레알 마드리드 어웨이 저지 마킹 가능"
+ },
+ {
+  "id": 26,
+  "categoryId": 3,
+  "group": "jersey_real",
+  "name": "레알마드리드 서드 유니폼 반팔 2024"
+ },
+ {
+  "id": 27,
+  "categoryId": 3,
+  "group": "jersey_barca",
+  "name": "FC 바르셀로나 24/25 홈 레플리카 유니폼"
+ },
+ {
+  "id": 28,
+  "categoryId": 3,
+  "group": "jersey_barca",
+  "name": "바르셀로나 어웨이 저지 성인용"
+ },
+ {
+  "id": 29,
+  "categoryId": 3,
+  "group": "jersey_barca",
+  "name": "바르샤 서드 유니폼 반팔 2024"
+ },
+ {
+  "id": 30,
+  "categoryId": 3,
+  "group": "jersey_spurs",
+  "name": "토트넘 홋스퍼 홈 유니폼 손흥민 마킹"
+ },
+ {
+  "id": 31,
+  "categoryId": 3,
+  "group": "jersey_spurs",
+  "name": "토트넘 어웨이 레플리카 저지"
+ },
+ {
+  "id": 32,
+  "categoryId": 3,
+  "group": "jersey_korea",
+  "name": "대한민국 국가대표 홈 유니폼 2024"
+ },
+ {
+  "id": 33,
+  "categoryId": 3,
+  "group": "jersey_korea",
+  "name": "대한민국 축구 대표팀 어웨이 저지"
+ },
+ {
+  "id": 34,
+  "categoryId": 3,
+  "group": "team_kit",
+  "name": "축구 단체 유니폼 무지 상하의 세트 (번호 인쇄 무료)"
+ },
+ {
+  "id": 35,
+  "categoryId": 3,
+  "group": "team_kit",
+  "name": "풋살 단체복 팀 유니폼 마킹 포함 10벌"
+ },
+ {
+  "id": 36,
+  "categoryId": 3,
+  "group": "team_kit",
+  "name": "조기축구회 단체 유니폼 반팔 상하 세트"
+ },
+ {
+  "id": 37,
+  "categoryId": 3,
+  "group": "training_wear",
+  "name": "나이키 드라이핏 아카데미 트레이닝 상의"
+ },
+ {
+  "id": 38,
+  "categoryId": 3,
+  "group": "training_wear",
+  "name": "아디다스 티로 24 트레이닝 팬츠"
+ },
+ {
+  "id": 39,
+  "categoryId": 4,
+  "group": "shin_guard",
+  "name": "나이키 머큐리얼 라이트 신가드 성인용"
+ },
+ {
+  "id": 40,
+  "categoryId": 4,
+  "group": "shin_guard",
+  "name": "아디다스 프레데터 매치 정강이 보호대"
+ },
+ {
+  "id": 41,
+  "categoryId": 4,
+  "group": "shin_guard",
+  "name": "축구 신가드 슬립인 타입 L"
+ },
+ {
+  "id": 42,
+  "categoryId": 4,
+  "group": "shin_guard",
+  "name": "아동 정강이 보호대 발목 일체형 키즈"
+ },
+ {
+  "id": 43,
+  "categoryId": 4,
+  "group": "ankle_guard",
+  "name": "맥데이비드 발목 보호대 축구 농구 겸용"
+ },
+ {
+  "id": 44,
+  "categoryId": 4,
+  "group": "ankle_guard",
+  "name": "잠스트 A2-DX 발목 아대"
+ },
+ {
+  "id": 45,
+  "categoryId": 4,
+  "group": "knee_guard",
+  "name": "무릎 보호대 축구 골키퍼용 패드"
+ },
+ {
+  "id": 46,
+  "categoryId": 4,
+  "group": "knee_guard",
+  "name": "스포츠 무릎 아대 슬리브 2개입"
+ },
+ {
+  "id": 47,
+  "categoryId": 5,
+  "group": "stocking",
+  "name": "나이키 클래식 축구 스타킹 무릎 양말"
+ },
+ {
+  "id": 48,
+  "categoryId": 5,
+  "group": "stocking",
+  "name": "아디다스 밀리 23 축구 스타킹"
+ },
+ {
+  "id": 49,
+  "categoryId": 5,
+  "group": "stocking",
+  "name": "축구 스타킹 단체 구매 10켤레"
+ },
+ {
+  "id": 50,
+  "categoryId": 5,
+  "group": "grip_socks",
+  "name": "미끄럼방지 축구 그립삭스 발목"
+ },
+ {
+  "id": 51,
+  "categoryId": 5,
+  "group": "grip_socks",
+  "name": "트루삭스 축구 그립 양말 미드"
+ },
+ {
+  "id": 52,
+  "categoryId": 5,
+  "group": "grip_socks",
+  "name": "실리콘 논슬립 축구 양말 3켤레"
+ },
+ {
+  "id": 53,
+  "categoryId": 6,
+  "group": "gk_gloves",
+  "name": "나이키 골키퍼 장갑 그립3"
+ },
+ {
+  "id": 54,
+  "categoryId": 6,
+  "group": "gk_gloves",
+  "name": "아디다스 프레데터 GL 프로 키퍼 장갑"
+ },
+ {
+  "id": 55,
+  "categoryId": 6,
+  "group": "gk_gloves",
+  "name": "푸마 퓨처 Z 골키퍼 글러브 네가티브컷"
+ },
+ {
+  "id": 56,
+  "categoryId": 6,
+  "group": "gk_gloves",
+  "name": "아동 골키퍼 장갑 핑거세이브 키즈"
+ },
+ {
+  "id": 57,
+  "categoryId": 6,
+  "group": "field_gloves",
+  "name": "나이키 필드 플레이어 겨울 장갑 축구용"
+ },
+ {
+  "id": 58,
+  "categoryId": 7,
+  "group": "cones",
+  "name": "축구 마커콘 접시콘 50개 세트"
+ },
+ {
+  "id": 59,
+  "categoryId": 7,
+  "group": "cones",
+  "name": "훈련용 코칭 콘 30cm 10개입"
+ },
+ {
+  "id": 60,
+  "categoryId": 7,
+  "group": "cones",
+  "name": "트레이닝 디스크 콘 세트 거치대 포함"
+ },
+ {
+  "id": 61,
+  "categoryId": 7,
+  "group": "ladder",
+  "name": "스피드 사다리 민첩성 훈련 6m"
+ },
+ {
+  "id": 62,
+  "categoryId": 7,
+  "group": "ladder",
+  "name": "축구 훈련 래더 사다리 9m 가방 포함"
+ },
+ {
+  "id": 63,
+  "categoryId": 7,
+  "group": "mini_goal",
+  "name": "접이식 미니 축구 골대 120cm"
+ },
+ {
+  "id": 64,
+  "categoryId": 7,
+  "group": "mini_goal",
+  "name": "팝업 축구 골대 2개 세트 키즈"
+ },
+ {
+  "id": 65,
+  "categoryId": 7,
+  "group": "pump",
+  "name": "공 펌프 듀얼액션 바늘 포함"
+ },
+ {
+  "id": 66,
+  "categoryId": 7,
+  "group": "pump",
+  "name": "휴대용 볼 펌프 압력계 일체형"
+ },
+ {
+  "id": 67,
+  "categoryId": 8,
+  "group": "backpack",
+  "name": "나이키 아카데미 팀 축구 백팩"
+ },
+ {
+  "id": 68,
+  "categoryId": 8,
+  "group": "backpack",
+  "name": "아디다스 티로 축구 가방 신발 수납"
+ },
+ {
+  "id": 69,
+  "categoryId": 8,
+  "group": "backpack",
+  "name": "축구 가방 공 수납 백팩 대용량"
+ },
+ {
+  "id": 70,
+  "categoryId": 8,
+  "group": "ball_bag",
+  "name": "볼 가방 축구공 10개 수납 메쉬"
+ },
+ {
+  "id": 71,
+  "categoryId": 8,
+  "group": "ball_bag",
+  "name": "축구공 가방 5개입 볼백"
+ },
+ {
+  "id": 72,
+  "categoryId": 8,
+  "group": "bottle",
+  "name": "스포츠 물병 1L BPA 프리 스퀴즈 보틀"
+ },
+ {
+  "id": 73,
+  "categoryId": 8,
+  "group": "bottle",
+  "name": "축구 스퀴즈 물통 750ml"
+ },
+ {
+  "id": 74,
+  "categoryId": 8,
+  "group": "bottle",
+  "name": "나이키 빅마우스 물병 32oz"
+ },
+ {
+  "id": 75,
+  "categoryId": 8,
+  "group": "water_jug",
+  "name": "팀용 워터저그 대용량 10L 수도꼭지"
+ },
+ {
+  "id": 76,
+  "categoryId": 8,
+  "group": "water_jug",
+  "name": "단체 물통 아이스 쿨러 저그 8L"
+ }
+]

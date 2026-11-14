@@ -1,0 +1,63 @@
+package com.cartmate.cartmate.boundedContext.etcService.delivery.out;
+
+import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.Delivery;
+import com.cartmate.cartmate.boundedContext.etcService.delivery.domain.DeliveryStatus;
+import com.cartmate.cartmate.shared.delivery.PurchaseType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
+
+    // 클레임 접수용 조회. 배송 행은 바꾸지 않고 클레임만 새로 저장하므로, 커밋할 때 배송 버전을 강제로 올려
+    // 분산락이 뚫렸을 때 구매확정 × 접수, 접수 × 접수가 버전 충돌로 실패하게 한다.
+    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+    @Query("select d from Delivery d where d.id = :id")
+    Optional<Delivery> findByIdForClaim(@Param("id") Long id);
+
+    // 한 주문의 배송을 모두 잠그고 조회한다. 취소 판정(이벤트 경로, Inbox 트랜잭션 안)이 쓴다.
+    // 배송준비·발송은 배송 키 분산락을 쓰므로 이 행 락과 서로 기다리지 않고, 겹치면 배송 버전이 늦게 커밋한 쪽을 실패시킨다.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select d from Delivery d where d.orderId = :orderId and d.purchaseType = :purchaseType order by d.id")
+    List<Delivery> findAllByOrderIdAndPurchaseTypeForUpdate(
+            @Param("orderId") Long orderId, @Param("purchaseType") PurchaseType purchaseType);
+
+    Optional<Delivery> findByIdempotencyKey(String idempotencyKey);
+
+    boolean existsByIdempotencyKey(String idempotencyKey);
+
+    Page<Delivery> findByMemberIdOrderByCreatedAtDescIdDesc(Long memberId, Pageable pageable);
+
+    // 한 주문의 배송을 구매자 본인 것만 최신순으로 조회한다. 주문 ID는 구매 유형별로 겹칠 수 있어 유형도 함께 건다.
+    List<Delivery> findByMemberIdAndOrderIdAndPurchaseTypeOrderByCreatedAtDescIdDesc(
+            Long memberId, Long orderId, PurchaseType purchaseType);
+
+    // 지정한 시각 이전에 해당 상태가 된 배송의 ID 목록. 배송중 자동 완료 처리 대상 조회에 쓴다.
+    @Query("select d.id from Delivery d where d.status = :status and d.shippedAt < :before order by d.id")
+    List<Long> findIdsByStatusAndShippedAtBefore(
+            @Param("status") DeliveryStatus status, @Param("before") LocalDateTime before);
+
+    // 지정한 시각 이전에 배송완료된 배송의 ID 목록. 자동 구매확정 대상 조회에 쓴다.
+    @Query("select d.id from Delivery d where d.status = :status and d.deliveredAt < :before order by d.id")
+    List<Long> findIdsByStatusAndDeliveredAtBefore(
+            @Param("status") DeliveryStatus status, @Param("before") LocalDateTime before);
+
+    Page<Delivery> findBySellerIdAndStatusOrderByCreatedAtDescIdDesc(
+            Long sellerId, DeliveryStatus status, Pageable pageable);
+
+    // 회원 탈퇴 확인: 구매자·주문·판매자 기준으로 아직 끝나지 않은 배송 수
+    long countByMemberIdAndPurchaseTypeAndStatusIn(Long memberId, PurchaseType purchaseType, Collection<DeliveryStatus> statuses);
+
+    long countByOrderIdInAndPurchaseTypeAndStatusIn(Collection<Long> orderIds, PurchaseType purchaseType, Collection<DeliveryStatus> statuses);
+
+    long countBySellerIdAndStatusIn(Long sellerId, Collection<DeliveryStatus> statuses);
+}

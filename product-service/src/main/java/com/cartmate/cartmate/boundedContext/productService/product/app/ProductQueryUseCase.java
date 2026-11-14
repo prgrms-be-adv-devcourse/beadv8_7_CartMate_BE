@@ -1,0 +1,236 @@
+package com.cartmate.cartmate.boundedContext.productService.product.app;
+
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectInventory;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.SelectProductResponse;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Inventory;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.product.out.ImageStorage;
+import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryRepository;
+import com.cartmate.cartmate.shared.product.dto.InventoryForPurchase;
+import com.cartmate.cartmate.shared.product.dto.ProductForPurchase;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class ProductQueryUseCase {
+    private final ProductRepository productRepository;
+    private final ProductImageRepository productImageRepository;
+    private final InventoryRepository inventoryRepository;
+    private final ImageStorage imageStorage;
+
+    @Transactional(readOnly = true)
+    public List<ProductForPurchase> findProductsForPurchase(Collection<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> distinctIds = productIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (distinctIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Product> products = productRepository.findAllById(distinctIds);
+        if (products.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, String> imageKeyByProductId = representativeImageKeys(
+                products.stream().map(Product::getId).toList());
+
+        Map<Long, Product> productById = products.stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        return distinctIds.stream()
+                .map(productById::get)
+                .filter(Objects::nonNull)
+                .map(product -> toProductForPurchase(product, imageKeyByProductId.get(product.getId())))
+                .toList();
+    }
+
+    // 재고 ID로 구매용 정보 조회(장바구니 담기 · 조회, 주문 생성 · 결제 검증). 요청 순서대로, 없는 ID는 빠진다
+    // 삭제된 재고도 돌려준다(purchasable=false) → 이미 담긴 장바구니 항목을 "구매 불가"로 보여줄 수 있다
+    @Transactional(readOnly = true)
+    public List<InventoryForPurchase> findInventoriesForPurchase(Collection<Long> inventoryIds) {
+        List<Long> distinctIds = distinctIds(inventoryIds);
+        if (distinctIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Inventory> inventoryById = inventoryRepository.findAllByIdIn(distinctIds).stream()
+                .collect(Collectors.toMap(Inventory::getId, Function.identity()));
+        Map<Long, String> imageKeyByProductId = representativeImageKeys(inventoryById.values().stream()
+                .map(inventory -> inventory.getProduct().getId())
+                .distinct()
+                .toList());
+
+        return distinctIds.stream()
+                .map(inventoryById::get)
+                .filter(Objects::nonNull)
+                .map(inventory -> toInventoryForPurchase(inventory, imageKeyByProductId))
+                .toList();
+    }
+
+    // 상품 ID로 그 상품의 재고 목록 조회(공동구매 · 매칭의 옵션 선택). 삭제된 재고는 뺀다
+    @Transactional(readOnly = true)
+    public List<InventoryForPurchase> findInventoriesForPurchaseByProducts(Collection<Long> productIds) {
+        List<Long> distinctIds = distinctIds(productIds);
+        if (distinctIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Inventory> inventories = inventoryRepository
+                .findAllByProduct_IdInAndStatusOrderByIdAsc(distinctIds, ProductStatus.ACTIVE);
+        Map<Long, String> imageKeyByProductId = representativeImageKeys(distinctIds);
+
+        return inventories.stream()
+                .map(inventory -> toInventoryForPurchase(inventory, imageKeyByProductId))
+                .toList();
+    }
+
+    private List<Long> distinctIds(Collection<Long> ids) {
+        if (ids == null) {
+            return List.of();
+        }
+        return ids.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    // 상품별 대표 이미지(imageSeq가 가장 작은 살아 있는 이미지) 키
+    private Map<Long, String> representativeImageKeys(List<Long> productIds) {
+        if (productIds.isEmpty()) {
+            return Map.of();
+        }
+        return productImageRepository.findByProductIdIn(productIds).stream()
+                .filter(image -> image.getStatus() == ProductStatus.ACTIVE)
+                .collect(Collectors.groupingBy(
+                        image -> image.getProduct().getId(),
+                        Collectors.collectingAndThen(
+                                Collectors.minBy(Comparator.comparingInt(ProductImage::getImageSeq)),
+                                image -> image.map(ProductImage::getS3Key).orElse(null)
+                        )
+                ));
+    }
+
+    private InventoryForPurchase toInventoryForPurchase(Inventory inventory, Map<Long, String> imageKeyByProductId) {
+        Product product = inventory.getProduct();
+        String imageKey = imageKeyByProductId.get(product.getId());
+        boolean purchasable = product.getStatus() == ProductStatus.ON_SALE
+                && inventory.isActive()
+                && inventory.availableQuantity() > 0;
+        return new InventoryForPurchase(
+                inventory.getId(),
+                product.getId(),
+                product.getSellerId(),
+                product.getName(),
+                inventory.getSkuName(),
+                inventory.getAppliedPrice(),
+                imageKey == null ? null : imageStorage.toUrl(imageKey),
+                product.getCategoryId(),
+                purchasable
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<SelectProductResponse> selectProductsByPost(Long postId) {
+        return productRepository.findBySalesPostId(postId).stream()
+                .filter(product -> product.getStatus() != ProductStatus.DELETED)
+                .map(this::toSelectProductResponse)
+                .toList();
+    }
+
+    private SelectProductResponse toSelectProductResponse(Product product) {
+        List<SelectProductImage> images = product.getProductImageList().stream()
+                .filter(image -> image.getStatus() == ProductStatus.ACTIVE)
+                .map(this::toSelectProductImage)
+                .toList();
+        List<SelectProductOption> options = product.getProductOptionList().stream()
+                .filter(ProductOption::isActive)
+                .map(this::toSelectProductOption)
+                .toList();
+        List<SelectInventory> inventories = product.activeInventories().stream()
+                .map(this::toSelectInventory)
+                .toList();
+        return new SelectProductResponse(
+                product.getId(),
+                product.getSalesPostId(),
+                product.getCategoryId(),
+                product.getName(),
+                product.getDescription(),
+                product.getBasePrice(),
+                product.getStatus(),
+                images,
+                options,
+                inventories
+        );
+    }
+
+    private SelectInventory toSelectInventory(Inventory inventory) {
+        return new SelectInventory(
+                inventory.getId(),
+                inventory.getSkuName(),
+                inventory.getAppliedPrice(),
+                inventory.getAdditionalPrice(),
+                inventory.getStockQuantity(),
+                inventory.getReservedQuantity(),
+                inventory.getOptionList().stream().map(this::toSelectProductOption).toList()
+        );
+    }
+
+    private SelectProductImage toSelectProductImage(ProductImage image) {
+        return new SelectProductImage(
+                image.getId(),
+                image.getS3Key(),
+                image.getImageSeq(),
+                image.getStatus(),
+                image.getCreateDate(),
+                image.getModifyDate()
+        );
+    }
+
+    // 옵션 종류 · 상품옵션 이름은 상세 화면 선택 목록에 쓴다(마스터를 읽는다. 같은 조회 안에서는 한 번씩만 읽힌다)
+    private SelectProductOption toSelectProductOption(ProductOption option) {
+        return new SelectProductOption(
+                option.getId(),
+                option.getProductTypeId(),
+                option.getProductOptionId(),
+                option.getCreateDate(),
+                option.getModifyDate(),
+                option.getOptionType().getName(),
+                option.getOptionValue().getName()
+        );
+    }
+
+    private ProductForPurchase toProductForPurchase(Product product, String imageKey) {
+        return new ProductForPurchase(
+                product.getId(),
+                product.getSellerId(),
+                product.getName(),
+                product.getBasePrice(),
+                product.getStatus() == ProductStatus.ON_SALE,
+                imageKey == null ? null : imageStorage.toUrl(imageKey),
+                product.getCategoryId()
+        );
+    }
+}

@@ -1,0 +1,129 @@
+# product-service 설정. 루트 모놀리스 설정을 그대로 옮겨 왔다(2026-11-06).
+# 이 서비스에 필요 없는 항목은 담당자가 정리한다. 로컬 DB 등 개인 설정은 application-dev.yaml(커밋 안 함)에 둔다.
+server:
+  port: ${PRODUCT_SERVICE_PORT:8982}
+spring:
+  application:
+    name: product-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  kafka:
+    # cartmate.kafka.enabled=true일 때만 실제로 연결한다(기본 꺼짐 → 브로커 없이도 지금처럼 동작)
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    consumer:
+      group-id: product-service   # order-service와 다른 그룹이어야 같은 공동구매 · 주문 이벤트를 둘 다 받는다
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    # 관측: 보낼 때 traceparent 헤더를 싣고, 받을 때 이어 붙인다 (기본 꺼짐)
+    template:
+      observation-enabled: true
+    listener:
+      observation-enabled: true
+  batch:
+    job:
+      enabled: false # Job은 스케줄러가 실행하므로 애플리케이션 시작 시 자동 실행하지 않는다
+    jdbc:
+      initialize-schema: always # MySQL에도 배치 메타데이터 테이블을 만든다
+  # 옵션 종류 · 상품옵션 초기 데이터(classpath:data.sql). 시작할 때마다 실행하고, 이미 있는 ID는 건너뛴다
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8   # 한글 데이터. Windows 기본 인코딩(MS949)으로 읽으면 깨진다
+  jpa:
+    defer-datasource-initialization: true   # Hibernate(ddl-auto)가 테이블을 만든 뒤에 data.sql 실행
+custom:
+  wallet:
+    platform-member-id: ${PLATFORM_MEMBER_ID:1} # 판매 수수료를 받는 관리자 회원 ID. 환경마다 PLATFORM_MEMBER_ID로 바꾼다
+    toss:
+      base-url: https://api.tosspayments.com
+      secret-key: ${TOSS_SECRET_KEY:} # 결제위젯 연동 키의 시크릿 키. 저장소에는 비워 두고 환경 변수 TOSS_SECRET_KEY로 넣는다
+  openbanking:
+    mode: ${OPENBANKING_MODE:fake} # 승인 전에는 fake(실제 계좌 검증 없음). live 구현체는 이용기관 승인 후 추가한다
+    client-id: ${OPENBANKING_CLIENT_ID:} # 저장소에는 비워 두고 환경 변수로 넣는다. live일 때만 필요하다
+    client-secret: ${OPENBANKING_CLIENT_SECRET:}
+    org-code: ${OPENBANKING_ORG_CODE:}
+  member:
+    seller:
+      minAge: 19
+    seller-account:
+      verified-ttl: 10m # 계좌 확인 통과 표시 유효시간. 이 안에 판매자 등록을 마쳐야 한다
+      max-attempts: 5 # 회원당 계좌 확인 호출 횟수 한도
+      attempt-window: 10m # 위 횟수를 세는 시간 창
+    phone:
+      codeTtlSeconds: 180
+      verifiedTtlSeconds: 600
+      maxAttempts: 5
+  jwt:
+    secret: ${JWT_SECRET:cartmate-local-dev-secret-key-must-be-at-least-32-bytes}
+    accessTokenExpireSeconds: 1800
+    refreshTokenRememberDays: 30
+    refreshTokenSessionHours: 24
+  cookie:
+    secure: false
+  redis:
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:1}
+    cache:
+      host: ${REDIS_CACHE_HOST:localhost}
+      port: ${REDIS_CACHE_PORT:6379}
+    core:
+      host: ${REDIS_CORE_HOST:localhost}
+      port: ${REDIS_CORE_PORT:6380}
+
+cartmate:
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}   # 켜면 outbox 이벤트(페이백 요청)를 Kafka로도 내보내고, 공동구매 · 주문 · 구매확정 · wallet 결과를 Kafka로 받는다
+  image-cleanup:   # 고아 사진 파일 정리(ProductImageOrphanCleanScheduler, 매일 새벽 5시)
+    dry-run: ${IMAGE_CLEANUP_DRY_RUN:true}   # 기본은 지울 대상만 로그로 남긴다. 결과를 확인한 뒤 false로 켠다
+    grace-period: P1D                         # 올린 지 이만큼 지난 파일만 대상(업로드 중인 정상 파일 보호)
+  payment:
+    # 주문이 결제를 부르는 방식. local: 같은 앱 결제 Facade (차감·주문 반영 한 트랜잭션)
+    #                          http : 결제 서버 내부 API (서버 분리 후와 같음, 차감·반영이 다른 트랜잭션)
+    client: ${PAYMENT_CLIENT:http}   # 회원의 결제 Facade 직접 호출(local)은 서버 분리로 없어졌다
+    base-url: ${PAYMENT_BASE_URL:http://localhost:8983}   # 결제 서버 내부 API
+  member-service:
+    base-url: ${MEMBER_SERVICE_BASE_URL:http://localhost:8981}   # 회원 서버 내부 API
+  etc-service:
+    base-url: ${ETC_SERVICE_BASE_URL:http://localhost:8984}   # 배송 서버 내부 API
+  product-service:
+    base-url: ${PRODUCT_SERVICE_BASE_URL:http://localhost:8982}   # 상품 서버 내부 API
+  order-service:
+    base-url: ${ORDER_SERVICE_BASE_URL:http://localhost:8986}   # 주문 서버(장바구니·공동구매·주문, order-service 모듈) 내부 API
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-key}   # /internal/** 서버 간 호출 키. 운영은 반드시 환경 변수로
+product:
+  global:
+    internalUrl: ${PRODUCT_URL:http://localhost:8982}   # 판매글이 상품 API를 부르는 주소(같은 상품 서버). 운영은 application-prod.yaml의 PRODUCT_URL
+
+# 관측 가능성 (서비스 공통 — 바꾸면 다른 서비스 application.yaml도 같이)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health   # actuator는 health만. SecurityConfig가 permitAll이라 노출 범위를 좁게 고정
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING:1.0}   # 트래픽이 적어 100%
+  # OTLP 트레이스 주소는 환경 변수 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT. 없으면 내보내지 않음 (traceId는 로그에만)
+  # 빈 값으로 적으면 앱이 안 뜨므로 여기 적지 않는다 → common OtlpEndpointEnvironmentPostProcessor가 값이 있을 때만 넘김
+  otlp:
+    metrics:
+      export:
+        enabled: false   # 메트릭은 이번 범위 밖 (기본 켜짐이라 localhost:4318로 계속 보내려 함)
+  observations:
+    annotations:
+      enabled: true   # cron 배치의 @Observed (실행 1회 = span 하나)
+
+sentry:
+  dsn: ${SENTRY_DSN:}   # 비어 있으면 꺼짐
+  environment: ${SENTRY_ENVIRONMENT:local}
+  send-default-pii: false
+  exception-resolver-order: -2147483647   # @RestControllerAdvice가 처리한 예외도 보게 (4xx는 SentryEventFilter가 거름)
+  logging:
+    minimum-event-level: error
+    minimum-breadcrumb-level: info

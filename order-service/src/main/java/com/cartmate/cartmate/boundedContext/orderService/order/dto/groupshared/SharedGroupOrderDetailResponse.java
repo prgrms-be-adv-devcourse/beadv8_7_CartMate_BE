@@ -1,0 +1,144 @@
+package com.cartmate.cartmate.boundedContext.orderService.order.dto.groupshared;
+
+import com.cartmate.cartmate.shared.delivery.DeliveryCancelReason;
+import io.swagger.v3.oas.annotations.media.Schema;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrder;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderCancelReason;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderItem;
+import com.cartmate.cartmate.boundedContext.orderService.order.domain.groupshared.SharedGroupOrderParticipant;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderParticipantStatus;
+import com.cartmate.cartmate.shared.order.SharedGroupOrderStatus;
+import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderProductInfo;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+public record SharedGroupOrderDetailResponse(
+        Long id,
+        Long sharedGroupPurchaseId,
+        SharedGroupOrderStatus status,
+        SharedGroupOrderCancelReason cancelReason,
+        boolean creator,
+        long totalAmount,
+        long myShareAmount,
+        SharedGroupOrderParticipantStatus myPaymentStatus,
+        LocalDateTime paymentDeadlineAt,
+        LocalDateTime confirmedAt,
+        LocalDateTime canceledAt,
+        AddressResponse teamDeliveryAddress,
+        List<ParticipantResponse> participants,
+        List<ItemResponse> items,
+        LocalDateTime serverTime
+) {
+
+    public static SharedGroupOrderDetailResponse of(
+            SharedGroupOrder order, Map<Long, OrderProductInfo> products, Map<Long, String> nicknames,
+            Long viewerId, LocalDateTime now
+    ) {
+        SharedGroupOrderParticipant me = order.getParticipant(viewerId);
+        List<ParticipantResponse> participants = order.getParticipants().stream()
+                .map(participant -> ParticipantResponse.of(participant, order.isCreator(participant.getMemberId()),
+                        nicknames.get(participant.getMemberId())))
+                .toList();
+        List<ItemResponse> items = order.getItems().stream()
+                .map(item -> ItemResponse.of(item, products.get(item.getInventoryId())))
+                .toList();
+        return new SharedGroupOrderDetailResponse(
+                order.getId(),
+                order.getSharedGroupPurchaseId(),
+                order.getStatus(),
+                order.getCancelReason(),
+                order.isCreator(viewerId),
+                order.getTotalAmount(),
+                me.getShareAmount(),
+                me.getStatus(),
+                order.getPaymentDeadlineAt(),
+                order.getConfirmedAt(),
+                order.getCanceledAt(),
+                AddressResponse.from(order.getTeamDeliveryAddress()),
+                participants,
+                items,
+                now
+        );
+    }
+
+    public record ParticipantResponse(
+            Long memberId,
+            boolean creator,
+            long shareAmount,
+            SharedGroupOrderParticipantStatus status,
+            LocalDateTime paidAt,
+            String nickname
+    ) {
+
+        static ParticipantResponse of(SharedGroupOrderParticipant participant, boolean creator, String nickname) {
+            return new ParticipantResponse(
+                    participant.getMemberId(),
+                    creator,
+                    participant.getShareAmount(),
+                    participant.getStatus(),
+                    participant.getPaidAt(),
+                    nickname
+            );
+        }
+    }
+
+    @Schema(name = "SharedGroupOrderDetailItemResponse")
+    public record ItemResponse(
+            Long itemId,
+            Long productId,
+            Long inventoryId,
+            String productName,
+            String optionName,
+            String imageUrl,
+            int quantity,
+            long unitPrice,
+            long amount,
+            @Schema(description = "취소된 항목이면 취소 시각 (판매글 내림 또는 판매자 사유 취소). 공동구매 전체 취소는 주문의 canceledAt을 본다")
+            LocalDateTime canceledAt,
+            @Schema(description = "취소된 항목이면 취소 사유 (판매 중지, 품절·재고 부족 같은 판매자 사유). 이 칸이 생기기 전에 취소된 항목은 null")
+            DeliveryCancelReason cancelReason
+    ) {
+
+        static ItemResponse of(SharedGroupOrderItem item, OrderProductInfo product) {
+            return new ItemResponse(
+                    item.getId(),
+                    item.getProductId(),
+                    item.getInventoryId(),
+                    product == null ? null : product.productName(),
+                    product == null ? null : product.optionName(),
+                    product == null ? null : product.imageUrl(),
+                    item.getQuantity(),
+                    item.getUnitPrice(),
+                    item.amount(),
+                    item.getCanceledAt(),
+                    item.getCancelReason()
+            );
+        }
+    }
+
+    @Schema(name = "SharedGroupOrderDetailAddressResponse")
+    public record AddressResponse(
+            String receiverName,
+            String receiverPhone,
+            String zipCode,
+            String address,
+            String addressDetail
+    ) {
+
+        static AddressResponse from(DeliveryAddress address) {
+            if (address == null) {
+                return null;
+            }
+            return new AddressResponse(
+                    address.getReceiverName(),
+                    address.getReceiverPhone(),
+                    address.getZipCode(),
+                    address.getAddress(),
+                    address.getAddressDetail()
+            );
+        }
+    }
+}

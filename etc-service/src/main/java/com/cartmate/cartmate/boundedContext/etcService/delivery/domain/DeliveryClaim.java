@@ -1,0 +1,157 @@
+package com.cartmate.cartmate.boundedContext.etcService.delivery.domain;
+
+import com.cartmate.cartmate.boundedContext.etcService.delivery.exception.DeliveryErrorCode;
+import com.cartmate.cartmate.global.exception.ServiceException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "delivery_claim")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
+public class DeliveryClaim {
+
+    public static final int DETAIL_MAX_LENGTH = 1000;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "delivery_id", nullable = false)
+    private Delivery delivery;
+
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;      //접수한 구매자
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "claim_type", nullable = false)
+    private ClaimType claimType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reason", nullable = false)
+    private ClaimReason reason;
+
+    @Column(name = "detail", length = DETAIL_MAX_LENGTH)
+    private String detail;      //상세 사유
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ClaimStatus status;
+
+    @Column(name = "reject_reason", length = DETAIL_MAX_LENGTH)
+    private String rejectReason;    //판매자 거절 사유
+
+    @Column(name = "processed_at")
+    private LocalDateTime processedAt;  //판매자 승인·거절 시각
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;  //처리 완료 시각
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "refund_status", nullable = false, columnDefinition = "varchar(20) not null default 'NONE'")
+    private RefundStatus refundStatus = RefundStatus.NONE;
+
+    // 같은 클레임의 승인·거절·완료가 분산락 없이 겹칠 때 늦게 커밋한 쪽을 실패시킨다.
+    // 이미 있는 행은 컬럼이 추가될 때 0으로 채워진다(기본값). null이면 버전 비교가 맞지 않아 수정이 모두 실패한다.
+    @Version
+    @Column(name = "version", nullable = false, columnDefinition = "bigint not null default 0")
+    private Long version;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;    //접수 시각
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    public static DeliveryClaim create(
+            Delivery delivery, Long memberId, ClaimType claimType, ClaimReason reason, String detail
+    ) {
+        return new DeliveryClaim(delivery, memberId, claimType, reason, detail);
+    }
+
+    private DeliveryClaim(
+            Delivery delivery, Long memberId, ClaimType claimType, ClaimReason reason, String detail
+    ) {
+        this.delivery = delivery;
+        this.memberId = memberId;
+        this.claimType = claimType;
+        this.reason = reason;
+        this.detail = detail;
+        this.status = ClaimStatus.REQUESTED;
+    }
+
+    // 판매자가 접수된 교환·환불을 수락한다. 이미 수락된 클레임이면 아무것도 하지 않아 재요청해도 안전하다.
+    public void approve(boolean refundRequired) {
+        if (this.status == ClaimStatus.APPROVED) {
+            return;
+        }
+        if (this.status != ClaimStatus.REQUESTED) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_INVALID_STATUS);
+        }
+
+        this.status = ClaimStatus.APPROVED;
+        this.refundStatus = refundRequired ? RefundStatus.PENDING : RefundStatus.NONE;
+        this.processedAt = LocalDateTime.now();
+    }
+
+    // 판매자가 접수된 교환·환불을 거절하고 사유를 남긴다. 이미 거절된 클레임이면 아무것도 하지 않아 재요청해도 안전하다.
+    public void reject(String rejectReason) {
+        if (this.status == ClaimStatus.REJECTED) {
+            return;
+        }
+        if (this.status != ClaimStatus.REQUESTED) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_INVALID_STATUS);
+        }
+
+        this.status = ClaimStatus.REJECTED;
+        this.rejectReason = rejectReason;
+        this.processedAt = LocalDateTime.now();
+    }
+
+    // 수락된 교환·환불을 처리 완료로 바꾸고 완료 시각을 기록한다. 이미 완료된 클레임이면 아무것도 하지 않아 재요청해도 안전하다.
+    public void complete() {
+        if (this.status == ClaimStatus.COMPLETED) {
+            return;
+        }
+        if (this.status != ClaimStatus.APPROVED) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_INVALID_STATUS);
+        }
+        if (this.refundStatus == RefundStatus.PENDING) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REFUND_PENDING);
+        }
+        if (this.refundStatus == RefundStatus.FAILED) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REFUND_FAILED);
+        }
+
+        this.status = ClaimStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    public void completeRefund() {
+        if (this.refundStatus == RefundStatus.NONE) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REFUND_NOT_REQUIRED);
+        }
+        this.refundStatus = RefundStatus.COMPLETED;
+    }
+
+    public void failRefund() {
+        if (this.refundStatus == RefundStatus.NONE) {
+            throw new ServiceException(DeliveryErrorCode.DELIVERY_CLAIM_REFUND_NOT_REQUIRED);
+        }
+        if (this.refundStatus == RefundStatus.COMPLETED) {
+            return;
+        }
+        this.refundStatus = RefundStatus.FAILED;
+    }
+}
