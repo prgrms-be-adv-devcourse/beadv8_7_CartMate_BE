@@ -63,7 +63,19 @@ public class InventoryReservation extends BaseIdAndTime {
         return status == InventoryReservationStatus.RESERVED || status == InventoryReservationStatus.CONFIRMED;
     }
 
+    public boolean isConfirmed() {
+        return status == InventoryReservationStatus.CONFIRMED;
+    }
+
     public void release() {
         this.status = InventoryReservationStatus.RELEASED;
+    }
+
+    public void confirm() {
+        this.status = InventoryReservationStatus.CONFIRMED;
+    }
+
+    public void restore() {
+        this.status = InventoryReservationStatus.RESTORED;
     }
 }

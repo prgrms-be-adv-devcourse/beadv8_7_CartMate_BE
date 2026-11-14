@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProdu
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.RestoreProductsRequest;
+import com.cartmate.cartmate.shared.order.OrderType;
 import com.cartmate.cartmate.shared.product.dto.*;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
@@ -149,6 +150,18 @@ public class ProductFacade {
 
     public void releaseInventories(InventoryReleaseRequest request) {
         inventoryReservationUseCase.release(request.orderType(), request.orderId());
+    }
+
+    public void confirmInventories(OrderType orderType, Long orderId) {
+        inventoryReservationUseCase.confirm(orderType, orderId);
+    }
+
+    public void cancelInventories(OrderType orderType, Long orderId) {
+        inventoryReservationUseCase.cancel(orderType, orderId);
+    }
+
+    public void cancelSellerInventories(Long orderId, Long sellerId) {
+        inventoryReservationUseCase.cancelSeller(orderId, sellerId);
     }
 
     @Transactional(readOnly = true)

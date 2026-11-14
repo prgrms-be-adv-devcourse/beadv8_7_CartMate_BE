@@ -31,4 +31,16 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Query("update Inventory i set i.reservedQuantity = i.reservedQuantity - :quantity "
             + "where i.id = :id and i.reservedQuantity >= :quantity")
     int release(@Param("id") Long id, @Param("quantity") int quantity);
+
+    // 판매 확정: 선점했던 수량을 재고와 선점에서 함께 뺀다(남은 수량은 그대로). 바뀐 행 수 0 = 기록과 어긋남
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Inventory i set i.stockQuantity = i.stockQuantity - :quantity, "
+            + "i.reservedQuantity = i.reservedQuantity - :quantity "
+            + "where i.id = :id and i.reservedQuantity >= :quantity and i.stockQuantity >= :quantity")
+    int confirm(@Param("id") Long id, @Param("quantity") int quantity);
+
+    // 재고 복구: 결제 후 취소된 수량을 재고에 되돌린다
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Inventory i set i.stockQuantity = i.stockQuantity + :quantity where i.id = :id")
+    int restore(@Param("id") Long id, @Param("quantity") int quantity);
 }
