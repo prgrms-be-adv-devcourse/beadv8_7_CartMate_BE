@@ -1,16 +1,19 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Inventory;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.Product;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
-import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CompleteProductUpdateRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductImage;
-import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateInventory;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
+import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionValueRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.code.ProductErrorCode;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -26,6 +29,20 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductUpdateUseCase {
     private final ProductRepository productRepository;
+    private final ProductOptionValueRepository productOptionValueRepository;
+
+    // 판매글 수정 끝: 수정 중(UPDATING)인 상품을 post가 보낸 수정 전 상태로 되돌린다. 다시 불러도 결과가 같다(멱등)
+    @Transactional
+    public void completeUpdate(Long postId, CompleteProductUpdateRequest request) {
+        for (CompleteProductUpdateRequest.Item item : request.getProductList()) {
+            Product product = productRepository.findById(item.getId())
+                    .orElseThrow(() -> new ServiceException(ProductErrorCode.PRODUCT_NOT_FOUND));
+            if (!product.getSalesPostId().equals(postId)) {
+                throw new ServiceException(ProductErrorCode.PRODUCT_ACCESS_DENIED);
+            }
+            product.finishUpdating(item.getStatus());
+        }
+    }
 
     @Transactional
     public ProductUpdateResult updateProduct(UpdateProductsRequest request, List<UploadedImage> uploadedImageList) {
@@ -37,6 +54,7 @@ public class ProductUpdateUseCase {
 
         List<Product> updatedProducts = new ArrayList<>();
         List<String> deletedKeys = new ArrayList<>();
+        Map<Long, List<Long>> removedInventoryIdsByProduct = new HashMap<>();
 
         List<UpdateProduct> productList = request.getProductList();
         for (int i = 0; i < productList.size(); i++) {
@@ -52,6 +70,8 @@ public class ProductUpdateUseCase {
 
             product.update(productReq.getCategoryId(), productReq.getName(), productReq.getDescription(),
                     productReq.getBasePrice());
+            // 판매글 수정이 끝날 때까지(post가 "수정 끝" API를 부르거나 복구할 때까지) 구매를 막는다
+            product.startUpdating();
             updatedProducts.add(product);
 
             // 이미지 변경이 있을 때만
@@ -59,16 +79,19 @@ public class ProductUpdateUseCase {
                 updateImages(product, productReq.getProductImageList(), uploadedKeyMap, i, deletedKeys);
             }
 
-            // 옵션 변경이 있을 때만
-            if (productReq.getProductOptionList() != null) {
-                updateOptions(product, productReq.getProductOptionList());
+            // 재고(와 재고에서 분리된 선택된 옵션) 변경이 있을 때만
+            if (productReq.getInventoryList() != null) {
+                removedInventoryIdsByProduct.put(product.getId(),
+                        updateInventories(product, productReq.getInventoryList()));
             }
         }
 
         productRepository.flush();
 
+        // 응답에 빠진 재고 ID를 싣는다. 이벤트는 수정이 끝까지 성공했을 때 post가 낸다(실패해 복구되면 재고가 되살아나므로)
         List<SyncProduct> syncProductList = updatedProducts.stream()
-                .map(Product::toSyncProduct)
+                .map(product -> product.toSyncProduct(
+                        removedInventoryIdsByProduct.getOrDefault(product.getId(), List.of())))
                 .toList();
 
         return new ProductUpdateResult(syncProductList, deletedKeys);
@@ -112,34 +135,46 @@ public class ProductUpdateUseCase {
         }
     }
 
-    private void updateOptions(Product product, List<UpdateProductOption> reqOptionList) {
-        // 이미 삭제된 옵션은 수정 대상이 아니다(요청에 그 ID가 오면 PRODUCT_OPTION_NOT_FOUND)
-        Map<Long, ProductOption> storedIdMap = product.getProductOptionList().stream()
-                .filter(ProductOption::isActive)
-                .collect(Collectors.toMap(ProductOption::getId, Function.identity()));
+    // 재고를 요청 기준으로 맞춘다. 재고의 조합(선택된 옵션)은 바꾸지 않는다
+    // - id 있음: 기존 재고의 추가금액 · 재고 수량만 바꾼다 (이미 삭제된 재고면 PRODUCT_INVENTORY_NOT_FOUND)
+    // - id 없음: 새 재고 + 그 재고에서 분리된 선택된 옵션을 추가한다 (살아 있는 재고와 조합이 같으면 거부)
+    // - 요청에 없는 기존 재고: 선택된 옵션과 함께 삭제 상태로 (행과 재고 ID는 남는다)
+    // 빠진(삭제 상태로 바꾼) 재고 ID를 돌려준다
+    private List<Long> updateInventories(Product product, List<UpdateInventory> reqInventoryList) {
+        Map<Long, Inventory> activeById = product.activeInventories().stream()
+                .collect(Collectors.toMap(Inventory::getId, Function.identity()));
 
-        Set<Long> keepOptionIds = reqOptionList.stream()
-                .map(UpdateProductOption::getId)
+        Set<Long> keepIds = reqInventoryList.stream()
+                .map(UpdateInventory::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // 요청에 없는 기존 옵션은 삭제 상태로 바꾼다(행을 지우지 않아 옵션 ID가 남는다)
-        storedIdMap.values().stream()
-                .filter(o -> !keepOptionIds.contains(o.getId()))
-                .forEach(ProductOption::delete);
+        // 먼저 지워야 같은 조합을 새로 추가하는 요청(지우고 다시 만들기)이 중복으로 걸리지 않는다
+        List<Long> removedIds = activeById.values().stream()
+                .filter(inventory -> !keepIds.contains(inventory.getId()))
+                .map(Inventory::delete)
+                .map(Inventory::getId)
+                .sorted()
+                .toList();
 
-        for (UpdateProductOption option : reqOptionList) {
-            if (option.getId() == null) {
-                ProductOption newOption = new ProductOption(product, option.getProductTypeId(), option.getProductOptionId(),
-                        ProductStatus.ACTIVE);
-                product.addOption(newOption);
+        for (UpdateInventory req : reqInventoryList) {
+            if (req.getId() == null) {
+                product.addInventory(
+                        productOptionValueRepository.getOptionValues(CreateProductOption.optionIds(req.getOptionList())),
+                        req.getAdditionalPrice(),
+                        req.getStockQuantity());
             } else {
-                ProductOption existing = storedIdMap.get(option.getId());
+                Inventory existing = activeById.get(req.getId());
                 if (existing == null) {
-                    throw new ServiceException(ProductErrorCode.PRODUCT_OPTION_NOT_FOUND);
+                    throw new ServiceException(ProductErrorCode.PRODUCT_INVENTORY_NOT_FOUND);
                 }
-                existing.update(option.getProductTypeId(), option.getProductOptionId());
+                existing.change(req.getAdditionalPrice(), req.getStockQuantity());
             }
         }
+
+        if (product.activeInventories().isEmpty()) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_INVENTORY_REQUIRED);
+        }
+        return removedIds;
     }
 }

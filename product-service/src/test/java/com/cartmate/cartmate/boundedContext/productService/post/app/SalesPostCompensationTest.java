@@ -94,7 +94,7 @@ class SalesPostCompensationTest {
             CreateProductRequest productRequest = invocation.getArgument(0);
             LocalDateTime now = LocalDateTime.now();
             return List.of(new SyncProduct(1L, 7L, productRequest.getPostId(), 1L, "아이폰", "설명", 10000L,
-                    now, now, List.of(), List.of()));
+                    now, now, List.of(), List.of(), List.of()));
         });
 
         List<MultipartFile> images = getDummyImages(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.png());

@@ -16,6 +16,7 @@ public enum SalesPostErrorCode implements ErrorCode {
     POST_NOT_RECOVERING_STATUS(HttpStatus.BAD_REQUEST, "POST_NOT_RECOVERING_STATUS", "복구중인 상태가 아닙니다."),
     POST_RECOVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "POST_RECOVERY_NOT_FOUND", "복구 데이터가 존재하지 않습니다."),
     POST_SUSPEND_NOT_ALLOWED(HttpStatus.CONFLICT, "POST_SUSPEND_NOT_ALLOWED", "판매 중이거나 판매자가 내린 판매글만 숨길 수 있습니다."),
+    POST_UPDATE_IN_PROGRESS(HttpStatus.CONFLICT, "POST_UPDATE_IN_PROGRESS", "판매자가 판매글을 수정하는 중입니다. 잠시 후 다시 시도해 주세요."),
     POST_RESUME_NOT_ALLOWED(HttpStatus.CONFLICT, "POST_RESUME_NOT_ALLOWED", "관리자가 숨긴 판매글만 해제할 수 있습니다."),
     POST_PAUSE_NOT_ALLOWED(HttpStatus.CONFLICT, "POST_PAUSE_NOT_ALLOWED", "판매 중인 판매글만 판매 중지할 수 있습니다."),
     POST_SELLER_RESUME_NOT_ALLOWED(HttpStatus.CONFLICT, "POST_SELLER_RESUME_NOT_ALLOWED", "판매자가 중지한 판매글만 다시 판매할 수 있습니다."),

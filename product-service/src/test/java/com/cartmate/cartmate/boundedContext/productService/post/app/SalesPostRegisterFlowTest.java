@@ -1,11 +1,14 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
+import static com.cartmate.cartmate.support.TestInventories.inventory;
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductImage;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductOption;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption;
+import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateInventory;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostProductImage;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
@@ -19,6 +22,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.Produc
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -106,6 +110,8 @@ class SalesPostRegisterFlowTest {
     @Autowired
     ProductOptionRepository productOptionRepository;
     @Autowired
+    InventoryRepository inventoryRepository;
+    @Autowired
     FakeImageStorage storage;
 
     @Autowired
@@ -162,7 +168,7 @@ class SalesPostRegisterFlowTest {
         assertThat(productImages).hasSize(2);
         assertThat(productOptionRepository.findAll())
                 .extracting(ProductOption::getProductTypeId, ProductOption::getProductOptionId)
-                .containsExactlyInAnyOrder(tuple(1L, 100L), tuple(2L, 200L));
+                .containsExactlyInAnyOrder(tuple(CLOTHING_SIZE, SIZE_L), tuple(COLOR, BLACK));
 
         List<SalesPostProduct> copies = salesPostProductRepository.findAll();
         assertThat(copies).hasSize(1);
@@ -184,7 +190,7 @@ class SalesPostRegisterFlowTest {
                         .toList());
         assertThat(salesPostProductOptionRepository.findAll())
                 .extracting(SalesPostProductOption::getProductTypeId, SalesPostProductOption::getProductOptionId)
-                .containsExactlyInAnyOrder(tuple(1L, 100L), tuple(2L, 200L));
+                .containsExactlyInAnyOrder(tuple(CLOTHING_SIZE, SIZE_L), tuple(COLOR, BLACK));
     }
 
     // 상품과 복제본, 사진 파일이 이미 만들어진 뒤에 실패하는 경우. 보상이 실제로 되돌려야 할 데이터가 있다
@@ -232,6 +238,8 @@ class SalesPostRegisterFlowTest {
         assertThat(salesPostRepository.count()).isZero();
         assertThat(productRepository.count()).isZero();
         assertThat(productImageRepository.count()).isZero();
+        // 등록 보상만 행을 실제로 지운다: 선택된 옵션 → 재고 → 상품 순으로 지워져 FK가 깨지지 않는다
+        assertThat(inventoryRepository.count()).isZero();
         assertThat(productOptionRepository.count()).isZero();
         assertThat(salesPostProductRepository.count()).isZero();
         assertThat(salesPostProductImageRepository.count()).isZero();
@@ -249,7 +257,7 @@ class SalesPostRegisterFlowTest {
                 new CreateSalesPostProductImage(null, null, null, 0, null),
                 new CreateSalesPostProductImage(null, null, null, 1, null)
         );
-        List<CreateProductOption> options = List.of(new CreateProductOption(1L, 100L), new CreateProductOption(2L, 200L));
+        List<CreateInventory> options = List.of(inventory(new CreateProductOption(CLOTHING_SIZE, SIZE_L), new CreateProductOption(COLOR, BLACK)));
         CreateSalesPostProduct product = new CreateSalesPostProduct(
                 null, null, 1L, "아이폰", "설명", 10000L, productImages, options);
 

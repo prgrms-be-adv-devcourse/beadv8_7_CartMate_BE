@@ -1,5 +1,8 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import static com.cartmate.cartmate.support.TestInventories.inventory;
+import static com.cartmate.cartmate.support.SeedOptions.*;
+import com.cartmate.cartmate.support.TestInventories;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPost;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateSalesPostRequest;
@@ -15,6 +18,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.Produc
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductImage;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductOption;
+import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateInventory;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
@@ -186,7 +190,7 @@ class ProductRegisterTest {
     void returnSavedProducts() {
         SalesPost post = salesPostCreateUseCase.saveSalesPost(
                 new CreateSalesPostRequest(null, SELLER_ID, "아이폰 팝니다", "상태 좋아요", List.of()));
-        List<CreateProductOption> options = List.of(new CreateProductOption(1L, 100L), new CreateProductOption(2L, 200L));
+        List<CreateInventory> options = List.of(inventory(new CreateProductOption(CLOTHING_SIZE, SIZE_L), new CreateProductOption(COLOR, BLACK)));
         CreateProductRequest request = request(post.getId(),
                 getDummyProduct(post.getId(), "아이폰", 2, options)
         );
@@ -218,7 +222,7 @@ class ProductRegisterTest {
                         .toList());
         assertThat(returned.getProductOptionList())
                 .extracting(SyncProductOption::getProductTypeId, SyncProductOption::getProductOptionId)
-                .containsExactlyInAnyOrder(tuple(1L, 100L), tuple(2L, 200L));
+                .containsExactlyInAnyOrder(tuple(CLOTHING_SIZE, SIZE_L), tuple(COLOR, BLACK));
 
         assertThat(salesPostProductRepository.count()).isZero();
     }
@@ -227,12 +231,15 @@ class ProductRegisterTest {
         return new CreateProductRequest(postId, List.of(products));
     }
 
-    private CreateProduct getDummyProduct(Long postId, String name, int imageCount, List<CreateProductOption> options) {
+    // inventories가 null이면 옵션 없는 기본 재고 하나로 등록한다(상품에는 재고가 하나 이상 있어야 한다)
+    private CreateProduct getDummyProduct(Long postId, String name, int imageCount, List<CreateInventory> inventories) {
         List<CreateProductImage> images = new ArrayList<>();
         for (int seq = 0; seq < imageCount; seq++) {
             images.add(new CreateProductImage(null, SELLER_ID, null, null, seq, null));
         }
-        return new CreateProduct(null, SELLER_ID, postId, 1L, name, "설명", 10000L, images, options);
+        List<CreateInventory> inventoryList = inventories != null ? inventories
+                : List.of(new CreateInventory(List.of(), TestInventories.ADDITIONAL_PRICE, TestInventories.STOCK_QUANTITY));
+        return new CreateProduct(null, SELLER_ID, postId, 1L, name, "설명", 10000L, images, inventoryList);
     }
 
     private List<MultipartFile> getDummyImages(MultipartFile... files) {

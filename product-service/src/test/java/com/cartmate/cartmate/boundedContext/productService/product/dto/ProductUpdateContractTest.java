@@ -41,8 +41,9 @@ class ProductUpdateContractTest {
                         1L, 30L, "아이폰", "부사 5kg", 25000L,
                         List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostProductImage(
                                 100L, 1L, "products/a.jpg", 0)),
-                        List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostProductOption(
-                                200L, 1L, 11L)))));
+                        List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostInventory(
+                                200L, List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption(1L, 11L)),
+                                500L, 3)))));
 
         UpdateProductsRequest received = lenient.readValue(lenient.writeValueAsString(sent), UpdateProductsRequest.class);
 
@@ -58,9 +59,12 @@ class ProductUpdateContractTest {
                 .extracting(UpdateProductImage::getId, UpdateProductImage::getProductId,
                         UpdateProductImage::getS3Key, UpdateProductImage::getImageSeq)
                 .containsExactly(tuple(100L, 1L, "products/a.jpg", 0));
-        assertThat(product.getProductOptionList())
-                .extracting(UpdateProductOption::getId, UpdateProductOption::getProductTypeId, UpdateProductOption::getProductOptionId)
-                .containsExactly(tuple(200L, 1L, 11L));
+        assertThat(product.getInventoryList())
+                .extracting(UpdateInventory::getId, UpdateInventory::getAdditionalPrice, UpdateInventory::getStockQuantity)
+                .containsExactly(tuple(200L, 500L, 3));
+        assertThat(product.getInventoryList().getFirst().getOptionList())
+                .extracting(CreateProductOption::getProductTypeId, CreateProductOption::getProductOptionId)
+                .containsExactly(tuple(1L, 11L));
     }
 
     @Test
@@ -72,8 +76,9 @@ class ProductUpdateContractTest {
                         1L, 30L, "아이폰", "부사 5kg", 25000L,
                         List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostProductImage(
                                 100L, 1L, "products/a.jpg", 0)),
-                        List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostProductOption(
-                                200L, 1L, 11L)))));
+                        List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.UpdateSalesPostInventory(
+                                200L, List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption(1L, 11L)),
+                                500L, 3)))));
 
         List<String> sentPaths = fieldPaths(lenient.valueToTree(sent), "");
         List<String> readPaths = fieldPaths(lenient.valueToTree(
@@ -91,10 +96,12 @@ class ProductUpdateContractTest {
                         1L, 30L, "아이폰", "부사 5kg", 25000L,
                         List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductImage(100L, 0),
                                 new com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductImage(101L, 1)),
-                        List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreProductOption(1L, 11L)))));
+                        List.of(new com.cartmate.cartmate.boundedContext.productService.post.dto.RestoreInventory(200L, 500L, 3)),
+                        SalesPostProductStatus.PAUSED)));
 
         String json = strict.writeValueAsString(sent);
         RestoreProductsRequest received = strict.readValue(json, RestoreProductsRequest.class);
+        assertThat(received.getProductList().getFirst().getStatus()).isEqualTo(ProductStatus.PAUSED);   // 수정 전 판매 상태
 
         RestoreProduct product = received.getProductList().getFirst();
         assertThat(product.getId()).isEqualTo(1L);
@@ -105,9 +112,9 @@ class ProductUpdateContractTest {
         assertThat(product.getProductImageList())
                 .extracting(RestoreProductImage::getId, RestoreProductImage::getImageSeq)
                 .containsExactly(tuple(100L, 0), tuple(101L, 1));
-        assertThat(product.getProductOptionList())
-                .extracting(RestoreProductOption::getProductTypeId, RestoreProductOption::getProductOptionId)
-                .containsExactly(tuple(1L, 11L));
+        assertThat(product.getInventoryList())
+                .extracting(RestoreInventory::getId, RestoreInventory::getAdditionalPrice, RestoreInventory::getStockQuantity)
+                .containsExactly(tuple(200L, 500L, 3));
 
         assertThat(fieldPaths(strict.valueToTree(received), ""))
                 .containsExactlyInAnyOrderElementsOf(fieldPaths(strict.readTree(json), ""));
@@ -118,7 +125,9 @@ class ProductUpdateContractTest {
     void selectResponseIsReadByPost() {
         var sent = new SelectProductResponse(1L, 10L, 30L, "아이폰", "부사 5kg", 25000L, ProductStatus.ON_SALE,
                 List.of(new SelectProductImage(100L, "products/a.jpg", 0, ProductStatus.ACTIVE, AT, AT)),
-                List.of(new SelectProductOption(200L, 1L, 11L, AT, AT)));
+                List.of(new SelectProductOption(200L, 1L, 11L, AT, AT, "의류 사이즈", "L")),
+                List.of(new SelectInventory(300L, "L / 블랙", 25500L, 500L, 3, 0,
+                        List.of(new SelectProductOption(200L, 1L, 11L, AT, AT, "의류 사이즈", "L")))));
 
         String json = strict.writeValueAsString(sent);
         var received = strict.readValue(json,
@@ -141,7 +150,51 @@ class ProductUpdateContractTest {
         assertThat(option.getId()).isEqualTo(200L);
         assertThat(option.getProductTypeId()).isEqualTo(1L);
         assertThat(option.getProductOptionId()).isEqualTo(11L);
+        assertThat(option.getProductTypeName()).isEqualTo("의류 사이즈");   // 상세 화면 선택 목록에 쓰는 이름
+        assertThat(option.getProductOptionName()).isEqualTo("L");
+        var inventory = received.getInventoryList().getFirst();
+        assertThat(inventory.getId()).isEqualTo(300L);
+        assertThat(inventory.getSkuName()).isEqualTo("L / 블랙");
+        assertThat(inventory.getAppliedPrice()).isEqualTo(25500L);
+        assertThat(inventory.getAdditionalPrice()).isEqualTo(500L);
+        assertThat(inventory.getStockQuantity()).isEqualTo(3);
+        assertThat(inventory.getOptionList()).extracting(o -> o.getProductOptionId()).containsExactly(11L);
 
+        assertThat(fieldPaths(strict.valueToTree(received), ""))
+                .containsExactlyInAnyOrderElementsOf(fieldPaths(strict.readTree(json), ""));
+    }
+
+    @Test
+    @DisplayName("수정 응답: product가 돌려준 상품의 빠진 재고 ID를 post가 같은 값 · 같은 필드 구성으로 읽는다")
+    void syncProductRemovedInventoryIdsAreReadByPost() {
+        var sent = new SyncProduct(1L, 7L, 10L, 30L, "아이폰", "부사 5kg", 25000L, AT, AT,
+                List.of(), List.of(), List.of(301L, 302L));
+
+        String json = strict.writeValueAsString(sent);
+        var received = strict.readValue(json,
+                com.cartmate.cartmate.boundedContext.productService.post.dto.SyncProduct.class);
+
+        assertThat(received.getId()).isEqualTo(1L);
+        assertThat(received.getSellerId()).isEqualTo(7L);
+        assertThat(received.getSalesPostId()).isEqualTo(10L);
+        assertThat(received.getRemovedInventoryIds()).containsExactly(301L, 302L);
+        assertThat(fieldPaths(strict.valueToTree(received), ""))
+                .containsExactlyInAnyOrderElementsOf(fieldPaths(strict.readTree(json), ""));
+    }
+
+    @Test
+    @DisplayName("수정 끝 요청: post가 보낸 상품 ID · 수정 전 상태를 product가 같은 값 · 같은 필드 구성으로 읽는다")
+    void completeUpdateRequestIsReadByProduct() {
+        var sent = new com.cartmate.cartmate.boundedContext.productService.post.dto.CompleteProductUpdateRequest(List.of(
+                new com.cartmate.cartmate.boundedContext.productService.post.dto.CompleteProductUpdateRequest.Item(
+                        1L, SalesPostProductStatus.ON_SALE)));
+
+        String json = strict.writeValueAsString(sent);
+        CompleteProductUpdateRequest received = strict.readValue(json, CompleteProductUpdateRequest.class);
+
+        assertThat(received.getProductList())
+                .extracting(CompleteProductUpdateRequest.Item::getId, CompleteProductUpdateRequest.Item::getStatus)
+                .containsExactly(tuple(1L, ProductStatus.ON_SALE));
         assertThat(fieldPaths(strict.valueToTree(received), ""))
                 .containsExactlyInAnyOrderElementsOf(fieldPaths(strict.readTree(json), ""));
     }

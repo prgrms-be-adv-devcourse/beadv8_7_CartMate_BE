@@ -15,4 +15,6 @@ public class SelectProductOption {
     private Long productOptionId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String productTypeName;     // 옵션 종류 이름 (예: 신발 사이즈)
+    private String productOptionName;   // 상품옵션 이름 (예: 265)
 }

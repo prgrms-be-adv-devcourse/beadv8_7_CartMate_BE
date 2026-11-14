@@ -13,6 +13,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "PRODUCT_PRODUCT")
@@ -47,6 +48,10 @@ public class Product extends BaseIdAndTime {
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<ProductOption> productOptionList = new ArrayList<>();
 
+    // 선택된 옵션 목록보다 뒤에 둔다: 상품 행을 지울 때(등록 보상) 옵션 → 재고 순으로 지워져 FK가 깨지지 않는다
+    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    private List<Inventory> inventoryList = new ArrayList<>();
+
     public Product(Long sellerId, Long salesPostId, Long categoryId, String name, String description, Long basePrice,
                    ProductStatus status) {
         this.sellerId = sellerId;
@@ -59,6 +64,11 @@ public class Product extends BaseIdAndTime {
     }
 
     public SyncProduct toSyncProduct() {
+        return toSyncProduct(List.of());
+    }
+
+    // 수정 응답: 이번 수정에서 빠진 재고 ID를 함께 돌려준다(post가 수정 완료 때 InventoryRemovedEvent로 알린다)
+    public SyncProduct toSyncProduct(List<Long> removedInventoryIds) {
         List<SyncProductImage> imageList = this.getProductImageList()
                 .stream()
                 .map(ProductImage::toSyncProductImage)
@@ -79,21 +89,12 @@ public class Product extends BaseIdAndTime {
                 this.getCreateDate(),
                 this.getModifyDate(),
                 imageList,
-                optionList
+                optionList,
+                new ArrayList<>(removedInventoryIds)
         );
     }
 
 
-    public void addProductOption(List<CreateProductOption> optionList) {
-        for (CreateProductOption option : optionList) {
-            productOptionList.add(new ProductOption(
-                    this,
-                    option.getProductTypeId(),
-                    option.getProductOptionId(),
-                    ProductStatus.ACTIVE
-            ));
-        }
-    }
 
     public void addProductImage(List<UploadedImage> uploadedImageList) {
         for (UploadedImage image : uploadedImageList) {
@@ -112,23 +113,44 @@ public class Product extends BaseIdAndTime {
     public Product delete() {
         this.status = ProductStatus.DELETED;
         this.productImageList.forEach(ProductImage::delete);
+        this.inventoryList.forEach(Inventory::delete);   // 재고와 그 선택된 옵션을 함께 지운다
         this.productOptionList.forEach(ProductOption::delete);
         return this;
     }
 
+    // 기본가가 바뀌면 재고의 최종 가격(기본가 + 추가금액)도 다시 계산한다
     public void update(Long categoryId, String name, String description, Long basePrice) {
         this.categoryId = categoryId;
         this.name = name;
         this.description = description;
         this.basePrice = basePrice;
+        this.inventoryList.forEach(Inventory::recalculateAppliedPrice);
     }
 
     public void addImage(ProductImage newImage) {
         this.getProductImageList().add(newImage);
     }
 
-    public void addOption(ProductOption newOption) {
-        this.getProductOptionList().add(newOption);
+    /**
+     * 상품옵션 조합으로 재고를 추가하고, 그 재고에서 분리된 선택된 옵션도 상품에 붙인다.
+     * 살아 있는 재고 중 같은 조합이 있으면 거부한다.
+     */
+    public Inventory addInventory(List<ProductOptionValue> optionValues, Long additionalPrice, Integer stockQuantity) {
+        Inventory inventory = Inventory.create(this, optionValues, additionalPrice, stockQuantity);
+        Set<Long> combination = inventory.optionValueIds();
+        boolean duplicated = inventoryList.stream()
+                .filter(Inventory::isActive)
+                .anyMatch(existing -> existing.optionValueIds().equals(combination));
+        if (duplicated) {
+            throw new ServiceException(ProductErrorCode.PRODUCT_INVENTORY_DUPLICATE_COMBINATION);
+        }
+        inventoryList.add(inventory);
+        productOptionList.addAll(inventory.getOptionList());
+        return inventory;
+    }
+
+    public List<Inventory> activeInventories() {
+        return inventoryList.stream().filter(Inventory::isActive).toList();
     }
 
     // 판매글 단위 판매 상태 변경. 판매 관련 상태(ON_SALE·PAUSED·SUSPENDED)일 때만 바꾼다.
@@ -144,4 +166,22 @@ public class Product extends BaseIdAndTime {
         }
     }
 
+    // 판매글 수정 시작: 수정이 끝날 때까지 구매(장바구니 · 주문)를 막는다(구매는 ON_SALE만 된다).
+    // 수정 전 상태는 판매글 쪽 스냅샷이 기억한다. 삭제된 상품은 건드리지 않는다
+    public void startUpdating() {
+        if (status != ProductStatus.DELETED) {
+            this.status = ProductStatus.UPDATING;
+        }
+    }
+
+    // 판매글 수정 끝(완료 · 복구): 수정 중이면 수정 전 상태로 되돌린다. 수정 중이 아니면(이미 끝남 · 삭제 등) 그대로(멱등).
+    // 수정 전 상태가 없으면(상태를 담기 전 스냅샷) 판매 중으로 돌린다
+    public void finishUpdating(ProductStatus statusBeforeUpdate) {
+        if (status != ProductStatus.UPDATING) {
+            return;
+        }
+        this.status = statusBeforeUpdate == null || statusBeforeUpdate == ProductStatus.UPDATING
+                ? ProductStatus.ON_SALE
+                : statusBeforeUpdate;
+    }
 }

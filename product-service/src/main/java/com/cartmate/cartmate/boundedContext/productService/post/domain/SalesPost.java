@@ -88,6 +88,11 @@ public class SalesPost extends BaseIdAndTime {
         if (status != SalesPostSaleStatus.ON_SALE && status != SalesPostSaleStatus.PAUSED) {
             throw new ServiceException(SalesPostErrorCode.POST_SUSPEND_NOT_ALLOWED);
         }
+        // 판매자가 수정 중(상품이 UPDATING)이면 거절한다. 정지해도 상품 상태가 바뀌지 않고,
+        // 수정이 끝나면 상품이 수정 전 상태(판매 중)로 돌아가 "판매글은 정지, 상품은 판매 중"이 되기 때문이다
+        if (updateStatus == SalesPostUpdateStatus.PENDING || updateStatus == SalesPostUpdateStatus.RECOVERING) {
+            throw new ServiceException(SalesPostErrorCode.POST_UPDATE_IN_PROGRESS);
+        }
     }
 
     public void validateResumable() {

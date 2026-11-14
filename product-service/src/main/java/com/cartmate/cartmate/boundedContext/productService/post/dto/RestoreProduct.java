@@ -1,5 +1,6 @@
 package com.cartmate.cartmate.boundedContext.productService.post.dto;
 
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,5 +17,6 @@ public class RestoreProduct {
     private String description;
     private Long basePrice;
     private List<RestoreProductImage> productImageList;
-    private List<RestoreProductOption> productOptionList;
+    private List<RestoreInventory> inventoryList;
+    private SalesPostProductStatus status;   // 수정 전 판매 상태 (복구 때 이 상태로 되돌린다)
 }

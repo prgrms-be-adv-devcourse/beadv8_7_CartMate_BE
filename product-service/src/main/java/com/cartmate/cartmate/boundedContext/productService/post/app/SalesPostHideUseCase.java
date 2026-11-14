@@ -72,6 +72,14 @@ public class SalesPostHideUseCase {
                 post.getId(), post.getSellerId(), List.copyOf(productIds), hideType, actorId, reason, LocalDateTime.now()));
     }
 
+    // 상품 하나 삭제(ProductDeletedEvent)를 진행 중 거래에 알린다. 판매글 상태는 바꾸지 않고, 그 상품만 담아 발행한다.
+    // 판매글이 없거나 이미 삭제됐으면(판매글 삭제가 따로 정리한다) 발행하지 않는다
+    public void publishProductDeleted(Long postId, Long productId) {
+        salesPostRepository.findById(postId)
+                .filter(post -> post.getStatus() != SalesPostSaleStatus.DELETED)
+                .ifPresent(post -> publishHidden(post, List.of(productId), SalesPostHideType.PRODUCT_DELETED, null, null));
+    }
+
     private SalesPost findOwnedPost(Long postId, Long sellerId) {
         SalesPost post = salesPostRepository.findById(postId)
                 .filter(p -> p.getStatus() != SalesPostSaleStatus.DELETED)

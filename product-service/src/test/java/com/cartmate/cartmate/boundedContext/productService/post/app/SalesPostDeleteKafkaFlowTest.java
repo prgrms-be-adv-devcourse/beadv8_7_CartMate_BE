@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.post.app;
 
+import static com.cartmate.cartmate.support.TestInventories.inventory;
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProduct;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSaleStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.dto.CreateProductOption;
@@ -164,7 +166,7 @@ class SalesPostDeleteKafkaFlowTest {
                 .extracting(SalesPostProduct::getStatus)
                 .containsOnly(SalesPostProductStatus.DELETED);
         // 같은 앱 안 전달까지 처리했다면 product가 상품 삭제 완료 이벤트를 두 번 남긴다
-        assertThat(outboxCount(PRODUCTS_DELETED_BY_POST)).isEqualTo(1);
+        assertThat(outboxCount(PRODUCTS_DELETED_BY_POST, postId)).isEqualTo(1);
     }
 
     @Test
@@ -189,6 +191,11 @@ class SalesPostDeleteKafkaFlowTest {
         SalesPostDeletedEvent event = objectMapper.readValue(envelope.payload(), SalesPostDeletedEvent.class);
         assertThat(event.postId()).isEqualTo(postId);
         assertThat(event.sellerId()).isEqualTo(SELLER_ID);
+
+        // 토픽에 실린 메시지는 앱이 뒤에서(다른 스레드) 받아 상품을 지운다. 그 처리가 끝날 때까지 기다려,
+        // 다음 테스트가 outbox를 비운 뒤에 이 판매글의 상품 삭제 완료 이벤트가 끼어들지 않게 한다
+        awaitUntil(() -> productRepository.findAll().stream().allMatch(p -> p.getStatus() == ProductStatus.DELETED),
+                "Kafka로 보낸 판매글 삭제로 상품이 삭제되지 않았다");
     }
 
     @Test
@@ -211,10 +218,12 @@ class SalesPostDeleteKafkaFlowTest {
         outboxRelay.relay();
     }
 
-    private long outboxCount(String eventType) {
+    // 이 판매글(aggregateId)의 이벤트만 센다. 앞 테스트의 Kafka 처리가 늦게 끝나 남긴 이벤트는 세지 않는다
+    private long outboxCount(String eventType, Long postId) {
         return queryFactory.select(outboxEvent.count())
                 .from(outboxEvent)
-                .where(outboxEvent.eventType.eq(eventType))
+                .where(outboxEvent.eventType.eq(eventType),
+                        outboxEvent.aggregateId.eq(String.valueOf(postId)))
                 .fetchOne();
     }
 
@@ -228,10 +237,10 @@ class SalesPostDeleteKafkaFlowTest {
     private CreateSalesPostRequest request() {
         CreateSalesPostProduct iphone = new CreateSalesPostProduct(null, null, 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateSalesPostProductImage(null, null, null, 0, null)),
-                List.of(new CreateProductOption(1L, 100L)));
+                List.of(inventory(new CreateProductOption(CLOTHING_SIZE, SIZE_L))));
         CreateSalesPostProduct charger = new CreateSalesPostProduct(null, null, 1L, "충전기", "설명", 3000L,
                 List.of(new CreateSalesPostProductImage(null, null, null, 0, null)),
-                List.of(new CreateProductOption(2L, 200L)));
+                List.of(inventory(new CreateProductOption(COLOR, BLACK))));
 
         return new CreateSalesPostRequest(null, SELLER_ID, "아이폰 팝니다", "상태 좋아요", List.of(iphone, charger));
     }

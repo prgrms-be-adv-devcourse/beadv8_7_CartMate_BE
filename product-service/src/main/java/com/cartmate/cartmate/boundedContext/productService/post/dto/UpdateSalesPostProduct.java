@@ -16,5 +16,5 @@ public class UpdateSalesPostProduct {
     private String description;
     private Long basePrice;
     private List<UpdateSalesPostProductImage> productImageList;
-    private List<UpdateSalesPostProductOption> productOptionList;
+    private List<UpdateSalesPostInventory> inventoryList;
 }

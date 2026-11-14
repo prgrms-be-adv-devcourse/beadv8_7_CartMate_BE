@@ -13,6 +13,7 @@ import com.cartmate.cartmate.shared.post.event.SalesPostRegisterFailedEvent;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
+import com.cartmate.cartmate.shared.product.event.InventoryRemovedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductDeletedEvent;
 import com.cartmate.cartmate.shared.product.event.ProductsDeletedByPostEvent;
 import com.cartmate.cartmate.shared.trust.event.SellerTrustScoreChangedEvent;
@@ -28,6 +29,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminS
 import com.cartmate.cartmate.boundedContext.productService.post.dto.admin.AdminSalesPostSummaryResponse;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +50,7 @@ public class SalesPostFacade {
     private final AdminSalesPostUseCase adminSalesPostUseCase;
     private final SalesPostHideUseCase salesPostHideUseCase;
     private final SalesPostSyncSellerTrustUseCase salesPostSyncSellerTrustUseCase;
+    private final SalesPostDetailInventoryLoader salesPostDetailInventoryLoader;
 
     @Transactional
     public SalesPostSeller syncSeller(SellerRegisteredEvent seller) {
@@ -110,13 +113,21 @@ public class SalesPostFacade {
         );
     }
 
-    @Transactional(readOnly = true)
+    // 판매글 · 복제본은 DB(읽기 트랜잭션)에서, 상품별 선택 목록 · 재고는 상품 서버(2초 캐시)에서 가져와 붙인다.
+    // 상품 서버 호출 동안 DB 연결을 잡고 있지 않도록 이 메서드에는 트랜잭션을 걸지 않는다
     public RsData<SelectSalesPostResponse> selectSalesPostDetail(Long postId) {
-        return new RsData<>(
-                "200-2",
-                "판매글 상세조회에 성공했습니다.",
-                salesPostSelectUseCase.selectSalesPostDetail(postId)
-        );
+        SelectSalesPostResponse detail = salesPostSelectUseCase.selectSalesPostDetail(postId);
+
+        Map<Long, SalesPostDetailInventories.ProductInventories> inventoriesByProduct =
+                salesPostDetailInventoryLoader.load(postId).byProductId();
+        detail.getProductList().forEach(product -> {
+            SalesPostDetailInventories.ProductInventories found = inventoriesByProduct.get(product.getId());
+            if (found != null) {
+                product.attachInventories(found.optionGroups(), found.inventories());
+            }
+        });
+
+        return new RsData<>("200-2", "판매글 상세조회에 성공했습니다.", detail);
     }
 
     // product가 상품 삭제를 마치면(ProductsDeletedByPostEvent) 복제본을 지우고 판매글 삭제를 완료한다.
@@ -134,13 +145,16 @@ public class SalesPostFacade {
                         post, event.productIds(), SalesPostHideType.SELLER_DELETED, null, null));
     }
 
-    // 판매자가 상품 하나를 삭제하면(ProductDeletedEvent) 그 복제본을 지운다. 같은 이벤트는 한 번만 처리한다
+    // 판매자가 상품 하나를 삭제하면(ProductDeletedEvent) 그 복제본을 지우고, 같은 트랜잭션으로 진행 중 거래 정리를 알린다
+    // (SalesPostHiddenEvent, productIds = 그 상품). order는 판매글 숨김과 같은 처리로 공동구매 · 주문을 정리한다.
+    // 같은 이벤트는 한 번만 처리한다
     @Transactional
     public void deleteProductByEvent(String eventId, ProductDeletedEvent event) {
         if (!processedEvents.markFirst(ProductServiceConsumers.PRODUCT_DELETED, eventId)) {
             return;
         }
         salesPostSyncProductUseCase.deleteProductByUser(event.productId());
+        salesPostHideUseCase.publishProductDeleted(event.salesPostId(), event.productId());
     }
 
     public void updateSalesPostByUser(UpdateSalesPostRequest request, List<MultipartFile> images) {
@@ -152,9 +166,10 @@ public class SalesPostFacade {
             return beforeUpdateStatus;
         });
 
+        SalesPostSnapshot snapshot;
         try {
             List<SelectProductResponse> products = salesPostApiClient.getProduct(postId);
-            SalesPostSnapshot snapshot = SalesPostSnapshot.from(products);
+            snapshot = SalesPostSnapshot.from(products);
             transactionTemplate.executeWithoutResult(s ->
                     salesPostRecoveryUseCase.saveSnapshot(postId, snapshot) // 스냅샷 저장
             );
@@ -186,18 +201,32 @@ public class SalesPostFacade {
             throw e;
         }
 
+        // 상품 "수정 끝"(UPDATING → 수정 전 상태)을 먼저 부른 뒤 판매글을 완료한다. 순서가 중요하다:
+        // 수정 끝이 실패해도 판매글은 아직 완료 전이라 아래 복구가 상품을 되돌리고(상태 포함) 정리한다
         // 복제본 갱신과 판매글 수정 · 완료를 한 트랜잭션으로. 복제본을 못 맞추면 수정 실패로 보고 상품을 복구한다
+        // 빠진 재고 알림도 같은 트랜잭션(outbox)에 둔다: 수정이 끝까지 성공했을 때만 나가고, 실패해 복구되면 나가지 않는다
         try {
+            salesPostApiClient.completeProductUpdate(postId, snapshot);
             transactionTemplate.executeWithoutResult(s -> {
                 salesPostSyncProductUseCase.syncProduct(updatedProducts);
                 salesPostUpdateUseCase.markCompleted(postId);
                 salesPostUpdateUseCase.updateSalesPostByUser(request);
                 salesPostRecoveryUseCase.delete(postId);
+                publishRemovedInventories(updatedProducts);
             });
         } catch (RuntimeException e) {
             salesPostRecoverUseCase.recover(postId);
             throw e;
         }
+    }
+
+    // 수정에서 재고가 빠진 상품마다 InventoryRemovedEvent를 낸다
+    private void publishRemovedInventories(List<SyncProduct> updatedProducts) {
+        updatedProducts.stream()
+                .filter(product -> product.getRemovedInventoryIds() != null && !product.getRemovedInventoryIds().isEmpty())
+                .forEach(product -> domainEventPublisher.publish(new InventoryRemovedEvent(
+                        product.getSalesPostId(), product.getSellerId(), product.getId(),
+                        List.copyOf(product.getRemovedInventoryIds()))));
     }
 
     // ===== 수정 복구 대사 =====

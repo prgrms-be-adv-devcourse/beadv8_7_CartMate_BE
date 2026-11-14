@@ -29,6 +29,13 @@ spring:
       enabled: false # Job은 스케줄러가 실행하므로 애플리케이션 시작 시 자동 실행하지 않는다
     jdbc:
       initialize-schema: always # MySQL에도 배치 메타데이터 테이블을 만든다
+  # 옵션 종류 · 상품옵션 초기 데이터(classpath:data.sql). 시작할 때마다 실행하고, 이미 있는 ID는 건너뛴다
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8   # 한글 데이터. Windows 기본 인코딩(MS949)으로 읽으면 깨진다
+  jpa:
+    defer-datasource-initialization: true   # Hibernate(ddl-auto)가 테이블을 만든 뒤에 data.sql 실행
 custom:
   wallet:
     platform-member-id: ${PLATFORM_MEMBER_ID:1} # 판매 수수료를 받는 관리자 회원 ID. 환경마다 PLATFORM_MEMBER_ID로 바꾼다

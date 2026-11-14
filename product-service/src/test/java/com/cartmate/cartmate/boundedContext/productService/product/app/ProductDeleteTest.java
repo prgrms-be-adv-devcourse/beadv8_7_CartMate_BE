@@ -1,5 +1,7 @@
 package com.cartmate.cartmate.boundedContext.productService.product.app;
 
+import static com.cartmate.cartmate.support.TestInventories.inventory;
+import static com.cartmate.cartmate.support.SeedOptions.*;
 import com.cartmate.cartmate.boundedContext.productService.config.ProductServiceConsumers;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostCreateUseCase;
 import com.cartmate.cartmate.boundedContext.productService.post.app.SalesPostSyncProductUseCase;
@@ -12,6 +14,7 @@ import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostPro
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostProductRepository;
 import com.cartmate.cartmate.boundedContext.productService.post.out.SalesPostRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductImage;
+import com.cartmate.cartmate.boundedContext.productService.product.domain.Inventory;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductOption;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.CreateProductImage;
@@ -20,6 +23,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.CreatePro
 import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProduct;
 import com.cartmate.cartmate.boundedContext.productService.product.out.FakeImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductOptionRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
 import com.cartmate.cartmate.global.exception.ServiceException;
@@ -28,6 +32,9 @@ import com.cartmate.cartmate.global.outbox.OutboxEventStatus;
 import com.cartmate.cartmate.global.outbox.OutboxRelay;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostProductStatus;
+import com.cartmate.cartmate.boundedContext.productService.post.domain.SalesPostSaleStatus;
+import com.cartmate.cartmate.shared.post.event.SalesPostHiddenEvent;
+import com.cartmate.cartmate.shared.post.event.SalesPostHideType;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +44,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -46,6 +55,7 @@ import java.util.List;
 import static com.cartmate.cartmate.global.inbox.QProcessedEvent.processedEvent;
 import static com.cartmate.cartmate.global.outbox.QOutboxEvent.outboxEvent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -60,6 +70,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 })
 @ActiveProfiles("test")
 @Import(ManualOutboxRelayConfig.class)
+@RecordApplicationEvents
 class ProductDeleteTest {
 
     private static final Long SELLER_ID = 7L;
@@ -72,9 +83,13 @@ class ProductDeleteTest {
     @Autowired
     ProductRepository productRepository;
     @Autowired
+    ApplicationEvents events;
+    @Autowired
     ProductImageRepository productImageRepository;
     @Autowired
     ProductOptionRepository productOptionRepository;
+    @Autowired
+    InventoryRepository inventoryRepository;
     @Autowired
     FakeImageStorage storage;
 
@@ -126,10 +141,10 @@ class ProductDeleteTest {
         CreateProduct iphone = new CreateProduct(null, SELLER_ID, post.getId(), 1L, "아이폰", "설명", 10000L,
                 List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null),
                         new CreateProductImage(null, SELLER_ID, null, null, 1, null)),
-                List.of(new CreateProductOption(1L, 100L), new CreateProductOption(2L, 200L)));
+                List.of(inventory(new CreateProductOption(CLOTHING_SIZE, SIZE_L), new CreateProductOption(COLOR, BLACK))));
         CreateProduct charger = new CreateProduct(null, SELLER_ID, post.getId(), 1L, "충전기", "설명", 3000L,
                 List.of(new CreateProductImage(null, SELLER_ID, null, null, 0, null)),
-                List.of(new CreateProductOption(3L, 300L)));
+                List.of(inventory(new CreateProductOption(SHOE_SIZE, SHOE_220))));
         List<SyncProduct> saved = productFacade.registerProduct(new CreateProductRequest(post.getId(), List.of(iphone, charger)),
                 List.of(TestImageFiles.jpeg(), TestImageFiles.png(), TestImageFiles.jpeg()));
         createReplicas(saved);
@@ -149,12 +164,18 @@ class ProductDeleteTest {
     void deleteProductAlsoDeletesCopy() {
         productFacade.deleteProductByUser(productId, SELLER_ID);
 
-        // 상품만 지워지고(사진 2장 · 옵션 2개 삭제 상태), 복제본 삭제는 이벤트로 남아 있다. 충전기는 그대로
+        // 상품만 지워지고(사진 2장 · 재고 1개 · 선택된 옵션 2개 삭제 상태), 복제본 삭제는 이벤트로 남아 있다. 충전기는 그대로
         assertThat(productRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
         assertThat(productRepository.findById(otherProductId).orElseThrow().getStatus()).isEqualTo(ProductStatus.ON_SALE);
         assertThat(productImageRepository.findAll())
                 .extracting(ProductImage::getStatus)
                 .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
+        // 재고는 행이 남고 상태만 DELETED. 삭제하지 않은 상품(충전기)의 재고는 ACTIVE 그대로
+        assertThat(inventoryRepository.findAll())
+                .extracting(inventory -> inventory.getProduct().getId(), Inventory::getStatus)
+                .containsExactlyInAnyOrder(
+                        tuple(productId, ProductStatus.DELETED),
+                        tuple(otherProductId, ProductStatus.ACTIVE));
         assertThat(productOptionRepository.findAll())
                 .extracting(ProductOption::getStatus)
                 .containsExactlyInAnyOrder(ProductStatus.DELETED, ProductStatus.DELETED, ProductStatus.ACTIVE);
@@ -206,6 +227,27 @@ class ProductDeleteTest {
                 .where(processedEvent.consumer.eq(ProductServiceConsumers.PRODUCT_DELETED))
                 .fetchOne()).isEqualTo(1);
         assertThat(salesPostProductRepository.findById(productId).orElseThrow().getStatus()).isEqualTo(SalesPostProductStatus.DELETED);
+        assertThat(events.stream(SalesPostHiddenEvent.class)).hasSize(1); // 진행 중 거래 정리 알림도 한 번만
+    }
+
+    // 숨김 이벤트는 아직 앱 안 이벤트(EventPublisher)라 발행된 이벤트를 기록해서 확인한다 (outbox 전환은 다음 작업)
+    @Test
+    @DisplayName("상품 하나를 삭제하면 그 상품만 담은 판매글 숨김 이벤트(PRODUCT_DELETED)를 발행한다")
+    void deleteProductPublishesHiddenEventForThatProduct() {
+        SalesPostSaleStatus postStatusBefore = salesPostRepository.findAll().getFirst().getStatus();
+        productFacade.deleteProductByUser(productId, SELLER_ID);
+        assertThat(events.stream(SalesPostHiddenEvent.class)).isEmpty(); // 복제본을 지우는 처리에서 함께 나간다
+
+        relay();
+
+        List<SalesPostHiddenEvent> hidden = events.stream(SalesPostHiddenEvent.class).toList();
+        assertThat(hidden).hasSize(1);
+        SalesPostHiddenEvent event = hidden.getFirst();
+        assertThat(event.productIds()).containsExactly(productId);
+        assertThat(event.hideType()).isEqualTo(SalesPostHideType.PRODUCT_DELETED);
+        assertThat(event.sellerId()).isEqualTo(SELLER_ID);
+        // 판매글 상태는 바뀌지 않는다(상품 하나만 삭제)
+        assertThat(salesPostRepository.findAll().getFirst().getStatus()).isEqualTo(postStatusBefore);
     }
 
     @Test

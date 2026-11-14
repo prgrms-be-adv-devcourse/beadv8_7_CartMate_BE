@@ -93,6 +93,8 @@ public class SalesPostSelectUseCase {
                 product.getStatus(),
                 imageResultList,
                 optionResultList,
+                List.of(),   // 선택 목록 · 재고는 상세 조회에서만 붙인다(SalesPostFacade.selectSalesPostDetail)
+                List.of(),
                 product.getCreateDate(),
                 product.getModifyDate()
         );
