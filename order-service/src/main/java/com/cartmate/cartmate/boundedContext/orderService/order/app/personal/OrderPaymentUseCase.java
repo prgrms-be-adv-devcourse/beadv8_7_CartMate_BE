@@ -3,6 +3,8 @@ package com.cartmate.cartmate.boundedContext.orderService.order.app.personal;
 import com.cartmate.cartmate.shared.coupon.dto.CouponQuote;
 import com.cartmate.cartmate.shared.coupon.dto.CouponOption;
 import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderCouponClient;
+import com.cartmate.cartmate.boundedContext.orderService.order.out.OrderInventoryClient;
+import com.cartmate.cartmate.shared.product.dto.InventoryReserveRequest;
 import com.cartmate.cartmate.global.http.InternalApiClient.InternalServerUnavailableException;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.DeliveryAddress;
 import com.cartmate.cartmate.boundedContext.orderService.order.domain.personal.Order;
@@ -39,6 +41,7 @@ class OrderPaymentUseCase {
     private final IndividualGroupPurchaseReplicaUseCase individualGroupPurchaseReplicaUseCase;
     private final OrderPaymentClient orderPaymentClient;
     private final OrderCouponClient orderCouponClient;
+    private final OrderInventoryClient orderInventoryClient;
 
     OrderPaymentInfo getPaymentInfo(Long orderId, Long memberId, LocalDateTime now) {
         Order order = orderRepository.findById(orderId)
@@ -148,9 +151,35 @@ class OrderPaymentUseCase {
         validatePurchasable(order.getItems().stream().map(OrderItem::getInventoryId).toList());
         long discount = memberCouponId == null ? 0
                 : orderCouponClient.quote(memberId, memberCouponId, orderId, order.couponTarget()).discountAmount();
-        PaymentResult payment = orderPaymentClient.charge(
-                PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId, info.amount() - discount);
+        // 결제 직전 재고 선점. 부족하면 ORDER_OUT_OF_STOCK(결제 안 함, 주문 취소는 호출한 쪽이 따로 한다)
+        reserveStock(orderId, order);
+        PaymentResult payment;
+        try {
+            payment = orderPaymentClient.charge(
+                    PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId, info.amount() - discount);
+        } catch (InternalServerUnavailableException e) {
+            throw e;   // 결제됐는지 모른다 → 선점을 풀지 않는다(재시도 · 결제 기한 취소가 정리)
+        } catch (ServiceException e) {
+            releaseStock(orderId);   // 결제 실패가 확실 → 선점 해제
+            throw e;
+        }
         return applyOrCompensate(orderId, memberId, payment, memberCouponId);
+    }
+
+    private void reserveStock(Long orderId, Order order) {
+        orderInventoryClient.reserve(order.getOrderType(), orderId, order.getItems().stream()
+                .map(item -> new InventoryReserveRequest.Item(item.getInventoryId(), item.getQuantity()))
+                .toList());
+    }
+
+    // 선점 해제 실패가 원래 오류를 가리지 않게 로그만 남긴다(결제 기한 취소 이벤트로 다시 풀린다)
+    private void releaseStock(Long orderId) {
+        try {
+            orderRepository.findById(orderId)
+                    .ifPresent(order -> orderInventoryClient.release(order.getOrderType(), orderId));
+        } catch (RuntimeException e) {
+            log.warn("결제 실패 후 재고 선점 해제 실패 — 결제 기한 취소 때 다시 풀린다: 주문 #{}", orderId, e);
+        }
     }
 
     private PaymentResult applyOrCompensate(Long orderId, Long memberId, PaymentResult payment, Long memberCouponId) {
@@ -162,6 +191,7 @@ class OrderPaymentUseCase {
             throw e;
         } catch (ServiceException e) {
             orderPaymentClient.compensateCharge(PaymentOrderType.INDIVIDUAL_GROUP, orderId, memberId);
+            releaseStock(orderId);
             releaseCoupon(orderId, memberId, memberCouponId);
             throw e;
         }

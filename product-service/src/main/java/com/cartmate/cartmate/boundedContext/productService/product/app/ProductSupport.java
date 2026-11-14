@@ -51,14 +51,20 @@ public class ProductSupport {
         return tasks;
     }
 
+    // 사진 항목 순서대로 파일을 붙인다. 항목 수와 파일 수가 다르면 잘못된 요청(400)
     public void includeFileData(CreateProductRequest request, List<MultipartFile> images) {
+        List<MultipartFile> fileList = (images == null) ? List.of() : images;
+
         int cursor = 0;
         for (CreateProduct product : request.getProductList()) {
             for (CreateProductImage image : product.getProductImageList()) {
-                image.assignFile(images.get(cursor++));
+                if (cursor >= fileList.size()) {
+                    throw new ServiceException(ProductErrorCode.PRODUCT_CREATE_INVALID);
+                }
+                image.assignFile(fileList.get(cursor++));
             }
         }
-        if (cursor != images.size()) {
+        if (cursor != fileList.size()) {
             throw new ServiceException(ProductErrorCode.PRODUCT_CREATE_INVALID);
         }
     }

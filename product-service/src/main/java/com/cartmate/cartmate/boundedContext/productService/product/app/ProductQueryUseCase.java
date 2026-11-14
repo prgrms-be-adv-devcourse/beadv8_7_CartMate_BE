@@ -12,6 +12,8 @@ import com.cartmate.cartmate.boundedContext.productService.product.domain.Produc
 import com.cartmate.cartmate.boundedContext.productService.product.out.ImageStorage;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductImageRepository;
 import com.cartmate.cartmate.boundedContext.productService.product.out.ProductRepository;
+import com.cartmate.cartmate.boundedContext.productService.product.out.InventoryRepository;
+import com.cartmate.cartmate.shared.product.dto.InventoryForPurchase;
 import com.cartmate.cartmate.shared.product.dto.ProductForPurchase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
 public class ProductQueryUseCase {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
+    private final InventoryRepository inventoryRepository;
     private final ImageStorage imageStorage;
 
     @Transactional(readOnly = true)
@@ -51,16 +54,8 @@ public class ProductQueryUseCase {
             return List.of();
         }
 
-        Map<Long, String> imageKeyByProductId = productImageRepository.findByProductIdIn(
-                        products.stream().map(Product::getId).toList()).stream()
-                .filter(image -> image.getStatus() == ProductStatus.ACTIVE)
-                .collect(Collectors.groupingBy(
-                        image -> image.getProduct().getId(),
-                        Collectors.collectingAndThen(
-                                Collectors.minBy(Comparator.comparingInt(ProductImage::getImageSeq)),
-                                image -> image.map(ProductImage::getS3Key).orElse(null)
-                        )
-                ));
+        Map<Long, String> imageKeyByProductId = representativeImageKeys(
+                products.stream().map(Product::getId).toList());
 
         Map<Long, Product> productById = products.stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
@@ -70,6 +65,91 @@ public class ProductQueryUseCase {
                 .filter(Objects::nonNull)
                 .map(product -> toProductForPurchase(product, imageKeyByProductId.get(product.getId())))
                 .toList();
+    }
+
+    // 재고 ID로 구매용 정보 조회(장바구니 담기 · 조회, 주문 생성 · 결제 검증). 요청 순서대로, 없는 ID는 빠진다
+    // 삭제된 재고도 돌려준다(purchasable=false) → 이미 담긴 장바구니 항목을 "구매 불가"로 보여줄 수 있다
+    @Transactional(readOnly = true)
+    public List<InventoryForPurchase> findInventoriesForPurchase(Collection<Long> inventoryIds) {
+        List<Long> distinctIds = distinctIds(inventoryIds);
+        if (distinctIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Inventory> inventoryById = inventoryRepository.findAllByIdIn(distinctIds).stream()
+                .collect(Collectors.toMap(Inventory::getId, Function.identity()));
+        Map<Long, String> imageKeyByProductId = representativeImageKeys(inventoryById.values().stream()
+                .map(inventory -> inventory.getProduct().getId())
+                .distinct()
+                .toList());
+
+        return distinctIds.stream()
+                .map(inventoryById::get)
+                .filter(Objects::nonNull)
+                .map(inventory -> toInventoryForPurchase(inventory, imageKeyByProductId))
+                .toList();
+    }
+
+    // 상품 ID로 그 상품의 재고 목록 조회(공동구매 · 매칭의 옵션 선택). 삭제된 재고는 뺀다
+    @Transactional(readOnly = true)
+    public List<InventoryForPurchase> findInventoriesForPurchaseByProducts(Collection<Long> productIds) {
+        List<Long> distinctIds = distinctIds(productIds);
+        if (distinctIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Inventory> inventories = inventoryRepository
+                .findAllByProduct_IdInAndStatusOrderByIdAsc(distinctIds, ProductStatus.ACTIVE);
+        Map<Long, String> imageKeyByProductId = representativeImageKeys(distinctIds);
+
+        return inventories.stream()
+                .map(inventory -> toInventoryForPurchase(inventory, imageKeyByProductId))
+                .toList();
+    }
+
+    private List<Long> distinctIds(Collection<Long> ids) {
+        if (ids == null) {
+            return List.of();
+        }
+        return ids.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    // 상품별 대표 이미지(imageSeq가 가장 작은 살아 있는 이미지) 키
+    private Map<Long, String> representativeImageKeys(List<Long> productIds) {
+        if (productIds.isEmpty()) {
+            return Map.of();
+        }
+        return productImageRepository.findByProductIdIn(productIds).stream()
+                .filter(image -> image.getStatus() == ProductStatus.ACTIVE)
+                .collect(Collectors.groupingBy(
+                        image -> image.getProduct().getId(),
+                        Collectors.collectingAndThen(
+                                Collectors.minBy(Comparator.comparingInt(ProductImage::getImageSeq)),
+                                image -> image.map(ProductImage::getS3Key).orElse(null)
+                        )
+                ));
+    }
+
+    private InventoryForPurchase toInventoryForPurchase(Inventory inventory, Map<Long, String> imageKeyByProductId) {
+        Product product = inventory.getProduct();
+        String imageKey = imageKeyByProductId.get(product.getId());
+        boolean purchasable = product.getStatus() == ProductStatus.ON_SALE
+                && inventory.isActive()
+                && inventory.availableQuantity() > 0;
+        return new InventoryForPurchase(
+                inventory.getId(),
+                product.getId(),
+                product.getSellerId(),
+                product.getName(),
+                inventory.getSkuName(),
+                inventory.getAppliedPrice(),
+                imageKey == null ? null : imageStorage.toUrl(imageKey),
+                product.getCategoryId(),
+                purchasable
+        );
     }
 
     @Transactional(readOnly = true)

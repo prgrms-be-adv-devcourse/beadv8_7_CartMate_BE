@@ -8,6 +8,7 @@ import com.cartmate.cartmate.boundedContext.productService.product.dto.SyncProdu
 import com.cartmate.cartmate.boundedContext.productService.product.dto.ProductUpdateResult;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UpdateProductsRequest;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.RestoreProductsRequest;
+import com.cartmate.cartmate.shared.order.OrderType;
 import com.cartmate.cartmate.shared.product.dto.*;
 import com.cartmate.cartmate.boundedContext.productService.product.domain.ProductStatus;
 import com.cartmate.cartmate.boundedContext.productService.product.dto.UploadedImage;
@@ -15,6 +16,8 @@ import com.cartmate.cartmate.boundedContext.productService.config.ProductService
 import com.cartmate.cartmate.global.inbox.ProcessedEvents;
 import com.cartmate.cartmate.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +46,7 @@ public class ProductFacade {
     private final ProductStatusChangeUseCase productStatusChangeUseCase;
     private final ProductImageOrphanCleanUseCase productImageOrphanCleanUseCase;
     private final ProductOptionQueryUseCase productOptionQueryUseCase;
+    private final InventoryReservationUseCase inventoryReservationUseCase;
 
     // 옵션 종류 전체 + 종류별 상품옵션 (상품 등록 화면의 옵션 선택 목록)
     public List<ProductOptionTypeResponse> findProductOptions() {
@@ -132,6 +136,40 @@ public class ProductFacade {
     @Transactional(readOnly = true)
     public List<ProductForPurchase> findProductsForPurchase(Collection<Long> productIds) {
         return productQueryUseCase.findProductsForPurchase(productIds);
+    }
+
+    public List<InventoryForPurchase> findInventoriesForPurchase(Collection<Long> inventoryIds) {
+        return productQueryUseCase.findInventoriesForPurchase(inventoryIds);
+    }
+
+    public List<InventoryForPurchase> findInventoriesForPurchaseByProducts(Collection<Long> productIds) {
+        return productQueryUseCase.findInventoriesForPurchaseByProducts(productIds);
+    }
+
+    // 트랜잭션 밖에서 잡는다: 같은 주문의 다른 요청이 먼저 선점해 이 요청이 유니크 키 · 버전 충돌로 롤백된 경우
+    // 결과는 "이미 선점됨"과 같으니 성공으로 끝낸다(순서대로 온 재시도와 같은 응답)
+    public void reserveInventories(InventoryReserveRequest request) {
+        try {
+            inventoryReservationUseCase.reserve(request);
+        } catch (DataIntegrityViolationException | OptimisticLockingFailureException e) {
+            log.info("같은 주문 동시 선점 — 먼저 온 요청이 선점함: order={} #{}", request.orderType(), request.orderId());
+        }
+    }
+
+    public void releaseInventories(InventoryReleaseRequest request) {
+        inventoryReservationUseCase.release(request.orderType(), request.orderId());
+    }
+
+    public void confirmInventories(OrderType orderType, Long orderId) {
+        inventoryReservationUseCase.confirm(orderType, orderId);
+    }
+
+    public void cancelInventories(OrderType orderType, Long orderId) {
+        inventoryReservationUseCase.cancel(orderType, orderId);
+    }
+
+    public void cancelSellerInventories(Long orderId, Long sellerId) {
+        inventoryReservationUseCase.cancelSeller(orderId, sellerId);
     }
 
     @Transactional(readOnly = true)

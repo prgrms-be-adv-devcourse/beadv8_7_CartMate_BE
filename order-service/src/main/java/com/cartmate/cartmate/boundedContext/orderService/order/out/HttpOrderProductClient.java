@@ -2,7 +2,7 @@ package com.cartmate.cartmate.boundedContext.orderService.order.out;
 
 import com.cartmate.cartmate.global.http.InternalApiClient;
 import com.cartmate.cartmate.global.http.InternalApiClient.InternalResponse;
-import com.cartmate.cartmate.shared.product.dto.ProductForPurchase;
+import com.cartmate.cartmate.shared.product.dto.InventoryForPurchase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -16,8 +16,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 class HttpOrderProductClient implements OrderProductClient {
 
-    static final String PATH = "/internal/products/for-purchase?ids={ids}";
-    static final ParameterizedTypeReference<InternalResponse<List<ProductForPurchase>>> PRODUCTS =
+    // 재고 ID로 조회: 주문 항목 단위(상품 + 선택된 옵션 조합)의 옵션명 · 적용가 · 구매 가능 여부
+    static final String PATH = "/internal/products/inventories/for-purchase?ids={ids}";
+    static final ParameterizedTypeReference<InternalResponse<List<InventoryForPurchase>>> INVENTORIES =
             new ParameterizedTypeReference<>() {};
 
     private final InternalApiClient productServerApiClient;
@@ -32,22 +33,22 @@ class HttpOrderProductClient implements OrderProductClient {
         if (joined.isEmpty()) {
             return List.of();
         }
-        List<ProductForPurchase> products = productServerApiClient.get(PATH, PRODUCTS, joined);
-        return products == null ? List.of() : products.stream()
+        List<InventoryForPurchase> inventories = productServerApiClient.get(PATH, INVENTORIES, joined);
+        return inventories == null ? List.of() : inventories.stream()
                 .map(this::toOrderProductInfo)
                 .toList();
     }
 
-    private OrderProductInfo toOrderProductInfo(ProductForPurchase product) {
+    private OrderProductInfo toOrderProductInfo(InventoryForPurchase inventory) {
         return new OrderProductInfo(
-                product.productId(),
-                product.productId(),
-                product.sellerId(),
-                product.name(),
-                null,
-                product.basePrice(),
-                product.imageUrl(),
-                product.purchasable()
+                inventory.inventoryId(),
+                inventory.productId(),
+                inventory.sellerId(),
+                inventory.productName(),
+                inventory.optionName(),
+                inventory.price(),
+                inventory.imageUrl(),
+                inventory.purchasable()
         );
     }
 }

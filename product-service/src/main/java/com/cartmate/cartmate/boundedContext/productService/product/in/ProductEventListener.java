@@ -2,10 +2,14 @@ package com.cartmate.cartmate.boundedContext.productService.product.in;
 
 import com.cartmate.cartmate.boundedContext.productService.product.app.ProductFacade;
 import com.cartmate.cartmate.global.event.OutboxMessageRelayed;
+import com.cartmate.cartmate.shared.order.event.OrderCanceledEvent;
+import com.cartmate.cartmate.shared.order.event.OrderPaidEvent;
+import com.cartmate.cartmate.shared.order.event.OrderSellerItemsCanceledEvent;
 import com.cartmate.cartmate.shared.post.event.SalesPostDeletedEvent;
 import com.cartmate.cartmate.shared.post.event.SalesPostRegisterFailedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 
@@ -23,5 +27,24 @@ public class ProductEventListener {
         } else if (message.event() instanceof SalesPostRegisterFailedEvent event) {
             productFacade.rollbackByApiFail(message.envelope().eventId(), event.postId());
         }
+    }
+
+    // 주문 이벤트 → 재고. Kafka 인박스가 이벤트를 꺼내 같은 트랜잭션 안에서 발행한다(처리 완료 표시와 함께 커밋)
+    // 결제 완료 → 판매 확정
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = true)
+    public void handle(OrderPaidEvent event) {
+        productFacade.confirmInventories(event.orderType(), event.orderId());
+    }
+
+    // 주문 취소 → 선점 해제(결제 전) 또는 재고 복구(결제 후)
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = true)
+    public void handle(OrderCanceledEvent event) {
+        productFacade.cancelInventories(event.orderType(), event.orderId());
+    }
+
+    // 판매자 몫 취소(결제된 개인 주문) → 그 판매자 재고만 재고 복구. 이 이벤트에는 주문 종류가 없다
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = true)
+    public void handle(OrderSellerItemsCanceledEvent event) {
+        productFacade.cancelSellerInventories(event.orderId(), event.sellerId());
     }
 }

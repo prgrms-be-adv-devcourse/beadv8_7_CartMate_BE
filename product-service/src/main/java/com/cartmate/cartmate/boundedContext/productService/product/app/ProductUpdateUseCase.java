@@ -168,7 +168,7 @@ public class ProductUpdateUseCase {
                 if (existing == null) {
                     throw new ServiceException(ProductErrorCode.PRODUCT_INVENTORY_NOT_FOUND);
                 }
-                existing.change(req.getAdditionalPrice(), req.getStockQuantity());
+                existing.changeBySeller(req.getAdditionalPrice(), req.getStockQuantity());
             }
         }
 
