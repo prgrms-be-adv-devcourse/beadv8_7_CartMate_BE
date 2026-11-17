@@ -4,7 +4,7 @@
 #
 # 베이스 이미지는 정확한 버전(Java 25.0.5+8, Alpine 3.24)과 digest로 고정한다
 # 25-jdk-alpine 같은 태그는 Java 패치 · Alpine 버전이 올라가면 같은 이름이 다른 이미지를 가리킨다
-FROM eclipse-temurin:25.0.5_8-jdk-alpine-3.24@sha256:c7c3d0bdf7f2bbc5a05a6712ed334d198360105634ea9adf76fca94f381b1e3f AS builder
+FROM eclipse-temurin:25-jdk-alpine-3.21@sha256:7dae47ac826aec7b78376bdecebcd3c6b05d0f004f4ba9854f18a7c2dffbed1c AS builder
 ARG SERVICE
 RUN test -n "$SERVICE" || (echo "SERVICE 빌드 인자가 없다 (예: --build-arg SERVICE=order-service)" && exit 1)
 WORKDIR /app
@@ -26,7 +26,7 @@ COPY common/src common/src
 COPY ${SERVICE}/src/main ${SERVICE}/src/main
 RUN ./gradlew :${SERVICE}:bootJar --no-daemon
 
-FROM eclipse-temurin:25.0.5_8-jre-alpine-3.24@sha256:e1898fd6a11fc965a994d8ace186fd3585aeb636cf8f05f47a723fcfee0b0918
+FROM eclipse-temurin:25-jre-alpine-3.21@sha256:bf30e2e0d17471cf174fffeaa86fdb45c46810a11d1fda4f0ff86f5fb3577202
 ARG SERVICE
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
