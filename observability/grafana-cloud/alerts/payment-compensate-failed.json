@@ -11,7 +11,7 @@
   "labels": { "severity": "critical" },
   "annotations": {
     "summary": "결제 되돌리기가 실패했습니다. 돈이 어긋났을 수 있어 수동 확인이 필요합니다.",
-    "description": "Loki: {service=~\".+\"} | json | event=~\"payment.compensate.*\" | result=\"FAILED\" → traceId로 Tempo 확인"
+    "description": "Loki: {service=~\".+\", env!=\"loadtest\"} | json | event=~\"payment.compensate.*\" | result=\"FAILED\" → traceId로 Tempo 확인"
   },
   "data": [
     {
@@ -21,7 +21,7 @@
       "model": {
         "refId": "A",
         "queryType": "instant",
-        "expr": "sum(count_over_time({service=~\".+\"} | json | event=~\"payment.compensate|payment.compensate.request\" | result=\"FAILED\" [5m]))"
+        "expr": "sum(count_over_time({service=~\".+\", env!=\"loadtest\"} | json | event=~\"payment.compensate|payment.compensate.request\" | result=\"FAILED\" [5m]))"
       }
     },
     {

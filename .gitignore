@@ -23,6 +23,8 @@ db.properties
 log/
 *.log
 observability/logs/
+loadtest/logs/
+loadtest/results/
 
 .env
 .env.*

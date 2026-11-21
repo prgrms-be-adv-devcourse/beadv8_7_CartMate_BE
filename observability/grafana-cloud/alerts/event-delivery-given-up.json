@@ -11,7 +11,7 @@
   "labels": { "severity": "critical" },
   "annotations": {
     "summary": "서비스 간 이벤트 전달을 포기했습니다 (재시도 끝). 받는 쪽 처리가 빠졌을 수 있습니다.",
-    "description": "Loki: {service=~\".+\"} | json | event=~\"outbox.failed|inbox.failed|kafka.dlt\" → eventId · topic 확인, Kafka UI에서 DLT 메시지 확인"
+    "description": "Loki: {service=~\".+\", env!=\"loadtest\"} | json | event=~\"outbox.failed|inbox.failed|kafka.dlt\" → eventId · topic 확인, Kafka UI에서 DLT 메시지 확인"
   },
   "data": [
     {
@@ -21,7 +21,7 @@
       "model": {
         "refId": "A",
         "queryType": "instant",
-        "expr": "sum(count_over_time({service=~\".+\"} | json | event=~\"outbox.failed|inbox.failed|kafka.dlt\" [5m]))"
+        "expr": "sum(count_over_time({service=~\".+\", env!=\"loadtest\"} | json | event=~\"outbox.failed|inbox.failed|kafka.dlt\" [5m]))"
       }
     },
     {

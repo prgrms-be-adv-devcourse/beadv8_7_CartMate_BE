@@ -1,0 +1,215 @@
+// 부하 테스트용 수집기: 로컬 앱(파일 로그 · OTLP trace · OTLP 메트릭) + 시험용 MySQL · Redis → Grafana Cloud
+// 로그 · trace 처리 규칙은 observability/k8s/alloy/config.alloy(운영)와 같다. 다른 점:
+//   로그 입력이 Pod가 아니라 파일 (observability/alloy/config.alloy와 같은 방식)
+//   앱 메트릭(지연 히스토그램 · 커넥션 풀 · JVM)을 OTLP로 받아 Cloud Prometheus로 보낸다 — trace는 1%만 남으므로
+//   지연 · 처리량은 100% 요청을 센 메트릭으로 본다
+// 라벨 env="loadtest" 로 운영 · 로컬 데이터와 구분한다
+
+// ===== 로그: 앱이 loadtest/logs/<서비스>.log 에 쓰는 logstash JSON =====
+local.file_match "app_logs" {
+  path_targets = [{"__path__" = "/var/log/cartmate/*.log"}]
+  sync_period  = "5s"
+}
+
+discovery.relabel "app_logs" {
+  targets = local.file_match.app_logs.targets
+
+  rule {
+    source_labels = ["__path__"]
+    regex         = ".*/([^/]+)\\.log"
+    target_label  = "service"
+  }
+}
+
+loki.source.file "app_logs" {
+  targets       = discovery.relabel.app_logs.output
+  forward_to    = [loki.process.cartmate.receiver]
+  tail_from_end = true
+}
+
+loki.process "cartmate" {
+  stage.json {
+    expressions = {
+      level     = "level",
+      timestamp = "\"@timestamp\"",
+    }
+  }
+
+  stage.timestamp {
+    source = "timestamp"
+    format = "RFC3339Nano"
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+
+  // 업무 이벤트(event)가 없는 줄 중 지정한 레벨은 버린다 (부하테스트 모드: INFO까지)
+  stage.match {
+    selector            = "{level=~\"" + coalesce(sys.env("OBS_DROP_PLAIN_LOG_LEVELS"), "DEBUG|TRACE") + "\"} != \"\\\"event\\\":\""
+    action              = "drop"
+    drop_counter_reason = "plain_log"
+  }
+
+  // 서비스별 초당 줄 수 상한 (오류가 폭주해도 무료 한도를 다 쓰지 않게)
+  stage.limit {
+    rate          = encoding.from_json(coalesce(sys.env("OBS_LOG_RATE_LIMIT"), "200"))
+    burst         = encoding.from_json(coalesce(sys.env("OBS_LOG_RATE_LIMIT"), "200")) * 2
+    by_label_name = "service"
+    drop          = true
+  }
+
+  stage.replace {
+    expression = "(\"@version\":\"1\",)"
+    replace    = ""
+  }
+
+  stage.replace {
+    expression = "(,\"level_value\":\\d+)"
+    replace    = ""
+  }
+
+  stage.static_labels {
+    values = {
+      env = coalesce(sys.env("ENV_NAME"), "loadtest"),
+    }
+  }
+
+  stage.label_keep {
+    values = ["service", "env", "level"]
+  }
+
+  forward_to = [loki.write.cloud.receiver]
+}
+
+loki.write "cloud" {
+  endpoint {
+    url = sys.env("GC_LOKI_URL")
+    basic_auth {
+      username = sys.env("GC_LOKI_USER")
+      password = sys.env("GC_TOKEN")
+    }
+  }
+}
+
+// ===== trace · 메트릭: 앱 OTLP =====
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  output {
+    traces  = [otelcol.processor.tail_sampling.default.input]
+    metrics = [otelcol.exporter.prometheus.app.input]
+  }
+}
+
+otelcol.processor.tail_sampling "default" {
+  decision_wait = "10s"
+  num_traces    = 20000
+
+  decision_cache = {
+    sampled_cache_size = 20000,
+  }
+
+  policy {
+    name = "errors"
+    type = "status_code"
+    status_code {
+      status_codes = ["ERROR"]
+    }
+  }
+
+  policy {
+    name = "slow"
+    type = "latency"
+    latency {
+      threshold_ms = encoding.from_json(coalesce(sys.env("OBS_SLOW_TRACE_MS"), "1000"))
+    }
+  }
+
+  policy {
+    name = "sample"
+    type = "probabilistic"
+    probabilistic {
+      sampling_percentage = encoding.from_json(coalesce(sys.env("OBS_TRACE_SAMPLE_PERCENT"), "1"))
+    }
+  }
+
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    traces = [otelcol.exporter.otlphttp.cloud.input]
+  }
+}
+
+otelcol.auth.basic "cloud" {
+  username = sys.env("GC_OTLP_USER")
+  password = sys.env("GC_TOKEN")
+}
+
+otelcol.exporter.otlphttp "cloud" {
+  client {
+    endpoint = sys.env("GC_OTLP_URL")
+    auth     = otelcol.auth.basic.cloud.handler
+  }
+}
+
+// 앱 메트릭(OTLP) → Prometheus 형식. service.name 은 job 라벨이 된다
+otelcol.exporter.prometheus "app" {
+  include_target_info = false
+  forward_to          = [prometheus.relabel.keep.receiver]
+}
+
+// ===== 시험용 MySQL · Redis =====
+prometheus.exporter.mysql "payment" {
+  data_source_name = "exporter:exporter@(mysql:3306)/"
+}
+
+prometheus.exporter.redis "default" {
+  redis_addr = "redis:6379"
+}
+
+prometheus.scrape "infra" {
+  targets         = array.concat(prometheus.exporter.mysql.payment.targets, prometheus.exporter.redis.default.targets)
+  scrape_interval = "15s"
+  job_name        = "infra"
+  forward_to      = [prometheus.relabel.keep.receiver]
+}
+
+// 필요한 지표만 (무료 한도: 활성 시계열 1만 개). 앱 쪽은 요청 지연 · 커넥션 풀 · JVM · CPU · Tomcat 스레드
+prometheus.relabel "keep" {
+  rule {
+    source_labels = ["__name__"]
+    action        = "keep"
+    regex         = "(http_server_requests_seconds_(bucket|count|sum|max)|hikaricp_connections(_active|_idle|_pending|_max|_timeout_total|_acquire_seconds_(count|sum|max))?|jvm_memory_used_bytes|jvm_gc_pause_seconds_(count|sum|max)|process_cpu_usage(_ratio)?|system_cpu_usage(_ratio)?|jvm_threads_live.*|tomcat_threads_.*|mysql_up|mysql_global_status_threads_(connected|running)|mysql_global_status_questions|mysql_global_status_innodb_row_lock_(waits|time)|mysql_global_status_slow_queries|redis_up|redis_memory_used_bytes|redis_connected_clients)"
+  }
+  // 상태 확인 · 정적 경로는 빼서 시계열 절약
+  rule {
+    source_labels = ["uri"]
+    regex         = "/actuator.*"
+    action        = "drop"
+  }
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}
+
+prometheus.remote_write "cloud" {
+  external_labels = {
+    env = coalesce(sys.env("ENV_NAME"), "loadtest"),
+  }
+  endpoint {
+    url = sys.env("GC_PROM_URL")
+    basic_auth {
+      username = sys.env("GC_PROM_USER")
+      password = sys.env("GC_TOKEN")
+    }
+  }
+}

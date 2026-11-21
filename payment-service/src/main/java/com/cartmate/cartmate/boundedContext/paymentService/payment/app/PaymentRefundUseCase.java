@@ -188,7 +188,9 @@ public class PaymentRefundUseCase {
                 // 같은 환불 키가 동시에 저장된 경우(중복 키)만 "처리 중"으로 바꾼다.
                 // CHECK 제약 위반 등 다른 원인은 그대로 던져서, 엉뚱한 메시지 뒤에 숨지 않게 한다.
                 if (isDuplicateKey(e)) {
-                    throw new ServiceException(PaymentErrorCode.PAYMENT_REFUND_IN_PROGRESS);
+                    // 다른 요청이 같은 환불을 처리하고 있다 → 실패가 아니다 (부하 테스트 S5에서 FAILED로 남아 알림이 울렸음)
+                    logRefund(Level.WARN, payment, amount, reason, "IN_PROGRESS", null);
+                    throw new RefundInProgress();
                 }
                 throw e;
             }
@@ -197,6 +199,8 @@ public class PaymentRefundUseCase {
             // 이미 정산된 결제면 wallet이 거절 → 주문 취소까지 롤백
             paymentWalletClient.refund(payment.getWalletId(), amount,
                     payment.getId(), payment.getOrderId(), refund.getId());
+        } catch (RefundInProgress e) {
+            throw new ServiceException(PaymentErrorCode.PAYMENT_REFUND_IN_PROGRESS);
         } catch (RuntimeException e) {
             logRefund(Level.ERROR, payment, amount, reason, "FAILED", e); // 돈이 어긋날 수 있는 실패
             throw e;
@@ -223,6 +227,13 @@ public class PaymentRefundUseCase {
         }
         event.log("{} {}: 주문 #{} 결제 #{} {}원 ({})", compensate ? "결제 되돌리기" : "환불", result,
                 payment.getOrderId(), payment.getId(), amount, reason.name());
+    }
+
+    // 같은 환불 키를 다른 요청이 먼저 저장함 → 아래 catch에서 FAILED 기록 없이 "처리 중"으로 바꾸기 위한 표시
+    private static final class RefundInProgress extends RuntimeException {
+        RefundInProgress() {
+            super(null, null, false, false);
+        }
     }
 
     // MySQL 중복 키 오류(1062)인지. 저장 실패 직후라 DB를 다시 조회하지 않고 예외 안의 오류 번호로 판단한다.

@@ -1,0 +1,70 @@
+# 결제 서비스 부하 테스트용 로컬 환경 (노트북 메모리 약 0.8GB 안)
+#   MySQL · Redis : 테스트 전용. 공용 서버(운영과 같은 서버)는 쓰지 않는다
+#   Alloy         : 앱 로그 · trace · 메트릭 → Grafana Cloud (부하테스트 모드: 정상 trace 1%, 이벤트 없는 INFO 버림)
+# 실행 순서 · 명령은 loadtest/README.md
+# 포트는 평소 쓰는 것과 겹치지 않게 (SSH 터널 13306 · 6379/6380, 로컬 관측 스택과는 Alloy 포트가 같으니 그쪽을 내리고 쓴다)
+name: cartmate-loadtest
+
+services:
+  mysql:
+    image: mysql:8.4                       # 이미 받아 둔 이미지를 쓴다 (새로 받지 않게)
+    container_name: cartmate-lt-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: loadtest        # 이 컨테이너 전용 시험 값 (외부 노출 없음, 실행마다 지움)
+      MYSQL_DATABASE: cartmate_payment
+    command:
+      - --innodb-buffer-pool-size=128M
+      - --performance-schema=OFF           # 메모리 약 200MB 절약
+      - --max-connections=60
+      - --skip-log-bin                     # 바이너리 로그 안 씀 (디스크 쓰기 줄임)
+    volumes:
+      - ./sql:/sql:ro                      # docker exec로 seed · verify 실행
+      - ./sql/init:/docker-entrypoint-initdb.d:ro
+    # 데이터 볼륨 없음 → docker compose down 하면 사라짐 (매번 새로 시작). tmpfs는 컨테이너 메모리에 잡혀 512MB를 넘겨서 쓰지 않는다
+    ports:
+      - "23306:3306"
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-uroot", "-ploadtest", "--silent"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: cartmate-lt-redis
+    command: ["redis-server", "--maxmemory", "48mb", "--save", "", "--appendonly", "no"]
+    ports:
+      - "26379:6379"                       # 앱의 cache · core 둘 다 이 하나로 (REDIS_CACHE_PORT · REDIS_CORE_PORT)
+    mem_limit: 64m
+
+  alloy:
+    image: grafana/alloy:v1.21.3           # observability/docker-compose.yaml과 같은 버전
+    container_name: cartmate-lt-alloy
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - --stability.level=${ALLOY_STABILITY:-generally-available}   # 메트릭 이름 확인용 otelcol.exporter.debug를 잠깐 쓸 때 experimental
+      - /etc/alloy/config.alloy
+    env_file:
+      - path: ./.env                       # GC_*_URL · GC_*_USER (비밀 아님, gitignore). .env.example 참고
+        required: false                    # mysql · redis만 띄울 때는 없어도 됨
+    environment:
+      GC_TOKEN: ${GC_TOKEN:-}               # README 3단계: Read-Host -AsSecureString으로 넣는다 (비면 Alloy가 Cloud 인증 오류를 남김)
+      ENV_NAME: loadtest
+      # 부하테스트 모드 (observability-saving-measured 실측: 요청 1천 건당 trace 3.9KB)
+      OBS_TRACE_SAMPLE_PERCENT: ${OBS_TRACE_SAMPLE_PERCENT:-1}
+      OBS_SLOW_TRACE_MS: ${OBS_SLOW_TRACE_MS:-1000}
+      OBS_DROP_PLAIN_LOG_LEVELS: ${OBS_DROP_PLAIN_LOG_LEVELS:-DEBUG|TRACE|INFO}
+      OBS_LOG_RATE_LIMIT: ${OBS_LOG_RATE_LIMIT:-200}
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./logs:/var/log/cartmate:ro        # 앱이 쓰는 JSON 로그 (payment-service.log)
+    ports:
+      - "4317:4317"
+      - "4318:4318"                        # 앱 → trace · 메트릭 (OTLP HTTP)
+      - "12345:12345"                      # Alloy 상태 화면
+    mem_limit: 256m
+    depends_on:
+      mysql:
+        condition: service_healthy

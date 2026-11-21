@@ -1,0 +1,137 @@
+{
+  "uid": "cartmate-payment-loadtest",
+  "title": "CartMate 결제 부하 테스트",
+  "description": "loadtest/ 로 돌린 결제 내부 API 부하 테스트 (env=loadtest). 지연 · 처리량은 메트릭(요청 100%), 실패 원인은 로그, 대표 흐름은 trace",
+  "tags": ["cartmate", "loadtest"],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "schemaVersion": 39,
+  "templating": {
+    "list": [
+      {
+        "name": "prom_ds",
+        "label": "메트릭",
+        "type": "datasource",
+        "query": "prometheus",
+        "regex": "/^grafanacloud-.*-prom$|^Prometheus$/"
+      },
+      {
+        "name": "loki_ds",
+        "label": "로그",
+        "type": "datasource",
+        "query": "loki",
+        "regex": "/^Loki$|^grafanacloud-.*-logs$/"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "초당 요청 (API · 응답 코드별)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${prom_ds}" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (uri, status) (rate(http_server_requests_seconds_count{env=\"loadtest\", job=\"payment-service\", uri=~\"/internal/payments.*\"}[1m]))",
+          "legendFormat": "{{uri}} {{status}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "결제 지연 p50 · p95 · p99 (POST /internal/payments)",
+      "description": "합격 기준: 50 rps 구간 p95 < 300ms. 히스토그램 구간은 run-payment.ps1의 SLO 값",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${prom_ds}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.3 }] },
+          "custom": { "thresholdsStyle": { "mode": "line" } }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{env=\"loadtest\", job=\"payment-service\", uri=\"/internal/payments\"}[1m])))", "legendFormat": "p50" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{env=\"loadtest\", job=\"payment-service\", uri=\"/internal/payments\"}[1m])))", "legendFormat": "p95" },
+        { "refId": "C", "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{env=\"loadtest\", job=\"payment-service\", uri=\"/internal/payments\"}[1m])))", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "DB 커넥션 풀 (사용 중 · 기다리는 요청)",
+      "description": "pending이 0보다 크면 요청이 커넥션을 기다리는 중 → 지연의 원인이 DB 풀(기본 10개)",
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${prom_ds}" },
+      "targets": [
+        { "refId": "A", "expr": "sum(hikaricp_connections_active{env=\"loadtest\"})", "legendFormat": "사용 중" },
+        { "refId": "B", "expr": "sum(hikaricp_connections_pending{env=\"loadtest\"})", "legendFormat": "기다림" },
+        { "refId": "C", "expr": "sum(hikaricp_connections_max{env=\"loadtest\"})", "legendFormat": "최대" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tomcat 요청 스레드 (사용 중 / 최대)",
+      "gridPos": { "x": 8, "y": 8, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${prom_ds}" },
+      "targets": [
+        { "refId": "A", "expr": "sum(tomcat_threads_busy{env=\"loadtest\"})", "legendFormat": "사용 중" },
+        { "refId": "B", "expr": "sum(tomcat_threads_config_max{env=\"loadtest\"})", "legendFormat": "최대" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM 힙 · CPU",
+      "gridPos": { "x": 16, "y": 8, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${prom_ds}" },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "CPU" }, "properties": [{ "id": "unit", "value": "percentunit" }, { "id": "custom.axisPlacement", "value": "right" }] }
+        ]
+      },
+      "targets": [
+        { "refId": "A", "expr": "sum(jvm_memory_used_bytes{env=\"loadtest\", area=\"heap\"})", "legendFormat": "힙 사용" },
+        { "refId": "B", "expr": "max({__name__=~\"process_cpu_usage(_ratio)?\", env=\"loadtest\"})", "legendFormat": "CPU" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "MySQL 연결 · 행 락 대기",
+      "description": "같은 지갑 경합(S4) 때 행 락 대기 · 데드락이 늘어난다",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${prom_ds}" },
+      "targets": [
+        { "refId": "A", "expr": "max(mysql_global_status_threads_connected{env=\"loadtest\"})", "legendFormat": "연결" },
+        { "refId": "B", "expr": "max(mysql_global_status_threads_running{env=\"loadtest\"})", "legendFormat": "실행 중" },
+        { "refId": "C", "expr": "sum(rate(mysql_global_status_innodb_row_lock_waits{env=\"loadtest\"}[1m]))", "legendFormat": "행 락 대기/초" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "결제 결과 (업무 이벤트 로그)",
+      "description": "payment.charge result = SUCCESS · DUPLICATE, payment.conflict = 같은 지갑 충돌로 409, payment.compensate = 되돌리기(S5)",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "loki", "uid": "${loki_ds}" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (event, result) (count_over_time({service=\"payment-service\", env=\"loadtest\"} | json | event=~\"payment.charge|payment.conflict|payment.compensate\" [1m]))",
+          "legendFormat": "{{event}} {{result}}"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "경고 · 오류 로그 (traceId 클릭 → trace)",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 10 },
+      "datasource": { "type": "loki", "uid": "${loki_ds}" },
+      "targets": [
+        { "refId": "A", "expr": "{service=\"payment-service\", env=\"loadtest\", level=~\"WARN|ERROR\"}" }
+      ]
+    }
+  ]
+}
