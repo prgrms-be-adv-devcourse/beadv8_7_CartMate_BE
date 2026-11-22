@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 예치금 차감. 결제 서버는 주문 내용(결제 기한, 공동 주문 규칙 등)을 모르고
@@ -48,8 +50,23 @@ class PaymentChargeUseCase {
         }
 
         paymentWalletClient.use(walletId, payment.getAmount(), payment.getId(), orderId, type);
-        logCharge(payment, "SUCCESS");
+        logSuccessAfterCommit(payment);
         return payment;
+    }
+
+    // 성공 기록은 커밋된 뒤에 남긴다. 커밋 단계에서 같은 지갑 충돌(데드락 · 낙관적 락)로 롤백되면
+    // 이미 SUCCESS가 찍혀 로그로 센 결제 수가 실제보다 커졌다 (부하 테스트 S4: 로그 500줄, 실제 결제 54건)
+    private static void logSuccessAfterCommit(Payment payment) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            logCharge(payment, "SUCCESS");
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                logCharge(payment, "SUCCESS");
+            }
+        });
     }
 
     private static void logCharge(Payment payment, String result) {

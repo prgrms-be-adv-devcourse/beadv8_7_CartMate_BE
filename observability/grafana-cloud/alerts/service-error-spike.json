@@ -21,7 +21,7 @@
       "model": {
         "refId": "A",
         "queryType": "instant",
-        "expr": "sum by (service) (count_over_time({service=~\".+\", level=\"ERROR\"} [5m]))"
+        "expr": "sum by (service) (count_over_time({service=~\".+\", env!=\"loadtest\", level=\"ERROR\"} [5m]))"
       }
     },
     {

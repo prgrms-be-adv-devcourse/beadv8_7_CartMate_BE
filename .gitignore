@@ -23,6 +23,9 @@ db.properties
 log/
 *.log
 observability/logs/
+loadtest/logs/
+loadtest/results/
+loadtest/kafka/out/
 
 .env
 .env.*

@@ -20,7 +20,7 @@ groups:
             model:
               refId: A
               queryType: instant
-              expr: 'sum(count_over_time({service=~".+"} | json | event=~"payment.compensate|payment.compensate.request" | result="FAILED" [5m]))'
+              expr: 'sum(count_over_time({service=~".+", env!="loadtest"} | json | event=~"payment.compensate|payment.compensate.request" | result="FAILED" [5m]))'
           - refId: B
             datasourceUid: __expr__
             model:
@@ -45,7 +45,7 @@ groups:
           severity: critical
         annotations:
           summary: 결제 되돌리기가 실패했습니다. 돈이 어긋났을 수 있어 수동 확인이 필요합니다.
-          description: 'Loki: {service=~".+"} | json | event=~"payment.compensate.*" | result="FAILED" → traceId로 Tempo 확인'
+          description: 'Loki: {service=~".+", env!="loadtest"} | json | event=~"payment.compensate.*" | result="FAILED" → traceId로 Tempo 확인'
 
       - uid: cartmate-event-delivery-given-up
         title: 이벤트 전달 포기 (Outbox · Inbox · DLT)
@@ -59,7 +59,7 @@ groups:
             model:
               refId: A
               queryType: instant
-              expr: 'sum(count_over_time({service=~".+"} | json | event=~"outbox.failed|inbox.failed|kafka.dlt" [5m]))'
+              expr: 'sum(count_over_time({service=~".+", env!="loadtest"} | json | event=~"outbox.failed|inbox.failed|kafka.dlt" [5m]))'
           - refId: B
             datasourceUid: __expr__
             model:
@@ -84,7 +84,7 @@ groups:
           severity: critical
         annotations:
           summary: 서비스 간 이벤트 전달을 포기했습니다 (재시도 끝). 받는 쪽 처리가 빠졌을 수 있습니다.
-          description: 'Loki: {service=~".+"} | json | event=~"outbox.failed|inbox.failed|kafka.dlt" → eventId · topic 확인'
+          description: 'Loki: {service=~".+", env!="loadtest"} | json | event=~"outbox.failed|inbox.failed|kafka.dlt" → eventId · topic 확인'
 
       # 서비스별로 따로 울린다 (service 라벨마다 알림 1개). 5분에 ERROR 10건 이상
       - uid: cartmate-service-error-spike
@@ -99,7 +99,7 @@ groups:
             model:
               refId: A
               queryType: instant
-              expr: 'sum by (service) (count_over_time({service=~".+", level="ERROR"} [5m]))'
+              expr: 'sum by (service) (count_over_time({service=~".+", env!="loadtest", level="ERROR"} [5m]))'
           - refId: B
             datasourceUid: __expr__
             model:
